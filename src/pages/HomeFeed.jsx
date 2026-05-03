@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { getReports } from "@/lib/mockData";
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import ReportCard from "@/components/feed/ReportCard";
 import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
@@ -24,21 +24,28 @@ export default function HomeFeed() {
   const [activeMarketCap, setActiveMarketCap] = useState("All");
   const [sortBy, setSortBy] = useState("Latest");
   const [showFilters, setShowFilters] = useState(false);
-  const reports = getReports();
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    base44.entities.Report.filter({ status: "published" }, "-created_date", 50)
+      .then(data => setReports(data || []))
+      .finally(() => setLoading(false));
+  }, []);
 
   const tabFiltered = reports
-    .filter(r => activeTab === "free" ? !r.isPremium : true)
+    .filter(r => activeTab === "free" ? !r.is_premium : true)
     .sort((a, b) => {
-      if (activeTab === "trending") return (b.likes * 2 + (b.completed ? 1 : 0)) - (a.likes * 2 + (a.completed ? 1 : 0));
-      if (activeTab === "most_viewed") return b.likes - a.likes;
-      return new Date(b.publishedAt) - new Date(a.publishedAt);
+      if (activeTab === "trending") return (b.likes || 0) - (a.likes || 0);
+      if (activeTab === "most_viewed") return (b.likes || 0) - (a.likes || 0);
+      return new Date(b.created_date) - new Date(a.created_date);
     });
 
   const filtered = tabFiltered
     .filter(r => activeSector === "All" || r.industry === activeSector)
-    .filter(r => activeMarketCap === "All" || (r.marketCap || "").toLowerCase() === activeMarketCap.toLowerCase())
-    .filter(r => sortBy === "Premium Only" ? r.isPremium : sortBy === "Free Only" ? !r.isPremium : true)
-    .sort((a, b) => sortBy === "Most Liked" ? b.likes - a.likes : sortBy === "Latest" ? new Date(b.publishedAt) - new Date(a.publishedAt) : 0);
+    .filter(r => activeMarketCap === "All" || (r.market_cap || "").toLowerCase() === activeMarketCap.toLowerCase())
+    .filter(r => sortBy === "Premium Only" ? r.is_premium : sortBy === "Free Only" ? !r.is_premium : true)
+    .sort((a, b) => sortBy === "Most Liked" ? (b.likes || 0) - (a.likes || 0) : sortBy === "Latest" ? new Date(b.created_date) - new Date(a.created_date) : 0);
 
   const activeFilterCount = (activeSector !== "All" ? 1 : 0) + (activeMarketCap !== "All" ? 1 : 0) + (sortBy !== "Latest" ? 1 : 0);
 
@@ -101,7 +108,9 @@ export default function HomeFeed() {
           )}
 
           <div className="space-y-4">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Loading reports...</div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">No reports match these filters.</div>
             ) : (
               filtered.map(report => <ReportCard key={report.id} report={report} />)

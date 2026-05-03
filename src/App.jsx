@@ -31,6 +31,7 @@ import PrivacyPage from '@/pages/PrivacyPage';
 import CookiePolicyPage from '@/pages/CookiePolicyPage';
 import AccessibilityPage from '@/pages/AccessibilityPage';
 import SignIn from '@/pages/SignIn';
+import LandingPage from '@/pages/LandingPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
@@ -55,7 +56,7 @@ const AuthenticatedApp = () => {
       {/* Routes with AppLayout */}
       <Route element={<AppLayout />}>
         {/* Public routes */}
-        <Route path="/" element={<HomeFeed />} />
+        <Route path="/" element={isAuthenticated ? <HomeFeed /> : <LandingPage />} />
         <Route path="/report" element={<ReportView />} />
         <Route path="/analyst" element={<AnalystProfilePage />} />
         <Route path="/stock" element={<StockPage />} />
