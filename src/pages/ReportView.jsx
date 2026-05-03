@@ -113,7 +113,7 @@ export default function ReportView() {
 
       {(!report.isPremium || isPaid) && (
         <div className="mb-8">
-          <FactChecker content={FULL_CONTENT} />
+          <FactChecker reportContent={FULL_CONTENT} />
         </div>
       )}
 
