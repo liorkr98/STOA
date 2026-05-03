@@ -51,7 +51,12 @@ const AuthenticatedApp = () => {
 
   if (authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
-    else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
+    else if (authError.type === 'auth_required') {
+      // On the root path, show landing page instead of redirecting to login
+      if (isRoot) return <LandingPage />;
+      navigateToLogin();
+      return null;
+    }
   }
 
   return (
