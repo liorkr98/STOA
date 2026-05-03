@@ -82,7 +82,7 @@ export default function AppLayout() {
                       <Settings className="w-4 h-4 mr-2" /> Edit Profile
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => base44.auth.logout("/")} className="text-loss focus:text-loss">
+                    <DropdownMenuItem onClick={() => { base44.auth.logout("/"); }} className="text-loss focus:text-loss">
                       <LogOut className="w-4 h-4 mr-2" /> Log Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>

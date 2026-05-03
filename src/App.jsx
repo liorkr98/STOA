@@ -37,10 +37,11 @@ import WalletPage from '@/pages/WalletPage';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
   const isLoading = isLoadingPublicSettings || isLoadingAuth;
+  const isRoot = window.location.pathname === "/";
 
-  // Show a full-screen spinner only on non-root paths while loading
-  // On "/" show LandingPage immediately (no auth needed to view it)
-  if (isLoading && window.location.pathname !== "/") {
+  // While auth is loading: show LandingPage on "/" immediately, spinner elsewhere
+  if (isLoading) {
+    if (isRoot) return <LandingPage />;
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
@@ -48,7 +49,7 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (!isLoading && authError) {
+  if (authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
@@ -57,7 +58,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/signin" element={<SignIn />} />
 
-      {/* Landing — outside AppLayout, for unauthenticated users */}
+      {/* Landing — always shown on "/" for unauthenticated users (also shown while loading above) */}
       {!isAuthenticated && <Route path="/" element={<LandingPage />} />}
 
       {/* Routes with AppLayout */}
