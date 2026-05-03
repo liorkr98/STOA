@@ -1,24 +1,26 @@
 import React from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet } from "lucide-react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { BarChart3, Home, PenLine, LogIn, Wallet, User, Settings, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
 import NotificationCenter from "./NotificationCenter";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import StoaLogo from "@/components/StoaLogo";
+import { base44 } from "@/api/base44Client";
 
 const NAV_ITEMS = [
   { path: "/", label: "Feed", icon: Home },
   { path: "/editor", label: "Write", icon: PenLine },
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { path: "/wallet", label: "Wallet", icon: Wallet, authOnly: true },
 ];
 
 export default function AppLayout() {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
@@ -33,7 +35,7 @@ export default function AppLayout() {
           </div>
 
           <nav className="flex items-center gap-1 ml-auto">
-            {NAV_ITEMS.filter(item => !item.authOnly || isAuthenticated).map((item) => {
+            {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
@@ -53,7 +55,39 @@ export default function AppLayout() {
               );
             })}
             {isAuthenticated ? (
-              <NotificationCenter />
+              <div className="flex items-center gap-1">
+                <NotificationCenter />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
+                        {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                      </div>
+                      <span className="hidden md:block max-w-[100px] truncate">{user?.full_name || user?.email?.split("@")[0]}</span>
+                      <ChevronDown className="w-3.5 h-3.5 hidden md:block" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-sm font-semibold truncate">{user?.full_name || "My Account"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                    <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                      <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/wallet")}>
+                      <Wallet className="w-4 h-4 mr-2" /> Wallet
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/edit-profile")}>
+                      <Settings className="w-4 h-4 mr-2" /> Edit Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => base44.auth.logout("/")} className="text-loss focus:text-loss">
+                      <LogOut className="w-4 h-4 mr-2" /> Log Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : (
               <Link to="/signin">
                 <Button size="sm" className="ml-1 gap-1.5">
