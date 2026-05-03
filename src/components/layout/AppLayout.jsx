@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn } from "lucide-react";
+import { BarChart3, Home, PenLine, LogIn, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { path: "/", label: "Feed", icon: Home },
   { path: "/editor", label: "Write", icon: PenLine },
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { path: "/wallet", label: "Wallet", icon: Wallet, authOnly: true },
 ];
 
 export default function AppLayout() {
@@ -32,7 +33,7 @@ export default function AppLayout() {
           </div>
 
           <nav className="flex items-center gap-1 ml-auto">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => !item.authOnly || isAuthenticated).map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (

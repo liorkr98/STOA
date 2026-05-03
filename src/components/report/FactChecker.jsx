@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Sparkles, CheckCircle2, AlertTriangle, Info, MessageSquareQuote,
-  Loader2, Users, ChevronDown, ChevronUp, HelpCircle, Send, X
+  Loader2, Users, ChevronDown, ChevronUp, HelpCircle, Send, X, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -168,6 +168,29 @@ function ClaimCard({ claim }) {
         {claim.type === "Unverified" && (
           <UnverifiedExplainer claim={claim} />
         )}
+
+        {/* Claude cross-check badge */}
+        {claim.claude_critique && (
+          <div className={`mt-2 pt-2 border-t border-current/10`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <RefreshCw className="w-3 h-3 opacity-60" />
+              <span className="text-[10px] font-bold opacity-70">Claude Cross-Check</span>
+              {claim.claude_changed && (
+                <span className="text-[9px] bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-1.5 py-0.5 font-semibold">
+                  Changed: {claim.original_verdict} → {claim.type}
+                </span>
+              )}
+              {claim.claude_confidence && (
+                <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ml-auto ${
+                  claim.claude_confidence === "high" ? "bg-gain/10 text-gain" :
+                  claim.claude_confidence === "medium" ? "bg-amber-50 text-amber-700" :
+                  "bg-muted text-muted-foreground"
+                }`}>{claim.claude_confidence} confidence</span>
+              )}
+            </div>
+            <p className="text-[10px] text-foreground/70 italic">{claim.claude_critique}</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -226,8 +249,8 @@ For each candidate, produce 1-2 atomic claims. Remove ambiguous pronouns, resolv
 
     const atomicClaims = decompRes.atomic_claims || candidates;
 
-    // Stage 3: Verification — classify each atomic claim
-    setStage("Stage 3/3: Verifying claims with live data...");
+    // Stage 3: Verification — classify each atomic claim with web search
+    setStage("Stage 3/4: Verifying claims with live data...");
     const verifyRes = await base44.integrations.Core.InvokeLLM({
       prompt: `You are a financial fact-checker using the Claimify methodology. Classify each atomic claim below.
 
@@ -265,7 +288,61 @@ For each claim also provide:
       }
     });
 
-    setClaims(verifyRes.claims || []);
+    const stage3Claims = verifyRes.claims || [];
+
+    // Stage 4: Claude cross-check — deep adversarial review of each claim
+    setStage("Stage 4/4: Claude adversarial cross-check...");
+    const claudeRes = await base44.integrations.Core.InvokeLLM({
+      model: "claude_sonnet_4_6",
+      prompt: `You are Claude, acting as an adversarial financial analyst performing a second-opinion cross-check on a prior AI fact-checker's classifications.
+
+Below are claims from a financial report along with the initial classification (Fact/Opinion/Misleading/Unverified) and reasoning from a prior AI pass.
+
+Your job: critically evaluate each classification. You may CONFIRM it, UPGRADE it (e.g. Unverified → Misleading), or DOWNGRADE it (e.g. Misleading → Opinion). Be tough but fair.
+
+For each claim provide:
+- your_verdict: your final classification (Fact, Opinion, Misleading, or Unverified)
+- changed: true if you changed the prior classification, false otherwise
+- critique: 1-2 sentences explaining your reasoning, specifically noting any flaws in the prior classification if you changed it
+- confidence: "high", "medium", or "low"
+
+Claims to cross-check:
+${stage3Claims.map((c, i) => `${i + 1}. Claim: "${c.text}"\n   Prior verdict: ${c.type}\n   Prior note: ${c.note}`).join("\n\n")}`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          cross_checks: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                your_verdict: { type: "string" },
+                changed: { type: "boolean" },
+                critique: { type: "string" },
+                confidence: { type: "string" }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const crossChecks = claudeRes.cross_checks || [];
+
+    // Merge stage 3 + stage 4
+    const mergedClaims = stage3Claims.map((claim, i) => {
+      const cc = crossChecks[i];
+      return {
+        ...claim,
+        type: cc?.your_verdict || claim.type,
+        claude_changed: cc?.changed || false,
+        claude_critique: cc?.critique || null,
+        claude_confidence: cc?.confidence || null,
+        original_verdict: claim.type,
+      };
+    });
+
+    setClaims(mergedClaims);
     setStage("");
     setLoading(false);
   };
@@ -284,7 +361,7 @@ For each claim also provide:
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">Claimify Fact Checker</h4>
-            <p className="text-[10px] text-muted-foreground">4-stage pipeline · Metropolitansky & Larson (2025)</p>
+            <p className="text-[10px] text-muted-foreground">4-stage pipeline + Claude cross-check · Metropolitansky & Larson (2025)</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

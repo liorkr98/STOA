@@ -32,11 +32,15 @@ import CookiePolicyPage from '@/pages/CookiePolicyPage';
 import AccessibilityPage from '@/pages/AccessibilityPage';
 import SignIn from '@/pages/SignIn';
 import LandingPage from '@/pages/LandingPage';
+import WalletPage from '@/pages/WalletPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
+  const isLoading = isLoadingPublicSettings || isLoadingAuth;
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  // Show a full-screen spinner only on non-root paths while loading
+  // On "/" show LandingPage immediately (no auth needed to view it)
+  if (isLoading && window.location.pathname !== "/") {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
@@ -44,7 +48,7 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
+  if (!isLoading && authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
@@ -53,7 +57,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/signin" element={<SignIn />} />
 
-      {/* Landing page — outside AppLayout, only for unauthenticated */}
+      {/* Landing — outside AppLayout, for unauthenticated users */}
       {!isAuthenticated && <Route path="/" element={<LandingPage />} />}
 
       {/* Routes with AppLayout */}
@@ -81,6 +85,7 @@ const AuthenticatedApp = () => {
         <Route path="/dm" element={isAuthenticated ? <DMPage /> : <SignIn />} />
         <Route path="/predictions" element={isAuthenticated ? <PredictionSummaryPage /> : <SignIn />} />
         <Route path="/analytics" element={isAuthenticated ? <AnalyticsPage /> : <SignIn />} />
+        <Route path="/wallet" element={isAuthenticated ? <WalletPage /> : <SignIn />} />
         <Route path="/pay" element={<PaymentPage />} />
       </Route>
 

@@ -1,0 +1,22 @@
+{
+  "name": "Wallet",
+  "type": "object",
+  "properties": {
+    "balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Current wallet balance in USD"
+    },
+    "total_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount ever earned"
+    },
+    "total_withdrawn": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount ever withdrawn"
+    }
+  },
+  "required": []
+}

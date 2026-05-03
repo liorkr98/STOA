@@ -1,0 +1,36 @@
+{
+  "name": "WalletTransaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "deposit",
+        "withdrawal",
+        "earning"
+      ],
+      "description": "Transaction type"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount in USD"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "default": "completed"
+    },
+    "note": {
+      "type": "string",
+      "description": "Transaction note or description"
+    }
+  },
+  "required": [
+    "type",
+    "amount"
+  ]
+}
