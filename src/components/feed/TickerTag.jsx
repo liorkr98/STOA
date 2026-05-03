@@ -16,11 +16,9 @@ export default function TickerTag({ ticker }) {
       <span className="font-bold">${ticker}</span>
       {stock && (
         <>
-          <span className="text-muted-foreground">${stock.price.toFixed(2)}</span>
+          <span className="text-foreground">${stock.price.toFixed(2)}</span>
           {isPositive ? <TrendingUp className="w-3 h-3 text-gain" /> : <TrendingDown className="w-3 h-3 text-loss" />}
-          <span className={isPositive ? "text-gain" : "text-loss"}>
-            {isPositive ? "+" : ""}{stock.changePercent.toFixed(2)}%
-          </span>
+          <span className={isPositive ? "text-gain" : "text-loss"}>{isPositive ? "+" : ""}{stock.changePercent.toFixed(2)}%</span>
         </>
       )}
     </button>

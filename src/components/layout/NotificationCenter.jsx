@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, CheckCircle2, XCircle, FileText, UserPlus, X } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const MOCK_NOTIFICATIONS = [
@@ -22,8 +22,8 @@ export default function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
   const navigate = useNavigate();
-  const unread = notifications.filter(n => !n.read).length;
 
+  const unread = notifications.filter(n => !n.read).length;
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
   const handleClick = (n) => {
@@ -40,7 +40,7 @@ export default function NotificationCenter() {
       >
         <Bell className="w-4.5 h-4.5" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute top-1 right-1 w-4 h-4 bg-loss text-white text-[9px] font-bold rounded-full flex items-center justify-center">
             {unread}
           </span>
         )}
@@ -49,7 +49,7 @@ export default function NotificationCenter() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="font-semibold text-sm">Notifications</span>
               {unread > 0 && (
@@ -59,30 +59,34 @@ export default function NotificationCenter() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="max-h-96 overflow-y-auto">
-              {notifications.map(n => {
-                const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.report;
-                const Icon = cfg.icon;
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => handleClick(n)}
-                    className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left border-b border-border/50 last:border-0 ${!n.read ? "bg-primary/3" : ""}`}
-                  >
-                    <span className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                      <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-foreground truncate">{n.title}</span>
-                        {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">No notifications yet</div>
+              ) : (
+                notifications.map(n => {
+                  const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.report;
+                  const Icon = cfg.icon;
+                  return (
+                    <button
+                      key={n.id}
+                      onClick={() => handleClick(n)}
+                      className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left border-b border-border/50 last:border-0 ${!n.read ? "bg-primary/5" : ""}`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                        <Icon className={`w-4 h-4 ${cfg.color}`} />
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</p>
-                      <span className="text-[10px] text-muted-foreground/70">{n.time}</span>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          {n.title}
+                          {!n.read && <span className="w-1.5 h-1.5 bg-primary rounded-full inline-block" />}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{n.body}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </>

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, AlertTriangle, Send, Save, Trash2 } from "lucide-react";
+import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, AlertTriangle, Send, Save, FolderOpen, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import AISidebar from "@/components/editor/AISidebar";
 import MonetizationPanel from "@/components/editor/MonetizationPanel";
 import FactChecker from "@/components/report/FactChecker";
 import AIChat from "@/components/editor/AIChat";
+import BoostPanel from "@/components/editor/BoostPanel";
 
 const DYOR_TEXT = "⚠️ Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
 
@@ -55,14 +56,17 @@ export default function ReportEditor() {
   const handleBlockChange = useCallback((index, newBlock) => {
     setBlocks((prev) => prev.map((b, i) => (i === index ? newBlock : b)));
   }, []);
+
   const handleBlockDelete = useCallback((index) => {
     setBlocks((prev) => prev.filter((_, i) => i !== index));
   }, []);
+
   const handleBlockKeyDown = useCallback((index, action) => {
     if (action === "enter") {
       setBlocks((prev) => { const n = [...prev]; n.splice(index + 1, 0, { type: "text", content: "", id: nextId.current++ }); return n; });
     }
   }, []);
+
   const addBlock = (type) => setBlocks((prev) => [...prev, { type, content: "", id: nextId.current++ }]);
   const addDYOR = () => { setBlocks((prev) => [...prev, { type: "text", content: DYOR_TEXT, id: nextId.current++ }]); toast.success("DYOR disclaimer added"); };
 
@@ -82,124 +86,142 @@ export default function ReportEditor() {
     toast.success("Template loaded! All blocks are editable.");
   };
 
-  const reportContent = [title, ...blocks.map(b => b.content)].filter(Boolean).join("\n\n");
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold">Write Report</h1>
-          <p className="text-xs text-muted-foreground">Create data-driven research for your followers</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button variant="outline" size="sm" onClick={addDYOR} className="text-xs">DYOR</Button>
-          <div className="relative">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-xl font-bold">Write Report</h1>
+            <p className="text-xs text-muted-foreground">Create data-driven research for your followers</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={addDYOR} className="text-xs text-muted-foreground hidden sm:flex">DYOR</Button>
             <Button variant="outline" size="sm" onClick={() => setShowDrafts(v => !v)} className="text-xs relative">
-              Drafts{drafts.length > 0 && <span className="ml-1 bg-primary text-white text-[9px] rounded-full px-1">{drafts.length}</span>}
+              <FolderOpen className="w-3.5 h-3.5 mr-1" />
+              Drafts
+              {drafts.length > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-white text-[8px] font-bold rounded-full flex items-center justify-center">{drafts.length}</span>}
+            </Button>
+            <Button variant="outline" size="sm" onClick={saveDraft} className="text-xs">
+              <Save className="w-3.5 h-3.5 mr-1" />Save Draft
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs border-primary/30 text-primary hover:bg-primary/5">
+              <Sparkles className="w-3.5 h-3.5 mr-1" />AI Assist
+            </Button>
+            <Button size="sm" onClick={handlePublish} disabled={publishing} className="text-xs">
+              <Send className="w-3.5 h-3.5 mr-1" />{publishing ? "Publishing..." : "Publish"}
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={saveDraft} className="text-xs">Save Draft</Button>
-          <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="border-primary/30 text-primary hover:bg-primary/5 text-xs">AI Assist</Button>
-          <Button size="sm" onClick={handlePublish} disabled={publishing} className="text-xs">
-            {publishing ? "Publishing..." : "Publish"}
-          </Button>
         </div>
+
+        {/* Drafts panel */}
+        {showDrafts && (
+          <div className="bg-card border border-border rounded-xl p-4 mb-4">
+            <h3 className="font-semibold text-sm mb-3">Saved Drafts</h3>
+            {drafts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No drafts saved yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {drafts.map(d => (
+                  <div key={d.id} className="flex items-center gap-3 p-2 bg-secondary rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{d.title}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(d.savedAt).toLocaleString()}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => loadDraft(d)} className="text-xs">Load</Button>
+                    <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {showDrafts && (
-        <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <h4 className="font-semibold text-sm mb-3">Saved Drafts</h4>
-          {drafts.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No drafts saved yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {drafts.map(d => (
-                <div key={d.id} className="flex items-center gap-3 p-2.5 border border-border rounded-lg hover:bg-secondary transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{d.title}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(d.savedAt).toLocaleString()}</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => loadDraft(d)} className="text-xs">Load</Button>
-                  <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Title */}
       <Input
         value={title}
         onChange={e => setTitle(e.target.value)}
         placeholder="Untitled Report..."
-        className="text-2xl font-bold border-none bg-transparent px-0 h-auto py-2 placeholder:text-muted-foreground/30 focus-visible:ring-0 mb-4"
+        className="text-3xl font-bold border-none bg-transparent px-0 h-auto py-2 placeholder:text-muted-foreground/30 focus-visible:ring-0 mb-6"
+        style={{ fontSize: "1.875rem" }}
       />
 
-      <div className="space-y-1 mb-4">
+      {/* Blocks */}
+      <div className="space-y-2 mb-4">
         {blocks.map((block, index) =>
           block.type === "stockchart" ? (
             <StockChartBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
           ) : block.type === "image" ? (
-            <ImageBlock key={block.id} block={block} onDelete={() => handleBlockDelete(index)} />
+            <ImageBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
           ) : (
             <EditorBlock
               key={block.id}
               block={block}
               index={index}
-              onChange={handleBlockChange}
-              onDelete={handleBlockDelete}
-              onKeyDown={handleBlockKeyDown}
+              onChange={(nb) => handleBlockChange(index, nb)}
+              onDelete={() => handleBlockDelete(index)}
+              onKeyDown={(action) => handleBlockKeyDown(index, action)}
             />
           )
         )}
       </div>
 
+      {/* Add block */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Add Block
+          <Button variant="outline" size="sm" className="text-xs gap-1.5 mb-6">
+            <Plus className="w-3.5 h-3.5" />Add Block
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => addBlock("heading")}><Type className="w-3.5 h-3.5 mr-2" /> Heading</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => addBlock("text")}><Type className="w-3.5 h-3.5 mr-2" /> Text</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => addBlock("bullets")}><List className="w-3.5 h-3.5 mr-2" /> Bullet List</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => addBlock("quote")}><Quote className="w-3.5 h-3.5 mr-2" /> Quote</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("heading")}><Type className="w-3.5 h-3.5 mr-2" />Heading</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("text")}><Type className="w-3.5 h-3.5 mr-2" />Text</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("bullets")}><List className="w-3.5 h-3.5 mr-2" />Bullet List</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("quote")}><Quote className="w-3.5 h-3.5 mr-2" />Quote</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => addBlock("stockchart")}><BarChart3 className="w-3.5 h-3.5 mr-2" /> Stock Chart</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => addBlock("image")}><Image className="w-3.5 h-3.5 mr-2" /> Image</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("stockchart")}><BarChart3 className="w-3.5 h-3.5 mr-2" />Stock Chart</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock("image")}><Image className="w-3.5 h-3.5 mr-2" />Image</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <button
-              onClick={() => setShowPrediction(p => !p)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${showPrediction ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-primary/30"}`}
-            >
-              {showPrediction ? "✓ Prediction Block" : "+ Add Prediction"}
-            </button>
-            <span className="text-[10px] text-muted-foreground">Optional — skip for pure market analysis</span>
-          </div>
-          {showPrediction && (
-            <PredictionBlock
-              onPublish={(p) => { setPredictionData(p); toast.success(`Prediction locked: ${p.action} $${p.ticker}`); }}
-            />
-          )}
+      {/* Prediction block */}
+      {showPrediction && (
+        <div className="mb-6">
+          <PredictionBlock
+            onPublish={(p) => {
+              setPredictionData(p);
+              toast.success(`Prediction locked: ${p.action} $${p.ticker}`);
+            }}
+          />
         </div>
-        <MonetizationPanel />
+      )}
+
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => setShowPrediction(p => !p)}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${showPrediction ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-primary/30"}`}
+        >
+          {showPrediction ? "✓ Prediction Block" : "+ Add Prediction"}
+        </button>
+        <span className="text-xs text-muted-foreground">Optional — skip for pure market analysis</span>
       </div>
 
-      <div className="mt-4">
-        <FactChecker reportContent={reportContent} />
+      {/* Bottom panels */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <MonetizationPanel />
+        <BoostPanel />
+      </div>
+
+      <div className="mb-6">
+        <FactChecker content={[title, ...blocks.map(b => b.content)].filter(Boolean).join("\n\n")} />
       </div>
 
       <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} />
       <AIChat
-        reportContent={reportContent}
+        reportContent={[title, ...blocks.map(b => b.content)].filter(Boolean).join("\n\n")}
         onInsertBlock={(text) => {
           addBlock("text");
           setBlocks(prev => { const n = [...prev]; n[n.length - 1] = { ...n[n.length - 1], content: text }; return n; });

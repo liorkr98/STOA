@@ -1,0 +1,74 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "analyst"
+      ],
+      "default": "user",
+      "description": "User role"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Analyst bio"
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Short tagline"
+    },
+    "avatar": {
+      "type": "string",
+      "description": "Profile photo URL"
+    },
+    "specialties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Areas of expertise"
+    },
+    "accuracy": {
+      "type": "number",
+      "description": "Prediction accuracy %"
+    },
+    "yearly_yield": {
+      "type": "number",
+      "description": "Yearly yield %"
+    },
+    "followers": {
+      "type": "number",
+      "default": 0
+    },
+    "reports": {
+      "type": "number",
+      "default": 0
+    },
+    "points": {
+      "type": "number",
+      "default": 0
+    },
+    "basic_price": {
+      "type": "number",
+      "default": 9,
+      "description": "Basic subscription price"
+    },
+    "pro_price": {
+      "type": "number",
+      "default": 19,
+      "description": "Pro subscription price"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "linkedin": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    }
+  }
+}

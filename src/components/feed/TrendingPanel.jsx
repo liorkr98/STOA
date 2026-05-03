@@ -24,10 +24,10 @@ export default function TrendingPanel() {
               onClick={() => navigate(`/stock?ticker=${ticker}`)}
               className="flex items-center gap-2 w-full hover:bg-secondary rounded-lg p-1.5 -mx-1.5 transition-colors text-left"
             >
-              <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-              <span className="font-mono font-bold text-sm text-foreground flex-1">${ticker}</span>
+              <span className="text-xs text-muted-foreground w-3">{i + 1}</span>
+              <span className="text-xs font-mono font-bold text-foreground flex-1">${ticker}</span>
               {stock && (
-                <span className={`text-xs font-medium ${isUp ? "text-gain" : "text-loss"}`}>
+                <span className={`text-xs font-semibold ${isUp ? "text-gain" : "text-loss"}`}>
                   {isUp ? "+" : ""}{stock.changePercent.toFixed(2)}%
                 </span>
               )}
@@ -39,7 +39,7 @@ export default function TrendingPanel() {
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Trending Topics</p>
         <div className="flex flex-wrap gap-1.5">
           {TRENDING_TOPICS.map(t => (
-            <span key={t} className="text-xs bg-secondary border border-border rounded-full px-2 py-0.5 text-foreground">{t}</span>
+            <span key={t} className="text-[10px] px-2 py-0.5 bg-secondary border border-border rounded-full text-muted-foreground">{t}</span>
           ))}
         </div>
       </div>

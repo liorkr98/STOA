@@ -23,8 +23,9 @@ export default function AIChat({ reportContent, onInsertBlock }) {
     setLoading(true);
 
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are an expert financial research analyst AI assistant helping write professional research reports. Current report context: "${reportContent?.slice(0, 500) || "New report"}"\n\nUser question: "${userMsg}"\n\nBe concise, insightful, and data-driven (3-5 sentences). Use financial terminology appropriately. If the user asks you to "write", "draft", or "add" something, end your response with: [INSERT: <the paragraph to insert>]`,
+      prompt: `You are an expert financial research analyst AI assistant helping write professional research reports. Current report context: "${reportContent?.slice(0, 500) || "New report"}"\n\nUser question: "${userMsg}"\n\nBe concise, insightful, and data-driven (3-5 sentences). Use financial terminology appropriately. If the user asks you to "write", "draft", or "add" something, end your response with: [INSERT: <the paragraph text>]`,
       add_context_from_internet: userMsg.toLowerCase().includes("price") || userMsg.toLowerCase().includes("news") || userMsg.toLowerCase().includes("latest"),
+      model: "claude_sonnet_4_6",
     });
 
     const text = typeof res === "string" ? res : JSON.stringify(res);
@@ -50,18 +51,17 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   );
 
   return (
-    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ height: "420px" }}>
-      <div className="flex items-center justify-between px-4 py-3 bg-primary text-white">
+    <div className="fixed bottom-6 right-4 md:right-6 z-40 w-80 bg-card border border-border rounded-2xl shadow-2xl flex flex-col" style={{ height: 420 }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <p className="text-sm font-semibold">AI Research Assistant</p>
-            <p className="text-[10px] opacity-75">Powered by Claude</p>
+            <p className="text-[10px] text-muted-foreground">Powered by Claude Sonnet</p>
           </div>
         </div>
-        <button onClick={() => setOpen(false)}><X className="w-4 h-4" /></button>
+        <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
       </div>
-
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -70,10 +70,9 @@ export default function AIChat({ reportContent, onInsertBlock }) {
               {msg.insertText && onInsertBlock && (
                 <button
                   onClick={() => { onInsertBlock(msg.insertText); }}
-                  className="mt-2 flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1 transition-colors w-full"
+                  className="mt-2 flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1 transition-colors"
                 >
-                  <Plus className="w-3 h-3" />
-                  Insert into report
+                  <Plus className="w-3 h-3" /> Insert into report
                 </button>
               )}
             </div>
@@ -88,8 +87,7 @@ export default function AIChat({ reportContent, onInsertBlock }) {
         )}
         <div ref={bottomRef} />
       </div>
-
-      <div className="flex gap-2 p-3 border-t border-border">
+      <div className="p-3 border-t border-border flex gap-2">
         <Input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -97,7 +95,7 @@ export default function AIChat({ reportContent, onInsertBlock }) {
           placeholder="Ask anything about the market..."
           className="flex-1 text-sm h-9"
         />
-        <Button onClick={send} size="sm" className="h-9 px-3">
+        <Button size="sm" onClick={send} disabled={loading || !input.trim()} className="h-9 px-2.5">
           <Send className="w-3.5 h-3.5" />
         </Button>
       </div>

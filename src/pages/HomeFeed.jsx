@@ -48,7 +48,7 @@ export default function HomeFeed() {
         {/* Main Feed */}
         <div className="flex-1 min-w-0">
           {/* Feed tabs */}
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             {FEED_TABS.map(tab => {
               const Icon = tab.icon;
               return (
@@ -65,7 +65,7 @@ export default function HomeFeed() {
           </div>
 
           {/* Controls bar */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-4">
             <span className="text-xs text-muted-foreground">{filtered.length} Reports</span>
             <button
               onClick={() => setShowFilters(true)}
@@ -78,21 +78,21 @@ export default function HomeFeed() {
 
           {/* Active filter chips */}
           {activeFilterCount > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-4">
               {activeSector !== "All" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary rounded-full px-2.5 py-1">
+                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
                   {activeSector}
                   <button onClick={() => setActiveSector("All")}><X className="w-3 h-3" /></button>
                 </span>
               )}
               {activeMarketCap !== "All" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary rounded-full px-2.5 py-1">
+                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
                   {activeMarketCap} Cap
                   <button onClick={() => setActiveMarketCap("All")}><X className="w-3 h-3" /></button>
                 </span>
               )}
               {sortBy !== "Latest" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary rounded-full px-2.5 py-1">
+                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
                   {sortBy}
                   <button onClick={() => setSortBy("Latest")}><X className="w-3 h-3" /></button>
                 </span>
@@ -110,61 +110,63 @@ export default function HomeFeed() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="w-72 flex-shrink-0 hidden lg:block space-y-4">
-          <TrendingPanel />
+        <aside className="hidden lg:flex flex-col gap-4 w-72 flex-shrink-0">
           <Leaderboard />
+          <TrendingPanel />
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">Publish Your Analysis</span>
+              <h3 className="font-semibold text-sm text-primary">Become an Analyst</h3>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Write research reports, lock in predictions, and build your analyst track record.</p>
+            <p className="text-xs text-muted-foreground mb-3">Publish research, lock predictions, build your audience.</p>
             <Link to="/editor">
               <Button size="sm" className="w-full text-xs">Start Writing</Button>
             </Link>
           </div>
-        </div>
+        </aside>
       </div>
 
       {/* Filter Modal */}
       {showFilters && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowFilters(false)}>
-          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowFilters(false)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold">Filter Reports</h3>
-              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sector</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SECTORS.map(s => (
-                    <button key={s} onClick={() => setActiveSector(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeSector === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Market Cap</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {MARKET_CAPS.map(cap => (
-                    <button key={cap} onClick={() => setActiveMarketCap(cap)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeMarketCap === cap ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{cap}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sort By</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SORT_OPTIONS.map(s => (
-                    <button key={s} onClick={() => setSortBy(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${sortBy === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
-                  ))}
-                </div>
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sector</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SECTORS.map(s => (
+                  <button key={s} onClick={() => setActiveSector(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeSector === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
+                ))}
               </div>
             </div>
 
-            <div className="flex gap-2 mt-5">
-              <button onClick={() => { setActiveSector("All"); setActiveMarketCap("All"); setSortBy("Latest"); }} className="flex-1 text-sm text-muted-foreground hover:text-foreground">Clear All</button>
-              <Button onClick={() => setShowFilters(false)} className="flex-1">Apply</Button>
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Market Cap</p>
+              <div className="flex flex-wrap gap-1.5">
+                {MARKET_CAPS.map(cap => (
+                  <button key={cap} onClick={() => setActiveMarketCap(cap)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeMarketCap === cap ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{cap}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sort By</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SORT_OPTIONS.map(s => (
+                  <button key={s} onClick={() => setSortBy(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${sortBy === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => { setActiveSector("All"); setActiveMarketCap("All"); setSortBy("Latest"); }} className="flex-1 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg py-2 transition-colors">Clear All</button>
+              <button onClick={() => setShowFilters(false)} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 transition-colors">Apply</button>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React from "react";
 
 export default function StoaLogo({ className = "", size = 28, textSize = "text-xl", showText = true, light = false }) {
-  const color = light ? "#ffffff" : "#3b82f6";
+  const color = light ? "#ffffff" : "#1e3a6e";
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <svg width={size} height={size} viewBox="0 0 28 28" fill="none">

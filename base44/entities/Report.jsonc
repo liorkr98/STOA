@@ -1,0 +1,102 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Report title"
+    },
+    "excerpt": {
+      "type": "string",
+      "description": "Short summary/teaser"
+    },
+    "content_blocks": {
+      "type": "array",
+      "description": "Array of editor blocks (type + content)"
+    },
+    "tickers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Stock tickers mentioned"
+    },
+    "prediction_action": {
+      "type": "string",
+      "enum": [
+        "Long",
+        "Short",
+        "Hold"
+      ],
+      "description": "Prediction direction"
+    },
+    "prediction_ticker": {
+      "type": "string",
+      "description": "Ticker for the prediction"
+    },
+    "prediction_target_price": {
+      "type": "number",
+      "description": "Target price"
+    },
+    "prediction_lock_price": {
+      "type": "number",
+      "description": "Price at lock time"
+    },
+    "prediction_lock_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When prediction was locked"
+    },
+    "prediction_timeframe": {
+      "type": "string",
+      "description": "Timeframe e.g. 6 months"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Author display name"
+    },
+    "author_avatar": {
+      "type": "string",
+      "description": "Author avatar URL"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry/sector"
+    },
+    "market_cap": {
+      "type": "string",
+      "enum": [
+        "mega",
+        "large",
+        "mid",
+        "small",
+        "micro"
+      ],
+      "description": "Market cap category"
+    },
+    "is_premium": {
+      "type": "boolean",
+      "default": false,
+      "description": "Requires payment to read"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price if premium"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

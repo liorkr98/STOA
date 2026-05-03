@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { MOCK_STOCKS, MOCK_REPORTS } from "@/lib/mockData";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
@@ -64,41 +64,39 @@ export default function StockPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold">{ticker}</h1>
-            <Badge variant="secondary" className="text-xs">NASDAQ</Badge>
+      <div className="bg-card border border-border rounded-2xl p-5 mb-4">
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold">{ticker}</h1>
+              <Badge variant="secondary" className="text-[10px]">NASDAQ</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{TICKER_NAMES[ticker] || `${ticker} Inc.`}</p>
           </div>
-          <p className="text-sm text-muted-foreground">{TICKER_NAMES[ticker] || `${ticker} Inc.`}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold">${stockData.price.toFixed(2)}</p>
-          <p className={`flex items-center gap-1 text-sm font-medium justify-end ${isUp ? "text-gain" : "text-loss"}`}>
-            {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {isUp ? "+" : ""}{stockData.change.toFixed(2)} ({isUp ? "+" : ""}{stockData.changePercent.toFixed(2)}%)
-          </p>
+          <div className="text-right">
+            <p className="text-2xl font-bold">${stockData.price.toFixed(2)}</p>
+            <div className={`flex items-center justify-end gap-1 text-sm font-semibold ${isUp ? "text-gain" : "text-loss"}`}>
+              {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              {isUp ? "+" : ""}{stockData.change.toFixed(2)} ({isUp ? "+" : ""}{stockData.changePercent.toFixed(2)}%)
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4 overflow-x-auto">
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 bg-secondary rounded-xl p-1">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${activeTab === t ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>
-            {t}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${activeTab === t ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{t}
           </button>
         ))}
       </div>
 
-      {activeTab === "Chart" && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <TradingViewWidget ticker={ticker} height={400} />
-        </div>
-      )}
+      {activeTab === "Chart" && <TradingViewWidget ticker={ticker} />}
 
       {activeTab === "Financials" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             {[
               { label: "P/E Ratio", value: fundamentals.pe },
               { label: "EPS (TTM)", value: `$${fundamentals.eps}` },
@@ -115,18 +113,18 @@ export default function StockPage() {
               { label: "52W Low", value: `$${fundamentals.week52Low}` },
             ].map(item => (
               <div key={item.label} className="bg-card border border-border rounded-xl p-3 text-center">
-                <p className="text-sm font-bold text-foreground">{item.value}</p>
+                <p className="text-sm font-bold">{item.value}</p>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
               </div>
             ))}
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <h3 className="font-semibold text-sm mb-3">Quarterly Revenue ($B)</h3>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={quarterlyRev} barSize={24}>
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart data={quarterlyRev}>
                 <XAxis dataKey="q" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={v => `$${v}B`} width={45} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v, n) => [`$${v}B`, "Revenue"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <Tooltip formatter={(v) => [`$${v}B`, "Revenue"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
                 <Bar dataKey="rev" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -137,33 +135,27 @@ export default function StockPage() {
       {activeTab === "News" && (
         <div className="space-y-3">
           {news.map((item, i) => (
-            <div key={i} className="flex items-start gap-3 p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors">
-              <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${item.sentiment === "positive" ? "bg-gain" : item.sentiment === "negative" ? "bg-loss" : "bg-muted-foreground"}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.source} · {item.time}</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <div key={i} className={`p-4 bg-card border rounded-xl ${item.sentiment === "positive" ? "border-gain/20" : item.sentiment === "negative" ? "border-loss/20" : "border-border"}`}>
+              <p className="font-medium text-sm mb-1">{item.title}</p>
+              <p className="text-xs text-muted-foreground">{item.source} · {item.time}</p>
             </div>
           ))}
         </div>
       )}
 
       {activeTab === "Reports" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {relatedReports.length > 0 ? relatedReports.map(r => (
             <div key={r.id} onClick={() => navigate(`/report?id=${r.id}`)} className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:border-primary/30 transition-all">
               <div className="flex items-center gap-2 mb-2">
-                <img src={r.author.avatar} alt={r.author.name} className="w-7 h-7 rounded-full" />
-                <span className="font-semibold text-sm">{r.author.name}</span>
-                <span className="text-xs text-gain">{r.author.accuracy}%</span>
+                <img src={r.author.avatar} alt="" className="w-6 h-6 rounded-full" />
+                <span className="text-xs font-medium">{r.author.name}</span>
+                <span className="text-xs text-muted-foreground">{r.author.accuracy}%</span>
               </div>
-              <p className="font-medium text-sm">{r.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">{r.likes} likes · {r.isPremium ? `$${r.price}` : "Free"}</p>
+              <p className="font-semibold text-sm mb-1">{r.title}</p>
+              <p className="text-xs text-muted-foreground">{r.likes} likes · {r.isPremium ? `$${r.price}` : "Free"}</p>
             </div>
-          )) : (
-            <p className="text-muted-foreground text-sm">No reports for {ticker} yet.</p>
-          )}
+          )) : <p className="text-sm text-muted-foreground text-center py-8">No reports for {ticker} yet.</p>}
         </div>
       )}
     </div>
