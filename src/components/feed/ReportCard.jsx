@@ -14,8 +14,20 @@ const ACTION_CONFIG = {
 
 export default function ReportCard({ report, compact = false }) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(report.likes);
+  const [likeCount, setLikeCount] = useState(report.likes || 0);
   const navigate = useNavigate();
+
+  // Normalize entity fields vs legacy fields
+  const authorName = report.author_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorAvatar = report.author_avatar || null;
+  const isPremium = report.is_premium || report.isPremium || false;
+  const prediction = report.prediction_action ? {
+    action: report.prediction_action,
+    ticker: report.prediction_ticker,
+    targetPrice: report.prediction_target_price,
+    timeframe: report.prediction_timeframe,
+  } : report.prediction || null;
+  const publishedDate = report.created_date || report.publishedAt;
 
   const handleLike = (e) => {
     e.stopPropagation();
@@ -23,7 +35,7 @@ export default function ReportCard({ report, compact = false }) {
     setLikeCount(prev => liked ? prev - 1 : prev + 1);
   };
 
-  const actionCfg = ACTION_CONFIG[report.prediction?.action] || ACTION_CONFIG.Hold;
+  const actionCfg = ACTION_CONFIG[prediction?.action] || ACTION_CONFIG.Hold;
   const ActionIcon = actionCfg.icon;
 
   return (
@@ -33,68 +45,58 @@ export default function ReportCard({ report, compact = false }) {
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/analyst?id=${report.author.id}`); }}
-            className="flex-shrink-0"
-          >
-            <img src={report.author.avatar} alt={report.author.name} className="w-9 h-9 rounded-full border border-border" />
-          </button>
+          <div className="w-9 h-9 rounded-full border border-border bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 overflow-hidden">
+            {authorAvatar
+              ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
+              : authorName[0]?.toUpperCase()
+            }
+          </div>
           <div>
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/analyst?id=${report.author.id}`); }}
-              className="font-semibold text-sm text-foreground hover:text-primary transition-colors block"
-            >
-              {report.author.name}
-            </button>
-            <span className="text-xs text-muted-foreground">{report.author.accuracy}% accuracy</span>
+            <span className="font-semibold text-sm text-foreground block">{authorName}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {report.isPremium && (
+          {isPremium && (
             <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">Premium</Badge>
           )}
-          {report.prediction && (
+          {prediction && (
             <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${actionCfg.bg} ${actionCfg.color}`}>
               <ActionIcon className="w-3 h-3" />
-              {report.prediction.action} ${report.prediction.ticker}
+              {prediction.action} ${prediction.ticker}
             </span>
           )}
-          <span className="text-xs text-muted-foreground hidden sm:block">
-            {format(new Date(report.publishedAt), "MMM d, yyyy")}
-          </span>
+          {publishedDate && (
+            <span className="text-xs text-muted-foreground hidden sm:block">
+              {format(new Date(publishedDate), "MMM d, yyyy")}
+            </span>
+          )}
         </div>
       </div>
 
       <h3 className="font-bold text-base text-foreground mb-1 group-hover:text-primary transition-colors">
         {report.title}
       </h3>
-      {!compact && (
+      {!compact && report.excerpt && (
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{report.excerpt}</p>
       )}
 
-      <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
-        {report.tickers.map((t) => <TickerTag key={t} ticker={t} />)}
-      </div>
-
-      {report.prediction && (
-        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border mb-3 ${actionCfg.bg}`}>
-          <ActionIcon className={`w-3.5 h-3.5 ${actionCfg.color}`} />
-          <span className={`font-semibold ${actionCfg.color}`}>{report.prediction.action}</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="font-mono font-bold text-foreground">${report.prediction.ticker}</span>
-          <span className="text-muted-foreground">→</span>
-          <span className="font-semibold text-foreground">${report.prediction.targetPrice}</span>
-          <span className="text-muted-foreground ml-auto">{report.prediction.timeframe}</span>
+      {(report.tickers || []).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
+          {(report.tickers || []).map((t) => <TickerTag key={t} ticker={t} />)}
         </div>
       )}
 
-      {report.prediction?.outcome && (
-        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg mb-3 ${report.prediction.outcome === "hit" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-          {report.prediction.outcome === "hit"
-            ? <CheckCircle2 className="w-3.5 h-3.5" />
-            : <XCircle className="w-3.5 h-3.5" />
-          }
-          <span className="font-semibold">{report.prediction.outcomeNote}</span>
+      {prediction && (
+        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border mb-3 ${actionCfg.bg}`}>
+          <ActionIcon className={`w-3.5 h-3.5 ${actionCfg.color}`} />
+          <span className={`font-semibold ${actionCfg.color}`}>{prediction.action}</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="font-mono font-bold text-foreground">${prediction.ticker}</span>
+          {prediction.targetPrice && <>
+            <span className="text-muted-foreground">→</span>
+            <span className="font-semibold text-foreground">${prediction.targetPrice}</span>
+          </>}
+          {prediction.timeframe && <span className="text-muted-foreground ml-auto">{prediction.timeframe}</span>}
         </div>
       )}
 
@@ -110,10 +112,10 @@ export default function ReportCard({ report, compact = false }) {
           <MessageCircle className="w-4 h-4" />
           Comment
         </button>
-        {report.isPremium && (
+        {isPremium && report.price && (
           <span className="text-xs font-semibold text-amber-600 ml-auto">${report.price}</span>
         )}
-        <span onClick={e => e.stopPropagation()} className={report.isPremium ? "" : "ml-auto"}>
+        <span onClick={e => e.stopPropagation()} className={isPremium && report.price ? "" : "ml-auto"}>
           <ShareMenu title={report.title} reportId={report.id} />
         </span>
       </div>
