@@ -53,10 +53,13 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/signin" element={<SignIn />} />
 
+      {/* Landing page — outside AppLayout, only for unauthenticated */}
+      {!isAuthenticated && <Route path="/" element={<LandingPage />} />}
+
       {/* Routes with AppLayout */}
       <Route element={<AppLayout />}>
         {/* Public routes */}
-        <Route path="/" element={isAuthenticated ? <HomeFeed /> : <LandingPage />} />
+        <Route path="/" element={<HomeFeed />} />
         <Route path="/report" element={<ReportView />} />
         <Route path="/analyst" element={<AnalystProfilePage />} />
         <Route path="/stock" element={<StockPage />} />

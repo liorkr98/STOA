@@ -28,7 +28,7 @@ function resolveSymbol(ticker) {
   return `NASDAQ:${upper}`;
 }
 
-export default function TradingViewWidget({ ticker = "NVDA", height = 420 }) {
+export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
   const containerRef = useRef(null);
   const [interval, setInterval] = useState("D");
   const [style, setStyle] = useState("1");
