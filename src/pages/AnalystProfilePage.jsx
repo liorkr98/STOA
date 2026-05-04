@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MOCK_ANALYSTS, MOCK_REPORTS } from "@/lib/mockData";
 import ReportCard from "@/components/feed/ReportCard";
 import AccuracyBreakdown from "@/components/analyst/AccuracyBreakdown";
+import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
 import { getTwits } from "@/lib/twitsStore";
 
 const ACHIEVEMENTS = [
@@ -118,6 +119,7 @@ export default function AnalystProfilePage() {
       </div>
 
       <AccuracyBreakdown analystName={analyst.name} />
+      <PerformanceVsMarket analyst={analyst} />
 
       {/* Achievements */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">

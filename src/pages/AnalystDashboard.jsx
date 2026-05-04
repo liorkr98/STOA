@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { MOCK_ANALYSTS, getReports } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, TrendingUp, Award, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, Clock, BarChart3, ChevronRight } from "lucide-react";
+import { Target, TrendingUp, Award, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, Clock, BarChart3, ChevronRight, PenLine } from "lucide-react";
 import { format } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
+import AccuracyTrendChart from "@/components/dashboard/AccuracyTrendChart";
 import { useNavigate, Link } from "react-router-dom";
 
 const MOCK_REPORTS = getReports();
@@ -147,15 +147,24 @@ export default function AnalystDashboard() {
 
         {tab === "drafts" && (
           <div className="space-y-2">
-            {drafts.map(draft => (
-              <div key={draft.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{draft.title}</p>
-                  <p className="text-xs text-muted-foreground">Last edited {format(new Date(draft.updatedAt), "MMM d, yyyy")}</p>
-                </div>
-                <Badge variant="secondary" className="text-xs">Draft</Badge>
+            {drafts.length === 0 ? (
+              <div className="text-center py-10">
+                <PenLine className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">No drafts yet</p>
+                <p className="text-xs text-muted-foreground/60 mb-4">Start writing to auto-save drafts here.</p>
+                <Link to="/editor"><Button size="sm" variant="outline" className="text-xs">Start Writing</Button></Link>
               </div>
-            ))}
+            ) : (
+              drafts.map(draft => (
+                <div key={draft.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{draft.title}</p>
+                    <p className="text-xs text-muted-foreground">Last edited {format(new Date(draft.updatedAt), "MMM d, yyyy")}</p>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">Draft</Badge>
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -226,6 +235,9 @@ export default function AnalystDashboard() {
           </div>
         )}
       </div>
+
+      {/* Accuracy Trend */}
+      <AccuracyTrendChart />
 
       {/* Revenue & Twits */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

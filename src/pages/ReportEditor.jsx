@@ -203,6 +203,9 @@ export default function ReportEditor() {
         )}
       </div>
 
+      {/* Status bar */}
+      <EditorStatusBar blocks={blocks} lastSaved={lastSaved} hasUnsaved={hasUnsaved} />
+
       {/* Add block */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
