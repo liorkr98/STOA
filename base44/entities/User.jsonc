@@ -9,66 +9,25 @@
         "user",
         "analyst"
       ],
-      "default": "user",
-      "description": "User role"
+      "default": "user"
     },
-    "bio": {
-      "type": "string",
-      "description": "Analyst bio"
-    },
-    "tagline": {
-      "type": "string",
-      "description": "Short tagline"
-    },
-    "avatar": {
-      "type": "string",
-      "description": "Profile photo URL"
-    },
-    "specialties": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Areas of expertise"
-    },
-    "accuracy": {
+    "accuracy_score": {
       "type": "number",
-      "description": "Prediction accuracy %"
+      "default": 0,
+      "description": "Weighted accuracy score 0-100"
     },
-    "yearly_yield": {
+    "ai_credits_balance": {
       "type": "number",
-      "description": "Yearly yield %"
+      "default": 100,
+      "description": "Available AI credits"
     },
-    "followers": {
+    "ai_credits_used_this_month": {
       "type": "number",
       "default": 0
     },
-    "reports": {
+    "leaderboard_rank": {
       "type": "number",
-      "default": 0
-    },
-    "points": {
-      "type": "number",
-      "default": 0
-    },
-    "basic_price": {
-      "type": "number",
-      "default": 9,
-      "description": "Basic subscription price"
-    },
-    "pro_price": {
-      "type": "number",
-      "default": 19,
-      "description": "Pro subscription price"
-    },
-    "twitter": {
-      "type": "string"
-    },
-    "linkedin": {
-      "type": "string"
-    },
-    "website": {
-      "type": "string"
+      "description": "Current leaderboard rank"
     }
   }
 }

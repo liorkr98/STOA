@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, AlertTriangle, Send, Save, FolderOpen, Trash2 } from "lucide-react";
+import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, AlertTriangle, Send, Save, FolderOpen, Trash2, Heading } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ import MonetizationPanel from "@/components/editor/MonetizationPanel";
 import FactChecker from "@/components/report/FactChecker";
 import AIChat from "@/components/editor/AIChat";
 import BoostPanel from "@/components/editor/BoostPanel";
+import EditorStatusBar from "@/components/editor/EditorStatusBar";
 
 const DYOR_TEXT = "⚠️ Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
 
@@ -29,6 +30,25 @@ export default function ReportEditor() {
   const [publishing, setPublishing] = useState(false);
   const [drafts, setDrafts] = useState(() => { try { return JSON.parse(localStorage.getItem("stoa_drafts")) || []; } catch { return []; } });
   const [showDrafts, setShowDrafts] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
+  const autoSaveTimer = useRef(null);
+
+  // Auto-save every 30s when there are unsaved changes
+  useEffect(() => {
+    if (hasUnsaved) {
+      autoSaveTimer.current = setTimeout(() => {
+        if (!title.trim() && blocks.every(b => !b.content?.trim())) return;
+        const draft = { id: Date.now(), title: title || "Untitled Draft", blocks, predictionData, savedAt: new Date().toISOString() };
+        const updated = [draft, ...drafts.slice(0, 9)];
+        setDrafts(updated);
+        localStorage.setItem("stoa_drafts", JSON.stringify(updated));
+        setLastSaved("just now");
+        setHasUnsaved(false);
+      }, 30000);
+    }
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [hasUnsaved, title, blocks, predictionData]);
 
   const saveDraft = () => {
     if (!title.trim() && blocks.every(b => !b.content?.trim())) { toast.error("Nothing to save."); return; }
@@ -36,6 +56,8 @@ export default function ReportEditor() {
     const updated = [draft, ...drafts.slice(0, 9)];
     setDrafts(updated);
     localStorage.setItem("stoa_drafts", JSON.stringify(updated));
+    setLastSaved("just now");
+    setHasUnsaved(false);
     toast.success("Draft saved!");
   };
 
@@ -55,6 +77,7 @@ export default function ReportEditor() {
 
   const handleBlockChange = useCallback((index, newBlock) => {
     setBlocks((prev) => prev.map((b, i) => (i === index ? newBlock : b)));
+    setHasUnsaved(true);
   }, []);
 
   const handleBlockDelete = useCallback((index) => {
@@ -64,7 +87,17 @@ export default function ReportEditor() {
   const handleBlockKeyDown = useCallback((index, action) => {
     if (action === "enter") {
       setBlocks((prev) => { const n = [...prev]; n.splice(index + 1, 0, { type: "text", content: "", id: nextId.current++ }); return n; });
+      setHasUnsaved(true);
     }
+  }, []);
+
+  const handleInsertBlock = useCallback((afterIndex, type) => {
+    setBlocks((prev) => {
+      const n = [...prev];
+      n.splice(afterIndex + 1, 0, { type, content: "", id: nextId.current++ });
+      return n;
+    });
+    setHasUnsaved(true);
   }, []);
 
   const addBlock = (type) => setBlocks((prev) => [...prev, { type, content: "", id: nextId.current++ }]);
@@ -164,6 +197,7 @@ export default function ReportEditor() {
               onChange={(nb) => handleBlockChange(index, nb)}
               onDelete={() => handleBlockDelete(index)}
               onKeyDown={(action) => handleBlockKeyDown(index, action)}
+              onInsertBlock={(idx, type) => handleInsertBlock(idx, type)}
             />
           )
         )}

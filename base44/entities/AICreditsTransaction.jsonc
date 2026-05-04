@@ -1,0 +1,22 @@
+{
+  "name": "AICreditsTransaction",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User ID"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Credits changed (negative = spent, positive = earned)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Description e.g. 'FactChecker run', 'Leaderboard #1 reward'"
+    }
+  },
+  "required": [
+    "user_id",
+    "amount"
+  ]
+}

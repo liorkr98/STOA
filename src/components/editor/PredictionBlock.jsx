@@ -5,19 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Lock, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { MOCK_STOCKS } from "@/lib/mockData";
 import { format } from "date-fns";
+import { Progress } from "@/components/ui/progress";
 
 export default function PredictionBlock({ onPublish }) {
   const [action, setAction] = useState("");
   const [ticker, setTicker] = useState("");
   const [targetPrice, setTargetPrice] = useState("");
   const [timeframe, setTimeframe] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
+  const [portfolioPct, setPortfolioPct] = useState("");
+  const [exitNote, setExitNote] = useState("");
   const [locked, setLocked] = useState(false);
   const [lockData, setLockData] = useState(null);
 
   const handlePublish = () => {
     const stock = MOCK_STOCKS[ticker.toUpperCase()];
     const lockPrice = stock ? stock.price : parseFloat(targetPrice) * 0.9;
-    const data = { action, ticker: ticker.toUpperCase(), targetPrice: parseFloat(targetPrice), timeframe, lockPrice, lockTime: new Date().toISOString() };
+    const data = {
+      action,
+      ticker: ticker.toUpperCase(),
+      targetPrice: parseFloat(targetPrice),
+      timeframe,
+      lockPrice,
+      lockTime: new Date().toISOString(),
+      stopLoss: stopLoss ? parseFloat(stopLoss) : null,
+      portfolioPct: portfolioPct ? parseFloat(portfolioPct) : null,
+      exitNote: exitNote || null,
+    };
     setLockData(data);
     setLocked(true);
     if (onPublish) onPublish(data);
@@ -26,6 +40,7 @@ export default function PredictionBlock({ onPublish }) {
   const isValid = action && ticker && targetPrice && timeframe;
   const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
   const ACTION_COLORS = { Long: "text-gain", Short: "text-loss", Hold: "text-amber-600" };
+  const ACTION_BG = { Long: "bg-gain/5", Short: "bg-loss/5", Hold: "bg-amber-50/50" };
 
   return (
     <div className="bg-secondary border border-border rounded-xl p-4">
@@ -52,6 +67,7 @@ export default function PredictionBlock({ onPublish }) {
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Ticker</label>
@@ -62,6 +78,18 @@ export default function PredictionBlock({ onPublish }) {
               <Input value={targetPrice} onChange={e => setTargetPrice(e.target.value)} placeholder="$0.00" className="h-9 font-mono" />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Stop Loss <span className="text-muted-foreground/50">(optional)</span></label>
+              <Input value={stopLoss} onChange={e => setStopLoss(e.target.value)} placeholder="$0.00" className="h-9 font-mono" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Portfolio % <span className="text-muted-foreground/50">(optional)</span></label>
+              <Input value={portfolioPct} onChange={e => setPortfolioPct(e.target.value)} placeholder="e.g. 5" type="number" min="1" max="100" className="h-9 font-mono" />
+            </div>
+          </div>
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Timeframe</label>
             <Select value={timeframe} onValueChange={setTimeframe}>
@@ -73,25 +101,52 @@ export default function PredictionBlock({ onPublish }) {
               </SelectContent>
             </Select>
           </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Exit Strategy Note <span className="text-muted-foreground/50">(optional)</span></label>
+            <Input value={exitNote} onChange={e => setExitNote(e.target.value)} placeholder="e.g. Exit on earnings disappointment or if RSI > 80" className="h-9 text-xs" />
+          </div>
+
           <Button onClick={handlePublish} disabled={!isValid} size="sm" className="w-full">
             <Lock className="w-3.5 h-3.5 mr-1.5" />
             Publish & Lock Prediction
           </Button>
         </div>
       ) : (
-        <div className={`flex items-center gap-3 p-3 rounded-lg ${ACTION_COLORS[lockData?.action] ? "bg-gain/5" : ""}`}>
+        <div className={`rounded-lg p-3 ${ACTION_BG[lockData?.action] || ""}`}>
           {lockData && (
-            <>
-              {React.createElement(ACTION_ICONS[lockData.action], { className: `w-5 h-5 ${ACTION_COLORS[lockData.action]}` })}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`font-bold ${ACTION_COLORS[lockData.action]}`}>{lockData.action}</span>
-                  <span className="font-mono font-bold text-foreground">${lockData.ticker}</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                {React.createElement(ACTION_ICONS[lockData.action], { className: `w-5 h-5 ${ACTION_COLORS[lockData.action]}` })}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold ${ACTION_COLORS[lockData.action]}`}>{lockData.action}</span>
+                    <span className="font-mono font-bold text-foreground">${lockData.ticker}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Target: ${lockData.targetPrice} · {lockData.timeframe}
+                    {lockData.stopLoss && ` · Stop: $${lockData.stopLoss}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(lockData.lockTime), "MMM d, yyyy · HH:mm")}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Target: ${lockData.targetPrice} · {lockData.timeframe}</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(lockData.lockTime), "MMM d, yyyy · HH:mm")}</p>
               </div>
-            </>
+
+              {lockData.portfolioPct && (
+                <div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                    <span>Portfolio allocation</span>
+                    <span className="font-semibold text-foreground">{lockData.portfolioPct}%</span>
+                  </div>
+                  <Progress value={lockData.portfolioPct} className="h-1.5" />
+                </div>
+              )}
+
+              {lockData.exitNote && (
+                <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-2">
+                  Exit: {lockData.exitNote}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

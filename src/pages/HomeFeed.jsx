@@ -6,6 +6,9 @@ import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { TrendingUp, SlidersHorizontal, X, Flame, Clock, Tag, Eye } from "lucide-react";
+import EmptyFeedState from "@/components/feed/EmptyFeedState";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 const FEED_TABS = [
   { id: "latest", label: "Latest", icon: Clock },
@@ -26,6 +29,7 @@ export default function HomeFeed() {
   const [showFilters, setShowFilters] = useState(false);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("stoa_onboarded"));
 
   useEffect(() => {
     base44.entities.Report.filter({ status: "published" }, "-created_date", 50)
@@ -49,8 +53,12 @@ export default function HomeFeed() {
 
   const activeFilterCount = (activeSector !== "All" ? 1 : 0) + (activeMarketCap !== "All" ? 1 : 0) + (sortBy !== "Latest" ? 1 : 0);
 
+  const clearFilters = () => { setActiveSector("All"); setActiveMarketCap("All"); setSortBy("Latest"); };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
+      <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
       <div className="flex gap-6">
         {/* Main Feed */}
         <div className="flex-1 min-w-0">
@@ -111,7 +119,7 @@ export default function HomeFeed() {
             {loading ? (
               <div className="text-center py-12 text-muted-foreground text-sm">Loading reports...</div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">No reports match these filters.</div>
+              <EmptyFeedState onClearFilters={activeFilterCount > 0 ? clearFilters : null} />
             ) : (
               filtered.map(report => <ReportCard key={report.id} report={report} />)
             )}

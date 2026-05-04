@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle } from "lucide-react";
+import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Lock, BadgeCheck } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -7,27 +7,42 @@ import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
 
 const ACTION_CONFIG = {
-  Long: { color: "text-gain", bg: "bg-gain/10 border-gain/20", icon: TrendingUp },
-  Short: { color: "text-loss", bg: "bg-loss/10 border-loss/20", icon: TrendingDown },
-  Hold: { color: "text-amber-600", bg: "bg-amber-50 border-amber-200", icon: Minus },
+  Long: { color: "text-gain", bg: "bg-gain/10 border-gain/20", icon: TrendingUp, arrow: "↑" },
+  Short: { color: "text-loss", bg: "bg-loss/10 border-loss/20", icon: TrendingDown, arrow: "↓" },
+  Hold: { color: "text-amber-600", bg: "bg-amber-50 border-amber-200", icon: Minus, arrow: "—" },
 };
+
+function AccuracyBadge({ accuracy }) {
+  if (!accuracy) return null;
+  const color = accuracy >= 80 ? "text-gain" : accuracy >= 60 ? "text-amber-600" : "text-loss";
+  return (
+    <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${color}`}>
+      <BadgeCheck className="w-3 h-3" />
+      {accuracy}% Acc.
+    </span>
+  );
+}
 
 export default function ReportCard({ report, compact = false }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const navigate = useNavigate();
 
-  // Normalize entity fields vs legacy fields
-  const authorName = report.author_name || report.created_by?.split("@")[0] || "Analyst";
-  const authorAvatar = report.author_avatar || null;
+  const authorName = report.author_name || report.author?.name || report.created_by?.split("@")[0] || "Analyst";
+  const authorAvatar = report.author_avatar || report.author?.avatar || null;
+  const authorAccuracy = report.author?.accuracy || null;
   const isPremium = report.is_premium || report.isPremium || false;
+
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
     ticker: report.prediction_ticker,
     targetPrice: report.prediction_target_price,
     timeframe: report.prediction_timeframe,
+    outcome: null,
   } : report.prediction || null;
+
   const publishedDate = report.created_date || report.publishedAt;
+  const predictionOutcome = prediction?.outcome;
 
   const handleLike = (e) => {
     e.stopPropagation();
@@ -43,7 +58,8 @@ export default function ReportCard({ report, compact = false }) {
       onClick={() => navigate(`/report?id=${report.id}`)}
       className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
+      {/* Top row: author + premium badge */}
+      <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full border border-border bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 overflow-hidden">
             {authorAvatar
@@ -53,16 +69,13 @@ export default function ReportCard({ report, compact = false }) {
           </div>
           <div>
             <span className="font-semibold text-sm text-foreground block">{authorName}</span>
+            <AccuracyBadge accuracy={authorAccuracy} />
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isPremium && (
-            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">Premium</Badge>
-          )}
-          {prediction && (
-            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${actionCfg.bg} ${actionCfg.color}`}>
-              <ActionIcon className="w-3 h-3" />
-              {prediction.action} ${prediction.ticker}
+            <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <Lock className="w-2.5 h-2.5" /> Premium
             </span>
           )}
           {publishedDate && (
@@ -72,6 +85,27 @@ export default function ReportCard({ report, compact = false }) {
           )}
         </div>
       </div>
+
+      {/* Prominent prediction badge — right below author */}
+      {prediction && (
+        <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border mb-3 ${actionCfg.bg} ${actionCfg.color}`}>
+          <ActionIcon className="w-3.5 h-3.5" />
+          {actionCfg.arrow} {prediction.action} ${prediction.ticker}
+          {prediction.targetPrice && (
+            <span className="font-semibold ml-0.5">→ ${prediction.targetPrice}</span>
+          )}
+          {predictionOutcome === "hit" && (
+            <span className="flex items-center gap-0.5 ml-1 text-gain text-[10px]">
+              <CheckCircle2 className="w-3 h-3" /> Hit
+            </span>
+          )}
+          {predictionOutcome === "miss" && (
+            <span className="flex items-center gap-0.5 ml-1 text-loss text-[10px]">
+              <XCircle className="w-3 h-3" /> Miss
+            </span>
+          )}
+        </div>
+      )}
 
       <h3 className="font-bold text-base text-foreground mb-1 group-hover:text-primary transition-colors">
         {report.title}
@@ -83,20 +117,6 @@ export default function ReportCard({ report, compact = false }) {
       {(report.tickers || []).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
           {(report.tickers || []).map((t) => <TickerTag key={t} ticker={t} />)}
-        </div>
-      )}
-
-      {prediction && (
-        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border mb-3 ${actionCfg.bg}`}>
-          <ActionIcon className={`w-3.5 h-3.5 ${actionCfg.color}`} />
-          <span className={`font-semibold ${actionCfg.color}`}>{prediction.action}</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="font-mono font-bold text-foreground">${prediction.ticker}</span>
-          {prediction.targetPrice && <>
-            <span className="text-muted-foreground">→</span>
-            <span className="font-semibold text-foreground">${prediction.targetPrice}</span>
-          </>}
-          {prediction.timeframe && <span className="text-muted-foreground ml-auto">{prediction.timeframe}</span>}
         </div>
       )}
 
