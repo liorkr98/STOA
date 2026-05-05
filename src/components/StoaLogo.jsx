@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const LOGO_URL = "https://media.base44.com/images/public/69f7681ad5920983f5b3c3a0/a59915189_logo.png";
+const LOGO_URL = "https://media.base44.com/images/public/69f7681ad5920983f5b3c3a0/b45d30844_WhatsAppImage2026-05-03at2027161.jpeg";
 
 function LogoSVG({ size, color }) {
   return (
