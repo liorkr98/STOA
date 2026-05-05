@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { setMeta } from "@/lib/seo";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, TrendingUp, TrendingDown, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Loader2, ExternalLink, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
@@ -114,7 +114,10 @@ export default function StockPage() {
         setStockData(d);
         if (d?.fundamentals) setFundamentals(d.fundamentals);
         if (d?.news?.length) setNews(d.news);
-        setReports((allReports || []).filter(r => (r.tickers || []).includes(ticker)));
+        setReports((allReports || []).filter(r => {
+          const tArr = Array.isArray(r.tickers) ? r.tickers : (r.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
+          return tArr.includes(ticker);
+        }));
       } catch (e) {
         if (!cancelled) setError(e.message);
       }
@@ -165,9 +168,17 @@ export default function StockPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <button
+          onClick={() => navigate(`/editor?ticker=${ticker}`)}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          <PenLine className="w-3.5 h-3.5" /> Write Report on {ticker}
+        </button>
+      </div>
 
       {/* Header card */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-4">

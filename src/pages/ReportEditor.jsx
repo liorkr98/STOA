@@ -64,13 +64,15 @@ const sanitizeBlocks = (arr) => {
 export default function ReportEditor() {
   const navigate = useNavigate();
 
-  const [title,          setTitle]          = useState("");
+  const urlTicker = new URLSearchParams(window.location.search).get("ticker")?.toUpperCase() || "";
+
+  const [title,          setTitle]          = useState(urlTicker ? `${urlTicker} — Equity Research Report` : "");
   const [blocks,         setBlocks]         = useState([makeBlock("text")]);
   const [predictionData, setPredictionData] = useState(null);
   const [isPremium,      setIsPremium]      = useState(false);
   const [reportPrice,    setReportPrice]    = useState("4.99");
   const [showPrediction, setShowPrediction] = useState(false);
-  const [showAI,         setShowAI]         = useState(false);
+  const [showAI,         setShowAI]         = useState(() => !!new URLSearchParams(window.location.search).get("ticker"));
   const [showDrafts,     setShowDrafts]     = useState(false);
   const [publishing,     setPublishing]     = useState(false);
   const [lastSaved,      setLastSaved]      = useState(null);
@@ -389,7 +391,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         <BoostPanel />
       </div>
 
-      <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} />
+      <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} initialTicker={urlTicker} />
       <AIChat
         reportContent={[title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n")}
         onInsertBlock={(text) => {
