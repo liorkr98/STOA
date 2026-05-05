@@ -4,20 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Search, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 
-export default function StockChartBlock({ onDelete }) {
-  const [ticker, setTicker] = useState("AAPL");
-  const [inputTicker, setInputTicker] = useState("AAPL");
+export default function StockChartBlock({ block, onDelete, onChange }) {
+  const initialTicker = block?.ticker || block?.content || "AAPL";
+  const [ticker, setTicker] = useState(initialTicker);
+  const [inputTicker, setInputTicker] = useState(initialTicker);
   const [height, setHeight] = useState(380);
   const [showControls, setShowControls] = useState(true);
 
   const applyTicker = () => {
     const t = inputTicker.trim().toUpperCase();
-    if (t) setTicker(t);
+    if (t) {
+      setTicker(t);
+      if (onChange) onChange({ ...block, ticker: t, content: t });
+    }
   };
 
   return (
     <div className="bg-card border border-border rounded-xl p-3 mb-2">
-      {/* Header bar */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <Input
           value={inputTicker}
@@ -32,7 +35,6 @@ export default function StockChartBlock({ onDelete }) {
         <span className="font-mono font-bold text-sm text-primary">{ticker}</span>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Height slider */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden sm:inline">Height: {height}px</span>
             <input
@@ -48,7 +50,6 @@ export default function StockChartBlock({ onDelete }) {
           <button
             onClick={() => setShowControls(v => !v)}
             className="text-muted-foreground hover:text-foreground p-0.5"
-            title={showControls ? "Hide controls" : "Show controls"}
           >
             {showControls ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>

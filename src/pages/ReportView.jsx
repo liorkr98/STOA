@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, Lock, CheckCircle2, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  ArrowLeft, Heart, Lock, Loader2, Sparkles,
+  CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { base44 } from "@/api/base44Client";
@@ -11,12 +14,137 @@ import CommentsSection from "@/components/report/CommentsSection";
 import FactChecker from "@/components/report/FactChecker";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 
+// ─── Claim type config ───────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  Fact:       { icon: CheckCircle2,      color: "text-gain",      bg: "bg-gain/10 border-gain/20",       label: "Verified Fact" },
+  Opinion:    { icon: MessageSquareQuote, color: "text-blue-600",  bg: "bg-blue-50 border-blue-200",      label: "Opinion" },
+  Misleading: { icon: AlertTriangle,     color: "text-loss",      bg: "bg-loss/10 border-loss/20",       label: "Potentially Misleading" },
+  Unverified: { icon: Info,              color: "text-amber-600", bg: "bg-amber-50 border-amber-200",    label: "Unverified" },
+};
+
+// ─── Community Notes under Opinion claims ────────────────────────────────────
+function ClaimWithNotes({ claim }) {
+  const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
+  const Icon = cfg.icon;
+  const [notes, setNotes] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [noteText, setNoteText] = useState("");
+
+  const submitNote = () => {
+    if (!noteText.trim()) return;
+    setNotes(prev => [...prev, { id: Date.now(), text: noteText.trim(), time: "just now" }]);
+    setNoteText("");
+    setShowAdd(false);
+  };
+
+  return (
+    <div className={`rounded-xl border p-3 text-xs ${cfg.bg}`}>
+      <div className="flex gap-2">
+        <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
+            {claim.confidence && (
+              <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ml-auto ${
+                claim.confidence === "high" ? "bg-gain/10 text-gain" :
+                claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
+                "bg-muted text-muted-foreground"
+              }`}>{claim.confidence} confidence</span>
+            )}
+          </div>
+          <p className="text-foreground/85 leading-relaxed">{claim.text}</p>
+          {claim.note && <p className="text-muted-foreground mt-1 italic">{claim.note}</p>}
+        </div>
+      </div>
+
+      {/* Community Notes — only for Opinion */}
+      {claim.type === "Opinion" && (
+        <div className="mt-2 ml-5 pl-2 border-l-2 border-blue-200">
+          <p className="text-[10px] font-semibold text-blue-600 mb-1 flex items-center gap-1">
+            <MessageSquareQuote className="w-3 h-3" /> Community Notes
+          </p>
+          {notes.length === 0 && !showAdd && (
+            <p className="text-[10px] text-muted-foreground">No community notes yet.</p>
+          )}
+          {notes.map(note => (
+            <div key={note.id} className="mb-1">
+              <p className="text-[11px] text-foreground/80">{note.text}</p>
+              <p className="text-[9px] text-muted-foreground">{note.time}</p>
+            </div>
+          ))}
+          {showAdd ? (
+            <div className="flex items-center gap-1 mt-1">
+              <input
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && submitNote()}
+                placeholder="Add context or a correction..."
+                className="flex-1 text-[11px] border border-blue-200 rounded-lg px-2 py-1 bg-white/80 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                autoFocus
+              />
+              <button onClick={submitNote} className="text-[10px] text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-lg">Post</button>
+              <button onClick={() => setShowAdd(false)} className="text-[10px] text-muted-foreground px-1"><X className="w-3 h-3" /></button>
+            </div>
+          ) : (
+            <button onClick={() => setShowAdd(true)} className="text-[10px] text-blue-600 hover:underline mt-0.5">+ Add a note</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Saved fact-check panel ──────────────────────────────────────────────────
+function SavedFactCheck({ claims }) {
+  const [open, setOpen] = useState(true);
+  const summary = {
+    Fact:       claims.filter(c => c.type === "Fact").length,
+    Opinion:    claims.filter(c => c.type === "Opinion").length,
+    Misleading: claims.filter(c => c.type === "Misleading").length,
+    Unverified: claims.filter(c => c.type === "Unverified").length,
+  };
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <div>
+            <h4 className="font-semibold text-sm">AI Fact Check</h4>
+            <p className="text-[10px] text-muted-foreground">Powered by Claude · Checked at publish time</p>
+          </div>
+        </div>
+        <button onClick={() => setOpen(v => !v)} className="text-xs text-muted-foreground hover:text-foreground">
+          {open ? <X className="w-3.5 h-3.5" /> : "Show"}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {Object.entries(summary).filter(([, v]) => v > 0).map(([type, count]) => {
+          const cfg = TYPE_CONFIG[type];
+          return (
+            <span key={type} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+              {count} {cfg.label}{count > 1 ? "s" : ""}
+            </span>
+          );
+        })}
+      </div>
+      {open && (
+        <div className="space-y-2">
+          {claims.map((claim, i) => <ClaimWithNotes key={i} claim={claim} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Block renderer ──────────────────────────────────────────────────────────
 function BlockRenderer({ blocks }) {
   if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
   return (
     <div className="space-y-4">
       {blocks.map((block, i) => {
-        if (block.type === "heading") return <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{block.content}</h2>;
+        if (block.type === "heading") return (
+          <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{block.content}</h2>
+        );
         if (block.type === "bullets") return (
           <ul key={i} className="list-disc list-inside space-y-1">
             {(block.content || "").split("\n").filter(Boolean).map((line, j) => (
@@ -27,20 +155,24 @@ function BlockRenderer({ blocks }) {
         if (block.type === "quote") return (
           <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-foreground/80 text-sm">{block.content}</blockquote>
         );
-        if (block.type === "stockchart") return (
-          <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: 380 }}>
-            <TradingViewWidget ticker={block.ticker || "AAPL"} height={380} />
-          </div>
-        );
+        if (block.type === "stockchart") {
+          const chartTicker = block.ticker || block.content || "SPY";
+          return (
+            <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: 400 }}>
+              <TradingViewWidget ticker={chartTicker} height={400} />
+            </div>
+          );
+        }
         if (block.type === "image" && block.content) return (
           <img key={i} src={block.content} alt="" className="rounded-xl max-w-full" />
         );
-        return <p key={i} className="text-foreground/90 leading-relaxed text-sm">{block.content}</p>;
+        return <p key={i} className="text-foreground/90 leading-relaxed text-sm whitespace-pre-line">{block.content}</p>;
       })}
     </div>
   );
 }
 
+// ─── Main page ───────────────────────────────────────────────────────────────
 export default function ReportView() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
@@ -56,31 +188,29 @@ export default function ReportView() {
 
   useEffect(() => {
     if (!reportId) { setError("No report ID specified."); setLoading(false); return; }
-    const load = async () => {
-      try {
-        // Try direct get first, fall back to filter
-        let data;
-        try {
-          data = await base44.entities.Report.get(reportId);
-        } catch {
-          const results = await base44.entities.Report.filter({ id: reportId });
-          data = results?.[0];
-        }
+    base44.entities.Report.get(reportId)
+      .then(data => {
         if (!data) { setError("Report not found."); return; }
         setReport(data);
         setLikeCount(data.likes || 0);
         if (data.content_blocks) {
-          try { setBlocks(JSON.parse(data.content_blocks)); }
-          catch { setBlocks([{ type: "text", content: data.content_blocks }]); }
+          try {
+            const parsed = JSON.parse(data.content_blocks);
+            setBlocks(Array.isArray(parsed) ? parsed : []);
+          } catch {
+            setBlocks([{ type: "text", content: data.content_blocks, id: 0 }]);
+          }
         }
-      } catch {
-        setError("Failed to load report.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+      })
+      .catch(() => setError("Failed to load report."))
+      .finally(() => setLoading(false));
   }, [reportId]);
+
+  const savedClaims = useMemo(() => {
+    if (!report?.fact_check_results) return null;
+    try { return JSON.parse(report.fact_check_results)?.claims || null; }
+    catch { return null; }
+  }, [report]);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -112,15 +242,20 @@ export default function ReportView() {
 
   const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
 
+  // Parse tickers — stored as array or comma-separated string
+  const tickers = Array.isArray(report.tickers)
+    ? report.tickers
+    : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      {(report.tickers || []).length > 0 && (
+      {tickers.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {report.tickers.map(t => <TickerTag key={t} ticker={t} />)}
+          {tickers.map(t => <TickerTag key={t} ticker={t} />)}
         </div>
       )}
 
@@ -129,8 +264,10 @@ export default function ReportView() {
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button onClick={() => navigate(`/analyst?id=${report.created_by}`)} className="flex items-center gap-2">
           {authorAvatar
-            ? <img src={authorAvatar} alt={authorName} className="w-8 h-8 rounded-full object-cover" />
-            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{authorName[0]?.toUpperCase()}</div>
+            ? <img src={authorAvatar} alt={authorName} className="w-8 h-8 rounded-full object-cover border border-border" />
+            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                {(authorName[0] || "A").toUpperCase()}
+              </div>
           }
           <div>
             <p className="text-sm font-semibold hover:text-primary transition-colors">{authorName}</p>
@@ -141,8 +278,10 @@ export default function ReportView() {
           <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy · h:mm a")}</span>
         )}
         <div className="flex items-center gap-3 ml-auto">
-          <button onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}>
+          <button
+            onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
+          >
             <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} /> {likeCount}
           </button>
           <ShareMenu title={report.title} reportId={report.id} />
@@ -162,8 +301,8 @@ export default function ReportView() {
               <h3 className="font-bold text-base mb-2">This is a Premium Report</h3>
               <p className="text-sm text-muted-foreground mb-4">Unlock the full analysis, DCF model, and detailed catalysts.</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Button onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white">
+                <Button onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)
+                } className="bg-amber-500 hover:bg-amber-600 text-white">
                   Unlock for ${report.price || 4.99}
                 </Button>
                 <Button variant="outline" onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}`)}>
@@ -175,9 +314,13 @@ export default function ReportView() {
         )}
       </div>
 
-      {(!isPremium || isPaid) && plainText.length > 50 && (
+      {(!isPremium || isPaid) && (
         <div className="mb-8">
-          <FactChecker reportContent={plainText} />
+          {savedClaims ? (
+            <SavedFactCheck claims={savedClaims} />
+          ) : plainText.length > 50 ? (
+            <FactChecker reportContent={plainText} />
+          ) : null}
         </div>
       )}
 

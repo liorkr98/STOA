@@ -102,21 +102,45 @@ export default function ReportEditor() {
   const addBlock = (type) => setBlocks((prev) => [...prev, { type, content: "", id: nextId.current++ }]);
   const addDYOR = () => { setBlocks((prev) => [...prev, { type: "text", content: DYOR_TEXT, id: nextId.current++ }]); toast.success("DYOR disclaimer added"); };
 
+  const runFactCheck = async (text) => {
+    if (!text || text.length < 50) return null;
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        model: "claude_sonnet_4_6",
+        prompt: `You are a rigorous financial analyst and fact-checker. Read the following report and identify key claims.
+For each claim classify as: Fact, Opinion, Misleading, or Unverified.
+Return ONLY valid JSON (no markdown): {"claims": [{"text": "...", "type": "Fact|Opinion|Misleading|Unverified", "note": "...", "confidence": "high|medium|low"}]}
+Extract 4-8 important claims from: """${text.slice(0, 3000)}"""`,
+      });
+      const rawText = typeof res === "string" ? res : (res?.content?.[0]?.text || res?.text || "");
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]);
+    } catch { return null; }
+    return null;
+  };
+
   const handlePublish = async () => {
     if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
     setPublishing(true);
     try {
       const currentUser = await base44.auth.me();
+      const fullText = [title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
+
+      toast.info("Running AI fact check...");
+      const factCheckResult = await runFactCheck(fullText);
+
       const tickers = blocks.map(b => b.content?.match(/\$([A-Z]{2,5})/g) || [])
         .flat().map(t => t.replace("$", ""))
         .filter((v, i, a) => a.indexOf(v) === i);
       const excerpt = blocks.find(b => b.type === "text" && b.content?.trim())
         ?.content?.slice(0, 200) || "";
+
       await base44.entities.Report.create({
         title,
         content_blocks: JSON.stringify(blocks),
         tickers,
         excerpt,
+        fact_check_results: factCheckResult ? JSON.stringify(factCheckResult) : null,
         prediction_action: predictionData?.action || null,
         prediction_ticker: predictionData?.ticker || null,
         prediction_target_price: predictionData?.targetPrice || null,
@@ -132,7 +156,7 @@ export default function ReportEditor() {
         author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       });
-      toast.success("Report published! It's live on the feed.");
+      toast.success("Report published with AI fact check!");
       setTimeout(() => navigate("/dashboard"), 1200);
     } catch (err) {
       toast.error("Failed to publish: " + (err.message || "Unknown error"));
@@ -213,7 +237,7 @@ export default function ReportEditor() {
       <div className="space-y-2 mb-4">
         {blocks.map((block, index) =>
           block.type === "stockchart" ? (
-            <StockChartBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
+            <StockChartBlock key={block.id} block={block} onDelete={() => handleBlockDelete(index)} onChange={(nb) => handleBlockChange(index, nb)} />
           ) : block.type === "image" ? (
             <ImageBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
           ) : (

@@ -106,6 +106,10 @@
         "published"
       ],
       "default": "draft"
+    },
+    "fact_check_results": {
+      "type": "string",
+      "description": "JSON string of AI fact check results {claims: [...]}"
     }
   },
   "required": [
