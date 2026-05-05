@@ -44,7 +44,7 @@ export default function SearchBar() {
       ).slice(0, 3));
       setReports((reps || []).filter(r =>
         (r.title || "").toLowerCase().includes(q) ||
-        (r.tickers || []).some(t => t.toLowerCase().includes(q))
+        (Array.isArray(r.tickers) ? r.tickers : (r.tickers || "").split(",").map(t => t.trim()).filter(Boolean)).some(t => t.toLowerCase().includes(q))
       ).slice(0, 3));
     });
   }, [query]);
