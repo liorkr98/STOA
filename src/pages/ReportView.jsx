@@ -9,22 +9,31 @@ import TickerTag from "@/components/feed/TickerTag";
 import ShareMenu from "@/components/feed/ShareMenu";
 import CommentsSection from "@/components/report/CommentsSection";
 import FactChecker from "@/components/report/FactChecker";
+import TradingViewWidget from "@/components/feed/TradingViewWidget";
 
 function BlockRenderer({ blocks }) {
-  if (!blocks?.length) return null;
+  if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
   return (
     <div className="space-y-4">
       {blocks.map((block, i) => {
         if (block.type === "heading") return <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{block.content}</h2>;
         if (block.type === "bullets") return (
           <ul key={i} className="list-disc list-inside space-y-1">
-            {block.content.split("\n").filter(Boolean).map((line, j) => (
-              <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^•\s*/, "")}</li>
+            {(block.content || "").split("\n").filter(Boolean).map((line, j) => (
+              <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^[•\-]\s*/, "")}</li>
             ))}
           </ul>
         );
         if (block.type === "quote") return (
           <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-foreground/80 text-sm">{block.content}</blockquote>
+        );
+        if (block.type === "stockchart") return (
+          <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: 380 }}>
+            <TradingViewWidget ticker={block.ticker || "AAPL"} height={380} />
+          </div>
+        );
+        if (block.type === "image" && block.content) return (
+          <img key={i} src={block.content} alt="" className="rounded-xl max-w-full" />
         );
         return <p key={i} className="text-foreground/90 leading-relaxed text-sm">{block.content}</p>;
       })}
@@ -39,6 +48,7 @@ export default function ReportView() {
   const isPaid = urlParams.get("paid") === "true";
 
   const [report, setReport] = useState(null);
+  const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
@@ -46,15 +56,30 @@ export default function ReportView() {
 
   useEffect(() => {
     if (!reportId) { setError("No report ID specified."); setLoading(false); return; }
-    base44.entities.Report.filter({ id: reportId })
-      .then(results => {
-        const r = results?.[0];
-        if (!r) { setError("Report not found."); return; }
-        setReport(r);
-        setLikeCount(r.likes || 0);
-      })
-      .catch(() => setError("Failed to load report."))
-      .finally(() => setLoading(false));
+    const load = async () => {
+      try {
+        // Try direct get first, fall back to filter
+        let data;
+        try {
+          data = await base44.entities.Report.get(reportId);
+        } catch {
+          const results = await base44.entities.Report.filter({ id: reportId });
+          data = results?.[0];
+        }
+        if (!data) { setError("Report not found."); return; }
+        setReport(data);
+        setLikeCount(data.likes || 0);
+        if (data.content_blocks) {
+          try { setBlocks(JSON.parse(data.content_blocks)); }
+          catch { setBlocks([{ type: "text", content: data.content_blocks }]); }
+        }
+      } catch {
+        setError("Failed to load report.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [reportId]);
 
   if (loading) return (
@@ -70,30 +95,27 @@ export default function ReportView() {
     </div>
   );
 
-  // Parse content_blocks from JSON string
-  let blocks = [];
-  try { blocks = report.content_blocks ? JSON.parse(report.content_blocks) : []; } catch { blocks = []; }
-
   const authorName = report.author_name || report.created_by?.split("@")[0] || "Analyst";
   const authorAvatar = report.author_avatar;
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
 
-  // Build plain text for FactChecker
-  const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
-
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
     ticker: report.prediction_ticker,
     targetPrice: report.prediction_target_price,
+    lockPrice: report.prediction_lock_price,
+    lockTime: report.prediction_lock_time,
     timeframe: report.prediction_timeframe,
     outcome: null,
   } : null;
 
+  const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Feed
+        <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
       {(report.tickers || []).length > 0 && (
@@ -119,12 +141,9 @@ export default function ReportView() {
           <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy · h:mm a")}</span>
         )}
         <div className="flex items-center gap-3 ml-auto">
-          <button
-            onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} />
-            {likeCount}
+          <button onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}>
+            <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} /> {likeCount}
           </button>
           <ShareMenu title={report.title} reportId={report.id} />
         </div>
@@ -134,11 +153,7 @@ export default function ReportView() {
 
       <div className="prose prose-sm max-w-none mb-8">
         {(!isPremium || isPaid) ? (
-          blocks.length > 0
-            ? <BlockRenderer blocks={blocks} />
-            : report.excerpt
-              ? <p className="text-foreground/90 leading-relaxed">{report.excerpt}</p>
-              : <p className="text-muted-foreground italic">No content available.</p>
+          <BlockRenderer blocks={blocks} />
         ) : (
           <>
             {report.excerpt && <p className="text-foreground/90 leading-relaxed mb-4">{report.excerpt}</p>}
@@ -147,10 +162,8 @@ export default function ReportView() {
               <h3 className="font-bold text-base mb-2">This is a Premium Report</h3>
               <p className="text-sm text-muted-foreground mb-4">Unlock the full analysis, DCF model, and detailed catalysts.</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Button
-                  onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
-                >
+                <Button onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white">
                   Unlock for ${report.price || 4.99}
                 </Button>
                 <Button variant="outline" onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}`)}>

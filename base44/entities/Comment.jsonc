@@ -1,0 +1,30 @@
+{
+  "name": "Comment",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "ID of the report this comment belongs to"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Author display name"
+    },
+    "author_avatar": {
+      "type": "string",
+      "description": "Author avatar URL"
+    },
+    "content": {
+      "type": "string",
+      "description": "Comment text"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "report_id",
+    "content"
+  ]
+}

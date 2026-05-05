@@ -6,7 +6,7 @@ import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp,
 import { format } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
-import AccuracyTrendChart from "@/components/dashboard/AccuracyTrendChart";
+import InsightsPanel from "@/components/dashboard/InsightsPanel";
 import { useNavigate, Link } from "react-router-dom";
 import { calculateAccuracyScore } from "@/lib/accuracyEngine";
 
@@ -291,7 +291,9 @@ export default function AnalystDashboard() {
       </div>
 
       {/* Accuracy Trend */}
-      <AccuracyTrendChart />
+      <div className="mb-4">
+        <InsightsPanel accuracyScore={parseFloat(accuracyScore) || 0} reports={myReports} />
+      </div>
 
       {/* Revenue & Twits */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

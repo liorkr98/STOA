@@ -35,7 +35,7 @@ function fmt(n) {
 
 // Resizable chart wrapper
 function ResizableChart({ ticker }) {
-  const [height, setHeight] = useState(600);
+  const [height, setHeight] = useState(650);
   const [width, setWidth] = useState("100%");
   const resizing = useRef(false);
   const startY = useRef(0);
@@ -255,21 +255,24 @@ export default function StockPage() {
             <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" /> Fetching latest news...
             </div>
-          ) : news.length > 0 ? (
+          ) : (stockData?.news || news).length > 0 ? (
             <div className="space-y-3">
-              {news.map((item, i) => (
-                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
+              {(stockData?.news || news).map((item, i) => (
+                <a key={i} href={item.url || item.link} target="_blank" rel="noopener noreferrer"
                   className="flex items-start justify-between gap-3 p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-all group">
                   <div>
                     <p className="font-medium text-sm mb-1 group-hover:text-primary transition-colors">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.source} · {item.time}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.source || item.publisher}
+                      {item.time ? ` · ${item.time}` : item.providerPublishTime ? ` · ${new Date(item.providerPublishTime * 1000).toLocaleDateString()}` : ""}
+                    </p>
                   </div>
                   <ExternalLink className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                 </a>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No news available.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No news available for {ticker}.</p>
           )}
         </div>
       )}

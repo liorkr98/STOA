@@ -158,7 +158,7 @@ export default function Leaderboard() {
       )}
 
       <div className="mt-3 pt-3 border-t border-border">
-        <Link to="/predictions" className="text-[11px] text-primary hover:underline font-medium">View Full Leaderboard →</Link>
+        <Link to="/leaderboard" className="text-[11px] text-primary hover:underline font-medium">View Full Leaderboard →</Link>
       </div>
     </div>
   );

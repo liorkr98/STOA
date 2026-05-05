@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { MessageCircle, Send, Heart, Reply } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MessageCircle, Send, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MOCK_ANALYSTS } from "@/lib/mockData";
+import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 
 const REACTIONS = [
@@ -13,44 +13,33 @@ const REACTIONS = [
   { emoji: "❌", label: "Disagree" },
 ];
 
-const MOCK_COMMENTS = [
-  { id: 1, author: MOCK_ANALYSTS[1], content: "Great analysis! The CUDA moat point is well made. I'd also add the NIMS software stack as a differentiator.", time: "2026-04-10T16:00:00Z", likes: 14, reactions: { "🔥": 8, "💡": 6 }, replies: [] },
-  { id: 2, author: MOCK_ANALYSTS[2], content: "Solid DCF model. What's your assumption for gross margin compression in 2027?", time: "2026-04-10T17:30:00Z", likes: 7, reactions: { "🤔": 4 }, replies: [{ id: 21, author: MOCK_ANALYSTS[0], content: "Modelling 2.5% compression from H200 → B100 mix shift, but could be more if AMD gains traction.", time: "2026-04-10T18:00:00Z", likes: 5, reactions: {}, replies: [] }] },
-  { id: 3, author: MOCK_ANALYSTS[3], content: "Worth noting the China export restrictions risk isn't fully priced in here.", time: "2026-04-11T09:00:00Z", likes: 22, reactions: { "✅": 12, "💡": 10 }, replies: [] },
-];
-
 function CommentItem({ comment }) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(comment.likes);
-  const [showReply, setShowReply] = useState(false);
-  const [replyText, setReplyText] = useState("");
-  const [replies, setReplies] = useState(comment.replies || []);
-  const [reactions, setReactions] = useState(comment.reactions || {});
+  const [likeCount, setLikeCount] = useState(comment.likes || 0);
   const [showReactions, setShowReactions] = useState(false);
+  const [reactions, setReactions] = useState({});
 
   const handleReaction = (emoji) => {
     setReactions(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
     setShowReactions(false);
   };
 
-  const submitReply = () => {
-    if (!replyText.trim()) return;
-    setReplies(prev => [...prev, { id: Date.now(), author: MOCK_ANALYSTS[0], content: replyText.trim(), time: new Date().toISOString(), likes: 0, reactions: {}, replies: [] }]);
-    setReplyText("");
-    setShowReply(false);
-  };
+  const authorInitial = (comment.author_name || "A")[0].toUpperCase();
 
   return (
     <div className="flex gap-3">
-      <img src={comment.author.avatar} alt={comment.author.name} className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5" />
+      {comment.author_avatar
+        ? <img src={comment.author_avatar} alt={comment.author_name} className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 object-cover" />
+        : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">{authorInitial}</div>
+      }
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-xs text-foreground">{comment.author.name}</span>
-          <span className="text-[10px] text-gain font-medium">{comment.author.accuracy}%</span>
-          <span className="text-[10px] text-muted-foreground ml-auto">{format(new Date(comment.time), "MMM d, HH:mm")}</span>
+          <span className="font-semibold text-xs text-foreground">{comment.author_name || "Anonymous"}</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {comment.created_date ? format(new Date(comment.created_date), "MMM d, HH:mm") : "just now"}
+          </span>
         </div>
         <p className="text-sm text-foreground/90 mb-2">{comment.content}</p>
-
         {Object.keys(reactions).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {Object.entries(reactions).map(([emoji, count]) => (
@@ -60,9 +49,8 @@ function CommentItem({ comment }) {
             ))}
           </div>
         )}
-
         <div className="flex items-center gap-3 relative">
-          <button onClick={() => { setLiked(!liked); setLikeCount(p => liked ? p - 1 : p + 1); }}
+          <button onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
             className={`flex items-center gap-1 text-xs transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}>
             <Heart className={`w-3.5 h-3.5 ${liked ? "fill-loss" : ""}`} /> {likeCount}
           </button>
@@ -74,37 +62,51 @@ function CommentItem({ comment }) {
               ))}
             </div>
           )}
-          <button onClick={() => setShowReply(!showReply)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <Reply className="w-3.5 h-3.5" /> Reply
-          </button>
         </div>
-
-        {showReply && (
-          <div className="flex gap-2 mt-2">
-            <Textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Write a reply..." className="text-sm resize-none h-16" />
-            <Button onClick={submitReply} size="sm" className="self-end">Reply</Button>
-          </div>
-        )}
-
-        {replies.length > 0 && (
-          <div className="mt-3 space-y-3 border-l-2 border-border pl-3">
-            {replies.map(r => <CommentItem key={r.id} comment={r} />)}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-export default function CommentsSection() {
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+export default function CommentsSection({ reportId }) {
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const addComment = () => {
-    if (!newComment.trim()) return;
-    setComments(prev => [...prev, { id: Date.now(), author: MOCK_ANALYSTS[0], content: newComment.trim(), time: new Date().toISOString(), likes: 0, reactions: {}, replies: [] }]);
-    setNewComment("");
+  useEffect(() => {
+    base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!reportId) { setLoading(false); return; }
+    base44.entities.Comment.filter({ report_id: reportId }, "-created_date", 50)
+      .then(data => setComments(data || []))
+      .catch(() => setComments([]))
+      .finally(() => setLoading(false));
+  }, [reportId]);
+
+  const addComment = async () => {
+    if (!newComment.trim() || !reportId) return;
+    setPosting(true);
+    try {
+      const comment = await base44.entities.Comment.create({
+        report_id: reportId,
+        content: newComment.trim(),
+        author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Anonymous",
+        author_avatar: currentUser?.picture || null,
+        likes: 0,
+      });
+      setComments(prev => [comment, ...prev]);
+      setNewComment("");
+    } finally {
+      setPosting(false);
+    }
   };
+
+  const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "You";
+  const displayAvatar = currentUser?.picture;
 
   return (
     <div id="comments" className="mt-8">
@@ -113,19 +115,31 @@ export default function CommentsSection() {
         <h3 className="font-semibold text-base">Discussion ({comments.length})</h3>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        <img src={MOCK_ANALYSTS[0].avatar} alt="You" className="w-8 h-8 rounded-full flex-shrink-0" />
-        <div className="flex-1">
-          <Textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add to the discussion..." className="text-sm resize-none h-20 mb-2" />
-          <Button onClick={addComment} size="sm" disabled={!newComment.trim()}>
-            <Send className="w-3.5 h-3.5 mr-1.5" /> Post Comment
-          </Button>
+      {currentUser && (
+        <div className="flex gap-3 mb-6">
+          {displayAvatar
+            ? <img src={displayAvatar} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
+            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName[0]?.toUpperCase()}</div>
+          }
+          <div className="flex-1">
+            <Textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add to the discussion..." className="text-sm resize-none h-20 mb-2" />
+            <Button onClick={addComment} size="sm" disabled={!newComment.trim() || posting}>
+              {posting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+              Post Comment
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="space-y-5">
-        {comments.map(c => <CommentItem key={c.id} comment={c} />)}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+      ) : comments.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">No comments yet. Be the first to share your thoughts.</p>
+      ) : (
+        <div className="space-y-5">
+          {comments.map(c => <CommentItem key={c.id} comment={c} />)}
+        </div>
+      )}
     </div>
   );
 }

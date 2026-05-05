@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet, User, Settings, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { BarChart3, Home, PenLine, LogIn, Wallet, Settings, LogOut, LayoutDashboard, ChevronDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
@@ -13,6 +13,7 @@ import { base44 } from "@/api/base44Client";
 
 const NAV_ITEMS = [
   { path: "/", label: "Feed", icon: Home },
+  { path: "/stocks", label: "Markets", icon: TrendingUp },
   { path: "/editor", label: "Write", icon: PenLine },
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
 ];
@@ -60,9 +61,12 @@ export default function AppLayout() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
-                        {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
-                      </div>
+                      {user?.picture
+                        ? <img src={user.picture} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
+                        : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
+                            {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                          </div>
+                      }
                       <span className="hidden md:block max-w-[100px] truncate">{user?.full_name || user?.email?.split("@")[0]}</span>
                       <ChevronDown className="w-3.5 h-3.5 hidden md:block" />
                     </button>
