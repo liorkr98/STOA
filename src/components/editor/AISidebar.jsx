@@ -20,28 +20,63 @@ const SKELETON_TEMPLATE = [
   { type: "text", content: "Based on our comprehensive analysis, we believe the risk/reward profile is highly favorable at current prices." },
 ];
 
-const ELITE_PROMPT = (ticker) => `Act as an elite equity research analyst at a top-tier investment firm or hedge fund. You were top in your class and your analysis is always top notch. You need to analyze a company using fundamental, macroeconomic, and technical (chart-based) perspectives.
+const ELITE_PROMPT = (ticker) => `Act as an elite equity research analyst at a top-tier investment firm or hedge fund. You were top in your class and your analysis is always top notch. You need to analyze a company using fundamental, macroeconomic, and technical (chart-based) perspectives. Structure your response according to the framework below.
 
 Stock Ticker / Company Name: ${ticker}
+Investment Thesis:
 Goal: Price target for next year
 
-Deliver a full equity research report with these sections:
+Use the following structure to deliver a clear, well-reasoned equity research report:
 
-1. Fundamental Analysis — revenue growth trends, margin evolution, FCF and capital efficiency
-2. Valuation Analysis — P/E, EV/EBITDA, EV/Sales, PEG vs sector peers; valuation relative to growth
-3. Ownership & Insider Activity — insider ownership structure, recent buying/selling and implications
-4. Technical Analysis — primary trend (short/medium/long), support/resistance levels, 50D/200D MAs, RSI/MACD signals, volume trends, chart patterns, technical price targets
-5. Thesis Validation — 3 supporting arguments, 2 key risks/bearish considerations
-6. Sector & Macro View — sector overview, macro trends, competitive positioning
-7. Catalyst Watch — upcoming earnings/events, short-term catalysts, long-term structural catalysts
-8. Investment Summary — 5-bullet thesis, final verdict (Bullish/Bearish/Neutral), recommendation (Buy/Hold/Sell), confidence level, expected timeframe
+Fundamental Analysis
+- Analyze revenue growth trends
+- Assess gross margin, operating margin, and net margin evolution
+- Evaluate free cash flow generation and capital efficiency
 
-Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
+Valuation Analysis
+- Compare valuation metrics vs. sector peers (P/E, EV/EBITDA, EV/Sales, PEG where relevant)
+- Discuss valuation relative to growth and profitability profile
+
+Ownership & Insider Activity
+- Review insider ownership structure
+- Summarize recent insider buying/selling activity and implications
+
+Technical Analysis (Stock Chart–Based)
+- Identify primary price trend (short-, medium-, and long-term)
+- Key support and resistance levels
+- Analyze moving averages (e.g., 50D, 200D) and trend alignment
+- Momentum indicators (RSI, MACD, or similar) and signal interpretation
+- Volume trends and accumulation/distribution signals
+- Chart patterns (breakouts, bases, flags, head & shoulders, etc.)
+- Technical price targets and downside risk levels
+- Alignment or divergence between technicals and fundamentals
+
+Thesis Validation
+Supporting Arguments: Present 3 core arguments supporting the investment thesis
+Counter-Arguments / Risks: Highlight 2 key risks or bearish considerations
+
+Sector & Macro View
+- Provide a concise sector overview
+- Outline relevant macroeconomic trends impacting the business
+- Explain the company's competitive positioning within the sector
+
+Catalyst Watch
+- List upcoming events (earnings, contracts, product launches, regulation, capital raises, etc.)
+- Identify short-term catalysts
+- Identify long-term structural catalysts
+
+Investment Summary
+- 5-bullet investment thesis summary
+- Final verdict: Bullish / Bearish / Neutral, with justification
+- Final recommendation: Buy / Hold / Sell
+- Confidence level: High / Medium / Low
+- Expected timeframe: 6–12 months (or specify)
+
+Return ONLY a valid JSON object (no markdown, no explanation, no backticks) in this exact format:
 {"blocks": [{"type": "heading", "content": "..."}, {"type": "text", "content": "..."}, {"type": "bullets", "content": "• item1\\n• item2"}]}
 
 Use type values: "heading", "text", or "bullets". For bullets use "• " prefix per item separated by \\n.
-Be concise, professional, and insight-driven. Do not explain your process—deliver the analysis only.
-Add context from the internet to get real and current data.`;
+Be concise, professional, and insight-driven. Do not explain your process—deliver the analysis only.`;
 
 export default function AISidebar({ isOpen, onClose, onGenerate, initialTicker = "" }) {
   const [generating, setGenerating] = useState(false);
@@ -65,7 +100,7 @@ Include sections: Executive Summary, Market Analysis, Key Catalysts, Risks, Valu
 Use type values: "heading", "text", or "bullets". For bullets, prefix each item with "• ".`;
 
         const res = await base44.integrations.Core.InvokeLLM({
-          model: "claude_sonnet_4_6",
+          model: useElite && isTickerLike ? "gemini_3_1_pro" : "claude_sonnet_4_6",
           add_context_from_internet: useElite && isTickerLike,
           prompt,
         });
