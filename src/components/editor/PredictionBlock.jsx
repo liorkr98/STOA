@@ -43,8 +43,9 @@ export default function PredictionBlock({ onPublish }) {
     try {
       const result = await base44.functions.invoke("getStockData", { ticker: t });
       const data = result?.data || result;
-      if (data?.price) {
-        setLivePrice(data.price);
+      const price = data?.price ?? data?.regularMarketPrice ?? null;
+      if (price) {
+        setLivePrice(price);
         setCompanyName(data.companyName || data.shortName || "");
         toast.success(`Live price fetched: $${data.price.toFixed(2)}`);
       } else {
@@ -74,7 +75,7 @@ export default function PredictionBlock({ onPublish }) {
       try {
         const result = await base44.functions.invoke("getStockData", { ticker: ticker.trim().toUpperCase() });
         const data = result?.data || result;
-        lockPrice = data?.price || null;
+        lockPrice = data?.price ?? data?.regularMarketPrice ?? null;
       } catch {}
       setFetchingPrice(false);
     }
