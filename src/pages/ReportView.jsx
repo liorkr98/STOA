@@ -267,11 +267,13 @@ export default function ReportView() {
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
 
+  const canSeeTarget = !isPremium || isPaid;
+
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
     ticker: report.prediction_ticker,
-    targetPrice: report.prediction_target_price,
-    lockPrice: report.prediction_lock_price,
+    targetPrice: canSeeTarget ? report.prediction_target_price : null,
+    lockPrice: canSeeTarget ? report.prediction_lock_price : null,
     lockTime: report.prediction_lock_time,
     timeframe: report.prediction_timeframe,
     outcome: null,
