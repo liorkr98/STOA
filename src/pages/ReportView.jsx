@@ -142,30 +142,34 @@ function BlockRenderer({ blocks }) {
   return (
     <div className="space-y-4">
       {blocks.map((block, i) => {
+        const content = block.content ?? "";
         if (block.type === "heading") return (
-          <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{block.content}</h2>
+          <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{content}</h2>
         );
         if (block.type === "bullets") return (
-          <ul key={i} className="list-disc list-inside space-y-1">
-            {(block.content || "").split("\n").filter(Boolean).map((line, j) => (
+          <ul key={i} className="list-disc list-inside space-y-1 pl-2">
+            {content.split("\n").filter(Boolean).map((line, j) => (
               <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^[•\-]\s*/, "")}</li>
             ))}
           </ul>
         );
         if (block.type === "quote") return (
-          <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-foreground/80 text-sm">{block.content}</blockquote>
+          <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-foreground/80 text-sm">{content}</blockquote>
         );
         if (block.type === "stockchart") {
           const chartTicker = block.ticker || block.content || "SPY";
+          const chartHeight = block.height || 380;
           return (
-            <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: 400 }}>
-              <TradingViewWidget ticker={chartTicker} height={400} />
+            <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: chartHeight }}>
+              <TradingViewWidget ticker={chartTicker} height={chartHeight} />
             </div>
           );
         }
         if (block.type === "image" && block.content) return (
           <img key={i} src={block.content} alt="" className="rounded-xl max-w-full" />
         );
+        // Always render text blocks — even if content seems empty show nothing rather than skip
+        if (!block.content && block.content !== 0) return null;
         return <p key={i} className="text-foreground/90 leading-relaxed text-sm whitespace-pre-line">{block.content}</p>;
       })}
     </div>
@@ -290,7 +294,7 @@ export default function ReportView() {
 
       {prediction && <PredictionBadge prediction={prediction} />}
 
-      <div className="prose prose-sm max-w-none mb-8">
+      <div className="mb-8">
         {(!isPremium || isPaid) ? (
           <BlockRenderer blocks={blocks} />
         ) : (

@@ -8,14 +8,14 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const initialTicker = block?.ticker || block?.content || "AAPL";
   const [ticker, setTicker] = useState(initialTicker);
   const [inputTicker, setInputTicker] = useState(initialTicker);
-  const [height, setHeight] = useState(380);
+  const [height, setHeight] = useState(block?.height || 380);
   const [showControls, setShowControls] = useState(true);
 
   const applyTicker = () => {
     const t = inputTicker.trim().toUpperCase();
     if (t) {
       setTicker(t);
-      if (onChange) onChange({ ...block, ticker: t, content: t });
+      if (onChange) onChange({ ...block, ticker: t, content: t, height });
     }
   };
 
@@ -43,7 +43,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
               max={700}
               step={20}
               value={height}
-              onChange={e => setHeight(Number(e.target.value))}
+              onChange={e => { const h = Number(e.target.value); setHeight(h); if (onChange) onChange({ ...block, ticker, content: ticker, height: h }); }}
               className="w-20 h-1 accent-primary"
             />
           </div>
