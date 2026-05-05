@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
   ArrowLeft, Heart, Lock, Loader2, Sparkles,
   CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X
@@ -210,6 +211,25 @@ export default function ReportView() {
       .finally(() => setLoading(false));
   }, [reportId]);
 
+  // SEO: dynamic meta + JSON-LD
+  useEffect(() => {
+    if (!report) return;
+    setMeta({
+      title: report.title,
+      description: report.excerpt || `${report.author_name} on STOA: ${report.title}`,
+      type: "article",
+    });
+    injectJsonLd("jsonld-report", {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": report.title,
+      "author": { "@type": "Person", "name": report.author_name },
+      "datePublished": report.created_date,
+      "publisher": { "@type": "Organization", "name": "STOA", "url": "https://stakify-f5b3c3a0.base44.app" },
+      "description": report.excerpt,
+    });
+  }, [report]);
+
   const savedClaims = useMemo(() => {
     if (!report?.fact_check_results) return null;
     try { return JSON.parse(report.fact_check_results)?.claims || null; }
@@ -268,7 +288,7 @@ export default function ReportView() {
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button onClick={() => navigate(`/analyst?id=${report.created_by}`)} className="flex items-center gap-2">
           {authorAvatar
-            ? <img src={authorAvatar} alt={authorName} className="w-8 h-8 rounded-full object-cover border border-border" />
+            ? <img src={authorAvatar} alt={authorName} loading="lazy" className="w-8 h-8 rounded-full object-cover border border-border" />
             : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
                 {(authorName[0] || "A").toUpperCase()}
               </div>

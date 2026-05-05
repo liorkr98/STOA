@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { setMeta } from "@/lib/seo";
 import { ArrowLeft, UserPlus, MessageCircle, BarChart3, FileText, Star, Target, Users, Flame, Trophy, TrendingUp, Eye, DollarSign, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -57,6 +58,11 @@ export default function AnalystProfilePage() {
 
         if (userData) {
           setAnalyst(userData);
+          setMeta({
+            title: `${userData.full_name || userData.email?.split("@")[0] || "Analyst"} — Analyst Profile`,
+            description: `${userData.accuracy_score || 0}% prediction accuracy. Follow ${userData.full_name || "this analyst"} on STOA for verified financial research.`,
+            image: userData.picture,
+          });
           const reports = await base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 20).catch(() => []);
           setMyReports(reports || []);
           const twitData = await base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []);
@@ -103,7 +109,7 @@ export default function AnalystProfilePage() {
       <div className="bg-card border border-border rounded-2xl p-6 mb-6">
         <div className="flex items-start gap-4 mb-4">
           {analyst.picture
-            ? <img src={analyst.picture} alt={displayName} className="w-16 h-16 rounded-full border-2 border-border object-cover" />
+            ? <img src={analyst.picture} alt={displayName} loading="lazy" className="w-16 h-16 rounded-full border-2 border-border object-cover" />
             : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-2xl font-bold text-primary">{displayName?.[0] || "A"}</div>
           }
           <div className="flex-1">

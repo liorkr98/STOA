@@ -72,6 +72,7 @@ const AuthenticatedApp = () => {
       <Route element={<AppLayout />}>
         {/* Public routes */}
         <Route path="/" element={<HomeFeed />} />
+        <Route path="/feed" element={<HomeFeed />} />
         <Route path="/report" element={<ReportView />} />
         <Route path="/analyst" element={<AnalystProfilePage />} />
         <Route path="/stock" element={<StockPage />} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { setMeta } from "@/lib/seo";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, TrendingUp, TrendingDown, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +88,13 @@ export default function StockPage() {
   const [financialsLoading, setFinancialsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    setMeta({
+      title: `${ticker} Stock — Chart, News & Analysis`,
+      description: `Live chart, financials, news and analyst research for ${ticker} on STOA.`,
+    });
+  }, [ticker]);
 
   useEffect(() => {
     let cancelled = false;

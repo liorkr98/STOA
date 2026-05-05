@@ -117,7 +117,21 @@ export default function HomeFeed() {
 
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-12 text-muted-foreground text-sm">Loading reports...</div>
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-muted" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-muted rounded w-32" />
+                      <div className="h-2.5 bg-muted rounded w-20" />
+                    </div>
+                    <div className="h-5 bg-muted rounded-full w-16" />
+                  </div>
+                  <div className="h-5 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-muted rounded w-full mb-1" />
+                  <div className="h-3 bg-muted rounded w-4/5" />
+                </div>
+              ))
             ) : filtered.length === 0 ? (
               <EmptyFeedState onClearFilters={activeFilterCount > 0 ? clearFilters : null} />
             ) : (

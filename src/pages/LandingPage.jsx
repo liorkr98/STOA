@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { setMeta, injectJsonLd } from "@/lib/seo";
 import { BarChart2, Shield, Star, TrendingUp, Check, ArrowRight, ChevronRight } from "lucide-react";
 import StoaLogo from "@/components/StoaLogo";
 import { base44 } from "@/api/base44Client";
@@ -44,6 +45,20 @@ function TickerTape() {
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    setMeta({
+      title: "STOA — Verified Financial Research",
+      description: "Follow verified analysts with real track records. Every prediction is locked, timestamped, and performance-tracked. The research platform for serious investors.",
+    });
+    injectJsonLd("jsonld-org", {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "STOA",
+      "url": "https://stakify-f5b3c3a0.base44.app",
+      "description": "Verified financial research platform with locked predictions and analyst track records.",
+    });
+  }, []);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 10);
