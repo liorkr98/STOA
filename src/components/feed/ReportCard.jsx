@@ -114,11 +114,16 @@ export default function ReportCard({ report, compact = false }) {
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{report.excerpt}</p>
       )}
 
-      {(report.tickers || []).length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
-          {(report.tickers || []).map((t) => <TickerTag key={t} ticker={t} />)}
-        </div>
-      )}
+      {(() => {
+        const tickers = Array.isArray(report.tickers)
+          ? report.tickers
+          : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
+        return tickers.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
+            {tickers.map(t => <TickerTag key={t} ticker={t} />)}
+          </div>
+        ) : null;
+      })()}
 
       <div className="flex items-center gap-4 mt-2">
         <button onClick={handleLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}>
