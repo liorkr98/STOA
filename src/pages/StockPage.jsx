@@ -95,7 +95,11 @@ export default function StockPage() {
       base44.functions.invoke("getStockData", { ticker, range: "1d", interval: "5m" }),
       base44.entities.Report.filter({ status: "published" }),
     ]).then(([stockRes, allReports]) => {
-      setStockData(stockRes.data);
+      const d = stockRes.data;
+      setStockData(d);
+      // fundamentals and news now come directly from getStockData
+      if (d?.fundamentals) setFundamentals(d.fundamentals);
+      if (d?.news?.length) setNews(d.news);
       setReports((allReports || []).filter(r => (r.tickers || []).includes(ticker)));
     }).catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -104,16 +108,19 @@ export default function StockPage() {
   const loadFinancials = async () => {
     if (fundamentals) return;
     setFinancialsLoading(true);
-    const res = await base44.functions.invoke("getStockFinancials", { ticker });
-    setFundamentals(res.data.financials);
-    setNews(res.data.news || []);
-    setQuarterly(res.data.quarterly || []);
-    setFinancialsLoading(false);
+    try {
+      const res = await base44.functions.invoke("getStockFinancials", { ticker });
+      setFundamentals(res.data.financials);
+      setNews(res.data.news || []);
+      setQuarterly(res.data.quarterly || []);
+    } finally {
+      setFinancialsLoading(false);
+    }
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "Financials" || tab === "News") loadFinancials();
+    if ((tab === "Financials" || tab === "News") && !fundamentals) loadFinancials();
   };
 
   if (loading) return (
@@ -149,7 +156,7 @@ export default function StockPage() {
               <h1 className="text-2xl font-bold">{ticker}</h1>
               <Badge variant="secondary" className="text-[10px]">{stockData.exchangeName || "NASDAQ"}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{TICKER_NAMES[ticker] || ticker}</p>
+            <p className="text-sm text-muted-foreground">{stockData.companyName || TICKER_NAMES[ticker] || ticker}</p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold">${price?.toFixed(2)}</p>

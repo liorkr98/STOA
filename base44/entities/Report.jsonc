@@ -11,8 +11,8 @@
       "description": "Short summary/teaser"
     },
     "content_blocks": {
-      "type": "array",
-      "description": "Array of editor blocks (type + content)"
+      "type": "string",
+      "description": "JSON string of editor blocks [{type, content, id}]"
     },
     "tickers": {
       "type": "array",
@@ -51,6 +51,14 @@
       "type": "string",
       "description": "Timeframe e.g. 6 months"
     },
+    "prediction_stop_loss": {
+      "type": "number",
+      "description": "Stop loss price"
+    },
+    "prediction_portfolio_pct": {
+      "type": "number",
+      "description": "Portfolio allocation percentage"
+    },
     "author_name": {
       "type": "string",
       "description": "Author display name"
@@ -58,6 +66,10 @@
     "author_avatar": {
       "type": "string",
       "description": "Author avatar URL"
+    },
+    "author_accuracy": {
+      "type": "number",
+      "description": "Author accuracy score at time of publish"
     },
     "industry": {
       "type": "string",

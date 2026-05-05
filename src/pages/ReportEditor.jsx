@@ -114,7 +114,7 @@ export default function ReportEditor() {
         ?.content?.slice(0, 200) || "";
       await base44.entities.Report.create({
         title,
-        content_blocks: blocks,
+        content_blocks: JSON.stringify(blocks),
         tickers,
         excerpt,
         prediction_action: predictionData?.action || null,
@@ -123,10 +123,13 @@ export default function ReportEditor() {
         prediction_lock_price: predictionData?.lockPrice || null,
         prediction_lock_time: predictionData?.lockTime || null,
         prediction_timeframe: predictionData?.timeframe || null,
+        prediction_stop_loss: predictionData?.stopLoss || null,
+        prediction_portfolio_pct: predictionData?.portfolioPct || null,
         is_premium: false,
         status: "published",
         author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst",
         author_avatar: currentUser?.picture || null,
+        author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       });
       toast.success("Report published! It's live on the feed.");
