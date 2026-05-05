@@ -1,33 +1,47 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, Loader2, DollarSign } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MOCK_ANALYSTS } from "@/lib/mockData";
 
 const SPECIALTY_OPTIONS = ["AI & Semiconductors", "Big Tech", "EV & Clean Energy", "Macro", "Consumer Tech", "Financials", "Crypto & Web3", "Healthcare", "E-Commerce", "Options Flow"];
 const PROFILE_KEY = "stakify_profile";
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const analyst = MOCK_ANALYSTS[0];
-  const saved = (() => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch { return {}; } })();
-  const [name, setName] = useState(saved.name || analyst.name);
-  const [bio, setBio] = useState(saved.bio || analyst.bio || "");
-  const [avatar, setAvatar] = useState(saved.avatar || analyst.avatar);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [twitter, setTwitter] = useState(saved.twitter || "@sarahchen_finance");
-  const [linkedin, setLinkedin] = useState(saved.linkedin || "sarahchen");
-  const [website, setWebsite] = useState(saved.website || "");
-  const [tagline, setTagline] = useState(saved.tagline || "Senior Equity Research Analyst · Tech & AI Specialist");
-  const [selectedSpecialties, setSelectedSpecialties] = useState(saved.specialties || analyst.specialties || []);
-  const [basicPrice, setBasicPrice] = useState(saved.basicPrice || "9");
-  const [proPrice, setProPrice] = useState(saved.proPrice || "19");
+  const [twitter, setTwitter] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [website, setWebsite] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [selectedSpecialties, setSelectedSpecialties] = useState([]);
+  const [basicPrice, setBasicPrice] = useState("9");
+  const [proPrice, setProPrice] = useState("19");
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const saved = (() => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch { return {}; } })();
+    base44.auth.me().then(user => {
+      setName(saved.name || user.full_name || user.email?.split("@")[0] || "");
+      setBio(saved.bio || user.bio || "");
+      setAvatar(saved.avatar || user.picture || "");
+      setTwitter(saved.twitter || user.twitter_handle || "");
+      setLinkedin(saved.linkedin || user.linkedin_username || "");
+      setWebsite(saved.website || user.website || "");
+      setTagline(saved.tagline || user.tagline || "");
+      setSelectedSpecialties(saved.specialties || user.specialties || []);
+      setBasicPrice(saved.basicPrice || "9");
+      setProPrice(saved.proPrice || "19");
+    }).finally(() => setLoading(false));
+  }, []);
 
   const toggleSpecialty = (s) => setSelectedSpecialties((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
 
@@ -41,11 +55,34 @@ export default function EditProfilePage() {
     toast.success("Photo uploaded!");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
     localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, bio, avatar, twitter, linkedin, website, tagline, specialties: selectedSpecialties, basicPrice, proPrice }));
-    toast.success("Profile saved!");
-    navigate("/dashboard");
+    try {
+      await base44.auth.updateMe({
+        full_name: name,
+        bio,
+        picture: avatar,
+        tagline,
+        specialties: selectedSpecialties,
+        twitter_handle: twitter,
+        linkedin_username: linkedin,
+        website,
+      });
+      toast.success("Profile saved!");
+      navigate("/dashboard");
+    } catch {
+      toast.error("Failed to save profile.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -57,7 +94,7 @@ export default function EditProfilePage() {
           <h1 className="text-xl font-bold">Edit Profile</h1>
           <p className="text-sm text-muted-foreground">Update your public analyst profile</p>
         </div>
-        <Button onClick={handleSave}>Save</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Saving...</> : "Save"}</Button>
       </div>
 
       {/* Avatar */}
@@ -65,7 +102,10 @@ export default function EditProfilePage() {
         <h3 className="font-semibold text-sm mb-4">Photo & Branding</h3>
         <div className="flex items-center gap-4 mb-4">
           <div className="relative">
-            <img src={avatar} alt={name} className="w-16 h-16 rounded-full border-2 border-border" />
+            {avatar
+              ? <img src={avatar} alt={name} className="w-16 h-16 rounded-full border-2 border-border object-cover" />
+              : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-xl font-bold text-primary">{name?.[0] || "?"}</div>
+            }
             <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
               className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary/90 transition-colors">
               {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
@@ -74,7 +114,7 @@ export default function EditProfilePage() {
           </div>
           <div className="flex-1 space-y-2">
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="Display Name" />
-            <Input value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Tagline" />
+            <Input value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Tagline e.g. Senior Equity Analyst · Tech & AI" />
           </div>
         </div>
       </div>
@@ -135,7 +175,9 @@ export default function EditProfilePage() {
         </div>
       </div>
 
-      <Button onClick={handleSave} className="w-full">Save Changes</Button>
+      <Button onClick={handleSave} disabled={saving} className="w-full">
+        {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Saving...</> : "Save Changes"}
+      </Button>
     </div>
   );
 }

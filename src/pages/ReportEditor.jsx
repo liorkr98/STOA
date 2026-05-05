@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, AlertTriangle, Send, Save, FolderOpen, Trash2, Heading } from "lucide-react";
+import { Sparkles, Plus, Type, List, BarChart3, Image, Quote, Send, Save, FolderOpen, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { publishReport } from "@/lib/mockData";
+import { base44 } from "@/api/base44Client";
 import EditorBlock from "@/components/editor/EditorBlock";
 import StockChartBlock from "@/components/editor/StockChartBlock";
 import ImageBlock from "@/components/editor/ImageBlock";
@@ -15,7 +15,6 @@ import MonetizationPanel from "@/components/editor/MonetizationPanel";
 import FactChecker from "@/components/report/FactChecker";
 import AIChat from "@/components/editor/AIChat";
 import BoostPanel from "@/components/editor/BoostPanel";
-import EditorStatusBar from "@/components/editor/EditorStatusBar";
 
 const DYOR_TEXT = "⚠️ Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
 
@@ -34,32 +33,32 @@ export default function ReportEditor() {
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const autoSaveTimer = useRef(null);
 
+  const wordCount = useMemo(() => {
+    return blocks
+      .filter(b => ["text", "heading", "bullets", "quote"].includes(b.type))
+      .map(b => (b.content || "").trim().split(/\s+/).filter(Boolean).length)
+      .reduce((a, b) => a + b, 0);
+  }, [blocks]);
+
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
   // Auto-save every 30s when there are unsaved changes
   useEffect(() => {
-    if (hasUnsaved) {
-      autoSaveTimer.current = setTimeout(() => {
-        if (!title.trim() && blocks.every(b => !b.content?.trim())) return;
-        const draft = { id: Date.now(), title: title || "Untitled Draft", blocks, predictionData, savedAt: new Date().toISOString() };
-        const updated = [draft, ...drafts.slice(0, 9)];
-        setDrafts(updated);
-        localStorage.setItem("stoa_drafts", JSON.stringify(updated));
-        setLastSaved("just now");
-        setHasUnsaved(false);
-      }, 30000);
-    }
-    return () => clearTimeout(autoSaveTimer.current);
-  }, [hasUnsaved, title, blocks, predictionData]);
+    if (!title.trim() && blocks.every(b => !b.content?.trim())) return;
+    const timer = setTimeout(() => saveDraft(), 30000);
+    return () => clearTimeout(timer);
+  }, [blocks, title]);
 
-  const saveDraft = () => {
+  const saveDraft = useCallback(() => {
     if (!title.trim() && blocks.every(b => !b.content?.trim())) { toast.error("Nothing to save."); return; }
     const draft = { id: Date.now(), title: title || "Untitled Draft", blocks, predictionData, savedAt: new Date().toISOString() };
     const updated = [draft, ...drafts.slice(0, 9)];
     setDrafts(updated);
     localStorage.setItem("stoa_drafts", JSON.stringify(updated));
-    setLastSaved("just now");
+    setLastSaved(Date.now());
     setHasUnsaved(false);
     toast.success("Draft saved!");
-  };
+  }, [title, blocks, predictionData, drafts]);
 
   const loadDraft = (draft) => {
     setTitle(draft.title);
@@ -103,15 +102,40 @@ export default function ReportEditor() {
   const addBlock = (type) => setBlocks((prev) => [...prev, { type, content: "", id: nextId.current++ }]);
   const addDYOR = () => { setBlocks((prev) => [...prev, { type: "text", content: DYOR_TEXT, id: nextId.current++ }]); toast.success("DYOR disclaimer added"); };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
     setPublishing(true);
-    const tickers = blocks.map(b => b.content?.match(/\$([A-Z]{2,5})/g) || []).flat().map(t => t.replace("$", "")).filter((v, i, a) => a.indexOf(v) === i);
-    const excerpt = blocks.find(b => b.type === "text" && b.content?.trim())?.content?.slice(0, 200) || "";
-    const report = { title, content_blocks: blocks, tickers, excerpt, prediction: predictionData, industry: "AI & Semiconductors", marketCap: "large", isPremium: false };
-    publishReport(report);
-    toast.success("Report published! It's live on the feed.");
-    setTimeout(() => navigate("/"), 1200);
+    try {
+      const currentUser = await base44.auth.me();
+      const tickers = blocks.map(b => b.content?.match(/\$([A-Z]{2,5})/g) || [])
+        .flat().map(t => t.replace("$", ""))
+        .filter((v, i, a) => a.indexOf(v) === i);
+      const excerpt = blocks.find(b => b.type === "text" && b.content?.trim())
+        ?.content?.slice(0, 200) || "";
+      await base44.entities.Report.create({
+        title,
+        content_blocks: blocks,
+        tickers,
+        excerpt,
+        prediction_action: predictionData?.action || null,
+        prediction_ticker: predictionData?.ticker || null,
+        prediction_target_price: predictionData?.targetPrice || null,
+        prediction_lock_price: predictionData?.lockPrice || null,
+        prediction_lock_time: predictionData?.lockTime || null,
+        prediction_timeframe: predictionData?.timeframe || null,
+        is_premium: false,
+        status: "published",
+        author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst",
+        author_avatar: currentUser?.picture || null,
+        likes: 0,
+      });
+      toast.success("Report published! It's live on the feed.");
+      setTimeout(() => navigate("/dashboard"), 1200);
+    } catch (err) {
+      toast.error("Failed to publish: " + (err.message || "Unknown error"));
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const handleAIGenerate = (template) => {
@@ -204,7 +228,20 @@ export default function ReportEditor() {
       </div>
 
       {/* Status bar */}
-      <EditorStatusBar blocks={blocks} lastSaved={lastSaved} hasUnsaved={hasUnsaved} />
+      <div className="flex items-center gap-4 px-1 py-1.5 text-[11px] text-muted-foreground border-t border-border/50 mt-2 mb-4">
+        <span>{wordCount} words</span>
+        <span>·</span>
+        <span>{readingTime} min read</span>
+        <span className="ml-auto">
+          {hasUnsaved ? (
+            <span className="text-amber-500">● Unsaved changes</span>
+          ) : lastSaved ? (
+            <span className="text-gain">✓ Saved</span>
+          ) : (
+            <span className="text-muted-foreground/60">Not saved yet</span>
+          )}
+        </span>
+      </div>
 
       {/* Add block */}
       <DropdownMenu>

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import {
   Sparkles, CheckCircle2, AlertTriangle, Info, MessageSquareQuote,
-  Loader2, X, HelpCircle
+  Loader2, X, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 const TYPE_CONFIG = {
   Fact: {
@@ -28,7 +29,6 @@ const TYPE_CONFIG = {
 function ClaimCard({ claim }) {
   const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
   const Icon = cfg.icon;
-  const [showNote, setShowNote] = useState(false);
 
   return (
     <div className={`flex gap-2 p-3 rounded-xl border text-xs ${cfg.bg}`}>
@@ -56,17 +56,20 @@ function ClaimCard({ claim }) {
 export default function FactChecker({ reportContent, content }) {
   const [loading, setLoading] = useState(false);
   const [claims, setClaims] = useState(null);
+  const [error, setError] = useState(null);
 
   const text = (reportContent || content || "").trim();
 
   const runCheck = async () => {
-    if (!text) return;
+    if (text.length < 50) { toast.error("Write more content before fact-checking."); return; }
     setLoading(true);
     setClaims(null);
+    setError(null);
 
-    const res = await base44.integrations.Core.InvokeLLM({
-      model: "claude_sonnet_4_6",
-      prompt: `You are a rigorous financial analyst and fact-checker. Carefully read the following report text and identify the key factual claims made in it.
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        model: "claude_sonnet_4_6",
+        prompt: `You are a rigorous financial analyst and fact-checker. Carefully read the following report text and identify the key factual claims made in it.
 
 For each claim, classify it as one of:
 - Fact: a specific, verifiable statement that is accurate based on known data
@@ -74,39 +77,33 @@ For each claim, classify it as one of:
 - Misleading: contains accurate elements but omits critical context or creates false impressions
 - Unverified: a specific claim that cannot be confirmed from public sources
 
-IMPORTANT: Only extract claims that are ACTUALLY in the text below. Do not invent claims or use outside examples.
+IMPORTANT: Only extract claims that are ACTUALLY in the text below. Do not invent claims.
 
 Report text:
 """
 ${text.slice(0, 3000)}
 """
 
-Return 4 to 8 of the most important claims. For each, provide:
-- text: the exact claim as it appears or a close paraphrase
-- type: Fact | Opinion | Misleading | Unverified
-- note: one sentence explaining your classification
-- confidence: "high" | "medium" | "low"`,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          claims: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                text: { type: "string" },
-                type: { type: "string" },
-                note: { type: "string" },
-                confidence: { type: "string" }
-              }
-            }
-          }
-        }
-      }
-    });
+Return 4 to 8 of the most important claims as a JSON object. Format:
+{"claims": [{"text": "...", "type": "Fact|Opinion|Misleading|Unverified", "note": "...", "confidence": "high|medium|low"}]}
 
-    setClaims(res.claims || []);
-    setLoading(false);
+Return ONLY valid JSON, no markdown fences, no extra text.`,
+      });
+
+      // Normalize response — InvokeLLM may return string or object
+      const raw = typeof res === "string" ? res : (res?.content?.[0]?.text || res?.text || JSON.stringify(res));
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        setClaims(parsed.claims || []);
+      } else {
+        setClaims([]);
+      }
+    } catch (err) {
+      setError("AI fact check failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const summary = claims ? {
@@ -132,7 +129,7 @@ Return 4 to 8 of the most important claims. For each, provide:
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <Button onClick={runCheck} disabled={loading || !text} size="sm" variant="outline" className="text-xs">
+          <Button onClick={runCheck} disabled={loading || text.length < 50} size="sm" variant="outline" className="text-xs">
             {loading
               ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Analyzing...</>
               : claims ? "Re-run" : "Check Facts"}
@@ -140,7 +137,6 @@ Return 4 to 8 of the most important claims. For each, provide:
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
@@ -148,7 +144,13 @@ Return 4 to 8 of the most important claims. For each, provide:
         </div>
       )}
 
-      {/* Summary badges */}
+      {error && (
+        <div className="flex items-center gap-2 py-2 text-xs text-loss">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       {summary && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {Object.entries(summary).filter(([, v]) => v > 0).map(([type, count]) => {
@@ -162,7 +164,6 @@ Return 4 to 8 of the most important claims. For each, provide:
         </div>
       )}
 
-      {/* Claims list */}
       {claims && claims.length > 0 && (
         <div className="space-y-2">
           {claims.map((claim, i) => <ClaimCard key={i} claim={claim} />)}

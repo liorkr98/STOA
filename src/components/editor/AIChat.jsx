@@ -3,6 +3,7 @@ import { Sparkles, Send, X, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function AIChat({ reportContent, onInsertBlock }) {
   const [open, setOpen] = useState(false);
@@ -22,22 +23,35 @@ export default function AIChat({ reportContent, onInsertBlock }) {
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setLoading(true);
 
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are an expert financial research analyst AI assistant helping write professional research reports. Current report context: "${reportContent?.slice(0, 500) || "New report"}"\n\nUser question: "${userMsg}"\n\nBe concise, insightful, and data-driven (3-5 sentences). Use financial terminology appropriately. If the user asks you to "write", "draft", or "add" something, end your response with: [INSERT: <the paragraph text>]`,
-      add_context_from_internet: userMsg.toLowerCase().includes("price") || userMsg.toLowerCase().includes("news") || userMsg.toLowerCase().includes("latest"),
-      model: "claude_sonnet_4_6",
-    });
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        model: "claude_sonnet_4_6",
+        prompt: `You are an expert financial research analyst AI assistant helping write professional research reports.
+Current report context: "${reportContent?.slice(0, 500) || "New report"}"
+User question: "${userMsg}"
+Be concise, insightful, and data-driven (3-5 sentences). Use financial terminology appropriately.
+If the user asks you to "write", "draft", or "add" something, end your response with exactly: [INSERT: <the paragraph text>]`,
+      });
 
-    const text = typeof res === "string" ? res : JSON.stringify(res);
-    const insertMatch = text.match(/\[INSERT: ([\s\S]+)\]/);
-    const cleanText = text.replace(/\[INSERT:[\s\S]+\]/, "").trim();
+      const raw = typeof res === "string" ? res
+        : (res?.content?.[0]?.text || res?.text || res?.response || JSON.stringify(res));
+      const insertMatch = raw.match(/\[INSERT:\s*([\s\S]+?)\]$/);
+      const cleanText = raw.replace(/\[INSERT:[\s\S]+?\]$/, "").trim();
 
-    setMessages(prev => [...prev, {
-      role: "assistant",
-      content: cleanText,
-      insertText: insertMatch ? insertMatch[1] : null
-    }]);
-    setLoading(false);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: cleanText || "I couldn't generate a response. Please try again.",
+        insertText: insertMatch ? insertMatch[1].trim() : null
+      }]);
+    } catch {
+      toast.error("AI assistant failed. Please try again.");
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+      }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!open) return (

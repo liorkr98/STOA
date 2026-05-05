@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Trophy, TrendingUp, Loader2, PenLine } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { MOCK_ANALYSTS } from "@/lib/mockData";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -47,25 +46,9 @@ export default function Leaderboard() {
   useEffect(() => {
     base44.entities.User.list("-accuracy_score", 20)
       .then(data => {
-        const withData = (data || []).filter(u => u.accuracy_score > 0);
-        if (withData.length >= 3) {
-          setAnalysts(withData);
-        } else {
-          // Fallback to mock data
-          setAnalysts(MOCK_ANALYSTS.map((a, i) => ({
-            id: a.id, full_name: a.name, accuracy_score: a.accuracy,
-            avatar: a.avatar, yearlyYield: a.yearlyYield, reports: a.reports,
-            specialties: a.specialties,
-          })));
-        }
+        setAnalysts((data || []).filter(u => u.accuracy_score > 0));
       })
-      .catch(() => {
-        setAnalysts(MOCK_ANALYSTS.map((a) => ({
-          id: a.id, full_name: a.name, accuracy_score: a.accuracy,
-          avatar: a.avatar, yearlyYield: a.yearlyYield, reports: a.reports,
-          specialties: a.specialties,
-        })));
-      })
+      .catch(() => setAnalysts([]))
       .finally(() => setLoading(false));
   }, []);
 

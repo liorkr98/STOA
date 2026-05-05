@@ -43,11 +43,21 @@ function TickerTape() {
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", h);
     return () => window.removeEventListener("scroll", h);
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      base44.entities.User.list(undefined, 1).catch(() => []),
+      base44.entities.Report.filter({ status: "published" }, undefined, 1).catch(() => []),
+    ]).then(([users, reports]) => {
+      setStats({ analysts: users?.length || 0, reports: reports?.length || 0 });
+    }).catch(() => {});
   }, []);
 
   const go = () => base44.auth.redirectToLogin("/");
@@ -121,20 +131,20 @@ export default function LandingPage() {
             </a>
           </div>
 
-          {/* Stat row */}
-          <div className="fade-up-3 flex flex-wrap justify-center gap-6">
-            {[
-              { val: "10K+", label: "Analysts" },
-              { val: "50K+", label: "Reports" },
-              { val: "98%", label: "Tracked Accuracy" },
-              { val: "$2.4B", label: "Managed" },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <p className="text-2xl font-black text-white">{s.val}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
-              </div>
-            ))}
-          </div>
+          {/* Stat row — only show when there's real data */}
+          {stats && (stats.analysts > 0 || stats.reports > 0) && (
+            <div className="fade-up-3 flex flex-wrap justify-center gap-6">
+              {[
+                { val: stats.analysts.toLocaleString(), label: "Analysts" },
+                { val: stats.reports.toLocaleString(), label: "Published Reports" },
+              ].map((s, i) => (
+                <div key={i} className="text-center">
+                  <p className="text-2xl font-black text-white">{s.val}</p>
+                  <p className="text-xs text-slate-500">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

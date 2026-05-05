@@ -1,0 +1,24 @@
+{
+  "name": "Twit",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "The quick market take content"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "User ID of the author"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "author_avatar": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "content",
+    "author_id"
+  ]
+}

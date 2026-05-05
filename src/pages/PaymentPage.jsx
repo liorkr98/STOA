@@ -1,19 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Lock, ArrowLeft, Shield, Zap, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb"; // "sb" = sandbox for testing
 
 const SUBSCRIPTION_PLANS = [
   { key: "basic", label: "Basic", price: 9, description: "For casual investors", features: ["All published reports", "Weekly market digest", "Community comments", "Prediction tracking"] },
   { key: "pro", label: "Pro", price: 29, description: "For serious analysts", features: ["Everything in Basic", "Locked predictions access", "Direct analyst DMs", "Weekly live Q&A", "Export reports to PDF", "Early access to reports"], highlight: true },
 ];
-
-async function createCheckoutSession(params) {
-  const res = await base44.functions.invoke('stripeCheckout', params);
-  return res.data;
-}
 
 function SuccessScreen({ mode }) {
   const navigate = useNavigate();
@@ -29,19 +25,56 @@ function SuccessScreen({ mode }) {
   );
 }
 
+function PayPalButton({ amount, description, onSuccess }) {
+  const containerRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const rendered = useRef(false);
+
+  useEffect(() => {
+    if (window.paypal) { setReady(true); return; }
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+    script.onload = () => setReady(true);
+    script.onerror = () => toast.error("Failed to load PayPal. Please refresh.");
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !containerRef.current || rendered.current) return;
+    rendered.current = true;
+    window.paypal.Buttons({
+      createOrder: (data, actions) => actions.order.create({
+        purchase_units: [{ amount: { value: String(amount) }, description }]
+      }),
+      onApprove: async (data, actions) => {
+        await actions.order.capture();
+        toast.success("Payment successful!");
+        onSuccess();
+      },
+      onError: () => toast.error("Payment failed. Please try again."),
+      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay" }
+    }).render(containerRef.current);
+  }, [ready, amount, description, onSuccess]);
+
+  if (!ready) return (
+    <div className="flex items-center justify-center py-6">
+      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-sm text-muted-foreground">Loading PayPal...</span>
+    </div>
+  );
+
+  return <div ref={containerRef} className="mt-2" />;
+}
+
 export default function PaymentPage() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get("mode") || "subscription";
   const reportTitle = urlParams.get("title") || "Premium Report";
   const reportPrice = parseFloat(urlParams.get("price") || "4.99");
-  const reportId = urlParams.get("id") || "";
   const analystName = urlParams.get("analyst") || "";
-  const boostPlanId = urlParams.get("boostPlanId") || "";
   const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [loading, setLoading] = useState(false);
 
-  // Handle Stripe success/cancel redirects
   if (urlParams.get("success") === "true" || urlParams.get("subscription") === "success" || urlParams.get("analyst_sub") === "success") {
     return <SuccessScreen mode="subscription" />;
   }
@@ -49,21 +82,7 @@ export default function PaymentPage() {
     return <SuccessScreen mode="boost" />;
   }
 
-  const handleCheckout = async (checkoutMode, extraParams = {}) => {
-    setLoading(true);
-    try {
-      const { url } = await createCheckoutSession({ mode: checkoutMode, ...extraParams });
-      if (url) {
-        window.location.href = url;
-      } else {
-        toast.error("Could not create checkout session. Please try again.");
-        setLoading(false);
-      }
-    } catch (err) {
-      toast.error(err.message || "Payment error. Please try again.");
-      setLoading(false);
-    }
-  };
+  const handleSuccess = () => navigate("?success=true");
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
@@ -84,13 +103,13 @@ export default function PaymentPage() {
             <span className="text-sm text-muted-foreground">One-time access</span>
             <span className="font-bold text-lg">${reportPrice.toFixed(2)}</span>
           </div>
-          <Button className="w-full mb-3" disabled={loading} onClick={() => handleCheckout('report', { price: reportPrice, title: reportTitle, reportId, analystName })}>
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to Stripe...</> : <><Lock className="w-4 h-4 mr-2" />Unlock for ${reportPrice.toFixed(2)}</>}
-          </Button>
-          <p className="text-xs text-center text-muted-foreground">
+          <PayPalButton amount={reportPrice} description={reportTitle} onSuccess={handleSuccess} />
+          <p className="text-xs text-center text-muted-foreground mt-3">
             Or <button onClick={() => navigate("/pay?mode=subscription")} className="text-primary hover:underline">subscribe from $9/mo</button> for unlimited access.
           </p>
-          <p className="text-xs text-center text-muted-foreground mt-2 flex items-center justify-center gap-1"><Shield className="w-3 h-3" /> 256-bit SSL · Powered by Stripe</p>
+          <p className="text-xs text-center text-muted-foreground mt-2 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> Secured by PayPal
+          </p>
         </div>
       )}
 
@@ -105,10 +124,10 @@ export default function PaymentPage() {
             <span className="text-sm text-muted-foreground">One-time boost</span>
             <span className="font-bold text-lg">${reportPrice.toFixed(2)}</span>
           </div>
-          <Button className="w-full mb-3" disabled={loading} onClick={() => handleCheckout('boost', { price: reportPrice, title: reportTitle, boostPlanId })}>
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to Stripe...</> : `Boost for $${reportPrice.toFixed(2)}`}
-          </Button>
-          <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1"><Shield className="w-3 h-3" /> 256-bit SSL · Powered by Stripe</p>
+          <PayPalButton amount={reportPrice} description={`Boost: ${reportTitle}`} onSuccess={handleSuccess} />
+          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> Secured by PayPal
+          </p>
         </div>
       )}
 
@@ -134,19 +153,13 @@ export default function PaymentPage() {
               </button>
             ))}
           </div>
-          <Button className="w-full mb-3" disabled={loading} onClick={() => {
+          {(() => {
             const plan = SUBSCRIPTION_PLANS.find(p => p.key === selectedPlan);
-            if (mode === "subscription" && selectedPlan === "pro") {
-              handleCheckout('subscription', {});
-            } else {
-              handleCheckout('analyst', { price: plan.price, analystName });
-            }
-          }}>
-            {loading
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to Stripe...</>
-              : <><Zap className="w-4 h-4 mr-2" />Subscribe for ${SUBSCRIPTION_PLANS.find(p => p.key === selectedPlan)?.price}/mo via Stripe</>}
-          </Button>
-          <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1"><Shield className="w-3 h-3" /> 256-bit SSL · Powered by Stripe · Cancel anytime</p>
+            return <PayPalButton amount={plan.price} description={`STOA ${plan.label} Subscription`} onSuccess={handleSuccess} />;
+          })()}
+          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> Secured by PayPal · Cancel anytime
+          </p>
         </div>
       )}
     </div>

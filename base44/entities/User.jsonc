@@ -28,6 +28,40 @@
     "leaderboard_rank": {
       "type": "number",
       "description": "Current leaderboard rank"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Analyst bio"
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Short tagline"
+    },
+    "specialties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Analyst specialty sectors"
+    },
+    "followers_count": {
+      "type": "number",
+      "default": 0
+    },
+    "twitter_handle": {
+      "type": "string"
+    },
+    "linkedin_username": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "yearly_yield": {
+      "type": "number",
+      "default": 0,
+      "description": "Annualized yield from locked predictions"
     }
-  }
+  },
+  "required": []
 }
