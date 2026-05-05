@@ -89,20 +89,33 @@ export default function StockPage() {
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([
-      base44.functions.invoke("getStockData", { ticker, range: "1d", interval: "5m" }),
-      base44.entities.Report.filter({ status: "published" }),
-    ]).then(([stockRes, allReports]) => {
-      const d = stockRes.data;
-      setStockData(d);
-      // fundamentals and news now come directly from getStockData
-      if (d?.fundamentals) setFundamentals(d.fundamentals);
-      if (d?.news?.length) setNews(d.news);
-      setReports((allReports || []).filter(r => (r.tickers || []).includes(ticker)));
-    }).catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    setStockData(null);
+
+    const loadAll = async () => {
+      // Fetch stock data + reports in parallel
+      try {
+        const [stockRes, allReports] = await Promise.all([
+          base44.functions.invoke("getStockData", { ticker, range: "1d", interval: "5m" }),
+          base44.entities.Report.filter({ status: "published" }),
+        ]);
+        if (cancelled) return;
+        const d = stockRes?.data || stockRes || null;
+        setStockData(d);
+        if (d?.fundamentals) setFundamentals(d.fundamentals);
+        if (d?.news?.length) setNews(d.news);
+        setReports((allReports || []).filter(r => (r.tickers || []).includes(ticker)));
+      } catch (e) {
+        if (!cancelled) setError(e.message);
+      }
+
+      if (!cancelled) setLoading(false);
+    };
+
+    loadAll();
+    return () => { cancelled = true; };
   }, [ticker]);
 
   const loadFinancials = async () => {
@@ -110,12 +123,12 @@ export default function StockPage() {
     setFinancialsLoading(true);
     try {
       const res = await base44.functions.invoke("getStockFinancials", { ticker });
-      setFundamentals(res.data.financials);
-      setNews(res.data.news || []);
-      setQuarterly(res.data.quarterly || []);
-    } finally {
-      setFinancialsLoading(false);
-    }
+      const d = res?.data || res || {};
+      setFundamentals(d.financials || null);
+      setNews(prev => d.news?.length ? d.news : prev);
+      setQuarterly(d.quarterly || []);
+    } catch { /* financials optional */ }
+    finally { setFinancialsLoading(false); }
   };
 
   const handleTabChange = (tab) => {
@@ -245,7 +258,9 @@ export default function StockPage() {
                 </div>
               )}
             </>
-          ) : null}
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Financial data unavailable. The Yahoo Finance API may be rate-limited. Try again in a moment.</p>
+          )}
         </div>
       )}
 

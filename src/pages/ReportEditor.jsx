@@ -61,8 +61,9 @@ export default function ReportEditor() {
   }, [title, blocks, predictionData, drafts]);
 
   const loadDraft = (draft) => {
-    setTitle(draft.title);
-    setBlocks(draft.blocks);
+    setTitle(draft.title || "");
+    const validBlocks = (draft.blocks || []).filter(b => b !== null && typeof b === 'object' && typeof b.type === 'string');
+    setBlocks(validBlocks.length > 0 ? validBlocks : [{ type: "text", content: "", id: 0 }]);
     setPredictionData(draft.predictionData || null);
     setShowDrafts(false);
     toast.success("Draft loaded!");
@@ -121,23 +122,29 @@ Extract 4-8 important claims from: """${text.slice(0, 3000)}"""`,
 
   const handlePublish = async () => {
     if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
+
+    const validBlocks = blocks.filter(b => b && typeof b === 'object' && b.type);
+    if (validBlocks.length === 0) { toast.error("Please add some content before publishing."); return; }
+
     setPublishing(true);
     try {
       const currentUser = await base44.auth.me();
-      const fullText = [title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
+      if (!currentUser) throw new Error("Not logged in");
+
+      const fullText = [title, ...validBlocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
 
       toast.info("Running AI fact check...");
       const factCheckResult = await runFactCheck(fullText);
 
-      const tickers = blocks.map(b => b.content?.match(/\$([A-Z]{2,5})/g) || [])
+      const tickers = validBlocks.map(b => b.content?.match(/\$([A-Z]{2,5})/g) || [])
         .flat().map(t => t.replace("$", ""))
         .filter((v, i, a) => a.indexOf(v) === i);
-      const excerpt = blocks.find(b => b.type === "text" && b.content?.trim())
+      const excerpt = validBlocks.find(b => b.type === "text" && b.content?.trim())
         ?.content?.slice(0, 200) || "";
 
-      await base44.entities.Report.create({
+      const created = await base44.entities.Report.create({
         title,
-        content_blocks: JSON.stringify(blocks),
+        content_blocks: JSON.stringify(validBlocks),
         tickers,
         excerpt,
         fact_check_results: factCheckResult ? JSON.stringify(factCheckResult) : null,
@@ -156,8 +163,8 @@ Extract 4-8 important claims from: """${text.slice(0, 3000)}"""`,
         author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       });
-      toast.success("Report published with AI fact check!");
-      setTimeout(() => navigate("/dashboard"), 1200);
+      toast.success("Report published!");
+      setTimeout(() => navigate(`/report?id=${created.id}`), 1200);
     } catch (err) {
       toast.error("Failed to publish: " + (err.message || "Unknown error"));
     } finally {
@@ -235,23 +242,26 @@ Extract 4-8 important claims from: """${text.slice(0, 3000)}"""`,
 
       {/* Blocks */}
       <div className="space-y-2 mb-4">
-        {blocks.map((block, index) =>
-          block.type === "stockchart" ? (
-            <StockChartBlock key={block.id} block={block} onDelete={() => handleBlockDelete(index)} onChange={(nb) => handleBlockChange(index, nb)} />
-          ) : block.type === "image" ? (
-            <ImageBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
-          ) : (
-            <EditorBlock
-              key={block.id}
-              block={block}
-              index={index}
-              onChange={(nb) => handleBlockChange(index, nb)}
-              onDelete={() => handleBlockDelete(index)}
-              onKeyDown={(action) => handleBlockKeyDown(index, action)}
-              onInsertBlock={(idx, type) => handleInsertBlock(idx, type)}
-            />
-          )
-        )}
+        {blocks.map((block, index) => {
+        if (!block || typeof block !== 'object' || !block.type) return null;
+        if (block.type === "stockchart") return (
+          <StockChartBlock key={block.id} block={block} onDelete={() => handleBlockDelete(index)} onChange={(nb) => handleBlockChange(index, nb)} />
+        );
+        if (block.type === "image") return (
+          <ImageBlock key={block.id} onDelete={() => handleBlockDelete(index)} />
+        );
+        return (
+          <EditorBlock
+            key={block.id}
+            block={block}
+            index={index}
+            onChange={(nb) => handleBlockChange(index, nb)}
+            onDelete={() => handleBlockDelete(index)}
+            onKeyDown={(action) => handleBlockKeyDown(index, action)}
+            onInsertBlock={(idx, type) => handleInsertBlock(idx, type)}
+          />
+        );
+      })}
       </div>
 
       {/* Status bar */}

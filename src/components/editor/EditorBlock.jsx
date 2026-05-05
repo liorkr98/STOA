@@ -27,7 +27,7 @@ export default function EditorBlock({ block, index, onChange, onDelete, onKeyDow
   }, [block.content]);
 
   const handleInput = useCallback(() => {
-    if (!ref.current) return;
+    if (!ref.current || !block || typeof block !== 'object') return;
     const text = ref.current.innerText;
     onChange(index, { ...block, content: text });
 
@@ -40,6 +40,7 @@ export default function EditorBlock({ block, index, onChange, onDelete, onKeyDow
   }, [index, block, onChange]);
 
   const handleKeyDown = (e) => {
+    if (!block || typeof block !== 'object') return;
     if (e.key === "Enter" && !e.shiftKey && block.type !== "bullets") {
       e.preventDefault();
       onKeyDown(index, "enter");
