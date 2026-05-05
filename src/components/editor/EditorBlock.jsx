@@ -15,7 +15,7 @@ const PLACEHOLDERS = {
   quote: "Add a quote...",
 };
 
-export default function EditorBlock({ block, index, onChange, onDelete, onKeyDown, onInsertBlock }) {
+export default function EditorBlock({ block, onChange, onDelete, onEnter, onInsertBlock, index }) {
   const ref = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -29,33 +29,26 @@ export default function EditorBlock({ block, index, onChange, onDelete, onKeyDow
   const handleInput = useCallback(() => {
     if (!ref.current || !block || typeof block !== 'object') return;
     const text = ref.current.innerText;
-    onChange(index, { ...block, content: text });
-
-    // Slash command — show menu if "/" at start of empty block
-    if (text === "/") {
-      setShowMenu(true);
-    } else {
-      setShowMenu(false);
-    }
-  }, [index, block, onChange]);
+    onChange({ ...block, content: text });
+    setShowMenu(text === "/");
+  }, [block, onChange]);
 
   const handleKeyDown = (e) => {
     if (!block || typeof block !== 'object') return;
     if (e.key === "Enter" && !e.shiftKey && block.type !== "bullets") {
       e.preventDefault();
-      onKeyDown(index, "enter");
+      if (onEnter) onEnter();
     }
-    if (e.key === "Backspace" && !block.content && index > 0) {
+    if (e.key === "Backspace" && !block.content) {
       e.preventDefault();
-      onDelete(index);
+      onDelete();
     }
-    if (e.key === "Escape") {
-      setShowMenu(false);
-    }
+    if (e.key === "Escape") setShowMenu(false);
   };
 
   const handleInsert = (type) => {
-    if (onInsertBlock) onInsertBlock(index, type);
+    if (onInsertBlock) onInsertBlock(block.id, type);
+    else if (onEnter) onEnter();
     setShowMenu(false);
   };
 
@@ -92,8 +85,7 @@ export default function EditorBlock({ block, index, onChange, onDelete, onKeyDow
         {showMenu && (
           <BlockTypeMenu
             onSelect={(type) => {
-              // Clear the "/" from content
-              onChange(index, { ...block, content: "" });
+              onChange({ ...block, content: "" });
               if (ref.current) ref.current.innerText = "";
               handleInsert(type);
             }}
@@ -112,7 +104,7 @@ export default function EditorBlock({ block, index, onChange, onDelete, onKeyDow
       </div>
 
       <button
-        onClick={() => onDelete(index)}
+        onClick={() => onDelete()}
         className="opacity-0 group-hover:opacity-100 transition-opacity mt-1 p-0.5 text-muted-foreground hover:text-loss flex-shrink-0"
       >
         <Trash2 className="w-3.5 h-3.5" />

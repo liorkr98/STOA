@@ -159,10 +159,23 @@ function BlockRenderer({ blocks }) {
         );
         if (block.type === "stockchart") {
           const chartTicker = block.ticker || block.content || "SPY";
-          const chartHeight = block.height || 380;
+          const chartHeight = block.height || 420;
           return (
-            <div key={i} className="rounded-xl overflow-hidden border border-border" style={{ height: chartHeight }}>
-              <TradingViewWidget ticker={chartTicker} height={chartHeight} />
+            <div key={i} className="my-4 rounded-xl overflow-hidden border border-border">
+              {block.snapshot_url ? (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
+                    <span className="font-mono font-bold text-sm text-primary">{chartTicker}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">Chart snapshot at publish time</span>
+                  </div>
+                  <img src={block.snapshot_url} alt={`${chartTicker} chart`} loading="lazy" className="w-full object-cover" style={{ height: chartHeight }} />
+                  <div className="px-3 py-2 border-t border-border">
+                    <a href={`/stock?ticker=${chartTicker}`} className="text-xs text-primary hover:underline">View live chart for ${chartTicker} →</a>
+                  </div>
+                </>
+              ) : (
+                <TradingViewWidget ticker={chartTicker} height={chartHeight} />
+              )}
             </div>
           );
         }
@@ -266,10 +279,8 @@ export default function ReportView() {
 
   const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
 
-  // Parse tickers — stored as array or comma-separated string
-  const tickers = Array.isArray(report.tickers)
-    ? report.tickers
-    : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
+  // tickers is stored as a comma-separated string
+  const tickers = (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">

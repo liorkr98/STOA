@@ -15,11 +15,8 @@
       "description": "JSON string of editor blocks [{type, content, id}]"
     },
     "tickers": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Stock tickers mentioned"
+      "type": "string",
+      "description": "Comma-separated stock tickers e.g. NVDA,AAPL"
     },
     "prediction_action": {
       "type": "string",
