@@ -23,8 +23,10 @@ export default function EditProfilePage() {
   const [website, setWebsite] = useState("");
   const [tagline, setTagline] = useState("");
   const [selectedSpecialties, setSelectedSpecialties] = useState([]);
-  const [basicPrice, setBasicPrice] = useState("9");
-  const [proPrice, setProPrice] = useState("19");
+  const [basicMonthly, setBasicMonthly] = useState("9");
+  const [basicAnnual, setBasicAnnual] = useState("79");
+  const [proMonthly, setProMonthly] = useState("19");
+  const [proAnnual, setProAnnual] = useState("169");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -38,8 +40,10 @@ export default function EditProfilePage() {
       setWebsite(saved.website || user.website || "");
       setTagline(saved.tagline || user.tagline || "");
       setSelectedSpecialties(saved.specialties || user.specialties || []);
-      setBasicPrice(saved.basicPrice || "9");
-      setProPrice(saved.proPrice || "19");
+      setBasicMonthly(saved.basicMonthly || "9");
+      setBasicAnnual(saved.basicAnnual || "79");
+      setProMonthly(saved.proMonthly || "19");
+      setProAnnual(saved.proAnnual || "169");
     }).finally(() => setLoading(false));
   }, []);
 
@@ -57,7 +61,7 @@ export default function EditProfilePage() {
 
   const handleSave = async () => {
     setSaving(true);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, bio, avatar, twitter, linkedin, website, tagline, specialties: selectedSpecialties, basicPrice, proPrice }));
+    localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, bio, avatar, twitter, linkedin, website, tagline, specialties: selectedSpecialties, basicMonthly, basicAnnual, proMonthly, proAnnual }));
     try {
       await base44.auth.updateMe({
         full_name: name,
@@ -159,18 +163,36 @@ export default function EditProfilePage() {
 
       {/* Subscription Pricing */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <DollarSign className="w-4 h-4 text-primary" />
           <h3 className="font-semibold text-sm">Subscription Pricing</h3>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Basic Plan ($/mo)</label>
-            <Input value={basicPrice} onChange={e => setBasicPrice(e.target.value)} type="number" min="1" placeholder="9" />
+            <p className="text-xs font-semibold text-foreground mb-2">Basic Plan</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Monthly ($/mo)</label>
+                <Input value={basicMonthly} onChange={e => setBasicMonthly(e.target.value)} type="number" min="1" placeholder="9" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Annual ($/yr)</label>
+                <Input value={basicAnnual} onChange={e => setBasicAnnual(e.target.value)} type="number" min="1" placeholder="79" />
+              </div>
+            </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Pro + DM Plan ($/mo)</label>
-            <Input value={proPrice} onChange={e => setProPrice(e.target.value)} type="number" min="1" placeholder="19" />
+            <p className="text-xs font-semibold text-foreground mb-2">Pro + DM Plan</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Monthly ($/mo)</label>
+                <Input value={proMonthly} onChange={e => setProMonthly(e.target.value)} type="number" min="1" placeholder="19" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Annual ($/yr)</label>
+                <Input value={proAnnual} onChange={e => setProAnnual(e.target.value)} type="number" min="1" placeholder="169" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
