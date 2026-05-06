@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ImageIcon, Zap, Unlock, Lock, Palette, BarChart3 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import BoostPanel from "@/components/editor/BoostPanel";
 
 const INDUSTRIES = [
   "Technology","Healthcare","Financials","Energy","Consumer Discretionary",
@@ -97,6 +98,9 @@ export default function EditorSettingsPanel({
           </div>
         )}
       </div>
+
+      {/* Boost */}
+      <BoostPanel />
 
       {/* Classification */}
       <div className="bg-card border border-border rounded-2xl p-5">
