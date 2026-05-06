@@ -76,6 +76,7 @@ const AuthenticatedApp = () => {
         <Route path="/report" element={<ReportView />} />
         <Route path="/analyst" element={<AnalystProfilePage />} />
         <Route path="/stock" element={<StockPage />} />
+        <Route path="/stock/:ticker" element={<StockPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
