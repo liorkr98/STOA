@@ -204,6 +204,7 @@ export default function ReportView() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+  const [livePrice, setLivePrice] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -228,6 +229,17 @@ export default function ReportView() {
       .catch(() => setError("Failed to load report."))
       .finally(() => setLoading(false));
   }, [reportId]);
+
+  // Fetch live price for prediction badge
+  useEffect(() => {
+    if (!report?.prediction_ticker) return;
+    base44.functions.invoke("proxyFetch", {
+      url: `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${report.prediction_ticker}?modules=price`,
+    }).then(res => {
+      const price = res?.data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw;
+      if (price) setLivePrice(price);
+    }).catch(() => {});
+  }, [report?.prediction_ticker]);
 
   // SEO: dynamic meta + JSON-LD
   useEffect(() => {
@@ -279,10 +291,11 @@ export default function ReportView() {
     action: report.prediction_action,
     ticker: report.prediction_ticker,
     targetPrice: canSeeTarget ? report.prediction_target_price : null,
-    lockPrice: canSeeTarget ? report.prediction_lock_price : null,
+    lockPrice: report.prediction_lock_price,
     lockTime: report.prediction_lock_time,
     timeframe: report.prediction_timeframe,
-    outcome: null,
+    outcome: report.prediction_outcome || null,
+    resolvedPrice: report.prediction_resolved_price || null,
   } : null;
 
   const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
@@ -331,7 +344,7 @@ export default function ReportView() {
         </div>
       </div>
 
-      {prediction && <PredictionBadge prediction={prediction} />}
+      {prediction && <PredictionBadge prediction={prediction} currentPrice={livePrice} />}
 
       <div className="mb-8">
         {(!isPremium || isPaid || isAuthor) ? (

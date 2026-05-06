@@ -159,6 +159,18 @@ Deno.serve(async (req) => {
           prediction_resolved_time: now.toISOString(),
         });
 
+        // Send email notification to the analyst
+        const outcomeEmoji = { hit: "🎯", near: "✅", partial: "🟡", miss: "❌" }[finalOutcome] || "📊";
+        const yieldPct = report.prediction_lock_price
+          ? (((livePrice - report.prediction_lock_price) / report.prediction_lock_price) * 100).toFixed(2)
+          : null;
+        const yieldStr = yieldPct !== null ? ` (${yieldPct > 0 ? "+" : ""}${yieldPct}% yield)` : "";
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: report.created_by,
+          subject: `${outcomeEmoji} Your ${ticker} prediction was resolved — ${finalOutcome.toUpperCase()}`,
+          body: `Hi,\n\nYour prediction on $${ticker} has been resolved.\n\nReport: "${report.title}"\nAction: ${report.prediction_action}\nLocked at: $${report.prediction_lock_price}\nTarget: $${report.prediction_target_price}\nResolved price: $${livePrice}${yieldStr}\nOutcome: ${finalOutcome.toUpperCase()}\n\nView your predictions: https://stakify-f5b3c3a0.base44.app/predictions\n\n— STOA`,
+        });
+
         if (!updatedByUser[report.created_by]) updatedByUser[report.created_by] = [];
         updatedByUser[report.created_by].push({ ...report, prediction_outcome: finalOutcome });
         resolvedCount++;
