@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Zap, Unlock, Lock, Palette, BarChart3 } from "lucide-react";
+import { ImageIcon, Zap, Unlock, Lock, Palette, BarChart3, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import BoostPanel from "@/components/editor/BoostPanel";
@@ -22,7 +22,7 @@ const MARKET_CAPS = [
 export default function EditorSettingsPanel({
   isPremium, reportPrice, onIsPremiumChange, onPriceChange,
   industry, onIndustryChange, marketCap, onMarketCapChange,
-  coverImage, onCoverImageChange,
+  coverImage, onCoverImageChange, onDeleteAll,
 }) {
   const [uploading, setUploading] = useState(false);
 
@@ -130,6 +130,17 @@ export default function EditorSettingsPanel({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+
+      {/* Delete all */}
+      {onDeleteAll && (
+        <div className="bg-card border border-border rounded-2xl p-5">
+          <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><Trash2 className="w-4 h-4 text-loss" /> Clear All</h3>
+          <p className="text-xs text-muted-foreground mb-3">Clear all content, settings, and start fresh.</p>
+          <Button variant="destructive" size="sm" onClick={onDeleteAll} className="text-xs gap-1.5">
+            <Trash2 className="w-3.5 h-3.5" /> Delete Everything
+          </Button>
+        </div>
+      )}
+      </div>
+      );
+      }
