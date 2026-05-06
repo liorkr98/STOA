@@ -1,0 +1,11 @@
+{
+  "name": "TickerCache",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "description": "JSON string of cached ticker list"
+    }
+  },
+  "required": []
+}

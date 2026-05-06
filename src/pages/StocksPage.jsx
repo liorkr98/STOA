@@ -1,135 +1,120 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, TrendingUp, TrendingDown } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { base44 } from "@/api/base44Client";
 
-const STOCKS_BY_SECTOR = {
-  Technology: [
-    { ticker: "NVDA", name: "NVIDIA Corporation" }, { ticker: "AAPL", name: "Apple Inc." },
-    { ticker: "MSFT", name: "Microsoft Corporation" }, { ticker: "GOOGL", name: "Alphabet Inc." },
-    { ticker: "META", name: "Meta Platforms" }, { ticker: "AMZN", name: "Amazon.com" },
-    { ticker: "TSLA", name: "Tesla, Inc." }, { ticker: "AMD", name: "Advanced Micro Devices" },
-    { ticker: "INTC", name: "Intel Corporation" }, { ticker: "QCOM", name: "Qualcomm" },
-    { ticker: "AVGO", name: "Broadcom Inc." }, { ticker: "ARM", name: "Arm Holdings" },
-    { ticker: "PLTR", name: "Palantir Technologies" }, { ticker: "CRM", name: "Salesforce" },
-    { ticker: "ADBE", name: "Adobe Inc." }, { ticker: "ORCL", name: "Oracle Corporation" },
-    { ticker: "IBM", name: "IBM" }, { ticker: "SNOW", name: "Snowflake" },
-    { ticker: "SHOP", name: "Shopify" }, { ticker: "UBER", name: "Uber Technologies" },
-  ],
-  Finance: [
-    { ticker: "JPM", name: "JPMorgan Chase" }, { ticker: "BAC", name: "Bank of America" },
-    { ticker: "GS", name: "Goldman Sachs" }, { ticker: "MS", name: "Morgan Stanley" },
-    { ticker: "WFC", name: "Wells Fargo" }, { ticker: "V", name: "Visa Inc." },
-    { ticker: "MA", name: "Mastercard" }, { ticker: "PYPL", name: "PayPal" },
-    { ticker: "SQ", name: "Block Inc." }, { ticker: "C", name: "Citigroup" },
-    { ticker: "AXP", name: "American Express" }, { ticker: "BX", name: "Blackstone" },
-    { ticker: "KKR", name: "KKR & Co." }, { ticker: "SCHW", name: "Charles Schwab" },
-  ],
-  Healthcare: [
-    { ticker: "JNJ", name: "Johnson & Johnson" }, { ticker: "UNH", name: "UnitedHealth Group" },
-    { ticker: "PFE", name: "Pfizer" }, { ticker: "ABBV", name: "AbbVie" },
-    { ticker: "MRK", name: "Merck & Co." }, { ticker: "LLY", name: "Eli Lilly" },
-    { ticker: "TMO", name: "Thermo Fisher" }, { ticker: "ABT", name: "Abbott Laboratories" },
-    { ticker: "CVS", name: "CVS Health" }, { ticker: "AMGN", name: "Amgen" },
-  ],
-  Energy: [
-    { ticker: "XOM", name: "ExxonMobil" }, { ticker: "CVX", name: "Chevron" },
-    { ticker: "COP", name: "ConocoPhillips" }, { ticker: "SLB", name: "SLB" },
-    { ticker: "EOG", name: "EOG Resources" }, { ticker: "PSX", name: "Phillips 66" },
-    { ticker: "MPC", name: "Marathon Petroleum" }, { ticker: "OXY", name: "Occidental Petroleum" },
-    { ticker: "HAL", name: "Halliburton" }, { ticker: "BKR", name: "Baker Hughes" },
-  ],
-  Consumer: [
-    { ticker: "KO", name: "Coca-Cola" }, { ticker: "PEP", name: "PepsiCo" },
-    { ticker: "MCD", name: "McDonald's" }, { ticker: "SBUX", name: "Starbucks" },
-    { ticker: "NKE", name: "Nike" }, { ticker: "TGT", name: "Target" },
-    { ticker: "WMT", name: "Walmart" }, { ticker: "COST", name: "Costco" },
-    { ticker: "HD", name: "Home Depot" }, { ticker: "LOW", name: "Lowe's" },
-  ],
-  Industrial: [
-    { ticker: "CAT", name: "Caterpillar" }, { ticker: "DE", name: "Deere & Company" },
-    { ticker: "GE", name: "GE Aerospace" }, { ticker: "BA", name: "Boeing" },
-    { ticker: "HON", name: "Honeywell" }, { ticker: "MMM", name: "3M" },
-    { ticker: "UPS", name: "UPS" }, { ticker: "FDX", name: "FedEx" },
-    { ticker: "LMT", name: "Lockheed Martin" }, { ticker: "RTX", name: "RTX Corporation" },
-  ],
-  Crypto: [
-    { ticker: "COIN", name: "Coinbase Global" }, { ticker: "MSTR", name: "MicroStrategy" },
-    { ticker: "RIOT", name: "Riot Platforms" }, { ticker: "MARA", name: "Marathon Digital" },
-    { ticker: "HUT", name: "Hut 8 Corp" },
-  ],
-};
-
-const ALL_STOCKS = Object.entries(STOCKS_BY_SECTOR).flatMap(([sector, stocks]) =>
-  stocks.map(s => ({ ...s, sector }))
-);
-
-const SECTORS = ["All", ...Object.keys(STOCKS_BY_SECTOR)];
-
-function StockCard({ ticker, name, navigate }) {
-  return (
-    <button
-      onClick={() => navigate(`/stock?ticker=${ticker}`)}
-      className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all text-left"
-    >
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-mono font-bold text-sm text-foreground">${ticker}</span>
-      </div>
-      <p className="text-xs text-muted-foreground truncate">{name}</p>
-      <p className="text-xs text-muted-foreground mt-1">View Chart →</p>
-    </button>
-  );
-}
+const PAGE_SIZE = 50;
 
 export default function StocksPage() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [activeSector, setActiveSector] = useState("All");
+  const [allTickers, setAllTickers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [exchange, setExchange] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
-  const filtered = useMemo(() => {
-    let list = activeSector === "All" ? ALL_STOCKS : ALL_STOCKS.filter(s => s.sector === activeSector);
-    if (query.trim()) {
-      const q = query.trim().toUpperCase();
-      list = list.filter(s => s.ticker.includes(q) || s.name.toUpperCase().includes(q));
-    }
-    return list;
-  }, [query, activeSector]);
+  useEffect(() => {
+    base44.functions.invoke("getAllTickers", {}).then(res => {
+      setAllTickers(res?.data?.tickers || res?.tickers || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(0); }, [search, exchange]);
+
+  const baseFiltered = allTickers
+    .filter(t => exchange === "ALL" || t.exchange === exchange)
+    .filter(t => !search ||
+      t.symbol?.includes(search.toUpperCase()) ||
+      t.name?.toLowerCase().includes(search.toLowerCase())
+    );
+
+  const paginated = baseFiltered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(baseFiltered.length / PAGE_SIZE);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">US Markets</h1>
-        <p className="text-sm text-muted-foreground">Browse major US-listed stocks by sector</p>
+        <h1 className="text-2xl font-bold mb-1">US Stock Market</h1>
+        <p className="text-sm text-muted-foreground">
+          {loading ? "Loading stocks..." : `${allTickers.length.toLocaleString()} stocks across NYSE, NASDAQ & AMEX`}
+        </p>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by ticker or company name..."
-          className="w-full pl-10 pr-4 py-2.5 text-sm bg-secondary border border-border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-        />
-      </div>
-
-      {/* Sector tabs */}
-      <div className="flex gap-2 flex-wrap mb-6">
-        {SECTORS.map(s => (
-          <button key={s} onClick={() => setActiveSector(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${activeSector === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-            {s}
-          </button>
+      {/* Search + Exchange filters */}
+      <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search ticker or company name..." className="pl-9" />
+        </div>
+        {["ALL", "NYSE", "NASDAQ", "AMEX"].map(ex => (
+          <button key={ex} onClick={() => setExchange(ex)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+              exchange === ex ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"
+            }`}>{ex}</button>
         ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12">No stocks found for "{query}"</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {filtered.map(s => (
-            <StockCard key={s.ticker} ticker={s.ticker} name={s.name} navigate={navigate} />
+      {/* Stats bar */}
+      {!loading && (
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: "NYSE Listed", ex: "NYSE" },
+            { label: "NASDAQ Listed", ex: "NASDAQ" },
+            { label: "AMEX Listed", ex: "AMEX" },
+          ].map(({ label, ex }) => (
+            <div key={ex} className="bg-card border border-border rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-primary">
+                {allTickers.filter(t => t.exchange === ex).length.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">{label}</p>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Grid */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Array(20).fill(0).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+      ) : paginated.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-12">No stocks found.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {paginated.map(stock => (
+              <button key={stock.symbol}
+                onClick={() => navigate(`/stock?ticker=${stock.symbol}`)}
+                className="bg-card border border-border rounded-xl p-3 text-left hover:border-primary/40 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start justify-between mb-1">
+                  <span className="font-mono font-bold text-sm">{stock.symbol}</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{stock.exchange}</span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate mb-1">{stock.name}</p>
+                {stock.price != null && (
+                  <p className="text-sm font-bold">${Number(stock.price).toFixed(2)}</p>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Prev</Button>
+            <span className="text-sm text-muted-foreground">
+              Page {page + 1} of {totalPages} · {baseFiltered.length.toLocaleString()} results
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page + 1 >= totalPages}>Next →</Button>
+          </div>
+        </>
       )}
     </div>
   );

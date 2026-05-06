@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 const INTERVALS = [
   { label: "1D", value: "D" },
@@ -16,26 +18,48 @@ const CHART_STYLES = [
   { label: "Heikin Ashi", value: "8" },
 ];
 
-// Exchange prefixes for common tickers
-function resolveSymbol(ticker) {
+const TV_PREFIX = {
+  NYSE:     "NYSE",
+  NASDAQ:   "NASDAQ",
+  AMEX:     "AMEX",
+  NYSEARCA: "AMEX",
+  OTC:      "OTC",
+};
+
+// Cache to avoid repeated lookups
+const exchangeCache = {};
+
+async function resolveSymbolAsync(ticker) {
   const upper = ticker.toUpperCase();
-  const NASDAQ = ["NVDA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "GOOG", "TSLA", "AMD", "INTC", "QCOM", "AVGO", "ARM", "PLTR", "COIN", "NFLX", "SHOP", "RIVN"];
-  const NYSE = ["JPM", "BAC", "GS", "MS", "WFC", "BRK.B", "XOM", "CVX", "JNJ", "PG", "KO", "DIS"];
-  const CRYPTO = ["BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "AVAX"];
-  if (NASDAQ.includes(upper)) return `NASDAQ:${upper}`;
-  if (NYSE.includes(upper)) return `NYSE:${upper}`;
-  if (CRYPTO.includes(upper)) return `BINANCE:${upper}USDT`;
-  return `NASDAQ:${upper}`;
+  if (exchangeCache[upper]) return exchangeCache[upper];
+  try {
+    const res = await base44.functions.invoke("getStockData", { ticker: upper });
+    const exchange = res?.data?.exchange || res?.exchange;
+    const prefix = TV_PREFIX[exchange] || "NASDAQ";
+    const symbol = `${prefix}:${upper}`;
+    exchangeCache[upper] = symbol;
+    return symbol;
+  } catch {
+    return `NASDAQ:${upper}`;
+  }
 }
 
 export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
   const containerRef = useRef(null);
+  const [resolvedSymbol, setResolvedSymbol] = useState(null);
   const [interval, setInterval] = useState("D");
   const [style, setStyle] = useState("1");
   const [showDrawing, setShowDrawing] = useState(false);
 
+  // Resolve correct exchange symbol before rendering TradingView
   useEffect(() => {
-    if (!containerRef.current) return;
+    setResolvedSymbol(null);
+    resolveSymbolAsync(ticker).then(sym => setResolvedSymbol(sym));
+  }, [ticker]);
+
+  // Only render TradingView script once symbol is resolved
+  useEffect(() => {
+    if (!resolvedSymbol || !containerRef.current) return;
     containerRef.current.innerHTML = "";
 
     const script = document.createElement("script");
@@ -44,7 +68,7 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
     script.async = true;
     script.innerHTML = JSON.stringify({
       autosize: true,
-      symbol: resolveSymbol(ticker),
+      symbol: resolvedSymbol,
       interval,
       timezone: "Etc/UTC",
       theme: "light",
@@ -55,59 +79,47 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
       hide_side_toolbar: !showDrawing,
       withdateranges: true,
       calendar: false,
-      studies: [
-        "STD;MACD",
-        "STD;RSI",
-        "STD;Volume"
-      ],
+      studies: ["STD;MACD", "STD;RSI", "STD;Volume"],
       support_host: "https://www.tradingview.com",
     });
 
     containerRef.current.appendChild(script);
+    return () => { if (containerRef.current) containerRef.current.innerHTML = ""; };
+  }, [resolvedSymbol, interval, style, showDrawing]);
 
-    return () => {
-      if (containerRef.current) containerRef.current.innerHTML = "";
-    };
-  }, [ticker, interval, style, showDrawing]);
+  if (!resolvedSymbol) return (
+    <div className="flex items-center justify-center bg-secondary rounded-xl border border-border" style={{ height }}>
+      <div className="text-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">Loading {ticker} chart...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="rounded-xl border border-border overflow-hidden bg-card">
       {/* Controls bar */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-secondary/40">
-        {/* Interval */}
         <div className="flex gap-0.5">
           {INTERVALS.map(i => (
-            <button
-              key={i.value}
-              onClick={() => setInterval(i.value)}
-              className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${interval === i.value ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}
-            >
+            <button key={i.value} onClick={() => setInterval(i.value)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${interval === i.value ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}>
               {i.label}
             </button>
           ))}
         </div>
-
         <div className="w-px h-4 bg-border mx-1" />
-
-        {/* Chart style */}
         <div className="flex gap-0.5">
           {CHART_STYLES.map(s => (
-            <button
-              key={s.value}
-              onClick={() => setStyle(s.value)}
-              className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${style === s.value ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground"}`}
-            >
+            <button key={s.value} onClick={() => setStyle(s.value)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${style === s.value ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground"}`}>
               {s.label}
             </button>
           ))}
         </div>
-
         <div className="ml-auto flex gap-1.5 items-center">
-          {/* Drawing tools toggle */}
-          <button
-            onClick={() => setShowDrawing(!showDrawing)}
-            className={`px-2.5 py-0.5 rounded text-xs font-medium border transition-all ${showDrawing ? "bg-primary/10 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/30"}`}
-          >
+          <button onClick={() => setShowDrawing(!showDrawing)}
+            className={`px-2.5 py-0.5 rounded text-xs font-medium border transition-all ${showDrawing ? "bg-primary/10 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/30"}`}>
             ✏️ Drawing Tools
           </button>
           <span className="text-[10px] text-muted-foreground hidden sm:block">Powered by TradingView</span>
@@ -115,15 +127,8 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
       </div>
 
       {/* TradingView embed */}
-      <div
-        className="tradingview-widget-container"
-        ref={containerRef}
-        style={{ height, width: "100%" }}
-      >
-        <div
-          className="tradingview-widget-container__widget"
-          style={{ height: "calc(100% - 32px)", width: "100%" }}
-        />
+      <div className="tradingview-widget-container" ref={containerRef} style={{ height, width: "100%" }}>
+        <div className="tradingview-widget-container__widget" style={{ height: "calc(100% - 32px)", width: "100%" }} />
       </div>
     </div>
   );
