@@ -34,6 +34,21 @@ Deno.serve(async (req) => {
       `.trim(),
     });
 
+    // Create in-app notification for all users who follow the author
+    // For now, notify all users (can be scoped to followers later)
+    const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 200);
+    const notifPromises = allUsers
+      .filter(u => u.email !== report.created_by) // don't notify the author themselves
+      .map(u => base44.asServiceRole.entities.Notification.create({
+        user_email: u.email,
+        type: 'report',
+        title: 'New Report Published',
+        body: `${report.author_name || 'An analyst'} published: "${report.title}"`,
+        link: `/report?id=${report.id}`,
+        read: false,
+      }));
+    await Promise.all(notifPromises);
+
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

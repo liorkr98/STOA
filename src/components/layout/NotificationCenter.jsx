@@ -1,47 +1,77 @@
-import React, { useState } from "react";
-import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, X, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const MOCK_NOTIFICATIONS = [
-  { id: 1, type: "hit", title: "Prediction Hit!", body: "Sarah Chen's NVDA Long → $1050 hit target!", time: "2h ago", read: false, link: "/report?id=h1" },
-  { id: 2, type: "miss", title: "Prediction Missed", body: "Marcus Webb's GS Long missed target ($440)", time: "3h ago", read: false, link: "/report?id=h8" },
-  { id: 3, type: "report", title: "New Report Published", body: "Leo Fischer published: Palantir's AIP — Enterprise Wave", time: "5h ago", read: false, link: "/report?id=r8" },
-  { id: 4, type: "follow", title: "New Follower", body: "3 new followers this week", time: "1d ago", read: true, link: "/dashboard" },
-  { id: 5, type: "report", title: "Premium Report Available", body: "AMD vs NVIDIA: The Underdog Catches Up — $4.99", time: "1d ago", read: true, link: "/report?id=r6" },
-  { id: 6, type: "hit", title: "Prediction Hit!", body: "Aisha Patel's COIN Long → $260 smashed +69%!", time: "2d ago", read: true, link: "/report?id=h9" },
-];
+import { base44 } from "@/api/base44Client";
+import { formatDistanceToNow } from "date-fns";
 
 const TYPE_CONFIG = {
-  hit: { icon: CheckCircle2, color: "text-gain", bg: "bg-gain/10" },
-  miss: { icon: XCircle, color: "text-loss", bg: "bg-loss/10" },
-  report: { icon: FileText, color: "text-primary", bg: "bg-primary/10" },
-  follow: { icon: UserPlus, color: "text-blue-500", bg: "bg-blue-50" },
+  hit:     { icon: CheckCircle2, color: "text-gain",      bg: "bg-gain/10" },
+  near:    { icon: CheckCircle2, color: "text-gain",      bg: "bg-gain/10" },
+  partial: { icon: TrendingUp,   color: "text-amber-500", bg: "bg-amber-50" },
+  miss:    { icon: XCircle,      color: "text-loss",      bg: "bg-loss/10" },
+  report:  { icon: FileText,     color: "text-primary",   bg: "bg-primary/10" },
+  follow:  { icon: UserPlus,     color: "text-blue-500",  bg: "bg-blue-50" },
 };
 
 export default function NotificationCenter() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser || fetchedRef.current) return;
+    fetchedRef.current = true;
+    setLoading(true);
+    base44.entities.Notification.filter({ user_email: currentUser.email }, "-created_date", 30)
+      .then(setNotifications)
+      .finally(() => setLoading(false));
+  }, [currentUser]);
+
+  // Refresh when opened
+  const handleOpen = () => {
+    setOpen(o => !o);
+    if (!open && currentUser) {
+      base44.entities.Notification.filter({ user_email: currentUser.email }, "-created_date", 30)
+        .then(setNotifications);
+    }
+  };
 
   const unread = notifications.filter(n => !n.read).length;
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-  const handleClick = (n) => {
-    setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
-    setOpen(false);
-    navigate(n.link);
+  const markAllRead = async () => {
+    const unreadOnes = notifications.filter(n => !n.read);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    await Promise.all(unreadOnes.map(n => base44.entities.Notification.update(n.id, { read: true })));
   };
+
+  const handleClick = async (n) => {
+    if (!n.read) {
+      setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+      await base44.entities.Notification.update(n.id, { read: true });
+    }
+    setOpen(false);
+    if (n.link) navigate(n.link);
+  };
+
+  if (!currentUser) return null;
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={handleOpen}
         className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
       >
-        <Bell className="w-4.5 h-4.5" />
+        <Bell className="w-4 h-4" />
         {unread > 0 && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-loss text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-            {unread}
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
@@ -60,12 +90,19 @@ export default function NotificationCenter() {
               </button>
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">No notifications yet</div>
               ) : (
                 notifications.map(n => {
                   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.report;
                   const Icon = cfg.icon;
+                  const timeAgo = n.created_date
+                    ? formatDistanceToNow(new Date(n.created_date), { addSuffix: true })
+                    : "";
                   return (
                     <button
                       key={n.id}
@@ -81,7 +118,7 @@ export default function NotificationCenter() {
                           {!n.read && <span className="w-1.5 h-1.5 bg-primary rounded-full inline-block" />}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">{n.body}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo}</p>
                       </div>
                     </button>
                   );
