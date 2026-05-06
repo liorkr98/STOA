@@ -127,7 +127,7 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
       </div>
 
       {/* TradingView embed */}
-      <div className="tradingview-widget-container" ref={containerRef} style={{ height, width: "100%" }}>
+      <div className="tradingview-widget-container" ref={containerRef} style={{ height: typeof height === "number" ? height : height, width: "100%", minHeight: 550 }}>
         <div className="tradingview-widget-container__widget" style={{ height: "calc(100% - 32px)", width: "100%" }} />
       </div>
     </div>

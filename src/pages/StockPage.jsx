@@ -11,6 +11,8 @@ import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ReportCard from "@/components/feed/ReportCard";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
 
+const FMP_KEY = "3b47f0bc16a0e7e0a65cfe1b37d4c55e";
+
 const TABS = ["Chart", "Overview", "Financials", "News", "Analysts", "Reports"];
 
 function fmt(n) {
@@ -44,7 +46,7 @@ function StatCard({ label, value }) {
 
 // Resizable chart wrapper
 function ResizableChart({ ticker }) {
-  const [height, setHeight] = useState(650);
+  const [height, setHeight] = useState(Math.max(550, window.innerHeight - 280));
   const resizing = useRef(false);
   const startY = useRef(0);
   const startH = useRef(0);
@@ -111,18 +113,95 @@ export default function StockPage() {
     setStockData(null);
 
     Promise.all([
-      base44.functions.invoke("getStockData", { ticker }),
+      fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
+      fetch(`https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
+      fetch(`https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
+      fetch(`https://financialmodelingprep.com/api/v3/income-statement/${ticker}?period=quarter&limit=8&apikey=${FMP_KEY}`).then(r => r.json()),
+      fetch(`https://financialmodelingprep.com/api/v1/stock_news?tickers=${ticker}&limit=10&apikey=${FMP_KEY}`).then(r => r.json()),
       base44.entities.Report.filter({ status: "published" }),
-    ]).then(([stockRes, allReports]) => {
+    ]).then(([quoteData, profileData, metricsData, incomeData, newsData, allReports]) => {
       if (cancelled) return;
-      const d = stockRes?.data || stockRes || null;
-      setStockData(d);
+
+      const q = Array.isArray(quoteData) ? quoteData[0] : quoteData;
+      const p = Array.isArray(profileData) ? profileData[0] : profileData;
+      const m = Array.isArray(metricsData) ? metricsData[0] : metricsData;
+
+      const incomeHistory = (Array.isArray(incomeData) ? incomeData : []).map(s => ({
+        period: s.date,
+        revenue: s.revenue,
+        netIncome: s.netIncome,
+        grossProfit: s.grossProfit,
+        operatingIncome: s.operatingIncome,
+      }));
+
+      const news = (Array.isArray(newsData) ? newsData : []).map(n => ({
+        title: n.title,
+        source: n.site,
+        url: n.url,
+        published: n.publishedDate,
+        image: n.image,
+        summary: n.text?.slice(0, 200),
+      }));
+
+      const combined = {
+        ticker,
+        price: q?.price,
+        regularMarketPrice: q?.price,
+        previousClose: q?.previousClose,
+        change: q?.change,
+        changePercent: q?.changesPercentage,
+        open: q?.open,
+        high: q?.dayHigh,
+        low: q?.dayLow,
+        volume: q?.volume,
+        avgVolume: q?.avgVolume,
+        marketCap: q?.marketCap,
+        week52High: q?.yearHigh,
+        week52Low: q?.yearLow,
+        fiftyTwoWeekHigh: q?.yearHigh,
+        fiftyTwoWeekLow: q?.yearLow,
+        pe: q?.pe,
+        peRatio: m?.peRatioTTM ?? q?.pe,
+        eps: q?.eps,
+        beta: p?.beta,
+        dividendYield: p?.lastDiv && q?.price ? p.lastDiv / q.price : null,
+        sharesOutstanding: q?.sharesOutstanding,
+        companyName: q?.name || p?.companyName || ticker,
+        exchange: q?.exchange || p?.exchangeShortName,
+        exchangeName: p?.exchange || q?.exchange,
+        sector: p?.sector,
+        industry: p?.industry,
+        description: p?.description,
+        employees: p?.fullTimeEmployees,
+        website: p?.website,
+        country: p?.country,
+        ceo: p?.ceo,
+        ipoDate: p?.ipoDate,
+        logo: p?.image,
+        // Key metrics TTM
+        pbRatio: m?.pbRatioTTM,
+        psRatio: m?.priceToSalesRatioTTM,
+        evEbitda: m?.enterpriseValueOverEBITDATTM,
+        revenuePerShare: m?.revenuePerShareTTM,
+        netIncomePerShare: m?.netIncomePerShareTTM,
+        roe: m?.roeTTM,
+        roa: m?.returnOnAssetsTTM,
+        debtToEquity: m?.debtToEquityTTM,
+        currentRatio: m?.currentRatioTTM,
+        freeCashFlowYield: m?.freeCashFlowYieldTTM,
+        incomeHistory,
+        news,
+        analystRatings: [],
+      };
+
+      setStockData(combined);
       setReports((allReports || []).filter(r => {
         const tArr = (r.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
         return tArr.includes(ticker);
       }));
     }).catch(e => {
       if (!cancelled) setError(e.message);
+      console.error("StockPage FMP error:", e);
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });

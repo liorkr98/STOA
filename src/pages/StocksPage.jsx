@@ -4,9 +4,17 @@ import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { base44 } from "@/api/base44Client";
 
 const PAGE_SIZE = 50;
+const FMP_KEY = "3b47f0bc16a0e7e0a65cfe1b37d4c55e";
+const VALID_EXCHANGES = new Set(["NYSE", "NASDAQ", "AMEX", "NYSE American", "NYSE MKT"]);
+
+// Normalize exchange to display name
+function normalizeExchange(ex) {
+  if (!ex) return null;
+  if (ex === "NYSE American" || ex === "NYSE MKT") return "AMEX";
+  return ex;
+}
 
 export default function StocksPage() {
   const navigate = useNavigate();
@@ -17,10 +25,21 @@ export default function StocksPage() {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    base44.functions.invoke("getAllTickers", {}).then(res => {
-      setAllTickers(res?.data?.tickers || res?.tickers || []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetch(`https://financialmodelingprep.com/api/v3/stock/list?apikey=${FMP_KEY}`)
+      .then(res => res.json())
+      .then(data => {
+        const usStocks = (Array.isArray(data) ? data : [])
+          .filter(s => VALID_EXCHANGES.has(s.exchangeShortName))
+          .map(s => ({
+            symbol: s.symbol,
+            name: s.name,
+            exchange: normalizeExchange(s.exchangeShortName),
+            price: s.price,
+          }));
+        setAllTickers(usStocks);
+      })
+      .catch(err => console.error("FMP stock list error:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   // Reset page on filter change
