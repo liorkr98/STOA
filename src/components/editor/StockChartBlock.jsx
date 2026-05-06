@@ -79,8 +79,8 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       </div>
 
       <div
-        className="rounded-lg overflow-hidden mx-auto"
-        style={{ width: `${width}%`, height }}
+        className="rounded-lg overflow-hidden mx-auto bg-white"
+        style={{ width: `${width}%`, height: `${height}px` }}
       >
         <TradingViewWidget ticker={ticker} height={height} showControls={showControls} />
       </div>

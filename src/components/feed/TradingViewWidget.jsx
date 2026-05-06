@@ -28,11 +28,11 @@ function guessSymbol(ticker) {
 // Unique container ID per ticker instance
 let _chartCount = 0;
 
-export default function TradingViewWidget({ ticker = "NVDA" }) {
-  const [interval, setInterval] = useState("D");
-  const [style, setStyle] = useState("1");
-  const [containerId] = useState(() => `tv_chart_${++_chartCount}`);
-  const scriptRef = useRef(null);
+export default function TradingViewWidget({ ticker = "NVDA", height = 550 }) {
+   const [interval, setInterval] = useState("D");
+   const [style, setStyle] = useState("1");
+   const [containerId] = useState(() => `tv_chart_${++_chartCount}`);
+   const scriptRef = useRef(null);
 
   useEffect(() => {
     const symbol = guessSymbol(ticker);
@@ -54,7 +54,7 @@ export default function TradingViewWidget({ ticker = "NVDA" }) {
     script.innerHTML = JSON.stringify({
       autosize: false,
       width: "100%",
-      height: 550,
+      height: height,
       symbol,
       interval,
       timezone: "Etc/UTC",
@@ -93,7 +93,7 @@ export default function TradingViewWidget({ ticker = "NVDA" }) {
       const c = document.getElementById(containerId);
       if (c) c.innerHTML = "";
     };
-  }, [ticker, interval, style, containerId]);
+  }, [ticker, interval, style, containerId, height]);
 
   return (
     <div className="rounded-xl border border-border overflow-hidden bg-card">
@@ -124,7 +124,7 @@ export default function TradingViewWidget({ ticker = "NVDA" }) {
       {/* TradingView embed — height controlled by widget config, not CSS */}
       <div
         id={containerId}
-        style={{ width: "100%", height: "550px", minHeight: "550px" }}
+        style={{ width: "100%", height: `${height}px`, minHeight: `${height}px` }}
       />
     </div>
   );
