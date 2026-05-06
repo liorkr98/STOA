@@ -28,11 +28,16 @@ function guessSymbol(ticker) {
 // Unique container ID per ticker instance
 let _chartCount = 0;
 
-export default function TradingViewWidget({ ticker = "NVDA", height = 550 }) {
+export default function TradingViewWidget({ ticker = "NVDA", containerHeight = 380 }) {
    const [interval, setInterval] = useState("D");
    const [style, setStyle] = useState("1");
    const [containerId] = useState(() => `tv_chart_${++_chartCount}`);
    const scriptRef = useRef(null);
+   const [chartHeight, setChartHeight] = useState(containerHeight - 50); // 50px for controls
+
+  useEffect(() => {
+    setChartHeight(containerHeight - 50);
+  }, [containerHeight]);
 
   useEffect(() => {
     const symbol = guessSymbol(ticker);
@@ -54,7 +59,7 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 550 }) {
     script.innerHTML = JSON.stringify({
       autosize: false,
       width: "100%",
-      height: height,
+      height: chartHeight,
       symbol,
       interval,
       timezone: "Etc/UTC",
@@ -93,12 +98,12 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 550 }) {
       const c = document.getElementById(containerId);
       if (c) c.innerHTML = "";
     };
-  }, [ticker, interval, style, containerId, height]);
+  }, [ticker, interval, style, containerId, chartHeight]);
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden bg-card">
+    <div className="w-full h-full rounded-xl border border-border overflow-hidden bg-card flex flex-col">
       {/* Controls bar */}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-secondary/40">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-secondary/40 flex-shrink-0">
         <div className="flex gap-0.5">
           {INTERVALS.map(i => (
             <button key={i.value} onClick={() => setInterval(i.value)}
@@ -124,7 +129,8 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 550 }) {
       {/* TradingView embed — height controlled by widget config, not CSS */}
       <div
         id={containerId}
-        style={{ width: "100%", height: `${height}px`, minHeight: `${height}px` }}
+        style={{ width: "100%", height: "100%", minHeight: "100%" }}
+        className="flex-1 overflow-hidden"
       />
     </div>
   );
