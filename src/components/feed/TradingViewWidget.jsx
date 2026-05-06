@@ -44,8 +44,8 @@ export default function TradingViewWidget({ ticker = "NVDA" }) {
     }
 
     // Clear container content
-    const container = document.getElementById(containerId);
-    if (container) container.innerHTML = "";
+    const containerEl = document.getElementById(containerId);
+    if (containerEl) containerEl.innerHTML = "";
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
@@ -81,7 +81,8 @@ export default function TradingViewWidget({ ticker = "NVDA" }) {
       enabled_features: [],
     });
 
-    document.body.appendChild(script);
+    const containerEl2 = document.getElementById(containerId);
+    if (containerEl2) containerEl2.appendChild(script);
     scriptRef.current = script;
 
     return () => {
