@@ -351,20 +351,100 @@ export default function ReportView() {
           <BlockRenderer blocks={blocks} />
         ) : (
           <>
-            {report.excerpt && <p className="text-foreground/90 leading-relaxed mb-4">{report.excerpt}</p>}
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center my-8">
-              <Lock className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-              <h3 className="font-bold text-base mb-2">This is a Premium Report</h3>
-              <p className="text-sm text-muted-foreground mb-4">Unlock the full analysis, DCF model, and detailed catalysts.</p>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Button onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)
-                } className="bg-amber-500 hover:bg-amber-600 text-white">
-                  Unlock for ${report.price || 4.99}
-                </Button>
-                <Button variant="outline" onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}`)}>
-                  Subscribe from $9/mo
-                </Button>
+            {/* Show excerpt + first ~2 blocks blurred as preview */}
+            {report.excerpt && (
+              <p className="text-foreground/90 leading-relaxed mb-4 text-base">{report.excerpt}</p>
+            )}
+
+            {/* Blurred content preview */}
+            {blocks.length > 0 && (
+              <div className="relative mb-0 overflow-hidden rounded-xl" style={{ maxHeight: 220 }}>
+                <div className="pointer-events-none select-none">
+                  <BlockRenderer blocks={blocks.slice(0, 3)} />
+                </div>
+                {/* gradient fade */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
+                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20" />
               </div>
+            )}
+
+            {/* Paywall card */}
+            <div className="relative rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 mt-0">
+              {/* Premium badge */}
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                  💎 PREMIUM REPORT
+                </span>
+              </div>
+
+              <div className="text-center pt-2">
+                <Lock className="w-9 h-9 text-amber-500 mx-auto mb-3" />
+                <h3 className="font-bold text-lg mb-1">Full Analysis Locked</h3>
+                <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
+                  Get the complete research: valuation model, price target, catalysts, risks, and analyst conviction.
+                </p>
+
+                {/* What's inside */}
+                <div className="grid grid-cols-2 gap-2 mb-5 text-left max-w-sm mx-auto">
+                  {[
+                    "📊 Full valuation model",
+                    "🎯 Price target & catalysts",
+                    "⚠️ Key risks breakdown",
+                    "📈 Technical setup",
+                    "💡 Analyst conviction score",
+                    "🔒 Locked prediction",
+                  ].map(item => (
+                    <div key={item} className="flex items-center gap-1.5 text-xs text-foreground/80">
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white gap-2 px-6 shadow-md"
+                    size="lg"
+                  >
+                    <Lock className="w-4 h-4" />
+                    Unlock for ${report.price || 4.99}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}`)}
+                    className="border-amber-300 gap-2 px-6"
+                    size="lg"
+                  >
+                    Subscribe · $9/mo
+                  </Button>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground mt-3">
+                  One-time unlock or subscribe for unlimited access to {authorName}'s reports
+                </p>
+              </div>
+            </div>
+
+            {/* Analyst trust bar */}
+            <div className="mt-4 flex items-center gap-3 p-3 bg-secondary rounded-xl border border-border">
+              {authorAvatar
+                ? <img src={authorAvatar} alt={authorName} className="w-9 h-9 rounded-full object-cover border border-border" />
+                : <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">{(authorName[0] || "A").toUpperCase()}</div>
+              }
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{authorName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {report.author_accuracy > 0 ? `${report.author_accuracy}% prediction accuracy` : "Verified analyst on STOA"}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs shrink-0"
+                onClick={() => navigate(`/analyst?id=${report.created_by}`)}
+              >
+                View Profile
+              </Button>
             </div>
           </>
         )}
