@@ -41,7 +41,7 @@ export default function StockChart({ ticker, exchange }) {
       widgetRef.current = new window.TradingView.widget({
         autosize:   false,
         width:      "100%",
-        height:     580,
+        height:     380,
         symbol:     symbol,
         interval:   interval,
         timezone:   "Etc/UTC",
@@ -108,7 +108,7 @@ export default function StockChart({ ticker, exchange }) {
       <div
         ref={containerRef}
         id={containerId}
-        style={{ width: "100%", height: 580 }}
+        style={{ width: "100%", height: 380 }}
       />
     </div>
   );
