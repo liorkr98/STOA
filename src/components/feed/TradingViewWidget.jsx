@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 const INTERVALS = [
   { label: "1D", value: "D" },
@@ -15,86 +14,85 @@ const CHART_STYLES = [
   { label: "Line", value: "2" },
   { label: "Area", value: "3" },
   { label: "Bars", value: "0" },
-  { label: "Heikin Ashi", value: "8" },
 ];
 
-const TV_PREFIX = {
-  NYSE:     "NYSE",
-  NASDAQ:   "NASDAQ",
-  AMEX:     "AMEX",
-  NYSEARCA: "AMEX",
-  OTC:      "OTC",
-};
-
-// Cache to avoid repeated lookups
-const exchangeCache = {};
-
-async function resolveSymbolAsync(ticker) {
-  const upper = ticker.toUpperCase();
-  if (exchangeCache[upper]) return exchangeCache[upper];
-  try {
-    const res = await base44.functions.invoke("getStockData", { ticker: upper });
-    const exchange = res?.data?.exchange || res?.exchange;
-    const prefix = TV_PREFIX[exchange] || "NASDAQ";
-    const symbol = `${prefix}:${upper}`;
-    exchangeCache[upper] = symbol;
-    return symbol;
-  } catch {
-    return `NASDAQ:${upper}`;
-  }
+// Simple heuristic — TradingView will correct if wrong
+function guessSymbol(ticker) {
+  const t = ticker.toUpperCase();
+  // Well-known NASDAQ
+  const nasdaq = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST","NFLX","AMD","INTC","QCOM","ADBE","TXN","CSCO","PYPL","SBUX","AMAT"];
+  if (nasdaq.includes(t)) return `NASDAQ:${t}`;
+  return `NYSE:${t}`;
 }
 
-export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
-  const containerRef = useRef(null);
-  const [resolvedSymbol, setResolvedSymbol] = useState(null);
+// Unique container ID per ticker instance
+let _chartCount = 0;
+
+export default function TradingViewWidget({ ticker = "NVDA" }) {
   const [interval, setInterval] = useState("D");
   const [style, setStyle] = useState("1");
-  const [showDrawing, setShowDrawing] = useState(false);
+  const [containerId] = useState(() => `tv_chart_${++_chartCount}`);
+  const scriptRef = useRef(null);
 
-  // Resolve correct exchange symbol before rendering TradingView
   useEffect(() => {
-    setResolvedSymbol(null);
-    resolveSymbolAsync(ticker).then(sym => setResolvedSymbol(sym));
-  }, [ticker]);
+    const symbol = guessSymbol(ticker);
 
-  // Only render TradingView script once symbol is resolved
-  useEffect(() => {
-    if (!resolvedSymbol || !containerRef.current) return;
-    containerRef.current.innerHTML = "";
+    // Remove previous script
+    if (scriptRef.current) {
+      scriptRef.current.remove();
+      scriptRef.current = null;
+    }
+
+    // Clear container content
+    const container = document.getElementById(containerId);
+    if (container) container.innerHTML = "";
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
     script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: resolvedSymbol,
+      autosize: false,
+      width: "100%",
+      height: 550,
+      symbol,
       interval,
       timezone: "Etc/UTC",
       theme: "light",
       style,
       locale: "en",
-      allow_symbol_change: true,
-      save_image: true,
-      hide_side_toolbar: !showDrawing,
-      withdateranges: true,
-      calendar: false,
-      studies: ["STD;MACD", "STD;RSI", "STD;Volume"],
-      support_host: "https://www.tradingview.com",
+      toolbar_bg: "#f1f3f6",
+      enable_publishing: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: false,
+      container_id: containerId,
+      studies: [],
+      studies_overrides: {},
+      overrides: {
+        "mainSeriesProperties.showCountdown": false,
+        "volumePaneSize": "medium",
+      },
+      disabled_features: [
+        "use_localstorage_for_settings",
+        "header_compare",
+        "header_screenshot",
+        "header_undo_redo",
+      ],
+      enabled_features: [],
     });
 
-    containerRef.current.appendChild(script);
-    return () => { if (containerRef.current) containerRef.current.innerHTML = ""; };
-  }, [resolvedSymbol, interval, style, showDrawing]);
+    document.body.appendChild(script);
+    scriptRef.current = script;
 
-  if (!resolvedSymbol) return (
-    <div className="flex items-center justify-center bg-secondary rounded-xl border border-border" style={{ height }}>
-      <div className="text-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground">Loading {ticker} chart...</p>
-      </div>
-    </div>
-  );
+    return () => {
+      if (scriptRef.current) {
+        scriptRef.current.remove();
+        scriptRef.current = null;
+      }
+      const c = document.getElementById(containerId);
+      if (c) c.innerHTML = "";
+    };
+  }, [ticker, interval, style, containerId]);
 
   return (
     <div className="rounded-xl border border-border overflow-hidden bg-card">
@@ -117,19 +115,16 @@ export default function TradingViewWidget({ ticker = "NVDA", height = 600 }) {
             </button>
           ))}
         </div>
-        <div className="ml-auto flex gap-1.5 items-center">
-          <button onClick={() => setShowDrawing(!showDrawing)}
-            className={`px-2.5 py-0.5 rounded text-xs font-medium border transition-all ${showDrawing ? "bg-primary/10 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/30"}`}>
-            ✏️ Drawing Tools
-          </button>
+        <div className="ml-auto">
           <span className="text-[10px] text-muted-foreground hidden sm:block">Powered by TradingView</span>
         </div>
       </div>
 
-      {/* TradingView embed */}
-      <div className="tradingview-widget-container" ref={containerRef} style={{ height: typeof height === "number" ? height : height, width: "100%", minHeight: 550 }}>
-        <div className="tradingview-widget-container__widget" style={{ height: "calc(100% - 32px)", width: "100%" }} />
-      </div>
+      {/* TradingView embed — height controlled by widget config, not CSS */}
+      <div
+        id={containerId}
+        style={{ width: "100%", height: "550px", minHeight: "550px" }}
+      />
     </div>
   );
 }

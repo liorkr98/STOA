@@ -1,59 +1,102 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 50;
-const FMP_KEY = "3b47f0bc16a0e7e0a65cfe1b37d4c55e";
-const VALID_EXCHANGES = new Set(["NYSE", "NASDAQ", "AMEX", "NYSE American", "NYSE MKT"]);
+const YF_HEADERS = { "User-Agent": "Mozilla/5.0" };
 
-// Normalize exchange to display name
-function normalizeExchange(ex) {
-  if (!ex) return null;
-  if (ex === "NYSE American" || ex === "NYSE MKT") return "AMEX";
-  return ex;
+async function fetchTopStocks() {
+  try {
+    const res = await fetch(
+      "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&count=100&formatted=false",
+      { headers: YF_HEADERS }
+    );
+    const data = await res.json();
+    const quotes = data?.finance?.result?.[0]?.quotes || [];
+    return quotes.map(q => ({
+      symbol:   q.symbol,
+      name:     q.shortName || q.longName || q.symbol,
+      exchange: q.fullExchangeName || q.exchange,
+      price:    q.regularMarketPrice,
+    }));
+  } catch (e) {
+    console.error("Yahoo screener error:", e);
+    return [];
+  }
+}
+
+async function searchYahoo(query) {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=20&newsCount=0&enableFuzzyQuery=false`,
+      { headers: YF_HEADERS }
+    );
+    const data = await res.json();
+    return (data?.quotes || [])
+      .filter(q => q.quoteType === "EQUITY")
+      .map(q => ({
+        symbol:   q.symbol,
+        name:     q.shortname || q.longname || q.symbol,
+        exchange: q.exchange,
+        price:    null,
+      }));
+  } catch (e) {
+    console.error("Yahoo search error:", e);
+    return [];
+  }
 }
 
 export default function StocksPage() {
   const navigate = useNavigate();
-  const [allTickers, setAllTickers] = useState([]);
+  const [topStocks, setTopStocks] = useState([]);
+  const [searchResults, setSearchResults] = useState(null); // null = show top stocks
   const [search, setSearch] = useState("");
   const [exchange, setExchange] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [page, setPage] = useState(0);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
-    fetch(`https://financialmodelingprep.com/api/v3/stock/list?apikey=${FMP_KEY}`)
-      .then(res => res.json())
-      .then(data => {
-        const usStocks = (Array.isArray(data) ? data : [])
-          .filter(s => VALID_EXCHANGES.has(s.exchangeShortName))
-          .map(s => ({
-            symbol: s.symbol,
-            name: s.name,
-            exchange: normalizeExchange(s.exchangeShortName),
-            price: s.price,
-          }));
-        setAllTickers(usStocks);
-      })
-      .catch(err => console.error("FMP stock list error:", err))
-      .finally(() => setLoading(false));
+    fetchTopStocks().then(stocks => {
+      setTopStocks(stocks);
+      setLoading(false);
+    });
   }, []);
 
-  // Reset page on filter change
-  useEffect(() => { setPage(0); }, [search, exchange]);
+  // Debounced search
+  useEffect(() => {
+    setPage(0);
+    if (!search.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      const results = await searchYahoo(search.trim());
+      setSearchResults(results);
+      setSearching(false);
+    }, 350);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
 
-  const baseFiltered = allTickers
-    .filter(t => exchange === "ALL" || t.exchange === exchange)
-    .filter(t => !search ||
-      t.symbol?.includes(search.toUpperCase()) ||
-      t.name?.toLowerCase().includes(search.toLowerCase())
-    );
+  useEffect(() => { setPage(0); }, [exchange]);
 
-  const paginated = baseFiltered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.ceil(baseFiltered.length / PAGE_SIZE);
+  const sourceList = searchResults !== null ? searchResults : topStocks;
+
+  const filtered = sourceList.filter(s =>
+    exchange === "ALL" ||
+    (s.exchange || "").toUpperCase().includes(exchange)
+  );
+
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  const isLoading = loading || searching;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -61,7 +104,11 @@ export default function StocksPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">US Stock Market</h1>
         <p className="text-sm text-muted-foreground">
-          {loading ? "Loading stocks..." : `${allTickers.length.toLocaleString()} stocks across NYSE, NASDAQ & AMEX`}
+          {loading
+            ? "Loading stocks..."
+            : searchResults !== null
+              ? `${filtered.length} results for "${search}"`
+              : "Most active US stocks · Search for any ticker or company"}
         </p>
       </div>
 
@@ -80,31 +127,15 @@ export default function StocksPage() {
         ))}
       </div>
 
-      {/* Stats bar */}
-      {!loading && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "NYSE Listed", ex: "NYSE" },
-            { label: "NASDAQ Listed", ex: "NASDAQ" },
-            { label: "AMEX Listed", ex: "AMEX" },
-          ].map(({ label, ex }) => (
-            <div key={ex} className="bg-card border border-border rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-primary">
-                {allTickers.filter(t => t.exchange === ex).length.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Grid */}
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {Array(20).fill(0).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
       ) : paginated.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12">No stocks found.</p>
+        <p className="text-sm text-muted-foreground text-center py-12">
+          {search ? `No results for "${search}".` : "No stocks found."}
+        </p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -115,7 +146,7 @@ export default function StocksPage() {
               >
                 <div className="flex items-start justify-between mb-1">
                   <span className="font-mono font-bold text-sm">{stock.symbol}</span>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{stock.exchange}</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded truncate max-w-[60px]">{stock.exchange}</span>
                 </div>
                 <p className="text-xs text-muted-foreground truncate mb-1">{stock.name}</p>
                 {stock.price != null && (
@@ -126,13 +157,15 @@ export default function StocksPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Prev</Button>
-            <span className="text-sm text-muted-foreground">
-              Page {page + 1} of {totalPages} · {baseFiltered.length.toLocaleString()} results
-            </span>
-            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page + 1 >= totalPages}>Next →</Button>
-          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Prev</Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page + 1} of {totalPages} · {filtered.length.toLocaleString()} results
+              </span>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page + 1 >= totalPages}>Next →</Button>
+            </div>
+          )}
         </>
       )}
     </div>

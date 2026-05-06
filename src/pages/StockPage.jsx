@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { setMeta } from "@/lib/seo";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,7 +11,86 @@ import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ReportCard from "@/components/feed/ReportCard";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
 
-const FMP_KEY = "3b47f0bc16a0e7e0a65cfe1b37d4c55e";
+const YF_HEADERS = { "User-Agent": "Mozilla/5.0" };
+
+async function fetchYahooQuote(ticker) {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+      { headers: YF_HEADERS }
+    );
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta || {};
+    return {
+      price:     meta.regularMarketPrice,
+      prevClose: meta.chartPreviousClose,
+      volume:    meta.regularMarketVolume,
+      marketCap: meta.marketCap,
+      yearHigh:  meta.fiftyTwoWeekHigh,
+      yearLow:   meta.fiftyTwoWeekLow,
+      exchange:  meta.exchangeName,
+      companyName: meta.longName || meta.shortName || ticker,
+    };
+  } catch (e) {
+    console.error("Yahoo chart error:", e);
+    return null;
+  }
+}
+
+async function fetchYahooFundamentals(ticker) {
+  try {
+    const res = await fetch(
+      `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics,financialData,assetProfile,price`,
+      { headers: YF_HEADERS }
+    );
+    const data = await res.json();
+    const r       = data?.quoteSummary?.result?.[0] || {};
+    const detail  = r.summaryDetail || {};
+    const stats   = r.defaultKeyStatistics || {};
+    const fin     = r.financialData || {};
+    const profile = r.assetProfile || {};
+    const price   = r.price || {};
+    return {
+      price:           price.regularMarketPrice?.raw,
+      prevClose:       price.regularMarketPreviousClose?.raw,
+      change:          price.regularMarketChange?.raw,
+      changePercent:   price.regularMarketChangePercent?.raw,
+      marketCap:       price.marketCap?.raw ?? detail.marketCap?.raw,
+      volume:          price.regularMarketVolume?.raw ?? detail.volume?.raw,
+      avgVolume:       detail.averageVolume?.raw,
+      yearHigh:        detail.fiftyTwoWeekHigh?.raw,
+      yearLow:         detail.fiftyTwoWeekLow?.raw,
+      pe:              detail.trailingPE?.raw,
+      forwardPE:       detail.forwardPE?.raw,
+      eps:             stats.trailingEps?.raw,
+      pbRatio:         stats.priceToBook?.raw,
+      psRatio:         detail.priceToSalesTrailing12Months?.raw,
+      evEbitda:        stats.enterpriseToEbitda?.raw,
+      beta:            stats.beta?.raw,
+      dividendYield:   detail.dividendYield?.raw,
+      revenuePerShare: fin.revenuePerShare?.raw,
+      roe:             fin.returnOnEquity?.raw,
+      roa:             fin.returnOnAssets?.raw,
+      debtToEquity:    fin.debtToEquity?.raw,
+      currentRatio:    fin.currentRatio?.raw,
+      freeCashFlowYield: null,
+      companyName:     price.longName || price.shortName || ticker,
+      exchange:        price.exchangeName || price.fullExchangeName,
+      sector:          profile.sector,
+      industry:        profile.industry,
+      website:         profile.website,
+      employees:       profile.fullTimeEmployees,
+      country:         profile.country,
+      ceo:             profile.companyOfficers?.[0]?.name,
+      description:     profile.longBusinessSummary,
+      ipoDate:         null,
+      logo:            null,
+    };
+  } catch (e) {
+    console.error("Yahoo fundamentals error:", e);
+    return null;
+  }
+}
 
 const TABS = ["Chart", "Overview", "Financials", "News", "Analysts", "Reports"];
 
@@ -46,38 +125,7 @@ function StatCard({ label, value }) {
 
 // Resizable chart wrapper
 function ResizableChart({ ticker }) {
-  const [height, setHeight] = useState(Math.max(550, window.innerHeight - 280));
-  const resizing = useRef(false);
-  const startY = useRef(0);
-  const startH = useRef(0);
-
-  const onMouseDown = useCallback((e) => {
-    resizing.current = true;
-    startY.current = e.clientY;
-    startH.current = height;
-    e.preventDefault();
-  }, [height]);
-
-  useEffect(() => {
-    const onMove = (e) => {
-      if (!resizing.current) return;
-      setHeight(Math.max(300, Math.min(1200, startH.current + (e.clientY - startY.current))));
-    };
-    const onUp = () => { resizing.current = false; };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, []);
-
-  return (
-    <div className="relative">
-      <TradingViewWidget ticker={ticker} height={height} />
-      <div onMouseDown={onMouseDown}
-        className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize flex items-center justify-center group z-10">
-        <div className="w-12 h-1 bg-border rounded-full group-hover:bg-primary/50 transition-colors" />
-      </div>
-    </div>
-  );
+  return <TradingViewWidget ticker={ticker} />;
 }
 
 const ACTION_COLORS = {
@@ -113,95 +161,32 @@ export default function StockPage() {
     setStockData(null);
 
     Promise.all([
-      fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
-      fetch(`https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
-      fetch(`https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${FMP_KEY}`).then(r => r.json()),
-      fetch(`https://financialmodelingprep.com/api/v3/income-statement/${ticker}?period=quarter&limit=8&apikey=${FMP_KEY}`).then(r => r.json()),
-      fetch(`https://financialmodelingprep.com/api/v1/stock_news?tickers=${ticker}&limit=10&apikey=${FMP_KEY}`).then(r => r.json()),
+      fetchYahooFundamentals(ticker),
       base44.entities.Report.filter({ status: "published" }),
-    ]).then(([quoteData, profileData, metricsData, incomeData, newsData, allReports]) => {
+    ]).then(([fundamentals, allReports]) => {
       if (cancelled) return;
 
-      const q = Array.isArray(quoteData) ? quoteData[0] : quoteData;
-      const p = Array.isArray(profileData) ? profileData[0] : profileData;
-      const m = Array.isArray(metricsData) ? metricsData[0] : metricsData;
-
-      const incomeHistory = (Array.isArray(incomeData) ? incomeData : []).map(s => ({
-        period: s.date,
-        revenue: s.revenue,
-        netIncome: s.netIncome,
-        grossProfit: s.grossProfit,
-        operatingIncome: s.operatingIncome,
-      }));
-
-      const news = (Array.isArray(newsData) ? newsData : []).map(n => ({
-        title: n.title,
-        source: n.site,
-        url: n.url,
-        published: n.publishedDate,
-        image: n.image,
-        summary: n.text?.slice(0, 200),
-      }));
-
-      const combined = {
+      setStockData({
         ticker,
-        price: q?.price,
-        regularMarketPrice: q?.price,
-        previousClose: q?.previousClose,
-        change: q?.change,
-        changePercent: q?.changesPercentage,
-        open: q?.open,
-        high: q?.dayHigh,
-        low: q?.dayLow,
-        volume: q?.volume,
-        avgVolume: q?.avgVolume,
-        marketCap: q?.marketCap,
-        week52High: q?.yearHigh,
-        week52Low: q?.yearLow,
-        fiftyTwoWeekHigh: q?.yearHigh,
-        fiftyTwoWeekLow: q?.yearLow,
-        pe: q?.pe,
-        peRatio: m?.peRatioTTM ?? q?.pe,
-        eps: q?.eps,
-        beta: p?.beta,
-        dividendYield: p?.lastDiv && q?.price ? p.lastDiv / q.price : null,
-        sharesOutstanding: q?.sharesOutstanding,
-        companyName: q?.name || p?.companyName || ticker,
-        exchange: q?.exchange || p?.exchangeShortName,
-        exchangeName: p?.exchange || q?.exchange,
-        sector: p?.sector,
-        industry: p?.industry,
-        description: p?.description,
-        employees: p?.fullTimeEmployees,
-        website: p?.website,
-        country: p?.country,
-        ceo: p?.ceo,
-        ipoDate: p?.ipoDate,
-        logo: p?.image,
-        // Key metrics TTM
-        pbRatio: m?.pbRatioTTM,
-        psRatio: m?.priceToSalesRatioTTM,
-        evEbitda: m?.enterpriseValueOverEBITDATTM,
-        revenuePerShare: m?.revenuePerShareTTM,
-        netIncomePerShare: m?.netIncomePerShareTTM,
-        roe: m?.roeTTM,
-        roa: m?.returnOnAssetsTTM,
-        debtToEquity: m?.debtToEquityTTM,
-        currentRatio: m?.currentRatioTTM,
-        freeCashFlowYield: m?.freeCashFlowYieldTTM,
-        incomeHistory,
-        news,
+        ...fundamentals,
+        week52High: fundamentals?.yearHigh,
+        week52Low:  fundamentals?.yearLow,
+        peRatio:    fundamentals?.pe,
+        previousClose: fundamentals?.prevClose,
+        change:     fundamentals?.change,
+        changePercent: fundamentals?.changePercent,
+        incomeHistory: [],
+        news: [],
         analystRatings: [],
-      };
+      });
 
-      setStockData(combined);
       setReports((allReports || []).filter(r => {
         const tArr = (r.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
         return tArr.includes(ticker);
       }));
     }).catch(e => {
       if (!cancelled) setError(e.message);
-      console.error("StockPage FMP error:", e);
+      console.error("StockPage Yahoo error:", e);
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
