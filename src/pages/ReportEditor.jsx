@@ -21,6 +21,7 @@ import PredictionBlock from "@/components/editor/PredictionBlock";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
 import EditorSettingsPanel from "@/components/editor/EditorSettingsPanel";
+import BoostPanel from "@/components/editor/BoostPanel";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const DYOR_TEXT =
@@ -643,6 +644,9 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   ))}
                 </div>
               </div>
+
+              {/* Boost */}
+              <BoostPanel />
 
               {/* Tips */}
               <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
