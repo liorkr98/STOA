@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import {
   Sparkles, Plus, Type, List, BarChart3, ImageIcon, Quote,
   Send, Save, FolderOpen, Trash2, Clock, CheckCircle2,
-  ChevronDown, Eye, EyeOff, Settings2, TrendingUp, Lock,
-  Hash, FileText, Zap, AlignLeft, Palette, X
+  ChevronDown, Settings2, TrendingUp, Lock,
+  Hash, FileText, Zap, AlignLeft, Palette, X, Layout
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -22,6 +22,8 @@ import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
 import EditorSettingsPanel from "@/components/editor/EditorSettingsPanel";
 import BoostPanel from "@/components/editor/BoostPanel";
+import TemplatesPanel from "@/components/editor/TemplatesPanel";
+import DesignPanel, { REPORT_THEMES, REPORT_FONTS } from "@/components/editor/DesignPanel";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const DYOR_TEXT =
@@ -93,12 +95,17 @@ export default function ReportEditor() {
   const [tags,           setTags]           = useState([]);
   const [tagInput,       setTagInput]       = useState("");
 
+  // Design state
+  const [reportTheme,    setReportTheme]    = useState("default");
+  const [reportFont,     setReportFont]     = useState("inter");
+  const [reportLayout,   setReportLayout]   = useState("standard");
+
   // UI state
   const [showPrediction, setShowPrediction] = useState(false);
   const [showAI,         setShowAI]         = useState(() => !!urlTicker);
   const [showDrafts,     setShowDrafts]     = useState(false);
-  const [showSettings,   setShowSettings]   = useState(false);
-  const [activePanel,    setActivePanel]    = useState("write"); // "write" | "settings" | "preview"
+  const [showTemplates,  setShowTemplates]  = useState(false);
+  const [activePanel,    setActivePanel]    = useState("write"); // "write" | "design" | "settings"
   const [publishing,     setPublishing]     = useState(false);
   const [lastSaved,      setLastSaved]      = useState(null);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -206,10 +213,15 @@ export default function ReportEditor() {
     localStorage.setItem("stoa_drafts", JSON.stringify(updated));
   };
 
-  // ── AI Template ──────────────────────────────────────────────────────────
+  // ── AI / Template generation ─────────────────────────────────────────────
   const handleAIGenerate = useCallback((template) => {
     setBlocks(sanitizeBlocks(template.map(b => makeBlock(b.type || "text", b.content || ""))));
     toast.success("Template loaded! All blocks are editable.");
+  }, []);
+
+  const handleTemplateSelect = useCallback((templateBlocks) => {
+    setBlocks(sanitizeBlocks(templateBlocks.map(b => makeBlock(b.type || "text", b.content || ""))));
+    toast.success("Template applied! Start filling it in.");
   }, []);
 
   // ── Publish ───────────────────────────────────────────────────────────────
@@ -293,6 +305,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
             {[
               { id: "write",    label: "Write",    icon: FileText },
+              { id: "design",   label: "Design",   icon: Palette },
               { id: "settings", label: "Settings", icon: Settings2 },
             ].map(({ id, label, icon: Icon }) => (
               <button
@@ -322,6 +335,9 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
           {/* Right: actions */}
           <div className="flex items-center gap-1.5 ml-auto">
+            <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1.5 hover:text-foreground">
+              <Layout className="w-3.5 h-3.5" />Templates
+            </Button>
             <Button variant="ghost" size="sm" onClick={addDYOR} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1">
               <FileText className="w-3 h-3" />DYOR
             </Button>
@@ -376,10 +392,20 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
       {/* ── Main content ── */}
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {activePanel === "write" ? (
+        {activePanel === "write" || activePanel === "design" ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
             {/* ── Left: Editor canvas ── */}
-            <div>
+            <div
+              style={{
+                fontFamily: REPORT_FONTS.find(f => f.id === reportFont)?.style?.fontFamily,
+                background: REPORT_THEMES.find(t => t.id === reportTheme)?.bg,
+                color: REPORT_THEMES.find(t => t.id === reportTheme)?.text,
+                borderRadius: "1rem",
+                padding: reportTheme !== "default" ? "2rem" : undefined,
+                boxShadow: reportTheme !== "default" ? "0 0 0 1px " + REPORT_THEMES.find(t => t.id === reportTheme)?.border : undefined,
+                maxWidth: reportLayout === "wide" ? "100%" : reportLayout === "compact" ? "640px" : undefined,
+              }}
+            >
               {/* Cover image */}
               {coverImage ? (
                 <div className="relative mb-6 rounded-2xl overflow-hidden aspect-[3/1] bg-secondary group">
@@ -645,6 +671,18 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               </div>
 
+              {/* Design (shown when on design tab) */}
+              {activePanel === "design" && (
+                <DesignPanel
+                  theme={reportTheme}
+                  font={reportFont}
+                  layout={reportLayout}
+                  onThemeChange={setReportTheme}
+                  onFontChange={setReportFont}
+                  onLayoutChange={setReportLayout}
+                />
+              )}
+
               {/* Boost */}
               <BoostPanel />
 
@@ -663,7 +701,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               </div>
             </div>
           </div>
-        ) : (
+        ) : activePanel === "settings" ? (
           /* ── Settings panel ── */
           <EditorSettingsPanel
             isPremium={isPremium}
@@ -677,8 +715,15 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             coverImage={coverImage}
             onCoverImageChange={setCoverImage}
           />
-        )}
+        ) : null}
       </div>
+
+      {showTemplates && (
+        <TemplatesPanel
+          onSelectTemplate={handleTemplateSelect}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
 
       <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} initialTicker={urlTicker} />
       <AIChat
