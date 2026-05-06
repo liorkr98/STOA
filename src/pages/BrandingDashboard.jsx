@@ -64,7 +64,8 @@ export default function BrandingDashboard() {
         setTwitterHandle(u.twitter || "");
         setLinkedinUrl(u.linkedin || "");
         setWebsiteUrl(u.website || "");
-        setSpecialties(u.specialties || "");
+        const sp = u.specialties;
+        setSpecialties(Array.isArray(sp) ? sp.join(", ") : (sp || ""));
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -341,7 +342,7 @@ export default function BrandingDashboard() {
               {bio && <p className="text-sm text-foreground/80 mt-2 leading-relaxed line-clamp-3">{bio}</p>}
               {specialties && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {specialties.split(",").map(s => s.trim()).filter(Boolean).map(s => (
+                  {String(specialties).split(",").map(s => s.trim()).filter(Boolean).map(s => (
                     <span key={s} className="text-[10px] px-2 py-0.5 rounded-full font-medium border" style={{ color: accentColor, borderColor: accentColor + "44", background: accentColor + "11" }}>
                       {s}
                     </span>
