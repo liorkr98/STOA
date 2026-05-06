@@ -5,7 +5,7 @@ import {
   Sparkles, Plus, Type, List, BarChart3, ImageIcon, Quote,
   Send, Save, FolderOpen, Trash2, Clock, CheckCircle2,
   ChevronDown, Settings2, TrendingUp, Lock,
-  Hash, FileText, Zap, AlignLeft, Palette, X, Layout
+  Hash, FileText, Zap, AlignLeft, Palette, X, Layout, Eye
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -14,9 +14,7 @@ import {
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import EditorBlock from "@/components/editor/EditorBlock";
-import StockChartBlock from "@/components/editor/StockChartBlock";
-import ImageBlock from "@/components/editor/ImageBlock";
+import DraggableBlockList from "@/components/editor/DraggableBlockList";
 import PredictionBlock from "@/components/editor/PredictionBlock";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
@@ -392,7 +390,54 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
       {/* ── Main content ── */}
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {activePanel === "write" || activePanel === "design" ? (
+        {activePanel === "design" ? (
+          /* ── Design panel as full main content ── */
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            {/* Left: Live preview of canvas */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Eye className="w-3 h-3" /> Live preview — changes apply instantly
+              </p>
+              <div
+                style={{
+                  fontFamily: REPORT_FONTS.find(f => f.id === reportFont)?.style?.fontFamily,
+                  background: REPORT_THEMES.find(t => t.id === reportTheme)?.bg,
+                  color: REPORT_THEMES.find(t => t.id === reportTheme)?.text,
+                  borderRadius: "1rem",
+                  padding: "2rem",
+                  boxShadow: "0 0 0 1px " + (REPORT_THEMES.find(t => t.id === reportTheme)?.border || "#e2e8f0"),
+                  maxWidth: reportLayout === "compact" ? "640px" : "100%",
+                  minHeight: "320px",
+                }}
+              >
+                <h2 className="text-2xl font-bold mb-2">{title || "Your Report Title"}</h2>
+                {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
+                <div className="space-y-3">
+                  {blocks.slice(0, 4).filter(b => b.content).map((b, i) => (
+                    <div key={i}>
+                      {b.type === "heading" && <h3 className="text-lg font-bold">{b.content}</h3>}
+                      {b.type === "text" && <p className="text-sm leading-relaxed">{b.content.slice(0, 200)}{b.content.length > 200 ? "..." : ""}</p>}
+                      {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{b.content.split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
+                      {b.type === "quote" && <blockquote className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
+                    </div>
+                  ))}
+                  {blocks.every(b => !b.content) && <p className="text-sm opacity-40 italic">Write some content in the editor to see it previewed here.</p>}
+                </div>
+              </div>
+            </div>
+            {/* Right: Design controls */}
+            <div>
+              <DesignPanel
+                theme={reportTheme}
+                font={reportFont}
+                layout={reportLayout}
+                onThemeChange={setReportTheme}
+                onFontChange={setReportFont}
+                onLayoutChange={setReportLayout}
+              />
+            </div>
+          </div>
+        ) : activePanel === "write" ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
             {/* ── Left: Editor canvas ── */}
             <div
@@ -461,27 +506,14 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               )}
 
-              {/* Blocks */}
-              <div className="space-y-1 mb-4">
-                {blocks.map((block) => {
-                  if (!block || typeof block !== "object" || !block.type) return null;
-                  if (block.type === "stockchart") return (
-                    <StockChartBlock key={block.id} block={block} onChange={u => updateBlock(block.id, u)} onDelete={() => deleteBlock(block.id)} />
-                  );
-                  if (block.type === "image") return (
-                    <ImageBlock key={block.id} block={block} onDelete={() => deleteBlock(block.id)} />
-                  );
-                  return (
-                    <EditorBlock
-                      key={block.id}
-                      block={block}
-                      onChange={u => updateBlock(block.id, u)}
-                      onDelete={() => deleteBlock(block.id)}
-                      onEnter={() => insertBlockAfter(block.id, "text")}
-                    />
-                  );
-                })}
-              </div>
+              {/* Blocks — drag & drop */}
+              <DraggableBlockList
+                blocks={blocks}
+                onReorder={setBlocks}
+                onUpdate={updateBlock}
+                onDelete={deleteBlock}
+                onInsertAfter={insertBlockAfter}
+              />
 
               {/* Add block */}
               <DropdownMenu>
@@ -671,18 +703,6 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               </div>
 
-              {/* Design (shown when on design tab) */}
-              {activePanel === "design" && (
-                <DesignPanel
-                  theme={reportTheme}
-                  font={reportFont}
-                  layout={reportLayout}
-                  onThemeChange={setReportTheme}
-                  onFontChange={setReportFont}
-                  onLayoutChange={setReportLayout}
-                />
-              )}
-
               {/* Boost */}
               <BoostPanel />
 
@@ -703,6 +723,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           </div>
         ) : activePanel === "settings" ? (
           /* ── Settings panel ── */
+
           <EditorSettingsPanel
             isPremium={isPremium}
             reportPrice={reportPrice}

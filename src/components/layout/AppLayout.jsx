@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet, Settings, LogOut, LayoutDashboard, ChevronDown, TrendingUp } from "lucide-react";
+import { BarChart3, Home, PenLine, LogIn, Wallet, Settings, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
@@ -81,6 +81,9 @@ export default function AppLayout() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/wallet")}>
                       <Wallet className="w-4 h-4 mr-2" /> Wallet
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/branding")}>
+                      <Palette className="w-4 h-4 mr-2" /> Branding
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/edit-profile")}>
                       <Settings className="w-4 h-4 mr-2" /> Edit Profile

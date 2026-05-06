@@ -33,6 +33,7 @@ import AccessibilityPage from '@/pages/AccessibilityPage';
 import SignIn from '@/pages/SignIn';
 import LandingPage from '@/pages/LandingPage';
 import WalletPage from '@/pages/WalletPage';
+import BrandingDashboard from '@/pages/BrandingDashboard';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import StocksPage from '@/pages/StocksPage';
 
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
         <Route path="/predictions" element={isAuthenticated ? <PredictionSummaryPage /> : <SignIn />} />
         <Route path="/analytics" element={isAuthenticated ? <AnalyticsPage /> : <SignIn />} />
         <Route path="/wallet" element={isAuthenticated ? <WalletPage /> : <SignIn />} />
+        <Route path="/branding" element={isAuthenticated ? <BrandingDashboard /> : <SignIn />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/stocks" element={<StocksPage />} />
         <Route path="/pay" element={<PaymentPage />} />
