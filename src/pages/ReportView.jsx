@@ -203,6 +203,11 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!reportId) { setError("No report ID specified."); setLoading(false); return; }
@@ -267,7 +272,8 @@ export default function ReportView() {
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
 
-  const canSeeTarget = !isPremium || isPaid;
+  const isAuthor = currentUser && report.created_by === currentUser.email;
+  const canSeeTarget = !isPremium || isPaid || isAuthor;
 
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
@@ -328,7 +334,7 @@ export default function ReportView() {
       {prediction && <PredictionBadge prediction={prediction} />}
 
       <div className="mb-8">
-        {(!isPremium || isPaid) ? (
+        {(!isPremium || isPaid || isAuthor) ? (
           <BlockRenderer blocks={blocks} />
         ) : (
           <>
@@ -351,7 +357,7 @@ export default function ReportView() {
         )}
       </div>
 
-      {(!isPremium || isPaid) && (
+      {(!isPremium || isPaid || isAuthor) && (
         <div className="mb-8">
           {savedClaims ? (
             <SavedFactCheck claims={savedClaims} />
