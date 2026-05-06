@@ -9,13 +9,18 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const [ticker, setTicker] = useState(initialTicker);
   const [inputTicker, setInputTicker] = useState(initialTicker);
   const [height, setHeight] = useState(block?.height || 380);
+  const [width, setWidth] = useState(block?.width || 100); // percentage
   const [showControls, setShowControls] = useState(true);
+
+  const notify = (patch) => {
+    if (onChange) onChange({ ...block, ticker, content: ticker, height, width, ...patch });
+  };
 
   const applyTicker = () => {
     const t = inputTicker.trim().toUpperCase();
     if (t) {
       setTicker(t);
-      if (onChange) onChange({ ...block, ticker: t, content: t, height });
+      notify({ ticker: t, content: t });
     }
   };
 
@@ -34,17 +39,29 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         </Button>
         <span className="font-mono font-bold text-sm text-primary">{ticker}</span>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:inline">Height: {height}px</span>
+        <div className="ml-auto flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground hidden sm:inline">W: {width}%</span>
             <input
-              type="range"
-              min={200}
-              max={700}
-              step={20}
-              value={height}
-              onChange={e => { const h = Number(e.target.value); setHeight(h); if (onChange) onChange({ ...block, ticker, content: ticker, height: h }); }}
-              className="w-20 h-1 accent-primary"
+              type="range" min={30} max={100} step={5} value={width}
+              onChange={e => {
+                const v = Number(e.target.value);
+                setWidth(v);
+                notify({ width: v });
+              }}
+              className="w-16 h-1 accent-primary"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground hidden sm:inline">H: {height}px</span>
+            <input
+              type="range" min={200} max={700} step={20} value={height}
+              onChange={e => {
+                const h = Number(e.target.value);
+                setHeight(h);
+                notify({ height: h });
+              }}
+              className="w-16 h-1 accent-primary"
             />
           </div>
           <button
@@ -61,7 +78,10 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden" style={{ height }}>
+      <div
+        className="rounded-lg overflow-hidden mx-auto"
+        style={{ width: `${width}%`, height }}
+      >
         <TradingViewWidget ticker={ticker} height={height} showControls={showControls} />
       </div>
     </div>

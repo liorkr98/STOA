@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import DraggableBlockList from "@/components/editor/DraggableBlockList";
+import DraggableBlockList from "@/components/editor/DraggableBlockList.jsx";
 import PredictionBlock from "@/components/editor/PredictionBlock";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
