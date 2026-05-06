@@ -29,18 +29,22 @@ export default function AnalystDashboard() {
 
   useEffect(() => {
     if (!currentUser) return;
-    base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 50)
+    // Load ALL reports (both published and draft) so the analyst sees everything
+    base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 200)
       .then(data => setMyReports(data || []))
       .finally(() => setLoadingReports(false));
   }, [currentUser]);
 
-  const localDrafts = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("stoa_drafts")) || []; } catch { return []; }
-  }, []);
+  const publishedReports = useMemo(() => myReports.filter(r => r.status === "published"), [myReports]);
+  const draftReports = useMemo(() => myReports.filter(r => r.status !== "published"), [myReports]);
 
-  const predictions = useMemo(() => myReports.filter(r => r.prediction_action), [myReports]);
+  const predictions = useMemo(() => publishedReports.filter(r => r.prediction_action), [publishedReports]);
 
+  // Use stored accuracy_score from User entity (updated by checkPredictions), fall back to engine
   const accuracyScore = useMemo(() => {
+    if (currentUser?.accuracy_score != null && currentUser.accuracy_score > 0) {
+      return currentUser.accuracy_score.toFixed(1);
+    }
     if (predictions.length === 0) return 0;
     const mapped = predictions.map(r => ({
       action: r.prediction_action,
@@ -48,19 +52,21 @@ export default function AnalystDashboard() {
       targetPrice: r.prediction_target_price,
       lockTime: r.prediction_lock_time,
       timeframe: r.prediction_timeframe,
-      outcome: null,
+      outcome: r.prediction_outcome || null,
+      resolvedPrice: r.prediction_resolved_price || null,
+      resolvedTime: r.prediction_resolved_time || null,
     }));
     return calculateAccuracyScore(mapped).toFixed(1);
-  }, [predictions]);
+  }, [currentUser, predictions]);
 
   const achievements = useMemo(() => {
     if (!currentUser) return [];
-    const hasFirstReport = myReports.length >= 1;
+    const hasFirstReport = publishedReports.length >= 1;
     const has10Preds = predictions.length >= 10;
     const has80Acc = parseFloat(accuracyScore) >= 80;
     const has100Followers = (currentUser.followers_count || 0) >= 100;
     const has500Followers = (currentUser.followers_count || 0) >= 500;
-    const hasFirstPremium = myReports.some(r => r.is_premium);
+    const hasFirstPremium = publishedReports.some(r => r.is_premium);
     const hasStreak3 = false; // requires resolved prediction data
     const isTop10 = currentUser.leaderboard_rank > 0 && currentUser.leaderboard_rank <= 10;
     return [
@@ -73,7 +79,7 @@ export default function AnalystDashboard() {
       { label: "Streak x3", icon: Flame, earned: hasStreak3 },
       { label: "Top 10 Analyst", icon: Trophy, earned: isTop10 },
       { label: "1,000 Likes", icon: CheckCircle, earned: false },
-      { label: "50 Reports", icon: BookOpen, earned: myReports.length >= 50 },
+      { label: "50 Reports", icon: BookOpen, earned: publishedReports.length >= 50 },
       { label: "90%+ Accuracy", icon: Shield, earned: parseFloat(accuracyScore) >= 90 },
       { label: "Streak x10", icon: Rocket, earned: false },
     ];
@@ -90,7 +96,7 @@ export default function AnalystDashboard() {
     name: currentUser.full_name || currentUser.email?.split("@")[0] || "Analyst",
     avatar: currentUser.picture || null,
     tagline: currentUser.tagline || "Analyst",
-    reports: myReports.length,
+    reports: publishedReports.length,
     followers: currentUser.followers_count || 0,
   };
 
@@ -121,7 +127,7 @@ export default function AnalystDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { key: "predictions", label: "Prediction Accuracy", value: predictions.length > 0 ? `${accuracyScore}%` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: `Based on ${predictions.length} predictions` },
+          { key: "predictions", label: "Prediction Accuracy", value: predictions.length > 0 ? `${accuracyScore}%` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
           { key: "points", label: "AI Credits", value: (currentUser.ai_credits_balance ?? 100).toLocaleString(), icon: Zap, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", sub: "Available balance" },
           { key: "yield", label: "Avg Prediction Yield", value: currentUser.yearly_yield ? `+${currentUser.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: "text-primary", bg: "bg-primary/5 border-primary/20", sub: predictions.length > 0 ? "From resolved predictions" : "No resolved predictions yet" },
           { key: "followers", label: "Followers", value: analyst.followers.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", sub: "Total followers" },
@@ -164,8 +170,8 @@ export default function AnalystDashboard() {
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">
         <div className="flex flex-wrap gap-2 mb-4">
           {[
-            { id: "published", label: `Published (${myReports.length})` },
-            { id: "drafts", label: `Drafts (${localDrafts.length})` },
+            { id: "published", label: `Published (${publishedReports.length})` },
+            { id: "drafts", label: `Drafts (${draftReports.length})` },
             { id: "boost", label: "Boost" },
             { id: "profile-boost", label: "Profile Boost" },
             { id: "subscriptions", label: "Subscribed" },
@@ -181,19 +187,28 @@ export default function AnalystDashboard() {
           <div className="space-y-2">
             {loadingReports ? (
               <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-            ) : myReports.length === 0 ? (
+            ) : publishedReports.length === 0 ? (
               <div className="text-center py-10">
                 <FileText className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No reports yet</p>
+                <p className="text-sm font-medium text-muted-foreground">No published reports yet</p>
                 <p className="text-xs text-muted-foreground/60 mb-4">Publish your first research report to see it here.</p>
                 <Link to="/editor"><Button size="sm" variant="outline" className="text-xs">Write Your First Report</Button></Link>
               </div>
             ) : (
-              myReports.map(report => (
+              publishedReports.map(report => (
                 <div key={report.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl cursor-pointer hover:bg-secondary/70 transition-all" onClick={() => navigate(`/report?id=${report.id}`)}>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{report.title}</p>
-                    <p className="text-xs text-muted-foreground">Published {format(new Date(report.created_date), "MMM d, yyyy")} · {report.likes || 0} likes</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{format(new Date(report.created_date), "MMM d, yyyy")}</span>
+                      <span>·</span>
+                      <span>{report.likes || 0} likes</span>
+                      {report.prediction_outcome && report.prediction_outcome !== "pending" && (
+                        <span className={`capitalize font-semibold ${report.prediction_outcome === "hit" ? "text-gain" : report.prediction_outcome === "miss" ? "text-loss" : "text-amber-600"}`}>
+                          {report.prediction_outcome}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {report.prediction_action && (
                     <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
@@ -210,7 +225,9 @@ export default function AnalystDashboard() {
 
         {tab === "drafts" && (
           <div className="space-y-2">
-            {localDrafts.length === 0 ? (
+            {loadingReports ? (
+              <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+            ) : draftReports.length === 0 ? (
               <div className="text-center py-10">
                 <PenLine className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">No drafts yet</p>
@@ -218,13 +235,14 @@ export default function AnalystDashboard() {
                 <Link to="/editor"><Button size="sm" variant="outline" className="text-xs">Start Writing</Button></Link>
               </div>
             ) : (
-              localDrafts.map(draft => (
-                <div key={draft.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
+              draftReports.map(draft => (
+                <div key={draft.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl cursor-pointer hover:bg-secondary/70 transition-all" onClick={() => navigate(`/editor?draft=${draft.id}`)}>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{draft.title}</p>
-                    <p className="text-xs text-muted-foreground">Last edited {format(new Date(draft.savedAt), "MMM d, yyyy")}</p>
+                    <p className="font-medium text-sm truncate">{draft.title || "Untitled Draft"}</p>
+                    <p className="text-xs text-muted-foreground">Last edited {format(new Date(draft.updated_date || draft.created_date), "MMM d, yyyy")}</p>
                   </div>
                   <Badge variant="secondary" className="text-xs">Draft</Badge>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               ))
             )}
@@ -235,7 +253,7 @@ export default function AnalystDashboard() {
           <div>
             <p className="text-sm text-muted-foreground mb-4">Boost a report to increase its reach across the platform.</p>
             <div className="space-y-2">
-              {myReports.map(report => (
+              {publishedReports.map(report => (
                 <div key={report.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{report.title}</p>
@@ -248,7 +266,7 @@ export default function AnalystDashboard() {
                   )}
                 </div>
               ))}
-              {myReports.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Publish a report first to boost it.</p>}
+              {publishedReports.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Publish a report first to boost it.</p>}
             </div>
           </div>
         )}
@@ -292,7 +310,7 @@ export default function AnalystDashboard() {
 
       {/* Accuracy Trend */}
       <div className="mb-4">
-        <InsightsPanel accuracyScore={parseFloat(accuracyScore) || 0} reports={myReports} />
+        <InsightsPanel accuracyScore={parseFloat(accuracyScore) || 0} reports={publishedReports} />
       </div>
 
       {/* Revenue & Twits */}

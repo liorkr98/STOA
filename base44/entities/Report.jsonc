@@ -56,6 +56,26 @@
       "type": "number",
       "description": "Portfolio allocation percentage"
     },
+    "prediction_resolved_price": {
+      "type": "number",
+      "description": "Actual price when prediction resolved"
+    },
+    "prediction_resolved_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When prediction was resolved"
+    },
+    "prediction_outcome": {
+      "type": "string",
+      "enum": [
+        "hit",
+        "near",
+        "partial",
+        "miss",
+        "pending"
+      ],
+      "description": "Prediction result"
+    },
     "author_name": {
       "type": "string",
       "description": "Author display name"
