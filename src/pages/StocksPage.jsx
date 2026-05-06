@@ -4,80 +4,65 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { base44 } from "@/api/base44Client";
 
 const PAGE_SIZE = 50;
-const YF_HEADERS = { "User-Agent": "Mozilla/5.0" };
 
 async function fetchTopStocks() {
-  try {
-    const res = await fetch(
-      "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&count=100&formatted=false",
-      { headers: YF_HEADERS }
-    );
-    const data = await res.json();
-    const quotes = data?.finance?.result?.[0]?.quotes || [];
-    return quotes.map(q => ({
-      symbol:   q.symbol,
-      name:     q.shortName || q.longName || q.symbol,
-      exchange: q.fullExchangeName || q.exchange,
-      price:    q.regularMarketPrice,
-    }));
-  } catch (e) {
-    console.error("Yahoo screener error:", e);
-    return [];
-  }
+  const r = await base44.functions.invoke("proxyFetch", {
+    url: "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&count=100&formatted=false",
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
+  const quotes = r.data?.finance?.result?.[0]?.quotes || [];
+  return quotes.map(q => ({
+    symbol:   q.symbol,
+    name:     q.shortName || q.longName || q.symbol,
+    exchange: q.fullExchangeName || q.exchange,
+    price:    q.regularMarketPrice,
+    change:   q.regularMarketChangePercent,
+  }));
 }
 
-async function searchYahoo(query) {
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=20&newsCount=0&enableFuzzyQuery=false`,
-      { headers: YF_HEADERS }
-    );
-    const data = await res.json();
-    return (data?.quotes || [])
-      .filter(q => q.quoteType === "EQUITY")
-      .map(q => ({
-        symbol:   q.symbol,
-        name:     q.shortname || q.longname || q.symbol,
-        exchange: q.exchange,
-        price:    null,
-      }));
-  } catch (e) {
-    console.error("Yahoo search error:", e);
-    return [];
-  }
+async function searchStocks(query) {
+  const r = await base44.functions.invoke("proxyFetch", {
+    url: `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=20&newsCount=0`,
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
+  return (r.data?.quotes || [])
+    .filter(q => q.quoteType === "EQUITY")
+    .map(q => ({
+      symbol:   q.symbol,
+      name:     q.shortname || q.longname || q.symbol,
+      exchange: q.exchange,
+      price:    null,
+      change:   null,
+    }));
 }
 
 export default function StocksPage() {
   const navigate = useNavigate();
-  const [topStocks, setTopStocks] = useState([]);
-  const [searchResults, setSearchResults] = useState(null); // null = show top stocks
-  const [search, setSearch] = useState("");
-  const [exchange, setExchange] = useState("ALL");
-  const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
-  const [page, setPage] = useState(0);
+  const [topStocks, setTopStocks]       = useState([]);
+  const [searchResults, setSearchResults] = useState(null);
+  const [search, setSearch]             = useState("");
+  const [exchange, setExchange]         = useState("ALL");
+  const [loading, setLoading]           = useState(true);
+  const [searching, setSearching]       = useState(false);
+  const [page, setPage]                 = useState(0);
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    fetchTopStocks().then(stocks => {
-      setTopStocks(stocks);
-      setLoading(false);
-    });
+    fetchTopStocks()
+      .then(setTopStocks)
+      .finally(() => setLoading(false));
   }, []);
 
-  // Debounced search
   useEffect(() => {
     setPage(0);
-    if (!search.trim()) {
-      setSearchResults(null);
-      return;
-    }
+    if (!search.trim()) { setSearchResults(null); return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-      const results = await searchYahoo(search.trim());
+      const results = await searchStocks(search.trim());
       setSearchResults(results);
       setSearching(false);
     }, 350);
@@ -87,20 +72,15 @@ export default function StocksPage() {
   useEffect(() => { setPage(0); }, [exchange]);
 
   const sourceList = searchResults !== null ? searchResults : topStocks;
-
   const filtered = sourceList.filter(s =>
-    exchange === "ALL" ||
-    (s.exchange || "").toUpperCase().includes(exchange)
+    exchange === "ALL" || (s.exchange || "").toUpperCase().includes(exchange)
   );
-
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-
-  const isLoading = loading || searching;
+  const paginated   = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages  = Math.ceil(filtered.length / PAGE_SIZE);
+  const isLoading   = loading || searching;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">US Stock Market</h1>
         <p className="text-sm text-muted-foreground">
@@ -139,24 +119,33 @@ export default function StocksPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {paginated.map(stock => (
-              <button key={stock.symbol}
-                onClick={() => navigate(`/stock?ticker=${stock.symbol}`)}
-                className="bg-card border border-border rounded-xl p-3 text-left hover:border-primary/40 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <span className="font-mono font-bold text-sm">{stock.symbol}</span>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded truncate max-w-[60px]">{stock.exchange}</span>
-                </div>
-                <p className="text-xs text-muted-foreground truncate mb-1">{stock.name}</p>
-                {stock.price != null && (
-                  <p className="text-sm font-bold">${Number(stock.price).toFixed(2)}</p>
-                )}
-              </button>
-            ))}
+            {paginated.map(stock => {
+              const isUp = (stock.change ?? 0) >= 0;
+              return (
+                <button key={stock.symbol}
+                  onClick={() => navigate(`/stock?ticker=${stock.symbol}`)}
+                  className="bg-card border border-border rounded-xl p-3 text-left hover:border-primary/40 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <span className="font-mono font-bold text-sm">{stock.symbol}</span>
+                    <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded truncate max-w-[60px]">{stock.exchange}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mb-1">{stock.name}</p>
+                  {stock.price != null && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold">${Number(stock.price).toFixed(2)}</p>
+                      {stock.change != null && (
+                        <span className={`text-[10px] font-semibold ${isUp ? "text-gain" : "text-loss"}`}>
+                          {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-6">
               <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>← Prev</Button>
