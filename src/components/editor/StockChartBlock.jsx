@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -12,9 +12,31 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const [width, setWidth] = useState(block?.width || 100); // percentage
   const [showControls, setShowControls] = useState(true);
 
+  const dragRef = useRef(null);
+
   const notify = (patch) => {
     if (onChange) onChange({ ...block, ticker, content: ticker, height, width, ...patch });
   };
+
+  const startResize = useCallback((e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = height;
+
+    const onMove = (ev) => {
+      const newH = Math.min(700, Math.max(200, startH + (ev.clientY - startY)));
+      setHeight(newH);
+    };
+    const onUp = (ev) => {
+      const newH = Math.min(700, Math.max(200, startH + (ev.clientY - startY)));
+      setHeight(newH);
+      notify({ height: newH });
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [height, notify]);
 
   const applyTicker = () => {
     const t = inputTicker.trim().toUpperCase();
@@ -79,10 +101,23 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       </div>
 
       <div
-        className="rounded-lg overflow-hidden mx-auto"
+        className="relative rounded-lg overflow-hidden mx-auto"
         style={{ width: `${width}%`, height: `${height}px` }}
       >
         <TradingViewWidget ticker={ticker} containerHeight={height} />
+        {/* Resize handle */}
+        <div
+          ref={dragRef}
+          onMouseDown={startResize}
+          className="absolute bottom-0 right-0 w-6 h-6 flex items-center justify-center cursor-s-resize z-10 group"
+          title="Drag to resize"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" className="text-muted-foreground group-hover:text-primary transition-colors opacity-60 group-hover:opacity-100">
+            <path d="M2 12 L12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M7 12 L12 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M12 12 L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
       </div>
     </div>
   );
