@@ -25,7 +25,6 @@ const CHART_THEMES = [
   { label: "Dark",  value: "dark" },
 ];
 
-const HEIGHT_OPTIONS = [300, 400, 500, 600];
 
 const STUDIES_OPTIONS = ["RSI", "MACD", "BB", "EMA", "SMA"];
 
@@ -46,7 +45,9 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const [interval, setIntervalVal] = useState(block?.interval || "D");
   const [chartStyle, setChartStyle] = useState(block?.chartStyle || "1");
   const [chartTheme, setChartTheme] = useState(block?.chartTheme || "light");
-  const [chartHeight, setChartHeight] = useState(block?.height || 400);
+  const [chartHeight, setChartHeight] = useState(block?.height || 420);
+  const chartResizingRef = useRef(false);
+  const chartStartRef = useRef({ y: 0, h: 0 });
   const [studies, setStudies] = useState(block?.studies || []);
   const [frozen, setFrozen] = useState(block?.frozen || false);
   const [saving, setSaving] = useState(false);
@@ -91,6 +92,25 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       container_id: containerId,
     });
   }, [ticker, interval, chartStyle, chartTheme, chartHeight, studies, frozen, containerId]);
+
+  const startChartResize = useCallback((e) => {
+    e.preventDefault();
+    chartResizingRef.current = true;
+    chartStartRef.current = { y: e.clientY, h: chartHeight };
+    const onMove = (mv) => {
+      if (!chartResizingRef.current) return;
+      const newH = Math.max(300, chartStartRef.current.h + (mv.clientY - chartStartRef.current.y));
+      setChartHeight(newH);
+    };
+    const onUp = () => {
+      chartResizingRef.current = false;
+      notify({ height: chartHeight });
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [chartHeight, notify]);
 
   const applyTicker = () => {
     const t = inputTicker.trim().toUpperCase();
@@ -244,16 +264,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Height presets */}
-          <div className="flex gap-0.5">
-            {HEIGHT_OPTIONS.map(h => (
-              <button key={h} onClick={() => { setChartHeight(h); notify({ height: h }); }}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-all ${chartHeight === h ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground"}`}>
-                {h}
-              </button>
-            ))}
-          </div>
-
           {onDelete && (
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-loss" onClick={onDelete}>
               <Trash2 className="w-3.5 h-3.5" />
@@ -291,8 +301,19 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         </div>
       </div>
 
+      {/* Resize handle */}
+      <div
+        onMouseDown={startChartResize}
+        style={{ width: "100%", height: 8, cursor: "s-resize", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", marginTop: 2 }}
+      >
+        <div style={{ width: 40, height: 4, background: "#e2e8f0", borderRadius: 2, transition: "background 0.15s" }}
+          onMouseEnter={e => e.target.style.background = "#2563eb"}
+          onMouseLeave={e => e.target.style.background = "#e2e8f0"}
+        />
+      </div>
+
       {/* Save chart button */}
-      <div className="mt-2 flex justify-end">
+      <div className="mt-1 flex justify-end">
         <Button size="sm" onClick={handleSaveChart} disabled={saving} className="gap-1.5 text-xs h-8">
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
           {saving ? "Capturing..." : "📸 Save Chart to Report"}

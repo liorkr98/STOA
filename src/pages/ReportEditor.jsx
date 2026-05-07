@@ -29,6 +29,7 @@ import DesignPanel, { REPORT_THEMES, REPORT_FONTS } from "@/components/editor/De
 import FloatingToolbar from "@/components/editor/FloatingToolbar";
 import ReportQualityScore from "@/components/editor/ReportQualityScore";
 import QuickPostEditor from "@/components/editor/QuickPostEditor";
+import ColumnsBlock from "@/components/editor/ColumnsBlock";
 
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ const BLOCK_TYPES = [
   { type: "numbered",  label: "Numbered",    icon: List,      shortcut: "N" },
   { type: "stockchart",label: "Stock Chart", icon: BarChart3, shortcut: "C" },
   { type: "image",     label: "Image",       icon: ImageIcon, shortcut: "I" },
+  { type: "columns",   label: "Text + Media", icon: Layout,    shortcut: "T" },
 ];
 
 const INDUSTRIES = [
@@ -114,6 +116,14 @@ export default function ReportEditor() {
 
   // Mode
   const [editorMode, setEditorMode] = useState("deep"); // "deep" | "quick"
+
+  // Quick Post extra state
+  const [quickImage, setQuickImage] = useState(null);
+  const [quickShowPrediction, setQuickShowPrediction] = useState(false);
+  const [quickAction, setQuickAction] = useState("BUY");
+  const [quickTicker, setQuickTicker] = useState("");
+  const [quickTimeframe, setQuickTimeframe] = useState("1d");
+  const [quickTarget, setQuickTarget] = useState("");
 
   // Content state
   const [title,          setTitle]          = useState(urlTicker ? `${urlTicker} — Equity Research Report` : "");
@@ -483,6 +493,16 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           onChange={(u) => updateBlock(block.id, u)}
           onDelete={() => deleteBlock(block.id)}
         />
+      ) : block.type === "columns" ? (
+        <ColumnsBlock
+          block={block}
+          onDelete={() => deleteBlock(block.id)}
+          updateBlock={updateBlock}
+          insertBlockAfter={insertBlockAfter}
+          duplicateBlock={duplicateBlock}
+          moveBlock={moveBlock}
+          turnIntoBlock={turnIntoBlock}
+        />
       ) : (
         <EditorBlock
           block={block}
@@ -546,20 +566,10 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 ))}
               </div>
 
-              {/* Word count */}
-              <div className="hidden md:flex items-center gap-2 text-[11px] text-muted-foreground ml-2">
-                <span className={`font-mono font-medium ${wordCountColor}`}>{wordCount} words</span>
-                <span>·</span>
-                <span>{readingTime} min read</span>
-                <span>·</span>
-                <span className="text-muted-foreground">Deep Report</span>
-                <span>·</span>
-                <span className={`flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
-                  {saveStatus === "saved"
-                    ? <><CheckCircle2 className="w-3 h-3" />Saved</>
-                    : <><Clock className="w-3 h-3" />Unsaved</>}
-                </span>
-              </div>
+              <span className={`text-[11px] ml-3 hidden md:flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+                {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                {saveStatus === "saved" ? "Saved" : "Unsaved"}
+              </span>
 
               <div className="flex items-center gap-1 ml-auto">
                 {/* Undo/Redo */}
@@ -606,14 +616,8 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button variant="outline" size="sm" onClick={() => persistDraft()} className="text-xs h-8 gap-1">
-                  <Save className="w-3.5 h-3.5" /><span className="hidden sm:inline">Save</span>
-                </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/5">
                   <Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI</span>
-                </Button>
-                <Button size="sm" onClick={handlePublish} disabled={publishing} className="text-xs h-8 gap-1.5 px-4">
-                  <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish"}
                 </Button>
               </div>
             </>
@@ -630,7 +634,13 @@ Report:"""${fullText.slice(0, 3000)}"""`,
       {/* ── Main content ── */}
       <div className="max-w-6xl mx-auto px-4 py-4">
         {editorMode === "quick" ? (
-          <QuickPostEditor />
+          <QuickPostEditor quickImage={quickImage} setQuickImage={setQuickImage}
+            quickShowPrediction={quickShowPrediction} setQuickShowPrediction={setQuickShowPrediction}
+            quickAction={quickAction} setQuickAction={setQuickAction}
+            quickTicker={quickTicker} setQuickTicker={setQuickTicker}
+            quickTimeframe={quickTimeframe} setQuickTimeframe={setQuickTimeframe}
+            quickTarget={quickTarget} setQuickTarget={setQuickTarget}
+            title={title} setTitle={setTitle} />
         ) : activePanel === "design" ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
             {/* Live preview */}
@@ -969,14 +979,6 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           </div>
         ) : activePanel === "settings" ? (
           <EditorSettingsPanel
-            isPremium={isPremium}
-            reportPrice={reportPrice}
-            onIsPremiumChange={setIsPremium}
-            onPriceChange={setReportPrice}
-            industry={industry}
-            onIndustryChange={setIndustry}
-            marketCap={marketCap}
-            onMarketCapChange={setMarketCap}
             coverImage={coverImage}
             onCoverImageChange={setCoverImage}
             onDeleteAll={() => {

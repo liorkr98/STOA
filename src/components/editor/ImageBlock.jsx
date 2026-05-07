@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Image, Loader2, Trash2 } from "lucide-react";
 
 export default function ImageBlock({ block, onDelete, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [url, setUrl] = useState(block.content || "");
-  const [height, setHeight] = useState(block.height || 240);
-  const [width, setWidth] = useState(block.width || 100); // percentage 25–100
+  const [imgWidth, setImgWidth] = useState(block.width || "100%");
+  const [imgHeight, setImgHeight] = useState(block.height || "240px");
+  const resizingRef = useRef(false);
+  const startRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const containerRef = useRef(null);
 
   const update = (patch) => {
     if (onChange) onChange({ ...block, ...patch });
@@ -19,54 +22,72 @@ export default function ImageBlock({ block, onDelete, onChange }) {
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     setUrl(file_url);
     setUploading(false);
-    update({ content: file_url, height, width });
+    update({ content: file_url, width: imgWidth, height: imgHeight });
+  };
+
+  const startResize = (e) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    const rect = containerRef.current.getBoundingClientRect();
+    startRef.current = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height };
+
+    const onMove = (mv) => {
+      if (!resizingRef.current) return;
+      const newW = Math.max(120, startRef.current.w + (mv.clientX - startRef.current.x));
+      const newH = Math.max(80,  startRef.current.h + (mv.clientY - startRef.current.y));
+      setImgWidth(newW + "px");
+      setImgHeight(newH + "px");
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      const w = containerRef.current?.offsetWidth + "px";
+      const h = containerRef.current?.offsetHeight + "px";
+      update({ content: url, width: w, height: h });
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
   };
 
   return (
     <div className="group relative rounded-xl border-2 border-dashed border-border overflow-hidden mb-2">
       {url ? (
         <div>
-          {/* Resize controls */}
-          <div className="flex items-center gap-4 px-3 py-2 bg-secondary/50 border-b border-border flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground">Width: {width}%</span>
-              <input
-                type="range" min={25} max={100} step={5} value={width}
-                onChange={e => {
-                  const v = Number(e.target.value);
-                  setWidth(v);
-                  update({ content: url, height, width: v });
-                }}
-                className="w-20 h-1 accent-primary"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground">Height: {height}px</span>
-              <input
-                type="range" min={80} max={600} step={20} value={height}
-                onChange={e => {
-                  const v = Number(e.target.value);
-                  setHeight(v);
-                  update({ content: url, height: v, width });
-                }}
-                className="w-20 h-1 accent-primary"
-              />
-            </div>
-            <button
-              onClick={onDelete}
-              className="ml-auto text-muted-foreground hover:text-loss transition-colors"
-            >
+          <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 border-b border-border">
+            <span className="text-[10px] text-muted-foreground">Drag corner to resize</span>
+            <button onClick={onDelete} className="ml-auto text-muted-foreground hover:text-loss transition-colors">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
-          <div style={{ width: `${width}%`, margin: "0 auto" }}>
+          <div
+            ref={containerRef}
+            className="group/img relative inline-block"
+            style={{ width: imgWidth, maxWidth: "100%", display: "block" }}
+          >
             <img
               src={url}
               alt="Report image"
-              className="w-full object-cover"
-              style={{ height: `${height}px` }}
+              className="w-full block object-cover"
+              style={{ height: imgHeight }}
             />
+            {/* Resize handle */}
+            <div
+              onMouseDown={startResize}
+              className="resize-handle"
+              style={{
+                position: "absolute", bottom: 4, right: 4,
+                width: 20, height: 20, cursor: "se-resize",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(0,0,0,0.5)", borderRadius: 4,
+                color: "white", fontSize: 12, userSelect: "none",
+                opacity: 0, transition: "opacity 0.15s",
+              }}
+            >
+              ↘
+            </div>
           </div>
+          <style>{`.group\\/img:hover .resize-handle { opacity: 1 !important; }`}</style>
         </div>
       ) : (
         <label className="flex flex-col items-center justify-center gap-2 p-8 cursor-pointer hover:bg-secondary transition-colors">
