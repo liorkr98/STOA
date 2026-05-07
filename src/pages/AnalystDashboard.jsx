@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
 import InsightsPanel from "@/components/dashboard/InsightsPanel";
+import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import { useNavigate, Link } from "react-router-dom";
 import { calculateAccuracyScore } from "@/lib/accuracyEngine";
 
@@ -24,7 +25,10 @@ export default function AnalystDashboard() {
   const [loadingReports, setLoadingReports] = useState(true);
 
   useEffect(() => {
-    base44.auth.me().then(user => setCurrentUser(user)).finally(() => setLoadingUser(false));
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+      base44.analytics.track({ eventName: "dashboard_viewed" });
+    }).finally(() => setLoadingUser(false));
   }, []);
 
   useEffect(() => {
@@ -307,6 +311,9 @@ export default function AnalystDashboard() {
           </div>
         )}
       </div>
+
+      {/* Watchlist */}
+      <WatchlistPanel reports={myReports} />
 
       {/* Accuracy Trend */}
       <div className="mb-4">

@@ -14,6 +14,7 @@ import ShareMenu from "@/components/feed/ShareMenu";
 import CommentsSection from "@/components/report/CommentsSection";
 import FactChecker from "@/components/report/FactChecker";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
+import ExportPDFButton from "@/components/report/ExportPDFButton";
 
 // ─── Claim type config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -217,6 +218,7 @@ export default function ReportView() {
         if (!data) { setError("Report not found."); return; }
         setReport(data);
         setLikeCount(data.likes || 0);
+        base44.analytics.track({ eventName: "report_viewed", properties: { report_id: reportId, is_premium: data.is_premium || false } });
         if (data.content_blocks) {
           try {
             const parsed = JSON.parse(data.content_blocks);
@@ -335,12 +337,15 @@ export default function ReportView() {
         )}
         <div className="flex items-center gap-3 ml-auto">
           <button
-            onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
+            onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } }); }}
             className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
           >
             <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} /> {likeCount}
           </button>
           <ShareMenu title={report.title} reportId={report.id} />
+          {(isAuthor || (!isPremium)) && (
+            <ExportPDFButton report={report} blocks={blocks} />
+          )}
         </div>
       </div>
 
