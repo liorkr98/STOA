@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 const INTERVALS = [
   { label: "1D", value: "D" },
@@ -16,13 +17,39 @@ const CHART_STYLES = [
   { label: "Bars", value: "0" },
 ];
 
-// Simple heuristic — TradingView will correct if wrong
-function guessSymbol(ticker) {
-  const t = ticker.toUpperCase();
-  // Well-known NASDAQ
-  const nasdaq = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST","NFLX","AMD","INTC","QCOM","ADBE","TXN","CSCO","PYPL","SBUX","AMAT"];
-  if (nasdaq.includes(t)) return `NASDAQ:${t}`;
-  return `NYSE:${t}`;
+// ── Dynamic exchange resolution via Yahoo Finance ────────────
+const exchangeCache = {};
+
+async function resolveExchangeForTicker(ticker) {
+  if (!ticker) return "NASDAQ";
+  if (exchangeCache[ticker]) return exchangeCache[ticker];
+
+  try {
+    const res = await base44.functions.invoke("proxyFetch", {
+      url: `https://query1.finance.yahoo.com/v8/finance/chart/${ticker.toUpperCase()}?interval=1d&range=1d`,
+    });
+    const meta = res?.data?.chart?.result?.[0]?.meta;
+    if (!meta) return "NASDAQ";
+
+    const exchangeName = meta.fullExchangeName || meta.exchangeName || "";
+    const shortExchange = meta.exchange || "";
+    let tvExchange = "NASDAQ";
+
+    if (exchangeName.includes("NYSE") && !exchangeName.includes("NASDAQ")) tvExchange = "NYSE";
+    else if (exchangeName.includes("NASDAQ")) tvExchange = "NASDAQ";
+    else if (exchangeName.includes("AMEX") || exchangeName.includes("American")) tvExchange = "AMEX";
+    else if (exchangeName.includes("OTC") || exchangeName.includes("Pink")) tvExchange = "OTC";
+    else if (exchangeName.includes("TSX") || exchangeName.includes("Toronto")) tvExchange = "TSX";
+    else if (exchangeName.includes("LSE") || exchangeName.includes("London")) tvExchange = "LSE";
+    else if (shortExchange === "NYQ" || shortExchange === "NYS") tvExchange = "NYSE";
+    else if (shortExchange === "NMS" || shortExchange === "NGM" || shortExchange === "NCM") tvExchange = "NASDAQ";
+    else if (shortExchange === "ASE") tvExchange = "AMEX";
+
+    exchangeCache[ticker] = tvExchange;
+    return tvExchange;
+  } catch {
+    return "NASDAQ";
+  }
 }
 
 // Unique container ID per ticker instance
@@ -33,64 +60,66 @@ export default function TradingViewWidget({ ticker = "NVDA", containerHeight = 3
    const [style, setStyle] = useState("1");
    const [containerId] = useState(() => `tv_chart_${++_chartCount}`);
    const scriptRef = useRef(null);
-   const [chartHeight, setChartHeight] = useState(containerHeight - 50); // 50px for controls
+   const [chartHeight, setChartHeight] = useState(containerHeight - 50);
 
   useEffect(() => {
     setChartHeight(containerHeight - 50);
   }, [containerHeight]);
 
   useEffect(() => {
-    const symbol = guessSymbol(ticker);
+    let cancelled = false;
 
-    // Remove previous script
-    if (scriptRef.current) {
-      scriptRef.current.remove();
-      scriptRef.current = null;
+    async function initChart() {
+      const exchange = await resolveExchangeForTicker(ticker);
+      if (cancelled) return;
+      const symbol = `${exchange}:${ticker.toUpperCase()}`;
+
+      // Remove previous script
+      if (scriptRef.current) {
+        scriptRef.current.remove();
+        scriptRef.current = null;
+      }
+      const containerEl = document.getElementById(containerId);
+      if (containerEl) containerEl.innerHTML = "";
+
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+      script.type = "text/javascript";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        autosize: false,
+        width: "100%",
+        height: chartHeight,
+        symbol,
+        interval,
+        timezone: "Etc/UTC",
+        theme: "light",
+        style,
+        locale: "en",
+        toolbar_bg: "#f1f3f6",
+        enable_publishing: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: false,
+        container_id: containerId,
+        studies: [],
+        disabled_features: [
+          "use_localstorage_for_settings",
+          "header_compare",
+          "header_screenshot",
+          "header_undo_redo",
+        ],
+        enabled_features: [],
+      });
+
+      const containerEl2 = document.getElementById(containerId);
+      if (containerEl2) containerEl2.appendChild(script);
+      scriptRef.current = script;
     }
 
-    // Clear container content
-    const containerEl = document.getElementById(containerId);
-    if (containerEl) containerEl.innerHTML = "";
-
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.type = "text/javascript";
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      autosize: false,
-      width: "100%",
-      height: chartHeight,
-      symbol,
-      interval,
-      timezone: "Etc/UTC",
-      theme: "light",
-      style,
-      locale: "en",
-      toolbar_bg: "#f1f3f6",
-      enable_publishing: false,
-      hide_side_toolbar: false,
-      allow_symbol_change: false,
-      container_id: containerId,
-      studies: [],
-      studies_overrides: {},
-      overrides: {
-        "mainSeriesProperties.showCountdown": false,
-        "volumePaneSize": "medium",
-      },
-      disabled_features: [
-        "use_localstorage_for_settings",
-        "header_compare",
-        "header_screenshot",
-        "header_undo_redo",
-      ],
-      enabled_features: [],
-    });
-
-    const containerEl2 = document.getElementById(containerId);
-    if (containerEl2) containerEl2.appendChild(script);
-    scriptRef.current = script;
+    initChart();
 
     return () => {
+      cancelled = true;
       if (scriptRef.current) {
         scriptRef.current.remove();
         scriptRef.current = null;

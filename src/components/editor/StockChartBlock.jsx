@@ -28,10 +28,39 @@ const CHART_THEMES = [
 
 const STUDIES_OPTIONS = ["RSI", "MACD", "BB", "EMA", "SMA"];
 
-const NASDAQ_TICKERS = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST","NFLX","AMD","INTC","QCOM","ADBE","TXN","CSCO","PYPL","SBUX","AMAT","ASML","MU","LRCX","PANW","KLAC","SNPS","CDNS","MRVL","WDAY","DXCM"];
+// ── Dynamic exchange resolution via Yahoo Finance ────────────
+const exchangeCache = {};
 
-function guessExchange(ticker) {
-  return NASDAQ_TICKERS.includes(ticker.toUpperCase()) ? "NASDAQ" : "NYSE";
+async function resolveExchangeForTicker(ticker) {
+  if (!ticker) return "NASDAQ";
+  if (exchangeCache[ticker]) return exchangeCache[ticker];
+
+  try {
+    const res = await base44.functions.invoke("proxyFetch", {
+      url: `https://query1.finance.yahoo.com/v8/finance/chart/${ticker.toUpperCase()}?interval=1d&range=1d`,
+    });
+    const meta = res?.data?.chart?.result?.[0]?.meta;
+    if (!meta) return "NASDAQ";
+
+    const exchangeName = meta.fullExchangeName || meta.exchangeName || "";
+    const shortExchange = meta.exchange || "";
+    let tvExchange = "NASDAQ";
+
+    if (exchangeName.includes("NYSE") && !exchangeName.includes("NASDAQ")) tvExchange = "NYSE";
+    else if (exchangeName.includes("NASDAQ")) tvExchange = "NASDAQ";
+    else if (exchangeName.includes("AMEX") || exchangeName.includes("American")) tvExchange = "AMEX";
+    else if (exchangeName.includes("OTC") || exchangeName.includes("Pink")) tvExchange = "OTC";
+    else if (exchangeName.includes("TSX") || exchangeName.includes("Toronto")) tvExchange = "TSX";
+    else if (exchangeName.includes("LSE") || exchangeName.includes("London")) tvExchange = "LSE";
+    else if (shortExchange === "NYQ" || shortExchange === "NYS") tvExchange = "NYSE";
+    else if (shortExchange === "NMS" || shortExchange === "NGM" || shortExchange === "NCM") tvExchange = "NASDAQ";
+    else if (shortExchange === "ASE") tvExchange = "AMEX";
+
+    exchangeCache[ticker] = tvExchange;
+    return tvExchange;
+  } catch {
+    return "NASDAQ";
+  }
 }
 
 let _chartCount = 0;
@@ -53,41 +82,52 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const chartStartRef = useRef({ y: 0, h: 0 });
   const widgetRef = useRef(null);
   const chartContainerRef = useRef(null);
+  const [loadingExchange, setLoadingExchange] = useState(false);
 
   const notify = useCallback((patch) => {
     if (onChange) onChange({ ...block, ticker, content: ticker, interval, chartStyle, chartTheme, height: chartHeight, studies, frozen, ...patch });
   }, [block, ticker, interval, chartStyle, chartTheme, chartHeight, studies, frozen, onChange]);
 
-  // Init TradingView widget
+  // Init TradingView widget with dynamic exchange resolution
   useEffect(() => {
     if (frozen) return;
-    if (!window.TradingView) return;
 
-    try { if (widgetRef.current) widgetRef.current.remove(); } catch (e) {}
-    widgetRef.current = null;
+    let cancelled = false;
 
-    const el = document.getElementById(containerId);
-    if (el) el.innerHTML = "";
+    async function initChart() {
+      setLoadingExchange(true);
+      const exchange = await resolveExchangeForTicker(ticker);
+      if (cancelled) return;
+      setLoadingExchange(false);
 
-    const exchange = guessExchange(ticker);
+      if (!window.TradingView) return;
+      try { if (widgetRef.current) widgetRef.current.remove(); } catch (e) {}
+      widgetRef.current = null;
 
-    widgetRef.current = new window.TradingView.widget({
-      autosize: false,
-      width: "100%",
-      height: chartHeight,
-      symbol: `${exchange}:${ticker}`,
-      interval,
-      timezone: "Etc/UTC",
-      theme: chartTheme,
-      style: chartStyle,
-      locale: "en",
-      studies,
-      hide_side_toolbar: false,
-      allow_symbol_change: false,
-      enable_publishing: false,
-      disabled_features: ["header_compare", "header_screenshot", "header_undo_redo"],
-      container_id: containerId,
-    });
+      const el = document.getElementById(containerId);
+      if (el) el.innerHTML = "";
+
+      widgetRef.current = new window.TradingView.widget({
+        autosize: false,
+        width: "100%",
+        height: chartHeight,
+        symbol: `${exchange}:${ticker}`,
+        interval,
+        timezone: "Etc/UTC",
+        theme: chartTheme,
+        style: chartStyle,
+        locale: "en",
+        studies,
+        hide_side_toolbar: false,
+        allow_symbol_change: false,
+        enable_publishing: false,
+        disabled_features: ["header_compare", "header_screenshot", "header_undo_redo"],
+        container_id: containerId,
+      });
+    }
+
+    initChart();
+    return () => { cancelled = true; };
   }, [ticker, interval, chartStyle, chartTheme, chartHeight, studies, frozen, containerId]);
 
   const startChartResize = useCallback((e) => {
@@ -109,9 +149,11 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     window.addEventListener("mouseup", onUp);
   }, [chartHeight, notify]);
 
-  const applyTicker = () => {
+  const applyTicker = async () => {
     const t = inputTicker.trim().toUpperCase();
-    if (t) { setTicker(t); notify({ ticker: t, content: t }); }
+    if (!t) return;
+    setTicker(t);
+    notify({ ticker: t, content: t });
   };
 
   const toggleStudy = (study) => {
@@ -182,7 +224,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
           </div>
         </div>
         <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 border-t border-border">
-          <span className="text-xs text-muted-foreground font-mono">{guessExchange(ticker)}:{ticker} · {INTERVALS.find(i => i.value === interval)?.label || interval}</span>
+          <span className="text-xs text-muted-foreground font-mono">{ticker} · {INTERVALS.find(i => i.value === interval)?.label || interval}</span>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={handleUnfreeze}>
               <Pencil className="w-3 h-3" /> Edit Chart
@@ -269,7 +311,13 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       </div>
 
       {/* Chart container — captured by html2canvas */}
-      <div ref={chartContainerRef} className="rounded-lg overflow-hidden" style={{ height: chartHeight, background: chartTheme === "dark" ? "#131722" : "#ffffff" }}>
+      <div ref={chartContainerRef} className="rounded-lg overflow-hidden relative" style={{ height: chartHeight, background: chartTheme === "dark" ? "#131722" : "#ffffff" }}>
+        {loadingExchange && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-background/60">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mr-2" />
+            <span className="text-xs text-muted-foreground">Resolving exchange for {ticker}…</span>
+          </div>
+        )}
         <div id={containerId} style={{ width: "100%", height: "100%" }} />
       </div>
 
