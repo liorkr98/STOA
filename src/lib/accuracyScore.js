@@ -7,19 +7,34 @@ const TIMEFRAME_BUCKETS = {
   LONG:     { label: "Long-Term",   maxDays: 730, annualFactor: 1   },
 };
 
+// No difficulty multiplier — annualized alpha naturally equalizes timeframes
 const TIMEFRAME_DIFFICULTY = {
-  INTRADAY: 1.40,
-  SHORT:    1.25,
+  INTRADAY: 1.00,
+  SHORT:    1.00,
   MEDIUM:   1.00,
-  LONG:     0.90,
+  LONG:     1.00,
 };
 
+// Short-term needs more calls to prove edge above the ~55% momentum base rate
 const SIGNIFICANCE_THRESHOLDS = {
-  INTRADAY: { min: 20, full: 100 },
-  SHORT:    { min: 10, full: 50  },
-  MEDIUM:   { min: 5,  full: 25  },
-  LONG:     { min: 3,  full: 10  },
+  INTRADAY: { min: 30,  full: 150 },
+  SHORT:    { min: 15,  full: 75  },
+  MEDIUM:   { min: 5,   full: 25  },
+  LONG:     { min: 3,   full: 10  },
 };
+
+// Minimum meaningful move: calls below this threshold get 50% weight on hit rate
+const NOISE_THRESHOLD = {
+  INTRADAY: 0.005,
+  SHORT:    0.02,
+  MEDIUM:   0.05,
+  LONG:     0.10,
+};
+
+// Short-term has natural momentum — require higher alpha to score well
+function getAlphaHurdle(bucketKey) {
+  return { INTRADAY: 0.15, SHORT: 0.10, MEDIUM: 0.05, LONG: 0.02 }[bucketKey] || 0.05;
+}
 
 const SECTOR_MULTIPLIER = {
   "Biotechnology": 1.20,
@@ -66,14 +81,19 @@ function getSignificanceMultiplier(n, bucket) {
 function scoreBucket(calls, bucketKey) {
   if (!calls || calls.length === 0) return null;
   const n = calls.length;
-  const difficulty = TIMEFRAME_DIFFICULTY[bucketKey];
+  const noiseThreshold = NOISE_THRESHOLD[bucketKey];
 
-  // 1. Hit Rate (35%)
-  const wins = calls.filter(c => isCallSuccessful(c)).length;
-  const hitRate = wins / n;
-  const hitScore = hitRate * 100;
+  // 1. Hit Rate (35%) — bold calls count fully, sub-noise calls count 50%
+  const hitScores = calls.map(c => {
+    const success = isCallSuccessful(c) ? 1 : 0;
+    const move = c.entryPrice ? Math.abs((c.targetPrice || c.exitPrice) - c.entryPrice) / c.entryPrice : 0;
+    const weight = move >= noiseThreshold ? 1.0 : 0.5;
+    return success * weight;
+  });
+  const hitRate = calls.filter(c => isCallSuccessful(c)).length / n;
+  const hitScore = (hitScores.reduce((s, v) => s + v, 0) / n) * 100;
 
-  // 2. Annualized Alpha (30%)
+  // 2. Annualized Alpha (30%) — with per-timeframe hurdle
   const alphas = calls.map(c => {
     const raw = (c.exitPrice - c.entryPrice) / c.entryPrice;
     const directed = c.action === "SELL" ? -raw : raw;
@@ -83,7 +103,8 @@ function scoreBucket(calls, bucketKey) {
     return Math.min(5.0, Math.max(-5.0, annRet - annBench));
   });
   const avgAlpha = alphas.reduce((s, a) => s + a, 0) / n;
-  const alphaScore = Math.min(100, Math.max(0, 50 + (avgAlpha * 25)));
+  const hurdle = getAlphaHurdle(bucketKey);
+  const alphaScore = Math.min(100, Math.max(0, 50 + ((avgAlpha - hurdle) * 20)));
 
   // 3. Price Target Accuracy (20%)
   const withTarget = calls.filter(c => c.targetPrice && c.targetPrice > 0);
@@ -108,7 +129,7 @@ function scoreBucket(calls, bucketKey) {
   const std = Math.sqrt(returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / n);
   const consistencyScore = Math.min(100, Math.max(0, 100 - (std * 300)));
 
-  // Weighted combination
+  // Weighted combination — no difficulty multiplier, alpha hurdle does the work
   const rawScore =
     hitScore         * 0.35 +
     alphaScore       * 0.30 +
@@ -116,14 +137,13 @@ function scoreBucket(calls, bucketKey) {
     consistencyScore * 0.15;
 
   const sigMult = getSignificanceMultiplier(n, bucketKey);
-  const finalBucketScore = Math.min(100, rawScore * difficulty * sigMult);
+  const finalBucketScore = Math.min(100, rawScore * sigMult);
 
   return {
     score:         Math.round(finalBucketScore),
     calls:         n,
     hitRate:       Math.round(hitRate * 100),
     avgAlpha:      Math.round(avgAlpha * 100),
-    difficulty,
     sigMult:       Math.round(sigMult * 100),
     label:         TIMEFRAME_BUCKETS[bucketKey].label,
     isSignificant: n >= SIGNIFICANCE_THRESHOLDS[bucketKey].min,

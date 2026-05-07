@@ -47,17 +47,24 @@ const TIERS = [
 const FORMULAS = [
   {
     icon: Target,
-    title: "Overall Accuracy Score",
-    formula: "Accuracy = (Σ credits earned / total predictions) × 100%",
-    note: "A weighted metric that rewards analysts for near misses — not just binary hit/miss.",
-    example: "3 Exact (3×1.0) + 2 Near (2×0.5) + 1 Miss (1×0) = 4.0 credits out of 6 → 66.7% Accuracy",
+    title: "Overall Accuracy Score (0–100)",
+    formula: "Score = weighted avg of bucket scores × significance multiplier",
+    note: "Calls are sorted into 4 timeframe buckets (Intraday, Short, Medium, Long). Each bucket scores Hit Rate (35%), Annualized Alpha (30%), Price Target Accuracy (20%), and Consistency (15%). Buckets with fewer calls are penalized until statistically significant.",
+    example: "SHORT bucket: 40 calls, 62% hit rate, +18% annualized alpha above benchmark → bucket score 71",
   },
   {
     icon: TrendingUp,
-    title: "Yearly Yield",
-    formula: "Yield = avg % gain from all locked predictions (hits only), annualized",
-    note: "Reflects the average return an investor would have made following this analyst's locked Long/Short calls.",
-    example: "4 hits returning +8%, +15%, +22%, +12% → avg +14.25% yield",
+    title: "Annualized Alpha",
+    formula: "Alpha = annualize(analyst return) − annualize(benchmark return)",
+    note: "All returns are annualized so timeframes are comparable. +1% in 1 hour = +5,800% annualized. Benchmark is QQQ for tech, SPY for others. Each timeframe has a hurdle rate: Intraday requires 15% ann. alpha, Short 10%, Medium 5%, Long 2%.",
+    example: "+2% in 3 days vs SPY flat → +243% annualized alpha — displayed prominently on the analyst profile",
+  },
+  {
+    icon: Target,
+    title: "Bold Call Requirement",
+    formula: "Call weight = 1.0 if |target − entry| / entry ≥ noise threshold, else 0.5",
+    note: "Calls within typical timeframe noise get half weight on hit rate. This prevents gaming by making many trivially-safe predictions. Noise thresholds: Intraday 0.5%, Short 2%, Medium 5%, Long 10%.",
+    example: "Predicting +0.3% in 1 hour on a stock with 1% typical hourly move → counts at 50% weight",
   },
 ];
 
@@ -121,9 +128,15 @@ export default function CalculationsPage() {
       </div>
 
       {/* Fairness note */}
-      <div className="bg-secondary border border-border rounded-2xl p-5 text-sm text-muted-foreground">
-        <p className="font-semibold text-foreground mb-1">Why weighted scoring?</p>
-        <p>Binary hit/miss systems punish analysts for being slightly early or for ambitious targets. STOA's weighted credit system rewards direction, magnitude, and timing — giving a more accurate picture of real-world investment skill.</p>
+      <div className="bg-secondary border border-border rounded-2xl p-5 text-sm text-muted-foreground space-y-3">
+        <div>
+          <p className="font-semibold text-foreground mb-1">Why annualized alpha instead of difficulty multipliers?</p>
+          <p>Short-term wins are not harder directionally — momentum makes them easier. But they're harder to prove statistically. Annualizing returns makes all timeframes comparable on a level playing field: a genuine short-term edge compounds to enormous annualized alpha, which is exactly what the score rewards.</p>
+        </div>
+        <div>
+          <p className="font-semibold text-foreground mb-1">Why more calls required for short-term analysts?</p>
+          <p>Short-term price direction has a ~55% momentum base rate — higher than the ~50% long-term base rate. You need more samples (75–150) to prove your win rate is above that baseline, not just lucky momentum-riding.</p>
+        </div>
       </div>
     </div>
   );
