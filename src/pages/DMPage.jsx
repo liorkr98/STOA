@@ -1,26 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Lock } from "lucide-react";
+import { ArrowLeft, Send, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MOCK_ANALYSTS } from "@/lib/mockData";
+import { base44 } from "@/api/base44Client";
 
 export default function DMPage() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
-  const analystId = urlParams.get("analyst") || "a2";
-  const analyst = MOCK_ANALYSTS.find((a) => a.id === analystId) || MOCK_ANALYSTS[1];
-  const [messages, setMessages] = useState([{ id: 1, from: "analyst", text: "Thanks for subscribing! Happy to answer any questions about my analysis.", time: "2h ago" }]);
-  const [input, setInput] = useState("");
+  const analystId = urlParams.get("analyst");
 
-  const send = () => {
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, { id: Date.now(), from: "me", text: input.trim(), time: "just now" }]);
+  const [analyst, setAnalyst] = useState(null);
+  const [me, setMe] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const currentUser = await base44.auth.me().catch(() => null);
+        setMe(currentUser);
+
+        if (analystId) {
+          const users = await base44.entities.User.filter({ id: analystId });
+          const analystUser = users?.[0] || null;
+          setAnalyst(analystUser);
+
+          if (analystUser && currentUser) {
+            // Seed a welcome message if this is a fresh DM
+            setMessages([{
+              id: "welcome",
+              from: "analyst",
+              text: `Hi! Thanks for subscribing. Feel free to ask me anything about my analysis.`,
+              time: "Welcome",
+            }]);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [analystId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async () => {
+    if (!input.trim() || sending) return;
+    setSending(true);
+    const text = input.trim();
     setInput("");
+    setMessages(prev => [...prev, { id: Date.now(), from: "me", text, time: "just now" }]);
+
+    // Simulate analyst reply after a short delay
     setTimeout(() => {
-      setMessages((prev) => [...prev, { id: Date.now() + 1, from: "analyst", text: "Thanks for your message! I'll get back to you soon.", time: "just now" }]);
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        from: "analyst",
+        text: "Thanks for your message! I'll get back to you soon.",
+        time: "just now",
+      }]);
+      setSending(false);
     }, 1200);
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  if (!analyst) return (
+    <div className="max-w-xl mx-auto px-4 py-12 text-center">
+      <p className="text-muted-foreground">Analyst not found.</p>
+      <Button onClick={() => navigate(-1)} variant="outline" className="mt-4 text-sm">Go Back</Button>
+    </div>
+  );
+
+  const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 flex flex-col" style={{ height: "calc(100vh - 100px)" }}>
@@ -29,9 +91,12 @@ export default function DMPage() {
       </button>
 
       <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl mb-4">
-        <img src={analyst.avatar} alt={analyst.name} className="w-10 h-10 rounded-full" />
+        {analyst.picture
+          ? <img src={analyst.picture} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+          : <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-base font-bold text-primary">{displayName?.[0]}</div>
+        }
         <div>
-          <p className="font-semibold text-sm">{analyst.name}</p>
+          <p className="font-semibold text-sm">{displayName}</p>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Lock className="w-3 h-3" /> Subscribers only
           </p>
@@ -47,6 +112,7 @@ export default function DMPage() {
             </div>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
 
       <div className="flex gap-2">
@@ -56,8 +122,11 @@ export default function DMPage() {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Send a message..."
           className="flex-1"
+          disabled={sending}
         />
-        <Button onClick={send} disabled={!input.trim()}><Send className="w-4 h-4" /></Button>
+        <Button onClick={send} disabled={!input.trim() || sending}>
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        </Button>
       </div>
     </div>
   );

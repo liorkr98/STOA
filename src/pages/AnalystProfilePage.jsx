@@ -161,11 +161,13 @@ export default function AnalystProfilePage() {
           })}
         </div>
 
-        {/* Extra insights */}
+        {/* Extra insights — views and revenue only visible to owner */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Total Views", value: "—", icon: Eye, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
-            { label: "Avg. Report Revenue", value: "—", icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
+            ...(isOwnProfile ? [
+              { label: "Total Views", value: "—", icon: Eye, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+              { label: "Avg. Report Revenue", value: "—", icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
+            ] : []),
             { label: "Subscribers", value: "—", icon: Users, color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
           ].map(s => {
             const Icon = s.icon;
