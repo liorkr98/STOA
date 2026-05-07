@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Search, Trash2, Camera, Pencil, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 
 const INTERVALS = [
   { label: "15m", value: "15" },
@@ -121,7 +120,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         hide_side_toolbar: false,
         allow_symbol_change: false,
         enable_publishing: false,
-        disabled_features: ["header_compare", "header_screenshot", "header_undo_redo"],
+        disabled_features: ["header_compare", "header_undo_redo"],
         container_id: containerId,
       });
     }
@@ -162,28 +161,44 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     notify({ studies: next });
   };
 
-  // Save chart as screenshot using html2canvas on the iframe container
+  // Save chart using TradingView's built-in screenshot API
   const handleSaveChart = async () => {
     setSaving(true);
     try {
-      const el = chartContainerRef.current;
-      if (!el) throw new Error("Chart container not found");
+      // TradingView widget exposes takeScreenshot() which triggers a "onScreenshotReady" event
+      // We listen for the event, then fetch & upload the screenshot URL
+      const screenshotUrl = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Screenshot timed out")), 15000);
 
-      // Wait a moment to ensure chart is fully rendered
-      await new Promise(r => setTimeout(r, 800));
+        // Listen for TradingView's screenshot event on the iframe
+        const handler = (event) => {
+          if (event.data && event.data.name === "tv-widget-screenshot") {
+            clearTimeout(timeout);
+            window.removeEventListener("message", handler);
+            resolve(event.data.data);
+          }
+        };
+        window.addEventListener("message", handler);
 
-      const canvas = await html2canvas(el, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 1,
-        logging: false,
-        foreignObjectRendering: false,
+        // Trigger the screenshot
+        if (widgetRef.current && widgetRef.current.takeScreenshot) {
+          widgetRef.current.takeScreenshot();
+        } else {
+          // Fallback: post message directly to the iframe
+          const iframe = chartContainerRef.current?.querySelector("iframe");
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage({ name: "take-screenshot" }, "*");
+          } else {
+            clearTimeout(timeout);
+            window.removeEventListener("message", handler);
+            reject(new Error("Widget not ready"));
+          }
+        }
       });
 
-      const blob = await new Promise((res, rej) =>
-        canvas.toBlob(b => b ? res(b) : rej(new Error("Canvas blob failed")), "image/png")
-      );
-
+      // Fetch the screenshot image from TradingView's CDN and re-upload to our storage
+      const imgRes = await fetch(screenshotUrl);
+      const blob = await imgRes.blob();
       const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
 
       const patch = {
@@ -202,7 +217,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       toast.success(`Chart saved! ${ticker} · ${interval}`);
     } catch (e) {
       console.error(e);
-      toast.error("Could not capture chart. Try scrolling the chart into view first.");
+      toast.error("Could not capture chart — please try again.");
     } finally {
       setSaving(false);
     }
