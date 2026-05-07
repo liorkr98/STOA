@@ -15,13 +15,6 @@ const TIMEFRAMES = [
   { value: "1Y", label: "1Y" },
 ];
 
-// Map timeframe to Yahoo Finance range/interval params
-const TF_PARAMS = {
-  "1D": { range: "1d",  interval: "5m"  },
-  "1W": { range: "5d",  interval: "1d"  },
-  "1M": { range: "1mo", interval: "1d"  },
-  "1Y": { range: "1y",  interval: "1mo" },
-};
 
 function loadWatchlist() {
   try {
@@ -42,33 +35,8 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
   const fetchPrice = useCallback(async () => {
     setLoading(true);
     try {
-      const { range, interval } = TF_PARAMS[timeframe] || TF_PARAMS["1D"];
-      const res = await base44.functions.invoke("proxyFetch", {
-        url: `https://query1.finance.yahoo.com/v8/finance/chart/${ticker.toUpperCase()}?interval=${interval}&range=${range}`,
-      });
-      const result = res?.data?.chart?.result?.[0];
-      const meta = result?.meta;
-      if (!meta) { setData(null); return; }
-
-      const closes = (result?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
-      const currentPrice = meta.regularMarketPrice ?? closes[closes.length - 1];
-
-      // For 1D: use chartPreviousClose (previous session close) as base
-      // For other timeframes: use the first data point in the range
-      let basePrice;
-      if (timeframe === "1D") {
-        basePrice = meta.chartPreviousClose ?? meta.previousClose ?? closes[0];
-      } else {
-        basePrice = closes[0];
-      }
-
-      const changePercent = basePrice && currentPrice ? ((currentPrice - basePrice) / basePrice) * 100 : null;
-
-      setData({
-        price: currentPrice,
-        changePercent,
-        companyName: meta.longName || meta.shortName || ticker,
-      });
+      const res = await base44.functions.invoke("getStockChange", { ticker, timeframe });
+      setData(res.data || null);
     } catch { setData(null); }
     finally { setLoading(false); }
   }, [ticker, timeframe]);
