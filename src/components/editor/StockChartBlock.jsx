@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Trash2, Camera, Pencil, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
 
 const INTERVALS = [
   { label: "15m", value: "15" },
@@ -25,15 +26,12 @@ const CHART_THEMES = [
   { label: "Dark",  value: "dark" },
 ];
 
-
 const STUDIES_OPTIONS = ["RSI", "MACD", "BB", "EMA", "SMA"];
 
 const NASDAQ_TICKERS = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST","NFLX","AMD","INTC","QCOM","ADBE","TXN","CSCO","PYPL","SBUX","AMAT","ASML","MU","LRCX","PANW","KLAC","SNPS","CDNS","MRVL","WDAY","DXCM"];
 
 function guessExchange(ticker) {
-  const t = ticker.toUpperCase();
-  if (NASDAQ_TICKERS.includes(t)) return "NASDAQ";
-  return "NYSE";
+  return NASDAQ_TICKERS.includes(ticker.toUpperCase()) ? "NASDAQ" : "NYSE";
 }
 
 let _chartCount = 0;
@@ -46,15 +44,15 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   const [chartStyle, setChartStyle] = useState(block?.chartStyle || "1");
   const [chartTheme, setChartTheme] = useState(block?.chartTheme || "light");
   const [chartHeight, setChartHeight] = useState(block?.height || 420);
-  const chartResizingRef = useRef(false);
-  const chartStartRef = useRef({ y: 0, h: 0 });
   const [studies, setStudies] = useState(block?.studies || []);
   const [frozen, setFrozen] = useState(block?.frozen || false);
   const [saving, setSaving] = useState(false);
   const [containerId] = useState(() => `tv_block_${block?.id || ++_chartCount}`);
 
+  const chartResizingRef = useRef(false);
+  const chartStartRef = useRef({ y: 0, h: 0 });
   const widgetRef = useRef(null);
-  const dragRef = useRef(null);
+  const chartContainerRef = useRef(null);
 
   const notify = useCallback((patch) => {
     if (onChange) onChange({ ...block, ticker, content: ticker, interval, chartStyle, chartTheme, height: chartHeight, studies, frozen, ...patch });
@@ -65,7 +63,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     if (frozen) return;
     if (!window.TradingView) return;
 
-    // destroy previous
     try { if (widgetRef.current) widgetRef.current.remove(); } catch (e) {}
     widgetRef.current = null;
 
@@ -123,35 +120,47 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     notify({ studies: next });
   };
 
+  // Save chart as screenshot using html2canvas on the iframe container
   const handleSaveChart = async () => {
     setSaving(true);
     try {
-      if (!widgetRef.current) throw new Error("Widget not ready");
-      const canvas = await widgetRef.current.takeClientScreenshot();
-      await new Promise((resolve, reject) => {
-        canvas.toBlob(async (blob) => {
-          try {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
-            const patch = {
-              snapshot_url: file_url,
-              ticker,
-              interval,
-              chartTheme,
-              chartStyle,
-              height: chartHeight,
-              studies,
-              savedAt: new Date().toISOString(),
-              frozen: true,
-            };
-            setFrozen(true);
-            notify(patch);
-            toast.success(`Chart saved! ${ticker} · ${interval}`);
-            resolve();
-          } catch (err) { reject(err); }
-        }, "image/png");
+      const el = chartContainerRef.current;
+      if (!el) throw new Error("Chart container not found");
+
+      // Wait a moment to ensure chart is fully rendered
+      await new Promise(r => setTimeout(r, 800));
+
+      const canvas = await html2canvas(el, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 1,
+        logging: false,
+        foreignObjectRendering: false,
       });
+
+      const blob = await new Promise((res, rej) =>
+        canvas.toBlob(b => b ? res(b) : rej(new Error("Canvas blob failed")), "image/png")
+      );
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+
+      const patch = {
+        snapshot_url: file_url,
+        ticker,
+        interval,
+        chartTheme,
+        chartStyle,
+        height: chartHeight,
+        studies,
+        savedAt: new Date().toISOString(),
+        frozen: true,
+      };
+      setFrozen(true);
+      notify(patch);
+      toast.success(`Chart saved! ${ticker} · ${interval}`);
     } catch (e) {
-      toast.error("Could not capture chart. Try again.");
+      console.error(e);
+      toast.error("Could not capture chart. Try scrolling the chart into view first.");
     } finally {
       setSaving(false);
     }
@@ -162,34 +171,13 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     notify({ frozen: false, snapshot_url: null });
   };
 
-  // Drag resize
-  const startResize = useCallback((e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startH = chartHeight;
-    const onMove = (ev) => setChartHeight(Math.min(700, Math.max(200, startH + (ev.clientY - startY))));
-    const onUp = (ev) => {
-      const newH = Math.min(700, Math.max(200, startH + (ev.clientY - startY)));
-      setChartHeight(newH);
-      notify({ height: newH });
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, [chartHeight, notify]);
-
-  // Frozen snapshot view
+  // ── Frozen snapshot view ──────────────────────────────────────────────────
   if (frozen && block?.snapshot_url) {
     return (
       <div className="bg-card border border-border rounded-xl overflow-hidden mb-2">
         <div className="relative">
-          <img src={block.snapshot_url} alt={`${ticker} chart`} className="w-full object-cover" style={{ borderRadius: 0 }} />
-          <div style={{
-            position: "absolute", bottom: 8, right: 8,
-            background: "rgba(0,0,0,0.65)", color: "white",
-            fontSize: 11, padding: "3px 8px", borderRadius: 4,
-          }}>
+          <img src={block.snapshot_url} alt={`${ticker} chart`} className="w-full object-cover" />
+          <div className="absolute bottom-2 right-2 bg-black/65 text-white text-[11px] px-2 py-1 rounded">
             📊 {ticker} · {interval} · {block.savedAt ? new Date(block.savedAt).toLocaleDateString() : "Saved"}
           </div>
         </div>
@@ -200,7 +188,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
               <Pencil className="w-3 h-3" /> Edit Chart
             </Button>
             {onDelete && (
-              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-loss" onClick={onDelete}>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={onDelete}>
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}
@@ -210,11 +198,11 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     );
   }
 
+  // ── Live chart view ───────────────────────────────────────────────────────
   return (
     <div className="bg-card border border-border rounded-xl p-3 mb-2">
       {/* Config bar */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        {/* Ticker input */}
         <div className="flex items-center gap-1">
           <Input
             value={inputTicker}
@@ -229,7 +217,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
 
         <div className="w-px h-5 bg-border" />
 
-        {/* Interval */}
         <div className="flex gap-0.5">
           {INTERVALS.map(i => (
             <button key={i.value} onClick={() => { setIntervalVal(i.value); notify({ interval: i.value }); }}
@@ -241,7 +228,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
 
         <div className="w-px h-5 bg-border" />
 
-        {/* Style */}
         <div className="flex gap-0.5">
           {CHART_STYLES.map(s => (
             <button key={s.value} onClick={() => { setChartStyle(s.value); notify({ chartStyle: s.value }); }}
@@ -253,7 +239,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
 
         <div className="w-px h-5 bg-border" />
 
-        {/* Theme */}
         <div className="flex gap-0.5">
           {CHART_THEMES.map(t => (
             <button key={t.value} onClick={() => { setChartTheme(t.value); notify({ chartTheme: t.value }); }}
@@ -265,7 +250,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
 
         <div className="ml-auto flex items-center gap-2">
           {onDelete && (
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-loss" onClick={onDelete}>
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={onDelete}>
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
@@ -283,28 +268,15 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         ))}
       </div>
 
-      {/* Chart container */}
-      <div className="relative rounded-lg overflow-hidden" style={{ height: chartHeight }}>
+      {/* Chart container — captured by html2canvas */}
+      <div ref={chartContainerRef} className="rounded-lg overflow-hidden" style={{ height: chartHeight, background: chartTheme === "dark" ? "#131722" : "#ffffff" }}>
         <div id={containerId} style={{ width: "100%", height: "100%" }} />
-        {/* Resize handle */}
-        <div
-          ref={dragRef}
-          onMouseDown={startResize}
-          className="absolute bottom-0 right-0 w-8 h-8 flex items-center justify-center cursor-s-resize z-10 group"
-          title="Drag to resize"
-          style={{ background: "rgba(0,0,0,0.15)", borderRadius: "8px 0 0 0" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" className="text-white opacity-70 group-hover:opacity-100 transition-opacity">
-            <path d="M2 12 L12 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <path d="M7 12 L12 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </div>
       </div>
 
       {/* Resize handle */}
       <div
         onMouseDown={startChartResize}
-        style={{ width: "100%", height: 8, cursor: "s-resize", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", marginTop: 2 }}
+        style={{ width: "100%", height: 8, cursor: "s-resize", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}
       >
         <div style={{ width: 40, height: 4, background: "#e2e8f0", borderRadius: 2, transition: "background 0.15s" }}
           onMouseEnter={e => e.target.style.background = "#2563eb"}
@@ -313,7 +285,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       </div>
 
       {/* Save chart button */}
-      <div className="mt-1 flex justify-end">
+      <div className="mt-2 flex justify-end">
         <Button size="sm" onClick={handleSaveChart} disabled={saving} className="gap-1.5 text-xs h-8">
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
           {saving ? "Capturing..." : "📸 Save Chart to Report"}

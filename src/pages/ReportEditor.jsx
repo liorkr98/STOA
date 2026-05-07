@@ -403,13 +403,19 @@ export default function ReportEditor() {
       const currentUser = await base44.auth.me();
       if (!currentUser) throw new Error("Not logged in.");
 
-      const fullText = [title, ...validBlocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
+      // Freeze any unfrozen stock charts so they become read-only after publish
+      const frozenBlocks = validBlocks.map(b =>
+        b.type === "stockchart" && !b.frozen ? { ...b, frozen: true } : b
+      );
+      setBlocks(frozenBlocks);
+
+      const fullText = [title, ...frozenBlocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
       const autoExcerpt = excerpt.trim() ||
         validBlocks.find(b => b.type === "text" && b.content?.trim())?.content?.slice(0, 200) || "";
 
       const tickers = [
-        ...validBlocks.flatMap(b => (b.content || "").match(/\$([A-Z]{2,5})/g) || []).map(t => t.replace("$", "")),
-        ...validBlocks.filter(b => b.type === "stockchart" && b.ticker).map(b => b.ticker),
+        ...frozenBlocks.flatMap(b => (b.content || "").match(/\$([A-Z]{2,5})/g) || []).map(t => t.replace("$", "")),
+        ...frozenBlocks.filter(b => b.type === "stockchart" && b.ticker).map(b => b.ticker),
       ].filter((v, i, a) => v && a.indexOf(v) === i);
 
       // Fact check
@@ -429,7 +435,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
       const created = await base44.entities.Report.create({
         title,
-        content_blocks:           JSON.stringify(validBlocks),
+        content_blocks:           JSON.stringify(frozenBlocks),
         tickers:                  tickers.join(","),
         excerpt:                  autoExcerpt,
         fact_check_results:       factCheckJson,
@@ -844,95 +850,6 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               </div>
 
-              {/* Monetization */}
-              <div className="bg-card border border-border rounded-xl p-3">
-                <h3 className="text-xs font-semibold mb-2 flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-amber-500" /> Monetization
-                </h3>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  {[
-                    { val: false, icon: "🔓", label: "Free", desc: "Public" },
-                    { val: true,  icon: "💎", label: "Premium", desc: "Paid" },
-                  ].map(({ val, icon, label, desc }) => (
-                    <button
-                      key={label}
-                      onClick={() => setIsPremium(val)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-xs font-medium ${
-                        isPremium === val ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
-                      }`}
-                    >
-                      <span className="text-base">{icon}</span>
-                      <span>{label}</span>
-                      <span className="font-normal opacity-70">{desc}</span>
-                    </button>
-                  ))}
-                </div>
-                {isPremium && (
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Price (USD)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                      <Input value={reportPrice} onChange={e => setReportPrice(e.target.value)} className="pl-6 h-9 text-sm" placeholder="4.99" type="number" min="0.99" step="0.50" />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      You keep ${(parseFloat(reportPrice || 0) * 0.85).toFixed(2)} after 15% fee
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Metadata */}
-              <div className="bg-card border border-border rounded-xl p-3">
-                <h3 className="text-xs font-semibold mb-2 flex items-center gap-2">
-                  <Palette className="w-3 h-3 text-primary" /> Metadata
-                </h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Industry</label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="w-full flex items-center justify-between border border-border rounded-lg px-3 h-9 text-xs hover:bg-secondary transition-colors">
-                          <span className={industry ? "text-foreground" : "text-muted-foreground"}>{industry || "Select industry..."}</span>
-                          <ChevronDown className="w-3 h-3 opacity-50" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-52 max-h-60 overflow-y-auto">
-                        {INDUSTRIES.map(i => <DropdownMenuItem key={i} onClick={() => setIndustry(i)} className="text-xs">{i}</DropdownMenuItem>)}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Market Cap</label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="w-full flex items-center justify-between border border-border rounded-lg px-3 h-9 text-xs hover:bg-secondary transition-colors">
-                          <span className={marketCap ? "text-foreground" : "text-muted-foreground"}>
-                            {MARKET_CAPS.find(m => m.value === marketCap)?.label || "Select market cap..."}
-                          </span>
-                          <ChevronDown className="w-3 h-3 opacity-50" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56">
-                        {MARKET_CAPS.map(m => <DropdownMenuItem key={m.value} onClick={() => setMarketCap(m.value)} className="text-xs">{m.label}</DropdownMenuItem>)}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Tags <span className="opacity-60">(press Enter)</span></label>
-                    <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={addTag} placeholder="e.g. NVDA, AI, Semiconductor" className="h-9 text-xs" />
-                    {tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {tags.map(tag => (
-                          <span key={tag} className="flex items-center gap-0.5 text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
-                            #{tag}<button onClick={() => setTags(prev => prev.filter(t => t !== tag))}><X className="w-2.5 h-2.5 hover:text-loss" /></button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Quality Score */}
               <ReportQualityScore
                 title={title}
@@ -960,8 +877,6 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               </div>
 
-              <BoostPanel />
-
               {/* Tips */}
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
                 <h3 className="text-xs font-semibold text-primary mb-1.5 flex items-center gap-1">
@@ -981,6 +896,19 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           <EditorSettingsPanel
             coverImage={coverImage}
             onCoverImageChange={setCoverImage}
+            isPremium={isPremium}
+            setIsPremium={setIsPremium}
+            reportPrice={reportPrice}
+            setReportPrice={setReportPrice}
+            industry={industry}
+            setIndustry={setIndustry}
+            marketCap={marketCap}
+            setMarketCap={setMarketCap}
+            tags={tags}
+            setTags={setTags}
+            tagInput={tagInput}
+            setTagInput={setTagInput}
+            addTag={addTag}
             onDeleteAll={() => {
               setTitle("");
               setExcerpt("");
