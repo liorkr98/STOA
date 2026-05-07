@@ -50,10 +50,19 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
       const meta = result?.meta;
       if (!meta) { setData(null); return; }
 
-      const closes = result?.indicators?.quote?.[0]?.close?.filter(v => v != null) || [];
+      const closes = (result?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
       const currentPrice = meta.regularMarketPrice ?? closes[closes.length - 1];
-      const openPrice = closes[0];
-      const changePercent = openPrice && currentPrice ? ((currentPrice - openPrice) / openPrice) * 100 : null;
+
+      // For 1D: use chartPreviousClose (previous session close) as base
+      // For other timeframes: use the first data point in the range
+      let basePrice;
+      if (timeframe === "1D") {
+        basePrice = meta.chartPreviousClose ?? meta.previousClose ?? closes[0];
+      } else {
+        basePrice = closes[0];
+      }
+
+      const changePercent = basePrice && currentPrice ? ((currentPrice - basePrice) / basePrice) * 100 : null;
 
       setData({
         price: currentPrice,
