@@ -54,13 +54,50 @@ function getBucket(daysHeld) {
   return "LONG";
 }
 
+// HOLD success window: stock must stay within this range to be a successful HOLD
+const HOLD_SUCCESS_WINDOW = {
+  INTRADAY: 0.010,  // ±1.0%
+  SHORT:    0.030,  // ±3.0%
+  MEDIUM:   0.060,  // ±6.0%
+  LONG:     0.100,  // ±10%
+};
+
 function isCallSuccessful(call) {
-  const { action, entryPrice, exitPrice } = call;
+  const { action, entryPrice, exitPrice, daysHeld } = call;
   if (!entryPrice || !exitPrice) return false;
+
+  const rawReturn = (exitPrice - entryPrice) / entryPrice;
+
   if (action === "BUY")  return exitPrice > entryPrice;
   if (action === "SELL") return exitPrice < entryPrice;
-  if (action === "HOLD") return Math.abs((exitPrice - entryPrice) / entryPrice) < 0.05;
+
+  if (action === "HOLD") {
+    const bucket = getBucket(daysHeld);
+    const window = HOLD_SUCCESS_WINDOW[bucket];
+    return Math.abs(rawReturn) <= window;
+  }
+
   return false;
+}
+
+// For HOLD: alpha = how flat the stock was vs benchmark (positive = calmer than market)
+function getDirectedReturn(call) {
+  const rawReturn = (call.exitPrice - call.entryPrice) / call.entryPrice;
+  if (call.action === "BUY")  return rawReturn;
+  if (call.action === "SELL") return -rawReturn;
+  if (call.action === "HOLD") {
+    const absMove  = Math.abs(rawReturn);
+    const absBench = Math.abs(call.benchmarkReturn || 0);
+    return absBench - absMove;
+  }
+  return rawReturn;
+}
+
+// HOLD calls always get full boldness weight — noise threshold doesn't apply
+function getBoldnessWeight(call, noiseThreshold) {
+  if (call.action === "HOLD") return 1.0;
+  const moveSize = Math.abs((call.exitPrice - call.entryPrice) / call.entryPrice);
+  return moveSize >= noiseThreshold ? 1.0 : 0.5;
 }
 
 function annualizeReturn(rawReturn, daysHeld) {
@@ -83,23 +120,21 @@ function scoreBucket(calls, bucketKey) {
   const n = calls.length;
   const noiseThreshold = NOISE_THRESHOLD[bucketKey];
 
-  // 1. Hit Rate (35%) — bold calls count fully, sub-noise calls count 50%
+  // 1. Hit Rate (35%) — bold calls count fully, sub-noise calls count 50%; HOLD always full weight
   const hitScores = calls.map(c => {
     const success = isCallSuccessful(c) ? 1 : 0;
-    const move = c.entryPrice ? Math.abs((c.targetPrice || c.exitPrice) - c.entryPrice) / c.entryPrice : 0;
-    const weight = move >= noiseThreshold ? 1.0 : 0.5;
+    const weight = getBoldnessWeight(c, noiseThreshold);
     return success * weight;
   });
   const hitRate = calls.filter(c => isCallSuccessful(c)).length / n;
   const hitScore = (hitScores.reduce((s, v) => s + v, 0) / n) * 100;
 
-  // 2. Annualized Alpha (30%) — with per-timeframe hurdle
+  // 2. Annualized Alpha (30%) — HOLD uses flatness vs benchmark, BUY/SELL use directed return
   const alphas = calls.map(c => {
-    const raw = (c.exitPrice - c.entryPrice) / c.entryPrice;
-    const directed = c.action === "SELL" ? -raw : raw;
+    const directed = getDirectedReturn(c);
     const days = c.daysHeld || 30;
     const annRet   = annualizeReturn(directed, days);
-    const annBench = annualizeReturn(c.benchmarkReturn || 0, days);
+    const annBench = c.action === "HOLD" ? 0 : annualizeReturn(c.benchmarkReturn || 0, days);
     return Math.min(5.0, Math.max(-5.0, annRet - annBench));
   });
   const avgAlpha = alphas.reduce((s, a) => s + a, 0) / n;
@@ -121,10 +156,7 @@ function scoreBucket(calls, bucketKey) {
   }
 
   // 4. Consistency (15%)
-  const returns = calls.map(c => {
-    const r = (c.exitPrice - c.entryPrice) / c.entryPrice;
-    return c.action === "SELL" ? -r : r;
-  });
+  const returns = calls.map(c => getDirectedReturn(c));
   const mean = returns.reduce((s, r) => s + r, 0) / n;
   const std = Math.sqrt(returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / n);
   const consistencyScore = Math.min(100, Math.max(0, 100 - (std * 300)));
