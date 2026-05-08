@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Lock, BadgeCheck, EyeOff } from "lucide-react";
+import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Lock, BadgeCheck } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
+import { getAnalystSlug } from "@/lib/analystSlug";
 
 const ACTION_CONFIG = {
   Long: { color: "text-gain", bg: "bg-gain/10 border-gain/20", icon: TrendingUp, arrow: "↑" },
@@ -62,7 +63,7 @@ export default function ReportCard({ report, compact = false }) {
       {/* Top row: author + premium badge */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <Link
-          to={`/analyst?id=${report.created_by || report.author?.id || ""}`}
+          to={`/analyst/${getAnalystSlug({ full_name: authorName, email: report.created_by || "" })}`}
           onClick={e => e.stopPropagation()}
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >

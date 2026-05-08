@@ -340,19 +340,20 @@ Deno.serve(async (req) => {
 
       const result = calculateAccuracyScore(calls);
 
-      // Compute yearly_yield: average annualized return across all closed calls (directed)
-      let yearly_yield = 0;
-      if (calls.length > 0) {
-        const annualizedReturns = calls.map(c => {
-          const raw = (c.exitPrice - c.entryPrice) / c.entryPrice;
-          let directed = raw;
-          if (c.action === "SELL") directed = -raw;
-          if (c.action === "HOLD") directed = Math.abs(c.benchmarkReturn || 0) - Math.abs(raw);
-          const days = Math.max(c.daysHeld || 1, 0.5);
-          return (Math.pow(1 + directed, 365 / days) - 1) * 100;
+      // Compute yearly_yield: simple average return across all closed predictions
+      // Long:  (resolved - lock) / lock * 100
+      // Short: (lock - resolved) / lock * 100
+      let yearly_yield = null;
+      if (closedPreds.length > 0) {
+        const yields = closedPreds.map(r => {
+          const lock = r.prediction_lock_price;
+          const exit = r.prediction_resolved_price;
+          const action = (r.prediction_action || "").toLowerCase();
+          if (action === "short") return ((lock - exit) / lock) * 100;
+          return ((exit - lock) / lock) * 100;
         });
-        const avg = annualizedReturns.reduce((s, v) => s + v, 0) / annualizedReturns.length;
-        yearly_yield = parseFloat(Math.min(999, Math.max(-100, avg)).toFixed(1));
+        const avg = yields.reduce((s, v) => s + v, 0) / yields.length;
+        yearly_yield = parseFloat(avg.toFixed(1));
       }
 
       const users = await base44.asServiceRole.entities.User.filter({ email }, "-created_date", 1);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trophy, TrendingUp, Loader2, PenLine } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getAnalystSlug } from "@/lib/analystSlug";
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 const RANK_REWARDS = [
@@ -77,7 +78,7 @@ export default function LeaderboardPage() {
             const reward = RANK_REWARDS[i];
             const accPct = analyst.accuracy_score || 0;
             return (
-              <button key={analyst.id} onClick={() => navigate(`/analyst?id=${analyst.id}`)}
+              <button key={analyst.id} onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
                 className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
                 <span className="text-lg font-bold w-8 text-center flex-shrink-0">
                   {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-semibold">#{rank}</span>}
@@ -97,9 +98,9 @@ export default function LeaderboardPage() {
                     {accPct.toFixed(1)}%
                   </span>
                   <span className="text-[10px] text-muted-foreground">Accuracy</span>
-                  {(analyst.yearly_yield > 0) && (
-                    <span className="flex items-center gap-0.5 text-[11px] text-gain font-semibold">
-                      <TrendingUp className="w-2.5 h-2.5" />+{analyst.yearly_yield.toFixed(1)}%
+                  {analyst.yearly_yield != null && (
+                    <span className={`flex items-center gap-0.5 text-[11px] font-semibold ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
+                      <TrendingUp className="w-2.5 h-2.5" />{analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
                     </span>
                   )}
                   {reward && (

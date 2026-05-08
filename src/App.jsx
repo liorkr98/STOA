@@ -14,6 +14,7 @@ import ReportView from '@/pages/ReportView';
 import ReportEditor from '@/pages/ReportEditor';
 import AnalystDashboard from '@/pages/AnalystDashboard';
 import AnalystProfilePage from '@/pages/AnalystProfilePage';
+
 import StockPage from '@/pages/StockPage';
 import PaymentPage from '@/pages/PaymentPage';
 import EditProfilePage from '@/pages/EditProfilePage';
@@ -76,6 +77,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<HomeFeed />} />
         <Route path="/feed" element={<HomeFeed />} />
         <Route path="/report" element={<ReportView />} />
+        <Route path="/analyst/:username" element={<AnalystProfilePage />} />
         <Route path="/analyst" element={<AnalystProfilePage />} />
         <Route path="/stock" element={<StockPage />} />
         <Route path="/stock/:ticker" element={<StockPage />} />

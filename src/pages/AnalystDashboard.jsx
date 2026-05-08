@@ -10,6 +10,7 @@ import InsightsPanel from "@/components/dashboard/InsightsPanel";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import { useNavigate, Link } from "react-router-dom";
 import { calculateAccuracyScore } from "@/lib/accuracyScore";
+import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
 
@@ -23,11 +24,15 @@ export default function AnalystDashboard() {
   const [myReports, setMyReports] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingReports, setLoadingReports] = useState(true);
+  const [mySubscriptions, setMySubscriptions] = useState([]);
 
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
       base44.analytics.track({ eventName: "dashboard_viewed" });
+      // Load subscriptions
+      base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 20)
+        .then(data => setMySubscriptions(data || [])).catch(() => {});
     }).finally(() => setLoadingUser(false));
   }, []);
 
@@ -41,8 +46,11 @@ export default function AnalystDashboard() {
 
   const publishedReports = useMemo(() => myReports.filter(r => r.status === "published"), [myReports]);
   const draftReports = useMemo(() => myReports.filter(r => r.status !== "published"), [myReports]);
-
   const predictions = useMemo(() => publishedReports.filter(r => r.prediction_action), [publishedReports]);
+
+  // Compute yield from resolved reports
+  const computedYield = useMemo(() => computeAvgYield(publishedReports), [publishedReports]);
+  const yieldDisplay = useMemo(() => formatYield(computedYield), [computedYield]);
 
   // Use stored accuracy_score from User entity (updated by checkPredictions), fall back to engine
   const accuracyScore = useMemo(() => {
@@ -137,7 +145,7 @@ export default function AnalystDashboard() {
         {[
           { key: "predictions", label: "Elo Score", value: predictions.length > 0 ? `${accuracyScore}` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: currentUser.accuracy_rating ? `Elo ${currentUser.accuracy_rating} · ${currentUser.accuracy_tier || "Building"} · ${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved` : `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
           { key: "points", label: "AI Credits", value: (currentUser.ai_credits_balance ?? 100).toLocaleString(), icon: Zap, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", sub: "Available balance" },
-          { key: "yield", label: "Avg Prediction Yield", value: currentUser.yearly_yield != null ? `${currentUser.yearly_yield >= 0 ? "+" : ""}${currentUser.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: currentUser.yearly_yield >= 0 ? "text-gain" : "text-loss", bg: "bg-primary/5 border-primary/20", sub: predictions.length > 0 ? "From resolved predictions" : "No resolved predictions yet" },
+          { key: "yield", label: "Avg Prediction Yield", value: yieldDisplay, icon: TrendingUp, color: computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss", bg: "bg-primary/5 border-primary/20", sub: computedYield != null ? `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved predictions` : "No resolved predictions yet" },
           { key: "followers", label: "Followers", value: analyst.followers.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", sub: "Total followers" },
         ].map(stat => {
           const Icon = stat.icon;
@@ -172,6 +180,34 @@ export default function AnalystDashboard() {
             );
           })}
         </div>
+      </div>
+
+      {/* My Subscriptions */}
+      <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Star className="w-4 h-4 text-amber-500" />
+          <h2 className="font-semibold text-sm">My Subscriptions</h2>
+        </div>
+        {mySubscriptions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Subscribe to analysts to support their research and get premium access.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {mySubscriptions.map(sub => (
+              <div key={sub.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 overflow-hidden">
+                  {sub.analyst_avatar
+                    ? <img src={sub.analyst_avatar} alt={sub.analyst_name} className="w-full h-full object-cover" />
+                    : (sub.analyst_name || "A")[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{sub.analyst_name || sub.analyst_email}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{sub.plan || "monthly"} · {sub.valid_until ? `until ${new Date(sub.valid_until).toLocaleDateString()}` : "Active"}</p>
+                </div>
+                <span className="text-[10px] font-semibold text-gain bg-gain/10 border border-gain/20 px-2 py-0.5 rounded-full">Active</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Reports Tabs */}

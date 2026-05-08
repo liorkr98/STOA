@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import ReportCard from "@/components/feed/ReportCard";
 import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
@@ -19,6 +20,7 @@ const FEED_TABS = [
 ];
 
 export default function HomeFeed() {
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("trending");
   const [showFilters, setShowFilters] = useState(false);
   const [reports, setReports] = useState([]);
@@ -26,11 +28,9 @@ export default function HomeFeed() {
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("stoa_onboarded"));
   const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
 
-  // Load following/subscriptions from localStorage
-  const following = JSON.parse(localStorage.getItem("stoa_following") || "[]");
-  const subscriptions = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
-  const followingEmails = following.map(a => a.id); // ids which might be emails
-  const subEmails = subscriptions.map(a => a.id);
+  // Entity-based follows and subscriptions
+  const [followedAnalysts, setFollowedAnalysts] = useState([]); // Follow records
+  const [subscribedAnalysts, setSubscribedAnalysts] = useState([]); // Subscription records
 
   useEffect(() => {
     base44.entities.Report.filter({ status: "published" }, "-created_date", 100)
@@ -38,11 +38,30 @@ export default function HomeFeed() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Load follows and subscriptions from entities when user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100)
+      .then(data => {
+        const follows = data || [];
+        setFollowedAnalysts(follows);
+        // Set default tab to Following if user follows at least 1 analyst
+        if (follows.length > 0) setActiveTab("following");
+      })
+      .catch(() => {});
+    base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100)
+      .then(data => setSubscribedAnalysts(data || []))
+      .catch(() => {});
+  }, [isAuthenticated, user]);
+
+  const followedEmails = useMemo(() => followedAnalysts.map(f => f.analyst_email), [followedAnalysts]);
+  const subscribedEmails = useMemo(() => subscribedAnalysts.map(s => s.analyst_email), [subscribedAnalysts]);
+
   const applyTabFilter = (list) => {
-    if (activeTab === "trending") return [...list].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    if (activeTab === "following") return list.filter(r => followingEmails.includes(r.created_by) || followingEmails.includes(r.author?.id));
-    if (activeTab === "subscriptions") return list.filter(r => subEmails.includes(r.created_by) || subEmails.includes(r.author?.id));
-    return [...list].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    if (activeTab === "trending") return [...list].sort((a, b) => ((b.likes || 0) + (new Date(b.created_date) / 1e10)) - ((a.likes || 0) + (new Date(a.created_date) / 1e10)));
+    if (activeTab === "following") return list.filter(r => followedEmails.includes(r.created_by));
+    if (activeTab === "subscriptions") return list.filter(r => subscribedEmails.includes(r.created_by));
+    return list;
   };
 
   const applyPrefFilters = (list) => {
@@ -66,6 +85,20 @@ export default function HomeFeed() {
     localStorage.setItem("stoa_feed_prefs", JSON.stringify(empty));
   };
 
+  // Empty state messages per tab
+  const emptyMessages = {
+    following: {
+      title: "Follow analysts to see their posts here",
+      sub: "Go to the leaderboard to find top analysts",
+      action: <Link to="/leaderboard"><Button size="sm" variant="outline" className="mt-3 text-xs">Discover Analysts →</Button></Link>,
+    },
+    subscriptions: {
+      title: "Subscribe to analysts for exclusive content",
+      sub: "Visit an analyst's profile and hit Subscribe",
+      action: null,
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
@@ -84,6 +117,7 @@ export default function HomeFeed() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
             {FEED_TABS.map(tab => {
               const Icon = tab.icon;
+              const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
               return (
                 <button
                   key={tab.id}
@@ -91,7 +125,7 @@ export default function HomeFeed() {
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border ${activeTab === tab.id ? "bg-primary text-white border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
+                  {tab.label}{count != null && count > 0 ? ` (${count})` : ""}
                 </button>
               );
             })}
@@ -149,7 +183,15 @@ export default function HomeFeed() {
                 </div>
               ))
             ) : filtered.length === 0 ? (
-              <EmptyFeedState onClearFilters={prefActiveCount > 0 ? clearPrefs : null} />
+              emptyMessages[activeTab] ? (
+                <div className="text-center py-16">
+                  <p className="font-semibold text-foreground mb-1">{emptyMessages[activeTab].title}</p>
+                  <p className="text-sm text-muted-foreground">{emptyMessages[activeTab].sub}</p>
+                  {emptyMessages[activeTab].action}
+                </div>
+              ) : (
+                <EmptyFeedState onClearFilters={prefActiveCount > 0 ? clearPrefs : null} />
+              )
             ) : (
               filtered.map(report => <ReportCard key={report.id} report={report} />)
             )}

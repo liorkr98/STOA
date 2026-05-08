@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getAnalystSlug } from "@/lib/analystSlug";
 
 const SECTORS = ["All", "AI & Semiconductors", "Big Tech", "EV & Clean Energy", "Financials", "Crypto & Web3", "Consumer Tech", "E-Commerce", "Healthcare"];
 const TIME_PERIODS = ["All Time", "This Month", "This Week"];
@@ -113,7 +114,7 @@ export default function Leaderboard() {
             return (
               <button
                 key={analyst.id}
-                onClick={() => navigate(`/analyst?id=${analyst.id}`)}
+                onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
                 className="flex items-center gap-2 w-full text-left hover:bg-secondary rounded-lg p-1.5 transition-colors"
               >
                 <span className="text-xs font-bold w-5 text-center flex-shrink-0">
@@ -147,7 +148,7 @@ export default function Leaderboard() {
                     )}
                   </div>
                 </div>
-                {(analyst.yearly_yield != null && analyst.yearly_yield !== 0) && (
+                {analyst.yearly_yield != null && (
                   <div className={`flex items-center gap-0.5 text-[10px] font-semibold flex-shrink-0 ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
                     <TrendingUp className="w-2.5 h-2.5" />
                     {analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%

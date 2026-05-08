@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { setMeta } from "@/lib/seo";
-import { ArrowLeft, UserPlus, MessageCircle, BarChart3, FileText, Star, Target, Users, Flame, Trophy, TrendingUp, Eye, DollarSign, Loader2 } from "lucide-react";
+import { ArrowLeft, UserPlus, MessageCircle, BarChart3, FileText, Star, Target, Users, Flame, Trophy, TrendingUp, Eye, DollarSign, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import ReportCard from "@/components/feed/ReportCard";
 import AccuracyBreakdown from "@/components/analyst/AccuracyBreakdown";
 import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
+import { getAnalystSlug } from "@/lib/analystSlug";
+import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const ACHIEVEMENT_DEFS = [
   { label: "First Report", icon: FileText },
@@ -20,27 +22,29 @@ const ACHIEVEMENT_DEFS = [
   { label: "Top 10", icon: Trophy },
 ];
 
-function getSubPlans(saved) {
-  return [
-    { id: "basic", label: "Basic", price: parseFloat(saved?.basicPrice || 9), features: ["All full reports", "Prediction outcomes", "Comment access"], dm: false },
-    { id: "pro", label: "Pro + DM", price: parseFloat(saved?.proPrice || 19), features: ["Everything in Basic", "Direct message analyst", "Live Q&A access", "Early report access"], dm: true },
-  ];
+// Map timeframe string → bucket
+function getTimeframeBucket(tf) {
+  if (!tf) return null;
+  const t = tf.toLowerCase();
+  if (t.includes("intraday") || t === "day" || t === "1 day") return "INTRADAY";
+  if (t.includes("week") || t.includes("1 month") || t.includes("short")) return "SHORT";
+  if (t.includes("3 month") || t.includes("6 month") || t.includes("medium")) return "MEDIUM";
+  if (t.includes("year") || t.includes("long")) return "LONG";
+  return null;
 }
 
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
-  const urlParams = new URLSearchParams(window.location.search);
-  const analystId = urlParams.get("id");
+  const { username } = useParams();
 
   const [analyst, setAnalyst] = useState(null);
   const [myReports, setMyReports] = useState([]);
   const [twits, setTwits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [following, setFollowing] = useState(false);
-  const [subscriptionPlan, setSubscriptionPlan] = useState(null);
-  const FOLLOWING_KEY = "stoa_following";
-  const SUBS_KEY = "stoa_subscriptions";
+  const [followLoading, setFollowLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubModal, setShowSubModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [showYieldModal, setShowYieldModal] = useState(false);
@@ -49,39 +53,40 @@ export default function AnalystProfilePage() {
     const load = async () => {
       try {
         const me = await base44.auth.me().catch(() => null);
-        setCurrentUserId(me?.id || null);
+        setCurrentUser(me || null);
 
-        let userData;
-        if (!analystId || analystId === me?.id) {
+        // Find analyst by slug (all users)
+        let userData = null;
+        const allUsers = await base44.entities.User.list("-created_date", 200).catch(() => []);
+
+        if (username) {
+          userData = allUsers.find(u => getAnalystSlug(u) === username) || null;
+          // fallback: exact email or id match
+          if (!userData) userData = allUsers.find(u => u.id === username || u.email === username) || null;
+        } else if (me) {
           userData = me;
-        } else {
-          // Try lookup by id first, then by email (created_by field)
-          const byId = await base44.entities.User.filter({ id: analystId }).catch(() => []);
-          if (byId?.[0]) {
-            userData = byId[0];
-          } else {
-            // Maybe analystId is actually an email address
-            const byEmail = await base44.entities.User.filter({ email: analystId }).catch(() => []);
-            userData = byEmail?.[0] || null;
-          }
         }
 
         if (userData) {
           setAnalyst(userData);
           setMeta({
             title: `${userData.full_name || userData.email?.split("@")[0] || "Analyst"} — Analyst Profile`,
-            description: `${userData.accuracy_score || 0}% prediction accuracy. Follow ${userData.full_name || "this analyst"} on STOA for verified financial research.`,
+            description: `Prediction accuracy track record. Follow ${userData.full_name || "this analyst"} on STOA.`,
             image: userData.picture,
           });
-          // Load persisted follow/sub state
-          const storedFollowing = JSON.parse(localStorage.getItem("stoa_following") || "[]");
-          const storedSubs = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
-          setFollowing(storedFollowing.some(a => a.id === userData.id));
-          const existingSub = storedSubs.find(a => a.id === userData.id);
-          if (existingSub?.plan) setSubscriptionPlan(existingSub.plan);
+
+          // Check follow/subscription via entities
+          if (me && me.email !== userData.email) {
+            const follows = await base44.entities.Follow.filter({ follower_email: me.email, analyst_email: userData.email }).catch(() => []);
+            setFollowing(follows.length > 0);
+
+            const subs = await base44.entities.Subscription.filter({ subscriber_email: me.email, analyst_email: userData.email, status: "active" }).catch(() => []);
+            setIsSubscribed(subs.length > 0);
+          }
 
           const reports = await base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 20).catch(() => []);
           setMyReports(reports || []);
+
           const twitData = await base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []);
           setTwits(twitData || []);
         }
@@ -90,7 +95,50 @@ export default function AnalystProfilePage() {
       }
     };
     load();
-  }, [analystId]);
+  }, [username]);
+
+  const handleFollow = async () => {
+    if (!currentUser || !analyst) return;
+    setFollowLoading(true);
+    try {
+      if (following) {
+        // Unfollow: delete Follow record
+        const follows = await base44.entities.Follow.filter({ follower_email: currentUser.email, analyst_email: analyst.email });
+        for (const f of follows) await base44.entities.Follow.delete(f.id);
+        // Decrement followers_count
+        await base44.entities.User.update(analyst.id, { followers_count: Math.max(0, (analyst.followers_count || 1) - 1) });
+        setAnalyst(prev => ({ ...prev, followers_count: Math.max(0, (prev.followers_count || 1) - 1) }));
+        setFollowing(false);
+      } else {
+        // Follow
+        await base44.entities.Follow.create({
+          follower_email: currentUser.email,
+          analyst_email: analyst.email,
+          analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+          analyst_avatar: analyst.picture || "",
+        });
+        await base44.entities.User.update(analyst.id, { followers_count: (analyst.followers_count || 0) + 1 });
+        setAnalyst(prev => ({ ...prev, followers_count: (prev.followers_count || 0) + 1 }));
+        setFollowing(true);
+      }
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!currentUser || !analyst) return;
+    await base44.entities.Subscription.create({
+      subscriber_email: currentUser.email,
+      analyst_email: analyst.email,
+      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+      analyst_avatar: analyst.picture || "",
+      status: "active",
+      plan: "monthly",
+    });
+    setIsSubscribed(true);
+    setShowSubModal(false);
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -105,16 +153,26 @@ export default function AnalystProfilePage() {
     </div>
   );
 
-  const isOwnProfile = analyst.id === currentUserId;
+  const isOwnProfile = currentUser && analyst.id === currentUser.id;
   const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
-  const saved = (() => { try { return JSON.parse(localStorage.getItem("stakify_profile")) || {}; } catch { return {}; } })();
-  const SUB_PLANS = getSubPlans(isOwnProfile ? saved : {});
-  const hasDM = subscriptionPlan?.dm;
 
-  const achievements = ACHIEVEMENT_DEFS.map(a => ({
-    ...a,
-    earned: false, // only known from real data — start false
-  }));
+  // Compute yield from actual reports
+  const resolvedReports = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
+  const computedYield = computeAvgYield(resolvedReports);
+  const displayYield = formatYield(computedYield);
+  const yieldColor = computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss";
+
+  // Track record breakdown from timeframe strings
+  const BUCKET_LABELS = { INTRADAY: "Intraday", SHORT: "Short-Term", MEDIUM: "Medium-Term", LONG: "Long-Term" };
+  const bucketStats = { INTRADAY: { total: 0, hits: 0 }, SHORT: { total: 0, hits: 0 }, MEDIUM: { total: 0, hits: 0 }, LONG: { total: 0, hits: 0 } };
+  resolvedReports.forEach(r => {
+    const bucket = getTimeframeBucket(r.prediction_timeframe);
+    if (!bucket) return;
+    bucketStats[bucket].total++;
+    if (r.prediction_outcome === "hit" || r.prediction_outcome === "near") bucketStats[bucket].hits++;
+  });
+
+  const achievements = ACHIEVEMENT_DEFS.map(a => ({ ...a, earned: false }));
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -139,33 +197,22 @@ export default function AnalystProfilePage() {
               ))}
             </div>
           </div>
-          {!isOwnProfile && (
+          {!isOwnProfile && currentUser && (
             <div className="flex flex-col gap-2">
-              {subscriptionPlan ? (
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs font-semibold text-gain bg-gain/10 border border-gain/20 rounded-full px-2.5 py-0.5">{subscriptionPlan.label} Subscriber ✓</span>
-                  {hasDM && (
-                    <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate(`/dm?analyst=${analyst.id}`)}>
-                      <MessageCircle className="w-3 h-3" />DM
-                    </Button>
-                  )}
-                </div>
+              {isSubscribed ? (
+                <span className="text-xs font-semibold text-gain bg-gain/10 border border-gain/20 rounded-full px-2.5 py-0.5">Subscribed ✓</span>
               ) : (
                 <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">Subscribe</Button>
               )}
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => {
-                const stored = JSON.parse(localStorage.getItem("stoa_following") || "[]");
-                const analystEntry = { id: analyst.id, name: displayName, avatar: analyst.picture, accuracy: analyst.accuracy_score };
-                let updated;
-                if (following) {
-                  updated = stored.filter(a => a.id !== analyst.id);
-                } else {
-                  updated = [...stored.filter(a => a.id !== analyst.id), analystEntry];
-                }
-                localStorage.setItem("stoa_following", JSON.stringify(updated));
-                setFollowing(!following);
-              }}>
-                {following ? "Following ✓" : <><UserPlus className="w-3 h-3 mr-1" />Follow</>}
+              <Button
+                size="sm"
+                variant={following ? "secondary" : "outline"}
+                className={`text-xs gap-1 ${following ? "text-gain border-gain/30" : ""}`}
+                onClick={handleFollow}
+                disabled={followLoading}
+              >
+                {followLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : following ? <CheckCircle2 className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                {following ? "Following ✓" : "Follow"}
               </Button>
             </div>
           )}
@@ -174,39 +221,47 @@ export default function AnalystProfilePage() {
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
-            { label: "Accuracy", value: analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—", icon: BarChart3, color: "text-primary", onClick: analyst.accuracy_score > 0 ? () => setShowAccModal(true) : null },
-            { label: "Yearly Yield", value: (analyst.yearly_yield != null && analyst.yearly_yield !== 0) ? `${analyst.yearly_yield > 0 ? "+" : ""}${analyst.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: (analyst.yearly_yield >= 0) ? "text-gain" : "text-loss", onClick: (analyst.yearly_yield != null && analyst.yearly_yield !== 0) ? () => setShowYieldModal(true) : null },
-            { label: "Followers", value: (analyst.followers_count || 0).toLocaleString(), icon: UserPlus, color: "text-blue-500", onClick: null },
-            { label: "Reports", value: myReports.length, icon: FileText, color: "text-muted-foreground", onClick: null },
-          ].map(stat => {
-            const Icon = stat.icon;
-            return (
-              <button key={stat.label} onClick={stat.onClick || undefined} className={`text-center p-3 bg-secondary rounded-xl ${stat.onClick ? "hover:bg-secondary/70 cursor-pointer" : "cursor-default"} transition-all`}>
-                <p className={`text-base font-bold ${stat.color}`}>{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground">{stat.label}{stat.onClick ? " ↗" : ""}</p>
-              </button>
-            );
-          })}
+            { label: "Accuracy", value: analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—", color: "text-primary", onClick: analyst.accuracy_score > 0 ? () => setShowAccModal(true) : null },
+            { label: "Avg Yield", value: displayYield, color: yieldColor, onClick: computedYield != null ? () => setShowYieldModal(true) : null },
+            { label: "Followers", value: (analyst.followers_count || 0).toLocaleString(), color: "text-blue-500", onClick: null },
+            { label: "Reports", value: myReports.length, color: "text-muted-foreground", onClick: null },
+          ].map(stat => (
+            <button key={stat.label} onClick={stat.onClick || undefined} className={`text-center p-3 bg-secondary rounded-xl ${stat.onClick ? "hover:bg-secondary/70 cursor-pointer" : "cursor-default"} transition-all`}>
+              <p className={`text-base font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.label}{stat.onClick ? " ↗" : ""}</p>
+            </button>
+          ))}
         </div>
 
-        {/* Extra insights — views and revenue only visible to owner */}
-        {isOwnProfile && (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border p-3 text-center bg-blue-50 border-blue-200">
-              <Eye className="w-4 h-4 mx-auto mb-1 text-blue-600" />
-              <p className="text-sm font-bold text-blue-600">—</p>
-              <p className="text-[10px] text-muted-foreground">Total Views</p>
-            </div>
-            <Link to="/subscribers" className="rounded-xl border p-3 text-center bg-purple-50 border-purple-200 hover:border-purple-400 transition-colors block">
-              <Users className="w-4 h-4 mx-auto mb-1 text-purple-600" />
-              <p className="text-sm font-bold text-purple-600">Manage</p>
-              <p className="text-[10px] text-muted-foreground">Subscribers & Following</p>
-            </Link>
+        {/* Track record by timeframe */}
+        <div className="bg-secondary rounded-xl p-3 mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Track Record by Timeframe</p>
+          <div className="grid grid-cols-4 gap-2">
+            {Object.entries(bucketStats).map(([key, stats]) => (
+              <div key={key} className="text-center">
+                <p className="text-[10px] text-muted-foreground">{BUCKET_LABELS[key]}</p>
+                {stats.total > 0 ? (
+                  <p className="text-sm font-bold text-foreground">{Math.round((stats.hits / stats.total) * 100)}%</p>
+                ) : (
+                  <p className="text-sm font-bold text-muted-foreground/40">—</p>
+                )}
+                {stats.total > 0 && <p className="text-[9px] text-muted-foreground">{stats.hits}/{stats.total}</p>}
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Owner extras */}
+        {isOwnProfile && (
+          <Link to="/subscribers" className="block rounded-xl border p-3 text-center bg-purple-50 border-purple-200 hover:border-purple-400 transition-colors">
+            <Users className="w-4 h-4 mx-auto mb-1 text-purple-600" />
+            <p className="text-sm font-bold text-purple-600">Manage</p>
+            <p className="text-[10px] text-muted-foreground">Subscribers & Following</p>
+          </Link>
         )}
       </div>
 
-      <AccuracyBreakdown analystName={displayName} />
+      <AccuracyBreakdown analystUser={analyst} />
       <PerformanceVsMarket analyst={analyst} />
 
       {/* Achievements */}
@@ -223,7 +278,6 @@ export default function AnalystProfilePage() {
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 text-center">Achievements unlock as you publish reports and hit predictions</p>
       </div>
 
       {/* Twits */}
@@ -253,11 +307,11 @@ export default function AnalystProfilePage() {
       {/* Reports */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <h2 className="font-semibold text-sm mb-4">Published Reports</h2>
-        {myReports.length === 0 ? (
+        {myReports.filter(r => r.status === "published").length === 0 ? (
           <p className="text-sm text-muted-foreground">No reports published yet.</p>
         ) : (
           <div className="space-y-3">
-            {myReports.map(r => <ReportCard key={r.id} report={r} compact />)}
+            {myReports.filter(r => r.status === "published").map(r => <ReportCard key={r.id} report={r} compact />)}
           </div>
         )}
       </div>
@@ -268,7 +322,7 @@ export default function AnalystProfilePage() {
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Prediction Accuracy</h3>
             <p className="text-3xl font-bold text-primary mb-4">{analyst.accuracy_score?.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground mb-4">Based on resolved locked predictions using STOA's weighted scoring system.</p>
+            <p className="text-sm text-muted-foreground mb-4">Based on resolved locked predictions using STOA's Elo-based scoring system.</p>
             <button onClick={() => setShowAccModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground mt-2">Close</button>
           </div>
         </div>
@@ -278,41 +332,30 @@ export default function AnalystProfilePage() {
       {showYieldModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowYieldModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Yearly Yield</h3>
-            <p className="text-3xl font-bold text-amber-500 mb-4">+{analyst.yearly_yield?.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground">Average annualized return across all resolved predictions.</p>
+            <h3 className="font-bold text-base mb-1">Average Yield</h3>
+            <p className={`text-3xl font-bold mb-4 ${yieldColor}`}>{displayYield}</p>
+            <p className="text-sm text-muted-foreground">Average return across {resolvedReports.length} resolved prediction{resolvedReports.length !== 1 ? "s" : ""}.</p>
             <button onClick={() => setShowYieldModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground mt-4">Close</button>
           </div>
         </div>
       )}
 
-      {/* Subscription modal */}
+      {/* Subscribe Modal */}
       {showSubModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSubModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Subscribe to {displayName}</h3>
             <p className="text-sm text-muted-foreground mb-4">Get full access to reports and predictions.</p>
-            <div className="space-y-3 mb-4">
-              {SUB_PLANS.map(plan => (
-                <button key={plan.id} onClick={() => {
-                  setSubscriptionPlan(plan);
-                  setShowSubModal(false);
-                  // Persist subscription
-                  const stored = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
-                  const entry = { id: analyst.id, name: displayName, avatar: analyst.picture, accuracy: analyst.accuracy_score, plan };
-                  const updated = [...stored.filter(a => a.id !== analyst.id), entry];
-                  localStorage.setItem("stoa_subscriptions", JSON.stringify(updated));
-                }} className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm">{plan.label}</span>
-                    <span className="font-bold text-primary">${plan.price.toFixed(2)}/mo</span>
-                  </div>
-                  <ul className="space-y-0.5">
-                    {plan.features.map(f => <li key={f} className="text-xs text-muted-foreground">✓ {f}</li>)}
-                  </ul>
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={handleSubscribe}
+              className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all mb-3"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-semibold text-sm">Monthly</span>
+                <span className="font-bold text-primary">Free (Beta)</span>
+              </div>
+              <p className="text-xs text-muted-foreground">✓ Full report access · ✓ Premium predictions</p>
+            </button>
             <button onClick={() => setShowSubModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Cancel</button>
           </div>
         </div>
