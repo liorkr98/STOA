@@ -5,7 +5,7 @@ import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, SlidersHorizontal, X, Flame, Clock, Tag, Eye, Users, Star } from "lucide-react";
+import { TrendingUp, SlidersHorizontal, X, Flame, Users, Star } from "lucide-react";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -13,15 +13,13 @@ import LeftSidebar from "@/components/feed/LeftSidebar";
 import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
 
 const FEED_TABS = [
-  { id: "latest", label: "Latest", icon: Clock },
   { id: "trending", label: "Trending", icon: Flame },
   { id: "following", label: "Following", icon: Users },
   { id: "subscriptions", label: "Subscriptions", icon: Star },
-  { id: "free", label: "Free", icon: Tag },
 ];
 
 export default function HomeFeed() {
-  const [activeTab, setActiveTab] = useState("latest");
+  const [activeTab, setActiveTab] = useState("trending");
   const [showFilters, setShowFilters] = useState(false);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +40,6 @@ export default function HomeFeed() {
 
   const applyTabFilter = (list) => {
     if (activeTab === "trending") return [...list].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    if (activeTab === "free") return list.filter(r => !r.is_premium);
     if (activeTab === "following") return list.filter(r => followingEmails.includes(r.created_by) || followingEmails.includes(r.author?.id));
     if (activeTab === "subscriptions") return list.filter(r => subEmails.includes(r.created_by) || subEmails.includes(r.author?.id));
     return [...list].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
