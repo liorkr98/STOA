@@ -45,17 +45,17 @@ const TIERS = [
 ];
 
 const SCORE_COMPONENTS = [
-  { pct: "35%", label: "Hit Rate", icon: Target, color: "text-gain", desc: "Did the price move in the predicted direction? Bold calls (above noise threshold for the timeframe) count at full weight. Sub-noise calls count at 50%." },
-  { pct: "30%", label: "Annualized Alpha", icon: TrendingUp, color: "text-primary", desc: "Analyst return vs benchmark (SPY or QQQ), annualized. This makes all timeframes comparable — +1% in 1 hour = +5,800% annualized. Each timeframe has a hurdle: Intraday 15%, Short 10%, Medium 5%, Long 2% ann. alpha required to score 50." },
+  { pct: "40%", label: "Annualized Alpha", icon: TrendingUp, color: "text-primary", desc: "Percentile rank of your annualized return vs the platform distribution (mean 5%/yr, σ 15%/yr). A +20% annualized return scores ~84 (top 16%). This is the primary driver — return quality outweighs direction accuracy per TipRanks/Cornell methodology." },
+  { pct: "25%", label: "Hit Rate", icon: Target, color: "text-gain", desc: "Did the price move in the predicted direction? Bold calls (above noise threshold for the timeframe) count at full weight. Sub-noise calls count at 50%. HOLD success requires the stock stayed within a timeframe-specific flat window (e.g. ±3% for SHORT)." },
   { pct: "20%", label: "Price Target Accuracy", icon: BarChart3, color: "text-amber-500", desc: "How close did the exit price land to the declared target? Within 5% = 100 pts, within 10% = 70 pts, within 20% = 40 pts, beyond = 0 pts. Analysts without declared targets score 50 (neutral)." },
-  { pct: "15%", label: "Consistency", icon: Shield, color: "text-purple-500", desc: "Low variance = reliable analyst. Standard deviation of returns is penalized: Score = 100 − (std_dev × 300). An analyst with wildly inconsistent results scores lower even if average returns are good." },
+  { pct: "15%", label: "Consistency (Sharpe)", icon: Shield, color: "text-purple-500", desc: "Sharpe ratio of returns: mean / std_dev, scaled to [0, 100]. An analyst with high average returns and low variance scores highest. Replaces the old std × 300 formula — now adjusts for the mean return level, not just volatility." },
 ];
 
 const TIMEFRAMES = [
-  { key: "INTRADAY", label: "Intraday", range: "< 1 day",       minCalls: 30,  fullCalls: 150, noiseThreshold: "0.5%", alphaHurdle: "15% ann." },
-  { key: "SHORT",    label: "Short-Term", range: "1–14 days",   minCalls: 15,  fullCalls: 75,  noiseThreshold: "2%",   alphaHurdle: "10% ann." },
-  { key: "MEDIUM",   label: "Medium-Term", range: "15–90 days", minCalls: 5,   fullCalls: 25,  noiseThreshold: "5%",   alphaHurdle: "5% ann." },
-  { key: "LONG",     label: "Long-Term", range: "91–730 days",  minCalls: 3,   fullCalls: 10,  noiseThreshold: "10%",  alphaHurdle: "2% ann." },
+  { key: "INTRADAY", label: "Intraday",    range: "< 1 day",       holdWindow: "±1.0%", noiseThreshold: "0.5%" },
+  { key: "SHORT",    label: "Short-Term",  range: "1–14 days",     holdWindow: "±3.0%", noiseThreshold: "2%"   },
+  { key: "MEDIUM",   label: "Medium-Term", range: "15–90 days",    holdWindow: "±6.0%", noiseThreshold: "5%"   },
+  { key: "LONG",     label: "Long-Term",   range: "91–730 days",   holdWindow: "±10.0%", noiseThreshold: "10%" },
 ];
 
 const TIERS_SCORE = [
@@ -132,12 +132,12 @@ export default function CalculationsPage() {
 
       {/* Timeframe Buckets */}
       <Section title="Timeframe Buckets & Requirements">
-        <p className="text-sm text-muted-foreground mb-4">Short-term analysts need more calls to prove statistical significance — direction accuracy has a natural ~55% momentum base rate at short horizons.</p>
+        <p className="text-sm text-muted-foreground mb-4">Statistical significance is calculated via a binomial Z-test (H₀: hit rate = 50%). More calls → higher Z-score → multiplier approaches 1.0. A single perfect call still scores low.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border border-border rounded-xl overflow-hidden">
             <thead className="bg-secondary">
               <tr>
-                {["Bucket", "Range", "Min Calls", "Full Significance", "Noise Threshold", "Alpha Hurdle"].map(h => (
+                {["Bucket", "Range", "HOLD Success Window", "Noise Threshold"].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left font-semibold text-muted-foreground">{h}</th>
                 ))}
               </tr>
@@ -147,10 +147,8 @@ export default function CalculationsPage() {
                 <tr key={row.key} className={i % 2 === 0 ? "bg-card" : "bg-secondary/40"}>
                   <td className="px-3 py-2.5 font-semibold">{row.label}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{row.range}</td>
-                  <td className="px-3 py-2.5">{row.minCalls}</td>
-                  <td className="px-3 py-2.5">{row.fullCalls}+</td>
+                  <td className="px-3 py-2.5 text-primary font-medium">{row.holdWindow}</td>
                   <td className="px-3 py-2.5">{row.noiseThreshold}</td>
-                  <td className="px-3 py-2.5 text-primary font-medium">{row.alphaHurdle}</td>
                 </tr>
               ))}
             </tbody>
@@ -158,7 +156,7 @@ export default function CalculationsPage() {
         </div>
         <div className="mt-3 flex items-start gap-2 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
           <Info className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground"><strong>Bold Call Requirement:</strong> If a target move is smaller than the noise threshold for that timeframe, the call counts at 50% weight on hit rate. This prevents gaming the system with trivially safe predictions.</p>
+          <p className="text-xs text-muted-foreground"><strong>Z-test significance:</strong> Scores are multiplied by a significance factor derived from a binomial Z-test. At n=50 with 65% hit rate, multiplier ≈ 0.68. At n=100, ≈ 0.90. At n=200+, approaches 1.0. This replaces the old min/max calls thresholds.</p>
         </div>
       </Section>
 
@@ -225,7 +223,7 @@ export default function CalculationsPage() {
           </div>
           <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
             <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground">Short-term wins look massive when annualized — because they are. This is why short-term analysts face higher alpha hurdles: momentum gives ~55% base direction accuracy for free, so you need to prove your edge is real.</p>
+            <p className="text-xs text-muted-foreground">v2 uses <strong>percentile rank</strong> vs the platform distribution (mean 5%/yr, σ 15%/yr) instead of raw annualized value. This prevents short-term analysts from saturating the score with a single big trade — a +3% gain in 3 days annualizes to +400%, but is ranked against all other analysts' annualized returns, scoring ~97th percentile only if truly exceptional.</p>
           </div>
         </div>
       </Section>

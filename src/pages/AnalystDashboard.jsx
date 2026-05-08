@@ -9,7 +9,7 @@ import TwitsPanel from "@/components/dashboard/TwitsPanel";
 import InsightsPanel from "@/components/dashboard/InsightsPanel";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import { useNavigate, Link } from "react-router-dom";
-import { calculateAccuracyScore } from "@/lib/accuracyEngine";
+import { calculateAccuracyScore } from "@/lib/accuracyScore";
 
 const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
 
@@ -50,17 +50,21 @@ export default function AnalystDashboard() {
       return currentUser.accuracy_score.toFixed(1);
     }
     if (predictions.length === 0) return 0;
-    const mapped = predictions.map(r => ({
-      action: r.prediction_action,
-      lockPrice: r.prediction_lock_price,
-      targetPrice: r.prediction_target_price,
-      lockTime: r.prediction_lock_time,
-      timeframe: r.prediction_timeframe,
-      outcome: r.prediction_outcome || null,
-      resolvedPrice: r.prediction_resolved_price || null,
-      resolvedTime: r.prediction_resolved_time || null,
-    }));
-    return calculateAccuracyScore(mapped).toFixed(1);
+    const mapped = predictions
+      .filter(r => r.prediction_lock_price && r.prediction_resolved_price)
+      .map(r => ({
+        action: r.prediction_action === "Long" ? "BUY" : r.prediction_action === "Short" ? "SELL" : "HOLD",
+        entryPrice: r.prediction_lock_price,
+        exitPrice: r.prediction_resolved_price,
+        targetPrice: r.prediction_target_price || null,
+        daysHeld: r.prediction_lock_time && r.prediction_resolved_time
+          ? Math.max(1, Math.round((new Date(r.prediction_resolved_time) - new Date(r.prediction_lock_time)) / 86400000))
+          : 30,
+        benchmarkReturn: 0,
+        sector: r.industry || "default",
+      }));
+    if (mapped.length === 0) return 0;
+    return calculateAccuracyScore(mapped).score.toFixed(1);
   }, [currentUser, predictions]);
 
   const achievements = useMemo(() => {
