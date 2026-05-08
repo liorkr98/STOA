@@ -5,56 +5,69 @@ import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, SlidersHorizontal, X, Flame, Clock, Tag, Eye } from "lucide-react";
+import { TrendingUp, SlidersHorizontal, X, Flame, Clock, Tag, Eye, Users, Star } from "lucide-react";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import LeftSidebar from "@/components/feed/LeftSidebar";
+import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
 
 const FEED_TABS = [
   { id: "latest", label: "Latest", icon: Clock },
   { id: "trending", label: "Trending", icon: Flame },
-  { id: "free", label: "Free Only", icon: Tag },
-  { id: "most_viewed", label: "Most Viewed", icon: Eye },
+  { id: "following", label: "Following", icon: Users },
+  { id: "subscriptions", label: "Subscriptions", icon: Star },
+  { id: "free", label: "Free", icon: Tag },
 ];
-
-const SECTORS = ["All", "AI & Semiconductors", "Big Tech", "EV & Clean Energy", "Financials", "Crypto & Web3", "Consumer Tech", "E-Commerce", "Healthcare"];
-const MARKET_CAPS = ["All", "Mega", "Large", "Mid", "Small", "Micro"];
-const SORT_OPTIONS = ["Latest", "Most Liked", "Premium Only", "Free Only"];
 
 export default function HomeFeed() {
   const [activeTab, setActiveTab] = useState("latest");
-  const [activeSector, setActiveSector] = useState("All");
-  const [activeMarketCap, setActiveMarketCap] = useState("All");
-  const [sortBy, setSortBy] = useState("Latest");
   const [showFilters, setShowFilters] = useState(false);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("stoa_onboarded"));
+  const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
+
+  // Load following/subscriptions from localStorage
+  const following = JSON.parse(localStorage.getItem("stoa_following") || "[]");
+  const subscriptions = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
+  const followingEmails = following.map(a => a.id); // ids which might be emails
+  const subEmails = subscriptions.map(a => a.id);
 
   useEffect(() => {
-    base44.entities.Report.filter({ status: "published" }, "-created_date", 50)
+    base44.entities.Report.filter({ status: "published" }, "-created_date", 100)
       .then(data => setReports(data || []))
       .finally(() => setLoading(false));
   }, []);
 
-  const tabFiltered = reports
-    .filter(r => activeTab === "free" ? !r.is_premium : true)
-    .sort((a, b) => {
-      if (activeTab === "trending") return (b.likes || 0) - (a.likes || 0);
-      if (activeTab === "most_viewed") return (b.likes || 0) - (a.likes || 0);
-      return new Date(b.created_date) - new Date(a.created_date);
+  const applyTabFilter = (list) => {
+    if (activeTab === "trending") return [...list].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    if (activeTab === "free") return list.filter(r => !r.is_premium);
+    if (activeTab === "following") return list.filter(r => followingEmails.includes(r.created_by) || followingEmails.includes(r.author?.id));
+    if (activeTab === "subscriptions") return list.filter(r => subEmails.includes(r.created_by) || subEmails.includes(r.author?.id));
+    return [...list].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  };
+
+  const applyPrefFilters = (list) => {
+    const { sectors = [], marketCaps = [], tickers = [] } = feedPrefs;
+    if (!sectors.length && !marketCaps.length && !tickers.length) return list;
+    return list.filter(r => {
+      const sectorMatch = !sectors.length || sectors.includes(r.industry);
+      const capMatch = !marketCaps.length || marketCaps.map(c => c.toLowerCase()).includes((r.market_cap || "").toLowerCase());
+      const tickerList = (r.tickers || "").split(",").map(t => t.trim().toUpperCase());
+      const tickerMatch = !tickers.length || tickers.some(t => tickerList.includes(t));
+      return sectorMatch && capMatch && tickerMatch;
     });
+  };
 
-  const filtered = tabFiltered
-    .filter(r => activeSector === "All" || r.industry === activeSector)
-    .filter(r => activeMarketCap === "All" || (r.market_cap || "").toLowerCase() === activeMarketCap.toLowerCase())
-    .filter(r => sortBy === "Premium Only" ? r.is_premium : sortBy === "Free Only" ? !r.is_premium : true)
-    .sort((a, b) => sortBy === "Most Liked" ? (b.likes || 0) - (a.likes || 0) : sortBy === "Latest" ? new Date(b.created_date) - new Date(a.created_date) : 0);
+  const filtered = applyPrefFilters(applyTabFilter(reports));
+  const prefActiveCount = (feedPrefs.sectors?.length || 0) + (feedPrefs.marketCaps?.length || 0) + (feedPrefs.tickers?.length || 0);
 
-  const activeFilterCount = (activeSector !== "All" ? 1 : 0) + (activeMarketCap !== "All" ? 1 : 0) + (sortBy !== "Latest" ? 1 : 0);
-
-  const clearFilters = () => { setActiveSector("All"); setActiveMarketCap("All"); setSortBy("Latest"); };
+  const clearPrefs = () => {
+    const empty = { sectors: [], marketCaps: [], tickers: [] };
+    setFeedPrefs(empty);
+    localStorage.setItem("stoa_feed_prefs", JSON.stringify(empty));
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
@@ -71,7 +84,7 @@ export default function HomeFeed() {
         {/* Main Feed */}
         <div className="flex-1 min-w-0">
           {/* Feed tabs */}
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
             {FEED_TABS.map(tab => {
               const Icon = tab.icon;
               return (
@@ -88,38 +101,36 @@ export default function HomeFeed() {
           </div>
 
           {/* Controls bar */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-muted-foreground">{filtered.length} Reports</span>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs text-muted-foreground">{filtered.length} reports</span>
             <button
               onClick={() => setShowFilters(true)}
-              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${activeFilterCount > 0 ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${prefActiveCount > 0 ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              Customize{prefActiveCount > 0 ? ` · ${prefActiveCount}` : ""}
             </button>
           </div>
 
-          {/* Active filter chips */}
-          {activeFilterCount > 0 && (
+          {/* Active pref chips */}
+          {prefActiveCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {activeSector !== "All" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
-                  {activeSector}
-                  <button onClick={() => setActiveSector("All")}><X className="w-3 h-3" /></button>
+              {(feedPrefs.sectors || []).map(s => (
+                <span key={s} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
+                  {s} <button onClick={() => setFeedPrefs(p => { const upd = {...p, sectors: p.sectors.filter(x=>x!==s)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
                 </span>
-              )}
-              {activeMarketCap !== "All" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
-                  {activeMarketCap} Cap
-                  <button onClick={() => setActiveMarketCap("All")}><X className="w-3 h-3" /></button>
+              ))}
+              {(feedPrefs.tickers || []).map(t => (
+                <span key={t} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
+                  ${t} <button onClick={() => setFeedPrefs(p => { const upd = {...p, tickers: p.tickers.filter(x=>x!==t)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
                 </span>
-              )}
-              {sortBy !== "Latest" && (
-                <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
-                  {sortBy}
-                  <button onClick={() => setSortBy("Latest")}><X className="w-3 h-3" /></button>
+              ))}
+              {(feedPrefs.marketCaps || []).map(c => (
+                <span key={c} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
+                  {c} Cap <button onClick={() => setFeedPrefs(p => { const upd = {...p, marketCaps: p.marketCaps.filter(x=>x!==c)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
                 </span>
-              )}
+              ))}
+              <button onClick={clearPrefs} className="text-xs text-muted-foreground hover:text-foreground underline">clear all</button>
             </div>
           )}
 
@@ -141,7 +152,7 @@ export default function HomeFeed() {
                 </div>
               ))
             ) : filtered.length === 0 ? (
-              <EmptyFeedState onClearFilters={activeFilterCount > 0 ? clearFilters : null} />
+              <EmptyFeedState onClearFilters={prefActiveCount > 0 ? clearPrefs : null} />
             ) : (
               filtered.map(report => <ReportCard key={report.id} report={report} />)
             )}
@@ -165,50 +176,11 @@ export default function HomeFeed() {
         </aside>
       </div>
 
-      {/* Filter Modal */}
       {showFilters && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowFilters(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold">Filter Reports</h3>
-              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sector</p>
-              <div className="flex flex-wrap gap-1.5">
-                {SECTORS.map(s => (
-                  <button key={s} onClick={() => setActiveSector(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeSector === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Market Cap</p>
-              <div className="flex flex-wrap gap-1.5">
-                {MARKET_CAPS.map(cap => (
-                  <button key={cap} onClick={() => setActiveMarketCap(cap)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${activeMarketCap === cap ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{cap}</button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sort By</p>
-              <div className="flex flex-wrap gap-1.5">
-                {SORT_OPTIONS.map(s => (
-                  <button key={s} onClick={() => setSortBy(s)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${sortBy === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{s}</button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={() => { setActiveSector("All"); setActiveMarketCap("All"); setSortBy("Latest"); }} className="flex-1 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg py-2 transition-colors">Clear All</button>
-              <button onClick={() => setShowFilters(false)} className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 transition-colors">Apply</button>
-            </div>
-          </div>
-        </div>
+        <FeedCustomizer
+          onClose={() => setShowFilters(false)}
+          onApply={(prefs) => setFeedPrefs(prefs)}
+        />
       )}
     </div>
   );
