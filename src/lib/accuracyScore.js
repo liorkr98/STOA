@@ -1,40 +1,11 @@
 // ─── CONSTANTS ────────────────────────────────────────────────
 
-const TIMEFRAME_BUCKETS = {
-  INTRADAY: { label: "Intraday",    maxDays: 1,   annualFactor: 365 },
-  SHORT:    { label: "Short-Term",  maxDays: 14,  annualFactor: 26  },
-  MEDIUM:   { label: "Medium-Term", maxDays: 90,  annualFactor: 4   },
-  LONG:     { label: "Long-Term",   maxDays: 730, annualFactor: 1   },
+const HOLD_SUCCESS_WINDOWS = {
+  INTRADAY: 0.010,  // ±1.0%
+  SHORT:    0.030,  // ±3.0%
+  MEDIUM:   0.060,  // ±6.0%
+  LONG:     0.100,  // ±10.0%
 };
-
-// No difficulty multiplier — annualized alpha naturally equalizes timeframes
-const TIMEFRAME_DIFFICULTY = {
-  INTRADAY: 1.00,
-  SHORT:    1.00,
-  MEDIUM:   1.00,
-  LONG:     1.00,
-};
-
-// Short-term needs more calls to prove edge above the ~55% momentum base rate
-const SIGNIFICANCE_THRESHOLDS = {
-  INTRADAY: { min: 30,  full: 150 },
-  SHORT:    { min: 15,  full: 75  },
-  MEDIUM:   { min: 5,   full: 25  },
-  LONG:     { min: 3,   full: 10  },
-};
-
-// Minimum meaningful move: calls below this threshold get 50% weight on hit rate
-const NOISE_THRESHOLD = {
-  INTRADAY: 0.005,
-  SHORT:    0.02,
-  MEDIUM:   0.05,
-  LONG:     0.10,
-};
-
-// Short-term has natural momentum — require higher alpha to score well
-function getAlphaHurdle(bucketKey) {
-  return { INTRADAY: 0.15, SHORT: 0.10, MEDIUM: 0.05, LONG: 0.02 }[bucketKey] || 0.05;
-}
 
 const SECTOR_MULTIPLIER = {
   "Biotechnology": 1.20,
@@ -45,24 +16,39 @@ const SECTOR_MULTIPLIER = {
   "default":       1.00,
 };
 
+const NOISE_THRESHOLD = {
+  INTRADAY: 0.005,
+  SHORT:    0.020,
+  MEDIUM:   0.050,
+  LONG:     0.100,
+};
+
 // ─── HELPERS ──────────────────────────────────────────────────
 
-function getBucket(daysHeld) {
+export function getBucket(daysHeld) {
   if (!daysHeld || daysHeld < 1) return "INTRADAY";
   if (daysHeld < 15)  return "SHORT";
   if (daysHeld < 91)  return "MEDIUM";
   return "LONG";
 }
 
-// HOLD success window: stock must stay within this range to be a successful HOLD
-const HOLD_SUCCESS_WINDOW = {
-  INTRADAY: 0.010,  // ±1.0%
-  SHORT:    0.030,  // ±3.0%
-  MEDIUM:   0.060,  // ±6.0%
-  LONG:     0.100,  // ±10%
-};
+// Normal CDF approximation (logistic sigmoid)
+// Accurate to ±0.02 in the range z ∈ [-4, 4]
+function normalCDF(z) {
+  return 1 / (1 + Math.exp(-1.7 * z));
+}
 
-function isCallSuccessful(call) {
+// ─── IS CALL SUCCESSFUL ───────────────────────────────────────
+//
+// BUY:  stock moved up   → success
+// SELL: stock moved down → success
+// HOLD: stock stayed FLAT within a timeframe-specific window
+//       A HOLD call that moved +5% in 3 days = FAILURE
+//       (analyst should have said BUY)
+//       targetPrice on HOLD = fair value estimate only,
+//       NOT used to determine success/failure
+
+export function isCallSuccessful(call) {
   const { action, entryPrice, exitPrice, daysHeld } = call;
   if (!entryPrice || !exitPrice) return false;
 
@@ -73,128 +59,197 @@ function isCallSuccessful(call) {
 
   if (action === "HOLD") {
     const bucket = getBucket(daysHeld);
-    const window = HOLD_SUCCESS_WINDOW[bucket];
+    const window = HOLD_SUCCESS_WINDOWS[bucket];
     return Math.abs(rawReturn) <= window;
   }
 
   return false;
 }
 
-// For HOLD: alpha = how flat the stock was vs benchmark (positive = calmer than market)
+// ─── Z-TEST SIGNIFICANCE MULTIPLIER ──────────────────────────
+//
+// Replaces the piecewise-linear σ(n) with a proper binomial Z-test.
+// Tests H₀: hit_rate = 0.50 (random / no skill)
+// Returns a multiplier in [0.2, 1.0]
+
+function zTestMultiplier(wins, n) {
+  if (n < 1) return 0;
+  if (wins > n) wins = n;
+
+  const hitRate = wins / n;
+  const se  = Math.sqrt(0.25 / n);
+  const z   = (hitRate - 0.5) / se;
+  const phi = normalCDF(z);  // P(skill | data)
+
+  // Map [0.50, 0.95] → [0.20, 1.00]
+  return Math.max(0.20, Math.min(1.00, (phi - 0.50) / 0.45));
+}
+
+// ─── ALPHA SCORE ──────────────────────────────────────────────
+//
+// v2: uses percentile rank vs platform distribution
+// instead of annualized absolute value.
+//
+// Platform distribution assumed: mean=5%/yr, sd=15%/yr
+
+const PLATFORM_ALPHA_MEAN = 5;   // % annualized
+const PLATFORM_ALPHA_SD   = 15;  // % annualized
+
+function alphaScore(annualizedAlphaPct) {
+  const z = (annualizedAlphaPct - PLATFORM_ALPHA_MEAN) / PLATFORM_ALPHA_SD;
+  return Math.min(100, Math.max(0, normalCDF(z) * 100));
+}
+
+function annualizeReturn(rawReturn, daysHeld) {
+  const days = Math.max(daysHeld || 1, 0.5);
+  return (Math.pow(1 + rawReturn, 365 / days) - 1) * 100; // in %
+}
+
 function getDirectedReturn(call) {
   const rawReturn = (call.exitPrice - call.entryPrice) / call.entryPrice;
+
   if (call.action === "BUY")  return rawReturn;
   if (call.action === "SELL") return -rawReturn;
+
   if (call.action === "HOLD") {
     const absMove  = Math.abs(rawReturn);
     const absBench = Math.abs(call.benchmarkReturn || 0);
     return absBench - absMove;
   }
+
   return rawReturn;
 }
 
-// HOLD calls always get full boldness weight — noise threshold doesn't apply
-function getBoldnessWeight(call, noiseThreshold) {
+// ─── BOLDNESS WEIGHT ──────────────────────────────────────────
+//
+// Calls below the noise threshold for their timeframe
+// get a ×0.5 penalty (anti-gaming).
+// HOLD calls are always bold = 1.0 (no penalty).
+
+function getBoldnessWeight(call) {
   if (call.action === "HOLD") return 1.0;
   const moveSize = Math.abs((call.exitPrice - call.entryPrice) / call.entryPrice);
-  return moveSize >= noiseThreshold ? 1.0 : 0.5;
+  const threshold = NOISE_THRESHOLD[getBucket(call.daysHeld)];
+  return moveSize >= threshold ? 1.0 : 0.5;
 }
 
-function annualizeReturn(rawReturn, daysHeld) {
-  const days = Math.max(daysHeld || 1, 0.5);
-  return Math.pow(1 + rawReturn, 365 / days) - 1;
+// ─── PRICE TARGET SCORE ───────────────────────────────────────
+
+function priceTargetScore(call) {
+  if (!call.targetPrice || call.targetPrice <= 0) return 50; // neutral
+
+  const delta = Math.abs(call.exitPrice - call.targetPrice) / call.targetPrice;
+
+  if (delta <= 0.05) return 100;
+  if (delta <= 0.10) return 70;
+  if (delta <= 0.20) return 40;
+  return 0;
 }
 
-function getSignificanceMultiplier(n, bucket) {
-  const { min, full } = SIGNIFICANCE_THRESHOLDS[bucket];
-  if (n < 1)     return 0;
-  if (n < min)   return 0.3;
-  if (n >= full) return 1.0;
-  return 0.3 + 0.7 * ((n - min) / (full - min));
+// ─── CONSISTENCY SCORE ────────────────────────────────────────
+//
+// v2: uses Sharpe ratio instead of raw std dev × 300.
+
+function consistencyScore(calls) {
+  if (!calls || calls.length < 2) return 75; // neutral
+
+  const returns = calls.map(c => {
+    const r = (c.exitPrice - c.entryPrice) / c.entryPrice;
+    return c.action === "SELL" ? -r : r;
+  });
+
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / returns.length;
+  const std = Math.sqrt(variance);
+
+  if (std < 0.0001) return 100; // zero variance = perfectly consistent
+
+  const sharpe = mean / std;
+  return Math.min(100, Math.max(0, 50 + sharpe * 16.67));
 }
 
-// ─── SCORE ONE BUCKET ──────────────────────────────────────────
+// ─── SCORE ONE BUCKET ─────────────────────────────────────────
 
 function scoreBucket(calls, bucketKey) {
   if (!calls || calls.length === 0) return null;
   const n = calls.length;
-  const noiseThreshold = NOISE_THRESHOLD[bucketKey];
 
-  // 1. Hit Rate (35%) — bold calls count fully, sub-noise calls count 50%; HOLD always full weight
-  const hitScores = calls.map(c => {
-    const success = isCallSuccessful(c) ? 1 : 0;
-    const weight = getBoldnessWeight(c, noiseThreshold);
-    return success * weight;
-  });
-  const hitRate = calls.filter(c => isCallSuccessful(c)).length / n;
-  const hitScore = (hitScores.reduce((s, v) => s + v, 0) / n) * 100;
+  // Component 1 — Hit Rate (weight 25%)
+  const wins = calls.filter(c => isCallSuccessful(c)).length;
+  const hitRate = wins / n;
+  const hitScore = hitRate * 100;
 
-  // 2. Annualized Alpha (30%) — HOLD uses flatness vs benchmark, BUY/SELL use directed return
+  // Component 2 — Annualized Alpha, percentile-ranked (weight 40%)
   const alphas = calls.map(c => {
     const directed = getDirectedReturn(c);
-    const days = c.daysHeld || 30;
-    const annRet   = annualizeReturn(directed, days);
-    const annBench = c.action === "HOLD" ? 0 : annualizeReturn(c.benchmarkReturn || 0, days);
-    return Math.min(5.0, Math.max(-5.0, annRet - annBench));
+    const ann = annualizeReturn(directed, c.daysHeld || 30);
+    return Math.min(500, Math.max(-500, ann));
   });
   const avgAlpha = alphas.reduce((s, a) => s + a, 0) / n;
-  const hurdle = getAlphaHurdle(bucketKey);
-  const alphaScore = Math.min(100, Math.max(0, 50 + ((avgAlpha - hurdle) * 20)));
+  const aScore = alphaScore(avgAlpha);
 
-  // 3. Price Target Accuracy (20%)
+  // Component 3 — Price Target Accuracy (weight 20%)
   const withTarget = calls.filter(c => c.targetPrice && c.targetPrice > 0);
   let ptScore = 50;
   if (withTarget.length > 0) {
-    const scores = withTarget.map(c => {
-      const diff = Math.abs(c.exitPrice - c.targetPrice) / c.targetPrice;
-      if (diff <= 0.05) return 100;
-      if (diff <= 0.10) return 70;
-      if (diff <= 0.20) return 40;
-      return 0;
-    });
-    ptScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+    ptScore = withTarget.map(c => priceTargetScore(c)).reduce((s, v) => s + v, 0) / withTarget.length;
   }
 
-  // 4. Consistency (15%)
-  const returns = calls.map(c => getDirectedReturn(c));
-  const mean = returns.reduce((s, r) => s + r, 0) / n;
-  const std = Math.sqrt(returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / n);
-  const consistencyScore = Math.min(100, Math.max(0, 100 - (std * 300)));
+  // Component 4 — Consistency / Sharpe (weight 15%)
+  const cScore = consistencyScore(calls);
 
-  // Weighted combination — no difficulty multiplier, alpha hurdle does the work
-  const rawScore =
-    hitScore         * 0.35 +
-    alphaScore       * 0.30 +
-    ptScore          * 0.20 +
-    consistencyScore * 0.15;
+  // Boldness weight
+  const avgBoldness = calls.map(c => getBoldnessWeight(c)).reduce((s, b) => s + b, 0) / n;
 
-  const sigMult = getSignificanceMultiplier(n, bucketKey);
-  const finalBucketScore = Math.min(100, rawScore * sigMult);
+  // Weights: Alpha 40%, Hit Rate 25%, Price Target 20%, Consistency 15%
+  const rawScore = (
+    aScore   * 0.40 +
+    hitScore * 0.25 +
+    ptScore  * 0.20 +
+    cScore   * 0.15
+  ) * avgBoldness;
+
+  // Z-test significance multiplier
+  const sigMult = zTestMultiplier(wins, n);
+
+  const bucketScore = Math.min(100, rawScore * sigMult);
 
   return {
-    score:         Math.round(finalBucketScore),
+    score:         Math.round(bucketScore),
     calls:         n,
+    wins,
     hitRate:       Math.round(hitRate * 100),
-    avgAlpha:      Math.round(avgAlpha * 100),
+    avgAlpha:      Math.round(avgAlpha),
     sigMult:       Math.round(sigMult * 100),
-    label:         TIMEFRAME_BUCKETS[bucketKey].label,
-    isSignificant: n >= SIGNIFICANCE_THRESHOLDS[bucketKey].min,
+    label:         { INTRADAY:"Intraday", SHORT:"Short-Term", MEDIUM:"Medium-Term", LONG:"Long-Term" }[bucketKey],
+    isSignificant: sigMult >= 0.7,
   };
 }
 
-// ─── MAIN EXPORT ───────────────────────────────────────────────
+// ─── MAIN EXPORT ──────────────────────────────────────────────
+//
+// @param {Array} calls — closed predictions, each with:
+//   {
+//     action:          "BUY" | "SELL" | "HOLD",
+//     ticker:          "AAPL",
+//     entryPrice:      150.00,
+//     exitPrice:       175.00,
+//     targetPrice:     180.00,    // optional
+//     daysHeld:        90,
+//     benchmarkReturn: 0.08,      // S&P/sector ETF return same period
+//     sector:          "Technology",
+//   }
+//
+// @returns {Object} { score, tier, totalCalls, buckets, specialization }
 
 export function calculateAccuracyScore(calls) {
   if (!calls || calls.length === 0) {
     return { score: 0, tier: "Building", buckets: {}, totalCalls: 0, specialization: null };
   }
 
-  // Sort into buckets
+  // Sort calls into buckets
   const bucketedCalls = { INTRADAY: [], SHORT: [], MEDIUM: [], LONG: [] };
-  calls.forEach(c => {
-    const bucket = getBucket(c.daysHeld || 30);
-    bucketedCalls[bucket].push(c);
-  });
+  calls.forEach(c => bucketedCalls[getBucket(c.daysHeld || 30)].push(c));
 
   // Score each bucket
   const bucketScores = {};
@@ -207,56 +262,47 @@ export function calculateAccuracyScore(calls) {
     return { score: 0, tier: "Building", buckets: {}, totalCalls: 0, specialization: null };
   }
 
-  // Combine buckets weighted by (calls × significance)
-  const totalWeight = scoredBuckets.reduce((s, b) => s + (b.calls * b.sigMult / 100), 0);
+  // Combine buckets: weighted by (calls × sigMult)
+  const totalWeight = scoredBuckets.reduce((s, b) => s + b.calls * b.sigMult / 100, 0);
   const weightedScore = scoredBuckets.reduce((s, b) => {
     const w = (b.calls * b.sigMult / 100) / totalWeight;
-    return s + (b.score * w);
+    return s + b.score * w;
   }, 0);
 
-  // Sector adjustment
+  // Sector difficulty bonus
   const sectorCounts = {};
-  calls.forEach(c => {
-    const sec = c.sector || "default";
-    sectorCounts[sec] = (sectorCounts[sec] || 0) + 1;
-  });
-  const dominantSector = Object.entries(sectorCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || "default";
+  calls.forEach(c => { const sec = c.sector || "default"; sectorCounts[sec] = (sectorCounts[sec] || 0) + 1; });
+  const dominantSector = Object.entries(sectorCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "default";
   const sectorMult = SECTOR_MULTIPLIER[dominantSector] || 1.0;
 
   const finalScore = Math.round(Math.min(100, Math.max(0, weightedScore * sectorMult)));
 
   const tier =
-    finalScore >= 90 ? "Elite" :
-    finalScore >= 75 ? "Expert" :
-    finalScore >= 60 ? "Strong" :
-    finalScore >= 45 ? "Average" : "Building";
+    finalScore >= 90 ? "Elite"    :
+    finalScore >= 75 ? "Expert"   :
+    finalScore >= 60 ? "Strong"   :
+    finalScore >= 45 ? "Average"  : "Building";
 
   // Specialization label
   const total = calls.length;
-  const dominant = Object.entries(bucketedCalls)
-    .sort((a, b) => b[1].length - a[1].length)[0];
+  const dominant = Object.entries(bucketedCalls).sort((a, b) => b[1].length - a[1].length)[0];
   const pct = dominant ? dominant[1].length / total : 0;
+  const bucketLabels = { INTRADAY:"Intraday", SHORT:"Short-Term", MEDIUM:"Medium-Term", LONG:"Long-Term" };
   const specialization =
-    pct >= 0.80 ? TIMEFRAME_BUCKETS[dominant[0]].label + " Specialist" :
-    pct >= 0.60 ? TIMEFRAME_BUCKETS[dominant[0]].label + " Focused" :
-    "Generalist";
+    pct >= 0.80 ? bucketLabels[dominant[0]] + " Specialist" :
+    pct >= 0.60 ? bucketLabels[dominant[0]] + " Focused"    : "Generalist";
 
   return {
-    score:       finalScore,
+    score: finalScore,
     tier,
-    totalCalls:  calls.length,
-    buckets:     bucketScores,
+    totalCalls: calls.length,
+    buckets: bucketScores,
     specialization,
   };
 }
 
 export function getAccuracyDisplay(score, tier) {
-  const icons  = { Elite: "🌟", Expert: "⭐", Strong: "📈", Average: "📊", Building: "🔨" };
-  const colors = { Elite: "#f59e0b", Expert: "#10b981", Strong: "#3b82f6", Average: "#6b7280", Building: "#9ca3af" };
+  const icons  = { Elite:"🌟", Expert:"⭐", Strong:"📈", Average:"📊", Building:"🔨" };
+  const colors = { Elite:"#f59e0b", Expert:"#10b981", Strong:"#3b82f6", Average:"#6b7280", Building:"#9ca3af" };
   return { icon: icons[tier] || "📊", color: colors[tier] || "#6b7280", label: tier };
-}
-
-export function isCallSuccessfulExport(call) {
-  return isCallSuccessful(call);
 }
