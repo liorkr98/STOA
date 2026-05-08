@@ -175,7 +175,7 @@ export default function AnalystProfilePage() {
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
             { label: "Accuracy", value: analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—", icon: BarChart3, color: "text-primary", onClick: analyst.accuracy_score > 0 ? () => setShowAccModal(true) : null },
-            { label: "Yearly Yield", value: analyst.yearly_yield > 0 ? `+${analyst.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: "text-amber-500", onClick: analyst.yearly_yield > 0 ? () => setShowYieldModal(true) : null },
+            { label: "Yearly Yield", value: (analyst.yearly_yield != null && analyst.yearly_yield !== 0) ? `${analyst.yearly_yield > 0 ? "+" : ""}${analyst.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: (analyst.yearly_yield >= 0) ? "text-gain" : "text-loss", onClick: (analyst.yearly_yield != null && analyst.yearly_yield !== 0) ? () => setShowYieldModal(true) : null },
             { label: "Followers", value: (analyst.followers_count || 0).toLocaleString(), icon: UserPlus, color: "text-blue-500", onClick: null },
             { label: "Reports", value: myReports.length, icon: FileText, color: "text-muted-foreground", onClick: null },
           ].map(stat => {
