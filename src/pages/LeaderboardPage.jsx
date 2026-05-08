@@ -97,6 +97,11 @@ export default function LeaderboardPage() {
                     {accPct.toFixed(1)}%
                   </span>
                   <span className="text-[10px] text-muted-foreground">Accuracy</span>
+                  {(analyst.yearly_yield > 0) && (
+                    <span className="flex items-center gap-0.5 text-[11px] text-gain font-semibold">
+                      <TrendingUp className="w-2.5 h-2.5" />+{analyst.yearly_yield.toFixed(1)}%
+                    </span>
+                  )}
                   {reward && (
                     <TooltipProvider>
                       <Tooltip>

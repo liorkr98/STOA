@@ -36,6 +36,7 @@ import WalletPage from '@/pages/WalletPage';
 import BrandingDashboard from '@/pages/BrandingDashboard';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import StocksPage from '@/pages/StocksPage';
+import SubscribersPage from '@/pages/SubscribersPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
         <Route path="/wallet" element={isAuthenticated ? <WalletPage /> : <SignIn />} />
         <Route path="/branding" element={isAuthenticated ? <BrandingDashboard /> : <SignIn />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/subscribers" element={isAuthenticated ? <SubscribersPage /> : <SignIn />} />
         <Route path="/stocks" element={<StocksPage />} />
         <Route path="/pay" element={<PaymentPage />} />
       </Route>

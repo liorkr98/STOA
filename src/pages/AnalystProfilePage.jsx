@@ -4,6 +4,7 @@ import { setMeta } from "@/lib/seo";
 import { ArrowLeft, UserPlus, MessageCircle, BarChart3, FileText, Star, Target, Users, Flame, Trophy, TrendingUp, Eye, DollarSign, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { Link } from "react-router-dom";
 import ReportCard from "@/components/feed/ReportCard";
 import AccuracyBreakdown from "@/components/analyst/AccuracyBreakdown";
 import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
@@ -189,24 +190,20 @@ export default function AnalystProfilePage() {
         </div>
 
         {/* Extra insights — views and revenue only visible to owner */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            ...(isOwnProfile ? [
-              { label: "Total Views", value: "—", icon: Eye, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
-              { label: "Avg. Report Revenue", value: "—", icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/20" },
-            ] : []),
-            { label: "Subscribers", value: "—", icon: Users, color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
-          ].map(s => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className={`rounded-xl border p-3 text-center ${s.bg}`}>
-                <Icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
-                <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
-              </div>
-            );
-          })}
-        </div>
+        {isOwnProfile && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border p-3 text-center bg-blue-50 border-blue-200">
+              <Eye className="w-4 h-4 mx-auto mb-1 text-blue-600" />
+              <p className="text-sm font-bold text-blue-600">—</p>
+              <p className="text-[10px] text-muted-foreground">Total Views</p>
+            </div>
+            <Link to="/subscribers" className="rounded-xl border p-3 text-center bg-purple-50 border-purple-200 hover:border-purple-400 transition-colors block">
+              <Users className="w-4 h-4 mx-auto mb-1 text-purple-600" />
+              <p className="text-sm font-bold text-purple-600">Manage</p>
+              <p className="text-[10px] text-muted-foreground">Subscribers & Following</p>
+            </Link>
+          </div>
+        )}
       </div>
 
       <AccuracyBreakdown analystName={displayName} />
