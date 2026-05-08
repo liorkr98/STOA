@@ -82,13 +82,18 @@ function resolveOutcome(action, lockPrice, targetPrice, currentPrice) {
   return "miss";
 }
 
-// ─── ACCURACY ENGINE v2 (inlined — no local imports in Deno) ──────────────
+// ─── ELO ACCURACY ENGINE v3 (inlined — no local imports in Deno) ─────────────
+// Modified Elo: K-factor weighted by alpha, boldness & timeframe
+// Based on TipRanks/Cornell research & Elo literature 2024
+// 1 perfect call moves rating by at most ~+20 Elo (never gives 100/100)
 
-const HOLD_SUCCESS_WINDOWS = { INTRADAY: 0.010, SHORT: 0.030, MEDIUM: 0.060, LONG: 0.100 };
-const NOISE_THRESHOLD      = { INTRADAY: 0.005, SHORT: 0.020, MEDIUM: 0.050, LONG: 0.100 };
-const SECTOR_MULTIPLIER    = { "Biotechnology":1.20,"Healthcare":1.10,"Energy":1.15,"Crypto":1.25,"Technology":1.05,"default":1.00 };
-const PLATFORM_ALPHA_MEAN  = 5;
-const PLATFORM_ALPHA_SD    = 15;
+const ELO_START   = 1000;
+const ELO_FLOOR   = 600;
+const ELO_CEILING = 1400;
+const K_BASE      = 16;
+
+const HOLD_WINDOWS_ELO = { INTRADAY: 0.010, SHORT: 0.030, MEDIUM: 0.060, LONG: 0.100 };
+const SECTOR_MULTIPLIER = { "Biotechnology":1.20,"Healthcare":1.10,"Energy":1.15,"Crypto":1.25,"Technology":1.05,"default":1.00 };
 
 function getBucket(daysHeld) {
   if (!daysHeld || daysHeld < 1) return "INTRADAY";
@@ -97,153 +102,83 @@ function getBucket(daysHeld) {
   return "LONG";
 }
 
-function normalCDF(z) {
-  return 1 / (1 + Math.exp(-1.7 * z));
-}
-
-function zTestMultiplier(wins, n) {
-  if (n < 1) return 0;
-  if (wins > n) wins = n;
-  const hitRate = wins / n;
-  const se  = Math.sqrt(0.25 / n);
-  const z   = (hitRate - 0.5) / se;
-  const phi = normalCDF(z);
-  return Math.max(0.20, Math.min(1.00, (phi - 0.50) / 0.45));
-}
-
-function isCallSuccessful(call) {
-  const { action, entryPrice, exitPrice, daysHeld } = call;
-  if (!entryPrice || !exitPrice) return false;
-  const rawReturn = (exitPrice - entryPrice) / entryPrice;
-  if (action === "BUY")  return exitPrice > entryPrice;
-  if (action === "SELL") return exitPrice < entryPrice;
-  if (action === "HOLD") {
-    const bucket = getBucket(daysHeld);
-    const window = HOLD_SUCCESS_WINDOWS[bucket];
-    return Math.abs(rawReturn) <= window;
-  }
-  return false;
-}
-
-function getDirectedReturn(call) {
-  const rawReturn = (call.exitPrice - call.entryPrice) / call.entryPrice;
-  if (call.action === "BUY")  return rawReturn;
-  if (call.action === "SELL") return -rawReturn;
-  if (call.action === "HOLD") {
-    const absMove  = Math.abs(rawReturn);
-    const absBench = Math.abs(call.benchmarkReturn || 0);
-    return absBench - absMove;
-  }
-  return rawReturn;
-}
-
 function annualizeReturn(rawReturn, daysHeld) {
   const days = Math.max(daysHeld || 1, 0.5);
   return (Math.pow(1 + rawReturn, 365 / days) - 1) * 100;
 }
 
-function alphaScore(annualizedAlphaPct) {
-  const z = (annualizedAlphaPct - PLATFORM_ALPHA_MEAN) / PLATFORM_ALPHA_SD;
-  return Math.min(100, Math.max(0, normalCDF(z) * 100));
+function eloToScore(rating) {
+  return Math.round(Math.max(0, Math.min(100, (rating - ELO_FLOOR) / 8)));
 }
 
-function getBoldnessWeight(call) {
-  if (call.action === "HOLD") return 1.0;
+function isCallSuccessful(call) {
+  const { entryPrice, exitPrice, daysHeld } = call;
+  if (!entryPrice || !exitPrice) return false;
+  const move = (exitPrice - entryPrice) / entryPrice;
+  const a = (call.action || "").toUpperCase();
+  if (a === "BUY"  || a === "LONG")  return move > 0;
+  if (a === "SELL" || a === "SHORT") return move < 0;
+  if (a === "HOLD") return Math.abs(move) <= HOLD_WINDOWS_ELO[getBucket(daysHeld)];
+  return false;
+}
+
+function getAlphaMultiplier(alpha) {
+  if (alpha >  30) return 2.5;
+  if (alpha >  15) return 2.0;
+  if (alpha >   5) return 1.5;
+  if (alpha >   0) return 1.0;
+  if (alpha > -15) return 0.7;
+  return 0.4;
+}
+
+function getBoldnessMultiplier(call) {
+  const a = (call.action || "").toUpperCase();
+  if (a === "HOLD") return 0.8;
   const moveSize = Math.abs((call.exitPrice - call.entryPrice) / call.entryPrice);
-  const threshold = NOISE_THRESHOLD[getBucket(call.daysHeld)];
-  return moveSize >= threshold ? 1.0 : 0.5;
+  const noise = { INTRADAY:0.005, SHORT:0.02, MEDIUM:0.05, LONG:0.10 }[getBucket(call.daysHeld)];
+  return moveSize >= noise * 2 ? 1.3 : 0.5;
 }
 
-function priceTargetScore(call) {
-  if (!call.targetPrice || call.targetPrice <= 0) return 50;
-  const delta = Math.abs(call.exitPrice - call.targetPrice) / call.targetPrice;
-  if (delta <= 0.05) return 100;
-  if (delta <= 0.10) return 70;
-  if (delta <= 0.20) return 40;
-  return 0;
+function getTimeframeMultiplier(daysHeld) {
+  return { LONG:1.2, MEDIUM:1.0, SHORT:0.9, INTRADAY:0.8 }[getBucket(daysHeld)];
 }
 
-function consistencyScore(calls) {
-  if (!calls || calls.length < 2) return 75;
-  const returns = calls.map(c => {
-    const r = (c.exitPrice - c.entryPrice) / c.entryPrice;
-    return c.action === "SELL" ? -r : r;
-  });
-  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
-  const variance = returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / returns.length;
-  const std = Math.sqrt(variance);
-  if (std < 0.0001) return 100;
-  const sharpe = mean / std;
-  return Math.min(100, Math.max(0, 50 + sharpe * 16.67));
-}
+function applyCallToRating(currentRating, call) {
+  const a = (call.action || "").toUpperCase();
+  const rawReturn = (call.exitPrice - call.entryPrice) / call.entryPrice;
+  const directed  = (a === "SELL" || a === "SHORT") ? -rawReturn : rawReturn;
+  const annReturn = annualizeReturn(directed, call.daysHeld);
+  const annBench  = annualizeReturn(call.benchmarkReturn || 0, call.daysHeld);
+  const alpha     = Math.min(500, Math.max(-500, annReturn - annBench));
 
-function scoreBucket(calls) {
-  if (!calls || calls.length === 0) return null;
-  const n = calls.length;
-  const wins = calls.filter(c => isCallSuccessful(c)).length;
-  const hitRate = wins / n;
-  const hitScore = hitRate * 100;
-
-  const alphas = calls.map(c => {
-    const directed = getDirectedReturn(c);
-    const ann = annualizeReturn(directed, c.daysHeld || 30);
-    return Math.min(500, Math.max(-500, ann));
-  });
-  const avgAlpha = alphas.reduce((s, a) => s + a, 0) / n;
-  const aScore = alphaScore(avgAlpha);
-
-  const withTarget = calls.filter(c => c.targetPrice && c.targetPrice > 0);
-  let ptScore = 50;
-  if (withTarget.length > 0) {
-    ptScore = withTarget.map(c => priceTargetScore(c)).reduce((s, v) => s + v, 0) / withTarget.length;
-  }
-
-  const cScore = consistencyScore(calls);
-  const avgBoldness = calls.map(c => getBoldnessWeight(c)).reduce((s, b) => s + b, 0) / n;
-
-  const rawScore = (aScore * 0.40 + hitScore * 0.25 + ptScore * 0.20 + cScore * 0.15) * avgBoldness;
-  const sigMult = zTestMultiplier(wins, n);
-  const bucketScore = Math.min(100, rawScore * sigMult);
-
-  return {
-    score:    Math.round(bucketScore),
-    calls:    n,
-    wins,
-    hitRate:  Math.round(hitRate * 100),
-    sigMult:  Math.round(sigMult * 100),
-  };
+  const K = K_BASE * getAlphaMultiplier(alpha) * getBoldnessMultiplier(call) * getTimeframeMultiplier(call.daysHeld);
+  const won = isCallSuccessful(call);
+  const delta = K * ((won ? 1 : 0) - 0.5);
+  const newRating = Math.max(ELO_FLOOR, Math.min(ELO_CEILING, currentRating + delta));
+  return { newRating, delta, alpha, K, won };
 }
 
 function calculateAccuracyScore(calls) {
   if (!calls || calls.length === 0) {
-    return { score: 0, tier: "Building", buckets: {}, totalCalls: 0, specialization: null, hitRateRaw: 0 };
+    return { score: 0, rating: ELO_START, tier: "Building", buckets: {}, totalCalls: 0, hitRateRaw: 0, specialization: null };
   }
 
-  const bucketedCalls = { INTRADAY: [], SHORT: [], MEDIUM: [], LONG: [] };
-  calls.forEach(c => bucketedCalls[getBucket(c.daysHeld || 30)].push(c));
+  const sorted = [...calls].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
+  let rating = ELO_START;
+  const bucketStats = { INTRADAY: [], SHORT: [], MEDIUM: [], LONG: [] };
 
-  const bucketScores = {};
-  Object.entries(bucketedCalls).forEach(([key, arr]) => {
-    if (arr.length > 0) bucketScores[key] = scoreBucket(arr);
+  sorted.forEach(call => {
+    const result = applyCallToRating(rating, call);
+    rating = result.newRating;
+    bucketStats[getBucket(call.daysHeld)].push({ won: result.won, alpha: result.alpha, delta: result.delta });
   });
 
-  const scoredBuckets = Object.values(bucketScores).filter(Boolean);
-  if (scoredBuckets.length === 0) {
-    return { score: 0, tier: "Building", buckets: {}, totalCalls: 0, specialization: null, hitRateRaw: 0 };
-  }
-
-  const totalWeight = scoredBuckets.reduce((s, b) => s + b.calls * b.sigMult / 100, 0);
-  const weightedScore = scoredBuckets.reduce((s, b) => {
-    const w = totalWeight > 0 ? (b.calls * b.sigMult / 100) / totalWeight : 1 / scoredBuckets.length;
-    return s + b.score * w;
-  }, 0);
-
   const sectorCounts = {};
-  calls.forEach(c => { const sec = c.sector || "default"; sectorCounts[sec] = (sectorCounts[sec] || 0) + 1; });
+  calls.forEach(c => { sectorCounts[c.sector || "default"] = (sectorCounts[c.sector || "default"] || 0) + 1; });
   const dominantSector = Object.entries(sectorCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "default";
   const sectorMult = SECTOR_MULTIPLIER[dominantSector] || 1.0;
-
-  const finalScore = Math.round(Math.min(100, Math.max(0, weightedScore * sectorMult)));
+  const adjustedRating = Math.min(ELO_CEILING, rating * (1 + (sectorMult - 1) * 0.5));
+  const finalScore = eloToScore(adjustedRating);
 
   const tier =
     finalScore >= 90 ? "Elite"   :
@@ -251,18 +186,36 @@ function calculateAccuracyScore(calls) {
     finalScore >= 60 ? "Strong"  :
     finalScore >= 45 ? "Average" : "Building";
 
-  const totalCalls = calls.length;
-  const totalWins  = calls.filter(c => isCallSuccessful(c)).length;
-  const hitRateRaw = totalCalls > 0 ? totalWins / totalCalls : 0;
+  const totalWins = calls.filter(c => isCallSuccessful(c)).length;
+  const hitRateRaw = calls.length > 0 ? totalWins / calls.length : 0;
 
-  const dominant = Object.entries(bucketedCalls).sort((a, b) => b[1].length - a[1].length)[0];
-  const pct = dominant ? dominant[1].length / totalCalls : 0;
+  const buckets = {};
+  Object.entries(bucketStats).forEach(([bucket, stats]) => {
+    if (stats.length === 0) return;
+    const bWins    = stats.filter(s => s.won).length;
+    const avgAlpha = stats.reduce((s, x) => s + x.alpha, 0) / stats.length;
+    const netDelta = stats.reduce((s, x) => s + x.delta, 0);
+    buckets[bucket] = {
+      score:         Math.round(Math.max(0, Math.min(100, eloToScore(ELO_START + netDelta)))),
+      calls:         stats.length,
+      wins:          bWins,
+      hitRate:       Math.round(bWins / stats.length * 100),
+      avgAlpha:      Math.round(avgAlpha),
+      netDelta:      Math.round(netDelta),
+      isSignificant: stats.length >= 5,
+      label: { INTRADAY:"Intraday", SHORT:"Short-Term", MEDIUM:"Medium-Term", LONG:"Long-Term" }[bucket],
+    };
+  });
+
+  const total = calls.length;
+  const dominant = Object.entries(bucketStats).sort((a, b) => b[1].length - a[1].length)[0];
+  const pct = dominant[1].length / total;
   const bucketLabels = { INTRADAY:"Intraday", SHORT:"Short-Term", MEDIUM:"Medium-Term", LONG:"Long-Term" };
   const specialization =
     pct >= 0.80 ? bucketLabels[dominant[0]] + " Specialist" :
     pct >= 0.60 ? bucketLabels[dominant[0]] + " Focused"    : "Generalist";
 
-  return { score: finalScore, tier, totalCalls, buckets: bucketScores, specialization, hitRateRaw };
+  return { score: finalScore, rating: Math.round(adjustedRating), tier, totalCalls: calls.length, hitRateRaw, buckets, specialization };
 }
 
 // ─── MAIN HANDLER ────────────────────────────────────────────────────────────
@@ -405,7 +358,8 @@ Deno.serve(async (req) => {
       const users = await base44.asServiceRole.entities.User.filter({ email }, "-created_date", 1);
       if (users.length > 0) {
         await base44.asServiceRole.entities.User.update(users[0].id, {
-          accuracy_score:     parseFloat(result.score.toFixed(1)),
+          accuracy_score:     result.score,
+          accuracy_rating:    result.rating,
           accuracy_tier:      result.tier,
           hit_rate:           parseFloat((result.hitRateRaw * 100).toFixed(1)),
           total_calls:        result.totalCalls,

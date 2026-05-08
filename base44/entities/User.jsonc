@@ -14,7 +14,40 @@
     "accuracy_score": {
       "type": "number",
       "default": 0,
-      "description": "Weighted accuracy score 0-100"
+      "description": "Display score 0-100 derived from Elo rating"
+    },
+    "accuracy_rating": {
+      "type": "number",
+      "default": 1000,
+      "description": "Raw Elo rating 600-1400"
+    },
+    "accuracy_tier": {
+      "type": "string",
+      "default": "Building",
+      "description": "Elite / Expert / Strong / Average / Building"
+    },
+    "hit_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Percentage of successful calls"
+    },
+    "total_calls": {
+      "type": "number",
+      "default": 0,
+      "description": "Total resolved predictions"
+    },
+    "accuracy_breakdown": {
+      "type": "string",
+      "description": "JSON string of per-bucket Elo stats"
+    },
+    "specialization": {
+      "type": "string",
+      "description": "e.g. Long-Term Specialist, Generalist"
+    },
+    "yearly_yield": {
+      "type": "number",
+      "default": 0,
+      "description": "Average annualized directed return across closed calls"
     },
     "ai_credits_balance": {
       "type": "number",
@@ -56,11 +89,6 @@
     },
     "website": {
       "type": "string"
-    },
-    "yearly_yield": {
-      "type": "number",
-      "default": 0,
-      "description": "Annualized yield from locked predictions"
     }
   },
   "required": []

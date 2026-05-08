@@ -135,9 +135,9 @@ export default function AnalystDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { key: "predictions", label: "Prediction Accuracy", value: predictions.length > 0 ? `${accuracyScore}%` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
+          { key: "predictions", label: "Elo Score", value: predictions.length > 0 ? `${accuracyScore}` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: currentUser.accuracy_rating ? `Elo ${currentUser.accuracy_rating} · ${currentUser.accuracy_tier || "Building"} · ${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved` : `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
           { key: "points", label: "AI Credits", value: (currentUser.ai_credits_balance ?? 100).toLocaleString(), icon: Zap, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", sub: "Available balance" },
-          { key: "yield", label: "Avg Prediction Yield", value: currentUser.yearly_yield ? `+${currentUser.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: "text-primary", bg: "bg-primary/5 border-primary/20", sub: predictions.length > 0 ? "From resolved predictions" : "No resolved predictions yet" },
+          { key: "yield", label: "Avg Prediction Yield", value: currentUser.yearly_yield != null ? `${currentUser.yearly_yield >= 0 ? "+" : ""}${currentUser.yearly_yield.toFixed(1)}%` : "—", icon: TrendingUp, color: currentUser.yearly_yield >= 0 ? "text-gain" : "text-loss", bg: "bg-primary/5 border-primary/20", sub: predictions.length > 0 ? "From resolved predictions" : "No resolved predictions yet" },
           { key: "followers", label: "Followers", value: analyst.followers.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", sub: "Total followers" },
         ].map(stat => {
           const Icon = stat.icon;
