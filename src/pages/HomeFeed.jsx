@@ -9,6 +9,7 @@ import { TrendingUp, SlidersHorizontal, X, Flame, Clock, Tag, Eye } from "lucide
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import LeftSidebar from "@/components/feed/LeftSidebar";
 
 const FEED_TABS = [
   { id: "latest", label: "Latest", icon: Clock },
@@ -60,6 +61,11 @@ export default function HomeFeed() {
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
       <div className="flex gap-6">
+        {/* Left Sidebar */}
+        <aside className="hidden lg:flex flex-col gap-4 w-56 flex-shrink-0">
+          <LeftSidebar />
+        </aside>
+
         {/* Main Feed */}
         <div className="flex-1 min-w-0">
           {/* Feed tabs */}
@@ -141,7 +147,7 @@ export default function HomeFeed() {
         </div>
 
         {/* Right Sidebar */}
-        <aside className="hidden lg:flex flex-col gap-4 w-72 flex-shrink-0">
+        <aside className="hidden lg:flex flex-col gap-4 w-64 flex-shrink-0">
           <Leaderboard />
           <TrendingPanel />
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">

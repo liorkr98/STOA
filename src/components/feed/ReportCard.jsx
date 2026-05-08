@@ -26,6 +26,7 @@ function AccuracyBadge({ accuracy }) {
 export default function ReportCard({ report, compact = false }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(report.likes || 0);
+  const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
 
   const authorName = report.author_name || report.author?.name || report.created_by?.split("@")[0] || "Analyst";
@@ -114,7 +115,19 @@ export default function ReportCard({ report, compact = false }) {
         {report.title}
       </h3>
       {!compact && report.excerpt && (
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{report.excerpt}</p>
+        <div className="mb-3">
+          <p className={`text-sm text-muted-foreground ${expanded ? "" : "line-clamp-3"}`}>
+            {report.excerpt}
+          </p>
+          {report.excerpt.length > 180 && (
+            <button
+              onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
+              className="text-xs text-primary font-semibold hover:underline mt-1"
+            >
+              {expanded ? "Show less" : "Read more →"}
+            </button>
+          )}
+        </div>
       )}
 
       {(() => {
