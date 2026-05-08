@@ -387,6 +387,21 @@ Deno.serve(async (req) => {
 
       const result = calculateAccuracyScore(calls);
 
+      // Compute yearly_yield: average annualized return across all closed calls (directed)
+      let yearly_yield = 0;
+      if (calls.length > 0) {
+        const annualizedReturns = calls.map(c => {
+          const raw = (c.exitPrice - c.entryPrice) / c.entryPrice;
+          let directed = raw;
+          if (c.action === "SELL") directed = -raw;
+          if (c.action === "HOLD") directed = Math.abs(c.benchmarkReturn || 0) - Math.abs(raw);
+          const days = Math.max(c.daysHeld || 1, 0.5);
+          return (Math.pow(1 + directed, 365 / days) - 1) * 100;
+        });
+        const avg = annualizedReturns.reduce((s, v) => s + v, 0) / annualizedReturns.length;
+        yearly_yield = parseFloat(Math.min(999, Math.max(-100, avg)).toFixed(1));
+      }
+
       const users = await base44.asServiceRole.entities.User.filter({ email }, "-created_date", 1);
       if (users.length > 0) {
         await base44.asServiceRole.entities.User.update(users[0].id, {
@@ -396,6 +411,7 @@ Deno.serve(async (req) => {
           total_calls:        result.totalCalls,
           specialization:     result.specialization,
           accuracy_breakdown: JSON.stringify(result.buckets),
+          yearly_yield,
         });
       }
     }

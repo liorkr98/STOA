@@ -120,15 +120,19 @@ export default function ReportCard({ report, compact = false }) {
       </h3>
       {!compact && report.excerpt && (
         <div className="mb-3">
-          <p className={`text-sm text-muted-foreground ${expanded ? "" : "line-clamp-3"}`}>
+          <p className={`text-sm text-muted-foreground leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
             {report.excerpt}
           </p>
-          {report.excerpt.length > 180 && (
+          {report.excerpt.length > 120 && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="text-xs text-primary font-semibold hover:underline mt-1"
+              className="inline-flex items-center gap-1 text-xs text-primary/70 hover:text-primary font-medium mt-1.5 transition-colors"
             >
-              {expanded ? "Show less" : "Read more →"}
+              {expanded ? (
+                <><span>Show less</span><span className="text-[10px]">↑</span></>
+              ) : (
+                <><span>Read more</span><span className="text-[10px]">↓</span></>
+              )}
             </button>
           )}
         </div>

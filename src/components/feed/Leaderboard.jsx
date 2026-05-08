@@ -60,7 +60,7 @@ export default function Leaderboard() {
   // Sort by period (mock: shuffle slightly for non-all-time)
   const sorted = [...filtered].sort((a, b) => {
     if (period === "This Week") return (b.reports || 0) - (a.reports || 0);
-    if (period === "This Month") return (b.yearlyYield || 0) - (a.yearlyYield || 0);
+    if (period === "This Month") return (b.yearly_yield || 0) - (a.yearly_yield || 0);
     return (b.accuracy_score || 0) - (a.accuracy_score || 0);
   });
 
@@ -147,10 +147,12 @@ export default function Leaderboard() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-0.5 text-[10px] text-gain font-semibold flex-shrink-0">
-                  <TrendingUp className="w-2.5 h-2.5" />
-                  +{(analyst.yearlyYield || 0).toFixed(1)}%
-                </div>
+                {(analyst.yearly_yield != null && analyst.yearly_yield !== 0) && (
+                  <div className={`flex items-center gap-0.5 text-[10px] font-semibold flex-shrink-0 ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
+                    <TrendingUp className="w-2.5 h-2.5" />
+                    {analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
+                  </div>
+                )}
               </button>
             );
           })}
