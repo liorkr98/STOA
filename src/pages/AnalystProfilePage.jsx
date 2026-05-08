@@ -38,6 +38,8 @@ export default function AnalystProfilePage() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [following, setFollowing] = useState(false);
   const [subscriptionPlan, setSubscriptionPlan] = useState(null);
+  const FOLLOWING_KEY = "stoa_following";
+  const SUBS_KEY = "stoa_subscriptions";
   const [showSubModal, setShowSubModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [showYieldModal, setShowYieldModal] = useState(false);
@@ -52,8 +54,15 @@ export default function AnalystProfilePage() {
         if (!analystId || analystId === me?.id) {
           userData = me;
         } else {
-          const users = await base44.entities.User.filter({ id: analystId });
-          userData = users?.[0] || null;
+          // Try lookup by id first, then by email (created_by field)
+          const byId = await base44.entities.User.filter({ id: analystId }).catch(() => []);
+          if (byId?.[0]) {
+            userData = byId[0];
+          } else {
+            // Maybe analystId is actually an email address
+            const byEmail = await base44.entities.User.filter({ email: analystId }).catch(() => []);
+            userData = byEmail?.[0] || null;
+          }
         }
 
         if (userData) {
@@ -63,6 +72,13 @@ export default function AnalystProfilePage() {
             description: `${userData.accuracy_score || 0}% prediction accuracy. Follow ${userData.full_name || "this analyst"} on STOA for verified financial research.`,
             image: userData.picture,
           });
+          // Load persisted follow/sub state
+          const storedFollowing = JSON.parse(localStorage.getItem("stoa_following") || "[]");
+          const storedSubs = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
+          setFollowing(storedFollowing.some(a => a.id === userData.id));
+          const existingSub = storedSubs.find(a => a.id === userData.id);
+          if (existingSub?.plan) setSubscriptionPlan(existingSub.plan);
+
           const reports = await base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 20).catch(() => []);
           setMyReports(reports || []);
           const twitData = await base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []);
@@ -136,7 +152,18 @@ export default function AnalystProfilePage() {
               ) : (
                 <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">Subscribe</Button>
               )}
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => setFollowing(!following)}>
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                const stored = JSON.parse(localStorage.getItem("stoa_following") || "[]");
+                const analystEntry = { id: analyst.id, name: displayName, avatar: analyst.picture, accuracy: analyst.accuracy_score };
+                let updated;
+                if (following) {
+                  updated = stored.filter(a => a.id !== analyst.id);
+                } else {
+                  updated = [...stored.filter(a => a.id !== analyst.id), analystEntry];
+                }
+                localStorage.setItem("stoa_following", JSON.stringify(updated));
+                setFollowing(!following);
+              }}>
                 {following ? "Following ✓" : <><UserPlus className="w-3 h-3 mr-1" />Follow</>}
               </Button>
             </div>
@@ -270,7 +297,15 @@ export default function AnalystProfilePage() {
             <p className="text-sm text-muted-foreground mb-4">Get full access to reports and predictions.</p>
             <div className="space-y-3 mb-4">
               {SUB_PLANS.map(plan => (
-                <button key={plan.id} onClick={() => { setSubscriptionPlan(plan); setShowSubModal(false); }} className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all">
+                <button key={plan.id} onClick={() => {
+                  setSubscriptionPlan(plan);
+                  setShowSubModal(false);
+                  // Persist subscription
+                  const stored = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
+                  const entry = { id: analyst.id, name: displayName, avatar: analyst.picture, accuracy: analyst.accuracy_score, plan };
+                  const updated = [...stored.filter(a => a.id !== analyst.id), entry];
+                  localStorage.setItem("stoa_subscriptions", JSON.stringify(updated));
+                }} className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-sm">{plan.label}</span>
                     <span className="font-bold text-primary">${plan.price.toFixed(2)}/mo</span>

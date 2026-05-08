@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Lock, BadgeCheck, EyeOff } from "lucide-react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
@@ -61,7 +61,11 @@ export default function ReportCard({ report, compact = false }) {
     >
       {/* Top row: author + premium badge */}
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2.5">
+        <Link
+          to={`/analyst?id=${report.created_by || report.author?.id || ""}`}
+          onClick={e => e.stopPropagation()}
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+        >
           <div className="w-9 h-9 rounded-full border border-border bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 overflow-hidden">
             {authorAvatar
               ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
@@ -72,7 +76,7 @@ export default function ReportCard({ report, compact = false }) {
             <span className="font-semibold text-sm text-foreground block">{authorName}</span>
             <AccuracyBadge accuracy={authorAccuracy} />
           </div>
-        </div>
+        </Link>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isPremium && (
             <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">

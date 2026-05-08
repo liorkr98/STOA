@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
-import { MOCK_ANALYSTS } from "@/lib/mockData";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const SECTORS = [
@@ -12,16 +11,11 @@ const SECTORS = [
 export default function OnboardingModal({ onComplete }) {
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState([]);
-  const [followed, setFollowed] = useState([]);
   const navigate = useNavigate();
 
   const toggleInterest = (s) => setInterests(prev =>
     prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
   );
-
-  const recommended = interests.length > 0
-    ? MOCK_ANALYSTS.filter(a => a.specialties?.some(sp => interests.includes(sp))).slice(0, 3)
-    : MOCK_ANALYSTS.slice(0, 3);
 
   const finish = () => {
     localStorage.setItem("stoa_onboarded", "true");
@@ -29,7 +23,7 @@ export default function OnboardingModal({ onComplete }) {
     onComplete();
   };
 
-  const DOTS = [1, 2, 3];
+  const DOTS = [1, 2];
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -95,49 +89,14 @@ export default function OnboardingModal({ onComplete }) {
                 </button>
               ))}
             </div>
-            <Button className="w-full" onClick={() => setStep(3)} disabled={interests.length === 0}>
-              Continue <ChevronRight className="w-4 h-4 ml-1" />
+            <Button className="w-full" onClick={finish} disabled={interests.length === 0}>
+              Go to Feed <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
-            <button onClick={() => { setInterests([]); setStep(3); }} className="w-full text-xs text-muted-foreground hover:text-foreground mt-2 py-1">Skip</button>
+            <button onClick={finish} className="w-full text-xs text-muted-foreground hover:text-foreground mt-2 py-1">Skip</button>
           </div>
         )}
 
-        {/* Step 3 */}
-        {step === 3 && (
-          <div className="px-6 pb-6">
-            <div className="text-center mb-4">
-              <div className="w-12 h-12 rounded-full bg-gain/10 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle2 className="w-6 h-6 text-gain" />
-              </div>
-              <h2 className="text-lg font-bold">You're all set!</h2>
-              <p className="text-xs text-muted-foreground">Suggested analysts based on your interests</p>
-            </div>
-            <div className="space-y-3 mb-5">
-              {recommended.map(a => (
-                <div key={a.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
-                  <img src={a.avatar} alt={a.name} className="w-10 h-10 rounded-full" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{a.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{a.specialties?.[0]} · {a.accuracy}% accuracy</p>
-                  </div>
-                  <button
-                    onClick={() => setFollowed(prev => prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id])}
-                    className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                      followed.includes(a.id)
-                        ? "bg-primary/10 text-primary border-primary/30"
-                        : "border-border text-muted-foreground hover:border-primary/30"
-                    }`}
-                  >
-                    {followed.includes(a.id) ? "Following ✓" : "Follow"}
-                  </button>
-                </div>
-              ))}
-            </div>
-            <Button className="w-full" onClick={finish}>
-              Go to Feed
-            </Button>
-          </div>
-        )}
+
       </div>
     </div>
   );

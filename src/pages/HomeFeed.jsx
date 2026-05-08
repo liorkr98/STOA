@@ -62,8 +62,10 @@ export default function HomeFeed() {
       <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
       <div className="flex gap-6">
         {/* Left Sidebar */}
-        <aside className="hidden lg:flex flex-col gap-4 w-56 flex-shrink-0">
-          <LeftSidebar />
+        <aside className="hidden lg:block w-56 flex-shrink-0">
+          <div className="sticky top-6">
+            <LeftSidebar />
+          </div>
         </aside>
 
         {/* Main Feed */}
