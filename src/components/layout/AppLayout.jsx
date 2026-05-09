@@ -121,7 +121,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      <AppFooter />
+      {location.pathname !== "/" && <AppFooter />}
     </div>
   );
 }
