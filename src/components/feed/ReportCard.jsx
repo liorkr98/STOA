@@ -496,6 +496,9 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           display:'flex', alignItems:'center', gap:12,
           paddingTop:12, borderTop:'1px solid #f1f5f9', marginTop:4,
         }}>
+          <span style={{ display:'flex', alignItems:'center', gap:4, fontSize:13, fontWeight:600, color:'#94a3b8', pointerEvents:'none' }}>
+            👁 {report.views || 0}
+          </span>
           <button
             onClick={handleLike}
             style={{

@@ -42,6 +42,7 @@ import ScoringPage from '@/pages/ScoringPage';
 import AdminUsersPage from '@/pages/AdminUsersPage';
 import CreatorAnalyticsPage from '@/pages/CreatorAnalyticsPage';
 
+
 // Root route: landing for logged-out users, 24h splash for logged-in, else /feed
 function RootRoute() {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings } = useAuth();
@@ -125,6 +126,7 @@ const AuthenticatedApp = () => {
         <Route path="/subscribers" element={isAuthenticated ? <SubscribersPage /> : <SignIn />} />
         <Route path="/admin/users" element={isAuthenticated ? <AdminUsersPage /> : <SignIn />} />
         <Route path="/analytics/creator" element={isAuthenticated ? <CreatorAnalyticsPage /> : <SignIn />} />
+        <Route path="/creator-analytics" element={isAuthenticated ? <CreatorAnalyticsPage /> : <SignIn />} />
         <Route path="/stocks" element={<StocksPage />} />
         <Route path="/pay" element={<PaymentPage />} />
       </Route>

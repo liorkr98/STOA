@@ -204,6 +204,7 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [authorUser, setAuthorUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [livePrice, setLivePrice] = useState(null);
@@ -219,6 +220,7 @@ export default function ReportView() {
         if (!data) { setError("Report not found."); return; }
         setReport(data);
         setLikeCount(data.likes || 0);
+        setViewCount(data.views || 0);
         setLiked(localStorage.getItem(`liked_${reportId}`) === 'true');
         base44.analytics.track({ eventName: "report_viewed", properties: { report_id: reportId, is_premium: data.is_premium || false } });
         if (data.content_blocks) {
@@ -238,6 +240,24 @@ export default function ReportView() {
       .catch(() => setError("Failed to load report."))
       .finally(() => setLoading(false));
   }, [reportId]);
+
+  // Track view — runs once per session, skips if viewer is the author
+  useEffect(() => {
+    if (!report || !reportId) return;
+    const viewedKey = `viewed_${reportId}`;
+    if (sessionStorage.getItem(viewedKey)) return;
+    if (currentUser?.email && report.created_by === currentUser.email) return; // skip own views
+    sessionStorage.setItem(viewedKey, '1');
+    const newViews = (report.views || 0) + 1;
+    setViewCount(newViews);
+    base44.entities.ReportView.create({
+      report_id: report.id,
+      analyst_email: report.created_by,
+      viewer_email: currentUser?.email || null,
+      viewed_at: new Date().toISOString(),
+    }).catch(() => {});
+    base44.entities.Report.update(report.id, { views: newViews }).catch(() => {});
+  }, [report?.id, currentUser?.email]);
 
   // Fetch live price for prediction badge
   useEffect(() => {
@@ -343,6 +363,9 @@ export default function ReportView() {
           <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy · h:mm a")}</span>
         )}
         <div className="flex items-center gap-3 ml-auto">
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            👁 {viewCount}
+          </span>
           <button
             onClick={async () => {
               const newLiked = !liked;

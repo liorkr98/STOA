@@ -116,6 +116,11 @@
       "type": "number",
       "default": 0
     },
+    "views": {
+      "type": "number",
+      "default": 0,
+      "description": "Total view count"
+    },
     "status": {
       "type": "string",
       "enum": [

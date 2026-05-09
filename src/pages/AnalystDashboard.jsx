@@ -273,7 +273,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link to="/editor"><Button size="sm" className="text-xs gap-1"><span>+</span> Write Report</Button></Link>
-            <Link to="/analytics/creator"><Button variant="outline" size="sm" className="text-xs gap-1"><BarChart3 className="w-3.5 h-3.5" /> Analytics</Button></Link>
+            <Link to="/creator-analytics"><Button variant="outline" size="sm" className="text-xs gap-1"><BarChart3 className="w-3.5 h-3.5" /> Analytics</Button></Link>
             <Link to="/edit-profile"><Button variant="outline" size="sm" className="text-xs">Edit Profile</Button></Link>
             <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setTab("messages")} style={{ scrollMarginTop: 100 }}>
               <MessageCircle className="w-3.5 h-3.5" /> Messages
@@ -392,7 +392,9 @@ export default function AnalystDashboard() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{format(new Date(report.created_date), "MMM d, yyyy")}</span>
                       <span>·</span>
-                      <span>{report.likes || 0} likes</span>
+                      <span>👁 {report.views || 0}</span>
+                      <span>·</span>
+                      <span>❤️ {report.likes || 0}</span>
                       {report.prediction_outcome && report.prediction_outcome !== "pending" && (
                         <span className={`capitalize font-semibold ${report.prediction_outcome === "hit" ? "text-gain" : report.prediction_outcome === "miss" ? "text-loss" : "text-amber-600"}`}>
                           {report.prediction_outcome}
