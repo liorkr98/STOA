@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -40,12 +40,32 @@ import StocksPage from '@/pages/StocksPage';
 import SubscribersPage from '@/pages/SubscribersPage';
 import ScoringPage from '@/pages/ScoringPage';
 
+// Root route: landing for logged-out users, 24h splash for logged-in, else /feed
+function RootRoute() {
+  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings } = useAuth();
+  const isLoading = isLoadingAuth || isLoadingPublicSettings;
+
+  if (isLoading) return <LandingPage />;
+
+  if (!isAuthenticated) return <LandingPage />;
+
+  const lastVisit = localStorage.getItem('stoa_last_landing_visit');
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const shouldShowLanding = !lastVisit || parseInt(lastVisit) < oneDayAgo;
+
+  if (shouldShowLanding) {
+    localStorage.setItem('stoa_last_landing_visit', Date.now().toString());
+    return <LandingPage />;
+  }
+
+  return <Navigate to="/feed" replace />;
+}
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
   const isLoading = isLoadingPublicSettings || isLoadingAuth;
   const isRoot = window.location.pathname === "/";
 
-  // While auth is loading: show LandingPage on "/" immediately, spinner elsewhere
   if (isLoading) {
     if (isRoot) return <LandingPage />;
     return (
@@ -58,7 +78,6 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     else if (authError.type === 'auth_required') {
-      // On the root path, show landing page instead of redirecting to login
       if (isRoot) return <LandingPage />;
       navigateToLogin();
       return null;
@@ -69,13 +88,10 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/signin" element={<SignIn />} />
 
-      {/* Landing — always shown on "/" for unauthenticated users (also shown while loading above) */}
-      {!isAuthenticated && <Route path="/" element={<LandingPage />} />}
-
       {/* Routes with AppLayout */}
       <Route element={<AppLayout />}>
-        {/* Public routes */}
-        <Route path="/" element={<HomeFeed />} />
+        {/* Root — handles landing/feed split */}
+        <Route path="/" element={<RootRoute />} />
         <Route path="/feed" element={<HomeFeed />} />
         <Route path="/report" element={<ReportView />} />
         <Route path="/analyst/:username" element={<AnalystProfilePage />} />

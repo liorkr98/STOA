@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { setMeta, injectJsonLd } from "@/lib/seo";
 import { BarChart2, TrendingUp, TrendingDown, Check, ArrowRight, ChevronDown, Shield, Bell, Lock, Star, Zap, Users, Target, DollarSign } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 
 const go = () => base44.auth.redirectToLogin("/");
 
 // ── Navbar ──────────────────────────────────────────────────────────────────
-function Navbar({ scrolled }) {
+function Navbar({ scrolled, isAuthenticated }) {
+  const navigate = useNavigate();
+  const enterPlatform = () => {
+    localStorage.setItem('stoa_last_landing_visit', Date.now().toString());
+    navigate('/feed');
+  };
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
@@ -34,20 +40,34 @@ function Navbar({ scrolled }) {
         </div>
         {/* Right CTAs */}
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={go} style={{ fontSize: 14, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "8px 16px", transition: "color 0.2s" }}
-            onMouseEnter={e => e.target.style.color = "#f9fafb"}
-            onMouseLeave={e => e.target.style.color = "#9ca3af"}>
-            Log In
-          </button>
-          <button onClick={go} style={{
-            fontSize: 14, fontWeight: 700, color: "#fff", background: "#3b82f6",
-            border: "none", cursor: "pointer", padding: "9px 20px", borderRadius: 8,
-            transition: "background 0.2s",
-          }}
-            onMouseEnter={e => e.target.style.background = "#2563eb"}
-            onMouseLeave={e => e.target.style.background = "#3b82f6"}>
-            Get Started Free
-          </button>
+          {isAuthenticated ? (
+            <button onClick={enterPlatform} style={{
+              fontSize: 14, fontWeight: 700, color: "#fff", background: "#22c55e",
+              border: "none", cursor: "pointer", padding: "9px 20px", borderRadius: 8,
+              transition: "background 0.2s",
+            }}
+              onMouseEnter={e => e.target.style.background = "#16a34a"}
+              onMouseLeave={e => e.target.style.background = "#22c55e"}>
+              Go to Feed →
+            </button>
+          ) : (
+            <>
+              <button onClick={go} style={{ fontSize: 14, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "8px 16px", transition: "color 0.2s" }}
+                onMouseEnter={e => e.target.style.color = "#f9fafb"}
+                onMouseLeave={e => e.target.style.color = "#9ca3af"}>
+                Log In
+              </button>
+              <button onClick={go} style={{
+                fontSize: 14, fontWeight: 700, color: "#fff", background: "#3b82f6",
+                border: "none", cursor: "pointer", padding: "9px 20px", borderRadius: 8,
+                transition: "background 0.2s",
+              }}
+                onMouseEnter={e => e.target.style.background = "#2563eb"}
+                onMouseLeave={e => e.target.style.background = "#3b82f6"}>
+                Get Started Free
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>
@@ -55,7 +75,14 @@ function Navbar({ scrolled }) {
 }
 
 // ── Hero ────────────────────────────────────────────────────────────────────
-function Hero() {
+function Hero({ isAuthenticated }) {
+  const navigate = useNavigate();
+
+  const enterPlatform = () => {
+    localStorage.setItem('stoa_last_landing_visit', Date.now().toString());
+    navigate('/feed');
+  };
+
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
@@ -90,17 +117,30 @@ function Hero() {
         </p>
 
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", marginBottom: 40 }}>
-          <button onClick={go} style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 16,
-            padding: "14px 32px", borderRadius: 10, border: "none", cursor: "pointer",
-            transition: "all 0.2s", boxShadow: "0 4px 24px rgba(59,130,246,0.35)",
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#2563eb"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#3b82f6"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            Get Started Free <ArrowRight size={18} />
-          </button>
-          <button onClick={go} style={{
+          {isAuthenticated ? (
+            <button onClick={enterPlatform} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "#22c55e", color: "#fff", fontWeight: 700, fontSize: 16,
+              padding: "14px 32px", borderRadius: 10, border: "none", cursor: "pointer",
+              transition: "all 0.2s", boxShadow: "0 4px 24px rgba(34,197,94,0.35)",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#22c55e"; e.currentTarget.style.transform = "translateY(0)"; }}>
+              Enter Platform <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button onClick={go} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 16,
+              padding: "14px 32px", borderRadius: 10, border: "none", cursor: "pointer",
+              transition: "all 0.2s", boxShadow: "0 4px 24px rgba(59,130,246,0.35)",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#2563eb"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#3b82f6"; e.currentTarget.style.transform = "translateY(0)"; }}>
+              Get Started Free <ArrowRight size={18} />
+            </button>
+          )}
+          <button onClick={isAuthenticated ? enterPlatform : go} style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             background: "transparent", color: "#f9fafb", fontWeight: 600, fontSize: 16,
             padding: "14px 32px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer",
@@ -108,7 +148,7 @@ function Hero() {
           }}
             onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)"}
             onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"}>
-            View Top Analysts
+            {isAuthenticated ? "Go to My Feed →" : "View Top Analysts"}
           </button>
         </div>
 
@@ -525,6 +565,7 @@ function Footer() {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const { isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [liveStats, setLiveStats] = useState(null);
   const [analysts, setAnalysts] = useState([]);
@@ -571,8 +612,8 @@ export default function LandingPage() {
 
   return (
     <div style={{ background: "#0a0f1e", color: "#f9fafb", fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
-      <Navbar scrolled={scrolled} />
-      <Hero />
+      <Navbar scrolled={scrolled} isAuthenticated={isAuthenticated} />
+      <Hero isAuthenticated={isAuthenticated} />
       <StatsBar liveStats={liveStats} />
       <ForInvestors />
       <HowItWorks />
