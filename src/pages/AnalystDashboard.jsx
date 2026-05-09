@@ -6,7 +6,6 @@ import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp,
 import { format } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
-import InsightsPanel from "@/components/dashboard/InsightsPanel";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import { useNavigate, Link } from "react-router-dom";
 import { calculateAccuracyScore } from "@/lib/accuracyScore";
@@ -24,12 +23,7 @@ function DashboardDMs({ subscriptions, currentUser }) {
 
   const openDM = (sub) => {
     setSelectedAnalyst(sub);
-    setMessages([{
-      id: "welcome",
-      from: "analyst",
-      text: `Hi! I'm ${sub.analyst_name}. Feel free to ask me anything about my analysis.`,
-      time: "Welcome",
-    }]);
+    setMessages([]);
   };
 
   useEffect(() => {
@@ -41,15 +35,19 @@ function DashboardDMs({ subscriptions, currentUser }) {
     setSending(true);
     const text = input.trim();
     setInput("");
-    setMessages(prev => [...prev, { id: Date.now(), from: "me", text, time: "just now" }]);
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1, from: "analyst",
-        text: "Thanks for your message! I'll get back to you soon.",
-        time: "just now",
-      }]);
-      setSending(false);
-    }, 1200);
+    const newMsg = { id: Date.now(), from: "me", text, time: "just now" };
+    setMessages(prev => [...prev, newMsg]);
+    // Send notification to the analyst
+    try {
+      await base44.entities.Notification.create({
+        user_email: selectedAnalyst.analyst_email,
+        type: "report",
+        title: `New message from ${currentUser.full_name || currentUser.email?.split("@")[0]}`,
+        body: text,
+        link: "/dm",
+      });
+    } catch {}
+    setSending(false);
   };
 
   if (subscriptions.length === 0) {
@@ -249,9 +247,12 @@ export default function AnalystDashboard() {
               <span>{analyst.followers.toLocaleString()} Followers</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link to="/editor"><Button size="sm" className="text-xs gap-1"><span>+</span> Write Report</Button></Link>
             <Link to="/edit-profile"><Button variant="outline" size="sm" className="text-xs">Edit Profile</Button></Link>
+            <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setTab("messages")} style={{ scrollMarginTop: 100 }}>
+              <MessageCircle className="w-3.5 h-3.5" /> Messages
+            </Button>
           </div>
         </div>
       </div>
@@ -335,8 +336,8 @@ export default function AnalystDashboard() {
             { id: "boost", label: "Boost" },
             { id: "profile-boost", label: "Profile Boost" },
             { id: "subscriptions", label: "Subscribed" },
-            { id: "messages", label: "💬 Messages" },
-          ].map(t => (
+            { id: "messages", label: "💬 Messages", hidden: true },
+          ].filter(t => !t.hidden).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${tab === t.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"}`}>
               {t.label}
@@ -475,11 +476,6 @@ export default function AnalystDashboard() {
 
       {/* Watchlist */}
       <WatchlistPanel reports={myReports} />
-
-      {/* Accuracy Trend */}
-      <div className="mb-4">
-        <InsightsPanel accuracyScore={parseFloat(accuracyScore) || 0} reports={publishedReports} />
-      </div>
 
       {/* Revenue & Twits */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
