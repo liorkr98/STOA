@@ -3,12 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
-import { Lock, MessageCircle, Heart, Share2 } from "lucide-react";
+import { Lock, MessageCircle, Heart, Share2, Bookmark } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
 import { isExtendedHours } from "@/lib/marketStatus";
 import { isReportLiked, setReportLiked } from "@/lib/likeUtils";
+import { isReportSaved, setReportSaved } from "@/lib/bookmarkUtils";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
 import { getAnalystSlug } from "@/lib/analystSlug";
@@ -222,6 +223,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const { user, isAuthenticated } = useAuth();
   const [liked, setLiked] = useState(() => isReportLiked(report.id));
   const [likeCount, setLikeCount] = useState(report.likes || 0);
+  const [saved, setSaved] = useState(() => isReportSaved(report.id));
   const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
 
@@ -270,6 +272,25 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
       setReportLiked(report.id, true);
       await base44.entities.Report.update(report.id, { likes: newCount });
     }
+  };
+
+  const handleSave = async (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated || !user) return;
+    try {
+      if (saved) {
+        const savedRecords = await base44.entities.SavedReport.filter({ report_id: report.id, user_email: user.email });
+        for (const rec of savedRecords) {
+          await base44.entities.SavedReport.delete(rec.id);
+        }
+        setSaved(false);
+        setReportSaved(report.id, false);
+      } else {
+        await base44.entities.SavedReport.create({ report_id: report.id, user_email: user.email });
+        setSaved(true);
+        setReportSaved(report.id, true);
+      }
+    } catch {}
   };
 
   const slug = getAnalystSlug({ full_name: authorName, email: authorEmail });
@@ -512,6 +533,18 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           {isPremium && report.price && (
             <span style={{ fontSize:12, fontWeight:700, color:'#d97706' }}>${report.price}</span>
           )}
+
+          <button
+            onClick={handleSave}
+            style={{
+              display:'flex', alignItems:'center', gap:5,
+              fontSize:13, fontWeight:600, background:'none', border:'none',
+              color: saved ? '#f59e0b' : '#94a3b8', cursor:'pointer', transition:'color 150ms ease',
+            }}
+          >
+            <Bookmark size={15} fill={saved ? '#f59e0b' : 'none'} color={saved ? '#f59e0b' : '#94a3b8'} />
+            Save
+          </button>
 
           <span onClick={e => e.stopPropagation()} style={{ marginLeft:'auto' }}>
             <ShareMenu title={report.title} reportId={report.id} />

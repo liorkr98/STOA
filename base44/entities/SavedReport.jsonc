@@ -1,0 +1,29 @@
+{
+  "name": "SavedReport",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "ID of the saved report"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who saved"
+    }
+  },
+  "required": [
+    "report_id",
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

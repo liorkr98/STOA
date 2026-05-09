@@ -41,6 +41,7 @@ import SubscribersPage from '@/pages/SubscribersPage';
 import ScoringPage from '@/pages/ScoringPage';
 import AdminUsersPage from '@/pages/AdminUsersPage';
 import CreatorAnalyticsPage from '@/pages/CreatorAnalyticsPage';
+import SavedReportsPage from '@/pages/SavedReportsPage';
 
 
 // Root route: landing for logged-out users, 24h splash for logged-in, else /feed
@@ -127,6 +128,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/users" element={isAuthenticated ? <AdminUsersPage /> : <SignIn />} />
         <Route path="/analytics/creator" element={isAuthenticated ? <CreatorAnalyticsPage /> : <SignIn />} />
         <Route path="/creator-analytics" element={isAuthenticated ? <CreatorAnalyticsPage /> : <SignIn />} />
+        <Route path="/saved" element={isAuthenticated ? <SavedReportsPage /> : <SignIn />} />
         <Route path="/stocks" element={<StocksPage />} />
         <Route path="/pay" element={<PaymentPage />} />
       </Route>
