@@ -13,6 +13,8 @@ import {
 import { base44 } from "@/api/base44Client";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { computeAnalystStats, fmtYield, fmtHitRate } from "@/lib/analystStats";
+import { computeAnalystTier } from "@/lib/analystTier";
+import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 
 const ACTION_COLORS = { Long: "#22c55e", Short: "#ef4444", Hold: "#f59e0b" };
 const OUTCOME_COLORS = { hit: "#22c55e", near: "#3b82f6", partial: "#f59e0b", miss: "#ef4444", pending: "#94a3b8" };
@@ -459,8 +461,8 @@ export default function AnalyticsPage() {
           {analysts.map((a, i) => {
             const accPct = a.accuracy_score || 0;
             const medals = ["🥇","🥈","🥉"];
-            // Compute stats fresh from reports — never read User.yearly_yield / hit_rate / total_calls
             const computed = computeAnalystStats(reports, a.email);
+            const tier = computeAnalystTier(a, reports);
             return (
               <button key={a.id}
                 onClick={() => navigate(`/analyst/${a.email}`)}
@@ -476,7 +478,10 @@ export default function AnalyticsPage() {
                     {(a.full_name || "?")[0]}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{a.full_name || a.email?.split("@")[0]}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-semibold truncate">{a.full_name || a.email?.split("@")[0]}</p>
+                      <AccuracyTierBadge tierData={tier} />
+                    </div>
                     {a.tagline && <p className="text-[10px] text-muted-foreground truncate">{a.tagline}</p>}
                   </div>
                 </div>

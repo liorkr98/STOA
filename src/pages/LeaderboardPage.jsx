@@ -4,6 +4,8 @@ import { Trophy, TrendingUp, Loader2, PenLine } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalystSlug } from "@/lib/analystSlug";
+import { computeAnalystTier } from "@/lib/analystTier";
+import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 const RANK_REWARDS = [
@@ -29,14 +31,18 @@ function SkeletonRow() {
 export default function LeaderboardPage() {
   const navigate = useNavigate();
   const [analysts, setAnalysts] = useState([]);
+  const [allReports, setAllReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("all");
 
   useEffect(() => {
-    base44.entities.User.list("-accuracy_score", 50)
-      .then(data => setAnalysts((data || []).filter(u => (u.accuracy_score || 0) > 0)))
-      .catch(() => setAnalysts([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      base44.entities.User.list("-accuracy_score", 50),
+      base44.entities.Report.filter({ status: "published" }, "-created_date", 500).catch(() => []),
+    ]).then(([data, rpts]) => {
+      setAnalysts((data || []).filter(u => (u.accuracy_score || 0) > 0));
+      setAllReports(rpts || []);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   return (
@@ -77,6 +83,7 @@ export default function LeaderboardPage() {
             const rank = i + 1;
             const reward = RANK_REWARDS[i];
             const accPct = analyst.accuracy_score || 0;
+            const tier = computeAnalystTier(analyst, allReports);
             return (
               <button key={analyst.id} onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
                 className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
@@ -90,7 +97,10 @@ export default function LeaderboardPage() {
                     </div>
                 }
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
+                    <AccuracyTierBadge tierData={tier} />
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Analyst"}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">

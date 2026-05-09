@@ -10,17 +10,11 @@ import AccuracyBreakdown from "@/components/analyst/AccuracyBreakdown";
 import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
 import { getAnalystSlug } from "@/lib/analystSlug";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
+import { computeAnalystTier, computeAchievements } from "@/lib/analystTier";
+import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
+import TierProgressBar from "@/components/analyst/TierProgressBar";
 
-const ACHIEVEMENT_DEFS = [
-  { label: "First Report", icon: FileText },
-  { label: "10 Predictions", icon: Target },
-  { label: "80%+ Accuracy", icon: BarChart3 },
-  { label: "100 Followers", icon: Users },
-  { label: "500 Followers", icon: Users },
-  { label: "First Premium", icon: Star },
-  { label: "Streak x3", icon: Flame },
-  { label: "Top 10", icon: Trophy },
-];
+
 
 // Map timeframe string → bucket
 function getTimeframeBucket(tf) {
@@ -172,7 +166,8 @@ export default function AnalystProfilePage() {
     if (r.prediction_outcome === "hit" || r.prediction_outcome === "near") bucketStats[bucket].hits++;
   });
 
-  const achievements = ACHIEVEMENT_DEFS.map(a => ({ ...a, earned: false }));
+  const tier = computeAnalystTier(analyst, myReports);
+  const achievements = computeAchievements(analyst, myReports);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -188,7 +183,10 @@ export default function AnalystProfilePage() {
             : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-2xl font-bold text-primary">{displayName?.[0] || "A"}</div>
           }
           <div className="flex-1">
-            <h1 className="text-xl font-bold mb-1">{displayName}</h1>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h1 className="text-xl font-bold">{displayName}</h1>
+              <AccuracyTierBadge tierData={tier} size="lg" />
+            </div>
             {analyst.tagline && <p className="text-sm text-muted-foreground mb-2">{analyst.tagline}</p>}
             {analyst.bio && <p className="text-sm text-muted-foreground mb-3">{analyst.bio}</p>}
             <div className="flex flex-wrap gap-1.5">
@@ -264,19 +262,32 @@ export default function AnalystProfilePage() {
       <AccuracyBreakdown analystUser={analyst} />
       <PerformanceVsMarket analyst={analyst} />
 
+      {/* Tier Progress */}
+      {isOwnProfile && <TierProgressBar user={analyst} allReports={myReports} />}
+
       {/* Achievements */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-        <h2 className="font-semibold text-sm mb-3">Achievements <span className="text-muted-foreground">0/{achievements.length}</span></h2>
-        <div className="grid grid-cols-4 gap-2">
-          {achievements.map(a => {
-            const Icon = a.icon;
-            return (
-              <div key={a.label} className="flex flex-col items-center gap-1 p-2 rounded-xl border text-center bg-secondary border-border opacity-40">
-                <Icon className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[9px] font-medium leading-tight">{a.label}</span>
-              </div>
-            );
-          })}
+        <h2 className="font-semibold text-sm mb-3">
+          Achievements <span className="text-muted-foreground">{achievements.filter(a => a.earned).length}/{achievements.length}</span>
+        </h2>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {[...achievements.filter(a => a.earned), ...achievements.filter(a => !a.earned)].map(a => (
+            <div
+              key={a.name}
+              className="flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all"
+              style={{
+                background: a.earned ? '#fefce8' : '#f8fafc',
+                borderColor: a.earned ? '#fde68a' : '#e2e8f0',
+                opacity: a.earned ? 1 : 0.4,
+                filter: a.earned ? 'none' : 'grayscale(1)',
+              }}
+              title={a.earned ? a.desc : `Locked: ${a.desc}`}
+            >
+              <span className="text-xl leading-none">{a.icon}</span>
+              <span className="text-[10px] font-bold leading-tight text-foreground">{a.name}</span>
+              <span className="text-[9px] text-muted-foreground leading-tight">{a.desc}</span>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
 import { Lock, MessageCircle, Heart, Share2 } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
+import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
@@ -349,9 +350,13 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                 {authorName}
               </Link>
 
-              {report.author_accuracy != null && (
-                <AccuracyTierBadge accuracy={report.author_accuracy} />
-              )}
+              {authorUser && (() => {
+                const td = computeAnalystTier(
+                  { ...authorUser, email: authorEmail },
+                  allReports
+                );
+                return <AccuracyTierBadge tierData={td} />;
+              })()}
 
               {/* Win streak */}
               {winStreak >= 3 && (

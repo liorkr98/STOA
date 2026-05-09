@@ -1,26 +1,29 @@
 import React from "react";
+import { computeAnalystTier } from "@/lib/analystTier";
 
-export default function AccuracyTierBadge({ accuracy }) {
-  let label, bg, color;
-  if (accuracy >= 80)      { label = "⭐ ELITE";    bg = "#f59e0b"; color = "#ffffff"; }
-  else if (accuracy >= 65) { label = "EXPERT";      bg = "#2563eb"; color = "#ffffff"; }
-  else if (accuracy >= 50) { label = "STRONG";      bg = "#16a34a"; color = "#ffffff"; }
-  else if (accuracy >= 35) { label = "AVERAGE";     bg = "#e5e7eb"; color = "#374151"; }
-  else                     { label = "BUILDING";    bg = "#f1f5f9"; color = "#94a3b8"; }
+// TierBadge: pass user + allReports for full tier calculation
+// OR pass a pre-computed tierData object directly
+export default function AccuracyTierBadge({ user, allReports, tierData, size = "sm" }) {
+  const tier = tierData || (user ? computeAnalystTier(user, allReports || []) : null);
+  if (!tier) return null;
+
+  const fontSize = size === "lg" ? 13 : 10;
+  const padding  = size === "lg" ? "5px 12px" : "3px 8px";
 
   return (
     <span style={{
-      background: bg,
-      color,
-      fontSize: 10,
+      background: tier.bg,
+      color: tier.color,
+      border: `1px solid ${tier.border}`,
+      fontSize,
       fontWeight: 700,
-      padding: '3px 8px',
-      borderRadius: 4,
-      letterSpacing: '0.02em',
-      textTransform: 'uppercase',
+      padding,
+      borderRadius: 20,
+      letterSpacing: '0.01em',
       flexShrink: 0,
+      display: 'inline-block',
     }}>
-      {label}
+      {tier.label}
     </span>
   );
 }

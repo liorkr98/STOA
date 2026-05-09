@@ -10,6 +10,9 @@ import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import { useNavigate, Link } from "react-router-dom";
 import { calculateAccuracyScore } from "@/lib/accuracyScore";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
+import { computeAnalystTier } from "@/lib/analystTier";
+import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
+import TierProgressBar from "@/components/analyst/TierProgressBar";
 
 const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
 
@@ -141,12 +144,24 @@ export default function AnalystDashboard() {
   const [mySubscriptions, setMySubscriptions] = useState([]);
 
   useEffect(() => {
-    base44.auth.me().then(user => {
+    base44.auth.me().then(async user => {
       setCurrentUser(user);
       base44.analytics.track({ eventName: "dashboard_viewed" });
       // Load subscriptions
       base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 20)
         .then(data => setMySubscriptions(data || [])).catch(() => {});
+      // Pioneer check: if not set, check if user is among first 100
+      if (!user.is_pioneer) {
+        try {
+          const allUsers = await base44.entities.User.list("created_date", 200);
+          const sorted = (allUsers || []).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+          const first100Emails = sorted.slice(0, 100).map(u => u.email);
+          if (first100Emails.includes(user.email)) {
+            await base44.auth.updateMe({ is_pioneer: true });
+            setCurrentUser(prev => ({ ...prev, is_pioneer: true }));
+          }
+        } catch {}
+      }
     }).finally(() => setLoadingUser(false));
   }, []);
 
@@ -240,7 +255,10 @@ export default function AnalystDashboard() {
             : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-2xl font-bold text-primary">{analyst.name?.[0] || "A"}</div>
           }
           <div className="flex-1">
-            <h1 className="text-xl font-bold">{analyst.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h1 className="text-xl font-bold">{analyst.name}</h1>
+              <AccuracyTierBadge tierData={computeAnalystTier(currentUser, publishedReports)} size="lg" />
+            </div>
             <p className="text-sm text-muted-foreground mb-2">{analyst.tagline}</p>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span>{analyst.reports} Reports</span>
@@ -332,6 +350,9 @@ export default function AnalystDashboard() {
           </div>
         )}
       </div>
+
+      {/* Tier Progress */}
+      <TierProgressBar user={currentUser} allReports={publishedReports} />
 
       {/* Reports Tabs */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">
