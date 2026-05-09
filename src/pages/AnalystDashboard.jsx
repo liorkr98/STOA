@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
@@ -246,6 +246,12 @@ export default function AnalystDashboard() {
               <span>{analyst.reports} Reports</span>
               <span>{analyst.followers.toLocaleString()} Followers</span>
             </div>
+            {(currentUser.last_login || currentUser.login_count > 0) && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                <span>Last login: {currentUser.last_login ? formatDistanceToNow(new Date(currentUser.last_login), { addSuffix: true }) : "—"}</span>
+                {currentUser.login_count > 0 && <><span>·</span><span>{currentUser.login_count} total logins</span></>}
+              </div>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link to="/editor"><Button size="sm" className="text-xs gap-1"><span>+</span> Write Report</Button></Link>

@@ -89,6 +89,21 @@
     },
     "website": {
       "type": "string"
+    },
+    "last_login": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the most recent login session"
+    },
+    "login_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of login sessions"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Updated on every app load"
     }
   },
   "required": []

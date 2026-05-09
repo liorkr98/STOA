@@ -89,6 +89,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const trackLogin = async (currentUser) => {
+    const now = new Date().toISOString();
+    const lastSeen = currentUser.last_seen ? new Date(currentUser.last_seen) : null;
+    const isNewSession = !lastSeen || (Date.now() - lastSeen.getTime()) > 30 * 60 * 1000;
+    await base44.auth.updateMe({
+      last_seen: now,
+      last_login: isNewSession ? now : (currentUser.last_login || now),
+      login_count: isNewSession ? (currentUser.login_count || 0) + 1 : (currentUser.login_count || 0),
+    }).catch(() => {});
+  };
+
   const checkUserAuth = async () => {
     try {
       // Now check if the user is authenticated
@@ -98,6 +109,8 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      // Track login/last_seen asynchronously (don't block auth)
+      trackLogin(currentUser);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
