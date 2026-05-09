@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { getAnalystSlug } from "@/lib/analystSlug";
-import { Lock } from "lucide-react";
+import AccuracyTierBadge from "./AccuracyTierBadge";
 
 export default function EmptySubscriptionsState() {
   const [topAnalysts, setTopAnalysts] = useState([]);
@@ -14,31 +14,55 @@ export default function EmptySubscriptionsState() {
   }, []);
 
   return (
-    <div className="text-center py-8">
-      <p className="text-xl mb-1">🔒</p>
-      <p className="font-bold text-foreground mb-1">Unlock premium research from verified analysts</p>
-      <p className="text-sm text-muted-foreground mb-6">Subscribe to get full access to reports, predictions & alerts</p>
-      <div className="space-y-3 text-left">
-        {topAnalysts.map(a => {
-          const name = a.full_name || a.email?.split("@")[0] || "Analyst";
-          return (
-            <div key={a.id} className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
-                {a.picture ? <img src={a.picture} alt={name} className="w-full h-full object-cover" /> : name[0]}
+    <div style={{ padding:'24px 0' }}>
+      <div style={{
+        background:'linear-gradient(135deg,#fffbeb,#fff7ed)',
+        border:'1px solid #fcd34d', borderRadius:12, padding:20,
+      }}>
+        <p style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:4 }}>🔒 Unlock premium research</p>
+        <p style={{ fontSize:12, color:'#64748b', marginBottom:16 }}>Subscribe to get full access to reports, predictions &amp; alerts</p>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {topAnalysts.map(a => {
+            const name = a.full_name || a.email?.split("@")[0] || "Analyst";
+            return (
+              <div key={a.id} style={{
+                display:'flex', alignItems:'center', gap:10,
+                background:'#fff', borderRadius:8, padding:'10px 12px',
+                border:'1px solid #e2e8f0',
+              }}>
+                <div style={{
+                  width:36, height:36, borderRadius:'50%', background:'#fef3c7',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:13, fontWeight:700, color:'#d97706', overflow:'hidden', flexShrink:0,
+                }}>
+                  {a.picture
+                    ? <img src={a.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : name[0]}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <Link to={`/analyst/${getAnalystSlug(a)}`} style={{ fontSize:13, fontWeight:600, color:'#0f172a', textDecoration:'none' }}>
+                    {name}
+                  </Link>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2 }}>
+                    <AccuracyTierBadge accuracy={a.accuracy_score} />
+                    <span style={{ fontSize:10, color:'#94a3b8' }}>{a.total_calls || 0} calls</span>
+                  </div>
+                </div>
+                <Link
+                  to={`/analyst/${getAnalystSlug(a)}`}
+                  style={{
+                    fontSize:11, fontWeight:700, padding:'4px 12px', borderRadius:6,
+                    background:'#d97706', color:'#fff', textDecoration:'none',
+                    flexShrink:0,
+                  }}
+                >
+                  Subscribe
+                </Link>
               </div>
-              <div className="flex-1 min-w-0">
-                <Link to={`/analyst/${getAnalystSlug(a)}`} className="text-sm font-semibold hover:text-primary transition-colors">{name}</Link>
-                <p className="text-xs text-muted-foreground">{a.accuracy_score?.toFixed(1)}% accuracy · {a.total_calls || 0} calls</p>
-              </div>
-              <Link
-                to={`/analyst/${getAnalystSlug(a)}`}
-                className="flex items-center gap-1 text-xs font-semibold bg-amber-500 text-white rounded-full px-3 py-1.5 hover:bg-amber-600 transition-colors"
-              >
-                <Lock className="w-3 h-3" /> Subscribe
-              </Link>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

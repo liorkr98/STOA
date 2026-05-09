@@ -212,7 +212,7 @@ export default function HomeFeed() {
   const hasMore = visibleReports.length < filtered.length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6" style={{ background:'#f8fafc', minHeight:'100vh' }}>
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
 
@@ -326,6 +326,7 @@ export default function HomeFeed() {
                         isSubscribed={subscribedEmails.includes(item.data.created_by)}
                         currentUserEmail={user?.email}
                         followedEmails={followedEmails}
+                        allReports={reports}
                       />
                     );
                   }

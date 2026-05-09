@@ -2,31 +2,47 @@ import React from "react";
 
 export default function FeedSkeletonCard() {
   return (
-    <div className="bg-card border border-border rounded-xl p-5 animate-pulse">
+    <div style={{
+      background: '#ffffff',
+      borderRadius: 12,
+      border: '1px solid #e2e8f0',
+      padding: 20,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      marginBottom: 12,
+    }}>
+      <style>{`
+        @keyframes skeletonPulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+        .sk { background:#e2e8f0; border-radius:6px; animation:skeletonPulse 1.5s ease-in-out infinite; }
+      `}</style>
+
       {/* Author row */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3.5 bg-muted rounded w-32" />
-          <div className="h-2.5 bg-muted rounded w-20" />
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+        <div className="sk" style={{ width:40, height:40, borderRadius:'50%', flexShrink:0 }} />
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+          <div className="sk" style={{ width:120, height:12 }} />
+          <div className="sk" style={{ width:80, height:10 }} />
         </div>
-        <div className="h-5 bg-muted rounded-full w-14" />
       </div>
+
       {/* Prediction pill */}
-      <div className="h-7 bg-muted rounded-full w-40 mb-3" />
-      {/* Title */}
-      <div className="h-5 bg-muted rounded w-3/4 mb-2" />
-      {/* Excerpt */}
-      <div className="space-y-1.5 mb-3">
-        <div className="h-3 bg-muted rounded w-full" />
-        <div className="h-3 bg-muted rounded w-5/6" />
-        <div className="h-3 bg-muted rounded w-4/5" />
+      <div className="sk" style={{ width:150, height:28, borderRadius:8, marginBottom:12 }} />
+
+      {/* Title lines */}
+      <div className="sk" style={{ width:'90%', height:16, marginBottom:8 }} />
+      <div className="sk" style={{ width:'70%', height:16, marginBottom:14 }} />
+
+      {/* Excerpt lines */}
+      <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+        <div className="sk" style={{ width:'100%', height:12 }} />
+        <div className="sk" style={{ width:'92%', height:12 }} />
+        <div className="sk" style={{ width:'80%', height:12 }} />
       </div>
+
       {/* Footer */}
-      <div className="flex items-center gap-4 pt-2 border-t border-border/40">
-        <div className="h-4 bg-muted rounded w-12" />
-        <div className="h-4 bg-muted rounded w-16" />
-        <div className="h-4 bg-muted rounded w-10 ml-auto" />
+      <div style={{ display:'flex', gap:12, paddingTop:12, borderTop:'1px solid #f1f5f9' }}>
+        <div className="sk" style={{ width:40, height:14 }} />
+        <div className="sk" style={{ width:60, height:14 }} />
+        <div className="sk" style={{ width:40, height:14 }} />
       </div>
     </div>
   );

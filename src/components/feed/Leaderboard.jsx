@@ -1,173 +1,210 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, TrendingUp, Loader2, PenLine } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/AuthContext";
+import { TrendingUp, Trophy } from "lucide-react";
+import AccuracyTierBadge from "./AccuracyTierBadge";
 import { getAnalystSlug } from "@/lib/analystSlug";
 
-const SECTORS = ["All", "AI & Semiconductors", "Big Tech", "EV & Clean Energy", "Financials", "Crypto & Web3", "Consumer Tech", "E-Commerce", "Healthcare"];
 const TIME_PERIODS = ["All Time", "This Month", "This Week"];
-
+const RANK_MEDALS  = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const RANK_REWARDS = {
-  1: { label: "500 AI Credits/mo", color: "bg-amber-50 text-amber-700 border-amber-200" },
-  2: { label: "250 AI Credits/mo", color: "bg-slate-100 text-slate-600 border-slate-200" },
-  3: { label: "100 AI Credits/mo", color: "bg-orange-50 text-orange-600 border-orange-200" },
+  1: { label: "500 AI Credits/mo" },
+  2: { label: "250 AI Credits/mo" },
+  3: { label: "100 AI Credits/mo" },
 };
-
-const RANK_MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3 p-1 animate-pulse">
-      <div className="w-4 h-3 bg-secondary rounded" />
-      <div className="w-7 h-7 rounded-full bg-secondary" />
-      <div className="flex-1 space-y-1">
-        <div className="h-2.5 bg-secondary rounded w-24" />
-        <div className="h-2 bg-secondary rounded w-16" />
+    <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0' }}>
+      <div style={{ width:16, height:16, borderRadius:4, background:'#e2e8f0' }} />
+      <div style={{ width:32, height:32, borderRadius:'50%', background:'#e2e8f0' }} />
+      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
+        <div style={{ width:80, height:10, borderRadius:4, background:'#e2e8f0' }} />
+        <div style={{ width:55, height:8, borderRadius:4, background:'#e2e8f0' }} />
       </div>
-      <div className="h-2.5 bg-secondary rounded w-10" />
     </div>
   );
 }
 
-function AccuracyColor(pct) {
-  if (pct >= 80) return "text-gain";
-  if (pct >= 60) return "text-amber-600";
-  return "text-loss";
-}
-
 export default function Leaderboard() {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("All Time");
-  const [sector, setSector] = useState("All");
+  const [followedEmails, setFollowedEmails] = useState([]);
+  const [followingLoading, setFollowingLoading] = useState({});
 
   useEffect(() => {
     base44.entities.User.list("-accuracy_score", 20)
-      .then(data => {
-        setAnalysts((data || []).filter(u => u.accuracy_score > 0));
-      })
+      .then(data => setAnalysts((data || []).filter(u => u.accuracy_score > 0)))
       .catch(() => setAnalysts([]))
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter by sector
-  const filtered = analysts.filter(a =>
-    sector === "All" || (a.specialties || []).some(s => s === sector)
-  );
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100)
+      .then(data => setFollowedEmails((data || []).map(f => f.analyst_email)))
+      .catch(() => {});
+  }, [isAuthenticated, user]);
 
-  // Sort by period (mock: shuffle slightly for non-all-time)
-  const sorted = [...filtered].sort((a, b) => {
-    if (period === "This Week") return (b.reports || 0) - (a.reports || 0);
+  const sorted = [...analysts].sort((a, b) => {
+    if (period === "This Week")  return (b.reports || 0) - (a.reports || 0);
     if (period === "This Month") return (b.yearly_yield || 0) - (a.yearly_yield || 0);
     return (b.accuracy_score || 0) - (a.accuracy_score || 0);
   });
 
+  const handleFollow = async (e, analyst) => {
+    e.stopPropagation();
+    if (!isAuthenticated || !user || followingLoading[analyst.email]) return;
+    setFollowingLoading(p => ({ ...p, [analyst.email]: true }));
+    const isNowFollowing = followedEmails.includes(analyst.email);
+    setFollowedEmails(p => isNowFollowing ? p.filter(e => e !== analyst.email) : [...p, analyst.email]);
+    try {
+      if (!isNowFollowing) {
+        await base44.entities.Follow.create({
+          follower_email: user.email,
+          analyst_email: analyst.email,
+          analyst_name: analyst.full_name || analyst.email?.split("@")[0],
+          analyst_avatar: analyst.picture || "",
+        });
+      } else {
+        const existing = await base44.entities.Follow.filter({ follower_email: user.email, analyst_email: analyst.email });
+        if (existing?.[0]) await base44.entities.Follow.delete(existing[0].id);
+      }
+    } catch {
+      setFollowedEmails(p => isNowFollowing ? [...p, analyst.email] : p.filter(e => e !== analyst.email));
+    } finally {
+      setFollowingLoading(p => ({ ...p, [analyst.email]: false }));
+    }
+  };
+
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Trophy className="w-4 h-4 text-amber-500" />
-        <h3 className="font-semibold text-sm">Top Analysts</h3>
+    <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:16 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12 }}>
+        <Trophy size={15} color="#d97706" />
+        <span style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>Top Analysts</span>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-1.5 mb-3 flex-wrap">
+      {/* Period tabs */}
+      <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
         {TIME_PERIODS.map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${period === p ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
-          >
+          <button key={p} onClick={() => setPeriod(p)} style={{
+            padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700,
+            cursor:'pointer', transition:'all 150ms ease',
+            border: period === p ? '1px solid #2563eb' : '1px solid #e2e8f0',
+            background: period === p ? '#2563eb' : '#f8fafc',
+            color: period === p ? '#fff' : '#64748b',
+          }}>
             {p}
           </button>
         ))}
       </div>
 
-      <div className="mb-3">
-        <Select value={sector} onValueChange={setSector}>
-          <SelectTrigger className="h-7 text-[10px]">
-            <SelectValue placeholder="All Sectors" />
-          </SelectTrigger>
-          <SelectContent>
-            {SECTORS.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
       {loading ? (
-        <div className="space-y-3">
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           <SkeletonRow /><SkeletonRow /><SkeletonRow />
         </div>
       ) : sorted.length === 0 ? (
-        <div className="text-center py-4">
-          <p className="text-xs text-muted-foreground mb-2">Be the first analyst on the leaderboard</p>
-          <Link to="/editor" className="text-xs text-primary font-medium hover:underline">Start Writing →</Link>
+        <div style={{ textAlign:'center', padding:'16px 0' }}>
+          <p style={{ fontSize:12, color:'#94a3b8', marginBottom:6 }}>Be the first on the leaderboard</p>
+          <Link to="/editor" style={{ fontSize:12, color:'#2563eb', fontWeight:600 }}>Start Writing →</Link>
         </div>
       ) : (
-        <div className="space-y-0.5">
+        <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
           {sorted.slice(0, 8).map((analyst, index) => {
             const rank = index + 1;
-            const reward = RANK_REWARDS[rank];
             const accPct = analyst.accuracy_score || 0;
+            const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+            const isFollowing = followedEmails.includes(analyst.email);
+            const reward = RANK_REWARDS[rank];
+
             return (
-              <button
+              <div
                 key={analyst.id}
                 onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
-                className="flex items-center gap-2 w-full text-left hover:bg-secondary rounded-lg p-1.5 transition-colors"
+                style={{
+                  display:'flex', alignItems:'center', gap:8,
+                  padding:'8px 6px', borderRadius:8, cursor:'pointer',
+                  transition:'background 150ms ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}
               >
-                <span className="text-xs font-bold w-5 text-center flex-shrink-0">
-                  {RANK_MEDALS[rank] || <span className="text-muted-foreground">{rank}</span>}
+                <span style={{ fontSize:12, fontWeight:700, width:18, textAlign:'center', flexShrink:0 }}>
+                  {RANK_MEDALS[rank] || <span style={{ color:'#94a3b8' }}>{rank}</span>}
                 </span>
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-secondary flex-shrink-0">
-                  {analyst.avatar || analyst.full_name ? (
-                    analyst.avatar
-                      ? <img src={analyst.avatar} alt={analyst.full_name} className="w-full h-full object-cover" />
-                      : <span className="w-full h-full flex items-center justify-center text-xs font-bold text-primary">{analyst.full_name?.[0]}</span>
-                  ) : null}
+
+                <div style={{
+                  width:32, height:32, borderRadius:'50%', overflow:'hidden',
+                  background:'#dbeafe', flexShrink:0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:12, fontWeight:700, color:'#2563eb',
+                }}>
+                  {analyst.picture
+                    ? <img src={analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : analyst.avatar
+                      ? <img src={analyst.avatar} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      : name[0]}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{analyst.full_name || analyst.name}</p>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className={`text-[10px] font-semibold ${AccuracyColor(accPct)}`}>{accPct.toFixed(1)}%</span>
+
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</p>
+                  <div style={{ display:'flex', alignItems:'center', gap:4, flexWrap:'wrap' }}>
+                    <span style={{
+                      fontSize:10, fontWeight:700,
+                      color: accPct >= 80 ? '#16a34a' : accPct >= 60 ? '#d97706' : '#dc2626',
+                    }}>
+                      {accPct.toFixed(1)}%
+                    </span>
                     {analyst.win_streak >= 2 && (
-                      <span className="text-[9px] font-semibold text-orange-600">🔥{analyst.win_streak}</span>
+                      <span style={{ fontSize:9, fontWeight:700, color:'#c2410c' }}>🔥{analyst.win_streak}</span>
                     )}
                     {reward && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0 rounded-full border ${reward.color}`}>
-                              ⚡ {reward.label.split(" ")[0]}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="text-xs max-w-[200px]">
-                            <p className="font-semibold">{reward.label}</p>
-                            <p className="text-muted-foreground mt-0.5">Top analysts earn monthly AI credits for the report editor (template generation, fact checker, AI assistant).</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <span style={{ fontSize:9, color:'#d97706', fontWeight:600 }}>⚡ {reward.label.split(' ')[0]} cr.</span>
                     )}
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
+
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
                   {analyst.yearly_yield != null && (
-                    <div className={`flex items-center gap-0.5 text-[10px] font-semibold ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
-                      <TrendingUp className="w-2.5 h-2.5" />
-                      {analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
+                    <div style={{
+                      display:'flex', alignItems:'center', gap:2,
+                      fontSize:10, fontWeight:700,
+                      color: analyst.yearly_yield >= 0 ? '#16a34a' : '#dc2626',
+                    }}>
+                      <TrendingUp size={10} />
+                      {analyst.yearly_yield >= 0 ? '+' : ''}{analyst.yearly_yield.toFixed(1)}%
                     </div>
                   )}
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Free + Pro</p>
+                  <span style={{ fontSize:8, color:'#94a3b8' }}>Free + Pro</span>
+                  {isAuthenticated && user?.email !== analyst.email && (
+                    <button
+                      onClick={e => handleFollow(e, analyst)}
+                      style={{
+                        fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:4, cursor:'pointer',
+                        transition:'all 150ms ease',
+                        border: isFollowing ? '1px solid #16a34a' : '1px solid #2563eb',
+                        background: isFollowing ? '#f0fdf4' : 'transparent',
+                        color: isFollowing ? '#16a34a' : '#2563eb',
+                      }}
+                    >
+                      {isFollowing ? '✓' : 'Follow'}
+                    </button>
+                  )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
       )}
 
-      <div className="mt-3 pt-3 border-t border-border">
-        <Link to="/leaderboard" className="text-[11px] text-primary hover:underline font-medium">View Full Leaderboard →</Link>
+      <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid #e2e8f0' }}>
+        <Link to="/leaderboard" style={{ fontSize:11, color:'#2563eb', fontWeight:600, textDecoration:'none' }}>
+          View Full Leaderboard →
+        </Link>
       </div>
     </div>
   );

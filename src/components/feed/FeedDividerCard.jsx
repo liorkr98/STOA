@@ -1,19 +1,29 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Flame, BarChart3, UserPlus } from "lucide-react";
 import { getAnalystSlug } from "@/lib/analystSlug";
 
 export function TrendingDivider({ report }) {
   if (!report) return null;
   return (
-    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Flame className="w-4 h-4 text-orange-500" />
-        <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">🔥 Trending This Week</span>
+    <div style={{
+      background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
+      borderRadius: 12,
+      border: '1px dashed #bfdbfe',
+      padding: 16,
+      marginBottom: 12,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+        <span style={{ fontSize:14 }}>🔥</span>
+        <span style={{ fontSize:11, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          Trending Right Now
+        </span>
       </div>
-      <Link to={`/report?id=${report.id}`} className="block">
-        <p className="text-sm font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors">{report.title}</p>
-        <p className="text-xs text-muted-foreground mt-1">{report.likes || 0} likes · {report.author_name || "Analyst"}</p>
+      <Link to={`/report?id=${report.id}`} style={{ textDecoration:'none' }}>
+        <p style={{ fontSize:13, fontWeight:600, color:'#0f172a', lineHeight:1.4, marginBottom:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+          {report.title}
+        </p>
+        <p style={{ fontSize:11, color:'#64748b' }}>{report.likes || 0} likes · {report.author_name || "Analyst"}</p>
+        <p style={{ fontSize:11, color:'#2563eb', fontWeight:600, marginTop:6 }}>Join the conversation →</p>
       </Link>
     </div>
   );
@@ -23,24 +33,28 @@ export function AnalystSpotlight({ analyst }) {
   if (!analyst) return null;
   const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <BarChart3 className="w-4 h-4 text-primary" />
-        <span className="text-xs font-bold text-primary uppercase tracking-wide">📊 Analyst Spotlight</span>
-      </div>
-      <Link to={`/analyst/${getAnalystSlug(analyst)}`} className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
-          {analyst.picture
-            ? <img src={analyst.picture} alt={name} className="w-full h-full object-cover" />
-            : name[0]?.toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{name}</p>
-          <p className="text-xs text-muted-foreground">{analyst.accuracy_score?.toFixed(1)}% accuracy · {analyst.accuracy_tier || "Building"}</p>
-        </div>
-        <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-white border border-primary/20 rounded-full px-2.5 py-1">
-          <UserPlus className="w-3 h-3" /> Follow
+    <div style={{
+      background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
+      borderRadius: 12,
+      border: '1px dashed #bfdbfe',
+      padding: 16,
+      marginBottom: 12,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+        <span style={{ fontSize:14 }}>📊</span>
+        <span style={{ fontSize:11, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          Analyst Spotlight
         </span>
+      </div>
+      <Link to={`/analyst/${getAnalystSlug(analyst)}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
+        <div style={{ width:40, height:40, borderRadius:'50%', background:'#dbeafe', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#2563eb', overflow:'hidden' }}>
+          {analyst.picture ? <img src={analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : name[0]?.toUpperCase()}
+        </div>
+        <div style={{ flex:1 }}>
+          <p style={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{name}</p>
+          <p style={{ fontSize:11, color:'#64748b' }}>{analyst.accuracy_score?.toFixed(1)}% accuracy · {analyst.accuracy_tier || "Building"}</p>
+        </div>
+        <span style={{ fontSize:11, fontWeight:700, color:'#2563eb', border:'1px solid #2563eb', borderRadius:6, padding:'3px 10px' }}>Follow</span>
       </Link>
     </div>
   );

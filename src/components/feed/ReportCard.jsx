@@ -1,91 +1,222 @@
 import React, { useState } from "react";
-import { Heart, MessageCircle, TrendingUp, TrendingDown, Minus, Lock, Clock, Eye } from "lucide-react";
-import { formatDistanceToNow, format, differenceInHours } from "date-fns";
 import { useNavigate, Link } from "react-router-dom";
+import { differenceInHours } from "date-fns";
+import { Lock, MessageCircle, Heart, Share2 } from "lucide-react";
+import AccuracyTierBadge from "./AccuracyTierBadge";
+import InlineFollowButton from "./InlineFollowButton";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
 import { getAnalystSlug } from "@/lib/analystSlug";
 
-// --- Config ---
-const ACTION_CONFIG = {
-  Long:  { color: "text-white", bg: "bg-[#22c55e]", border: "border-[#22c55e]", icon: TrendingUp,  arrow: "📈" },
-  Short: { color: "text-white", bg: "bg-[#ef4444]", border: "border-[#ef4444]", icon: TrendingDown, arrow: "📉" },
-  Hold:  { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-300", icon: Minus,  arrow: "—" },
-};
-
-const TIER_CONFIG = {
-  Elite:    { label: "⭐ Elite",    className: "bg-amber-50 text-amber-700 border-amber-300" },
-  Expert:   { label: "Expert",      className: "bg-blue-50 text-blue-700 border-blue-300" },
-  Strong:   { label: "Strong",      className: "bg-green-50 text-green-700 border-green-300" },
-  Average:  { label: "Average",     className: "bg-gray-100 text-gray-600 border-gray-300" },
-  Building: { label: "Building",    className: "bg-gray-100 text-gray-500 border-gray-200" },
-};
-
-// Format follower count
-function fmtFollowers(n) {
-  if (!n) return null;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return `${n}`;
+// ── helpers ──────────────────────────────────────────────────────────────────
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
-// Upside % calculation
-function calcUpside(action, lockPrice, targetPrice) {
-  if (!lockPrice || !targetPrice) return null;
-  if (action === "Long") return ((targetPrice - lockPrice) / lockPrice * 100).toFixed(1);
-  if (action === "Short") return ((lockPrice - targetPrice) / lockPrice * 100).toFixed(1);
+function calcUpside(action, lock, target) {
+  if (!lock || !target) return null;
+  if (action === "Long")  return ((target - lock) / lock * 100).toFixed(1);
+  if (action === "Short") return ((lock - target) / lock * 100).toFixed(1);
   return null;
 }
 
-// Live P&L from resolved/lock price
-function calcPnL(action, lockPrice, resolvedPrice) {
-  if (!lockPrice || !resolvedPrice) return null;
-  if (action === "Long") return ((resolvedPrice - lockPrice) / lockPrice * 100).toFixed(1);
-  if (action === "Short") return ((lockPrice - resolvedPrice) / lockPrice * 100).toFixed(1);
+function calcPnL(action, lock, resolved) {
+  if (!lock || !resolved) return null;
+  if (action === "Long")  return ((resolved - lock) / lock * 100).toFixed(1);
+  if (action === "Short") return ((lock - resolved) / lock * 100).toFixed(1);
   return null;
 }
 
-export default function ReportCard({ report, compact = false, isSubscribed = false, currentUserEmail = null, followedEmails = [] }) {
+function getPostsThisWeek(email, allReports) {
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  return (allReports || []).filter(r => r.created_by === email && new Date(r.created_date).getTime() > weekAgo).length;
+}
+
+// ── sub-components ────────────────────────────────────────────────────────────
+function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
+  if (!action) return null;
+  const upside = calcUpside(action, lockPrice, targetPrice);
+  const cfg = {
+    Long:  { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0', icon: '📈' },
+    Short: { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca', icon: '📉' },
+    Hold:  { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', icon: '—' },
+  }[action] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', icon: '—' };
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:10 }}>
+      <span style={{
+        display:'inline-flex', alignItems:'center', gap:6,
+        padding:'8px 14px', borderRadius:8,
+        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+        fontSize:13, fontWeight:700,
+      }}>
+        {cfg.icon} {action} ${ticker}
+        {targetPrice && !isLocked && (
+          <span style={{ fontWeight:600 }}>→ ${targetPrice}</span>
+        )}
+        {isLocked && (
+          <span style={{ display:'flex', alignItems:'center', gap:3, opacity:0.7, fontSize:11 }}>
+            <Lock size={11} /> Target hidden
+          </span>
+        )}
+      </span>
+      {upside && !isLocked && (
+        <span style={{
+          fontSize:12, fontWeight:700,
+          color: action === 'Long' ? '#16a34a' : '#dc2626',
+        }}>
+          {action === 'Long' ? '+' : '-'}{Math.abs(upside)}% {action === 'Long' ? 'upside' : 'downside'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function OutcomeBadge({ outcome, lockPrice, resolvedPrice, action }) {
+  const pnl = calcPnL(action, lockPrice, resolvedPrice);
+  if (outcome === 'hit' || outcome === 'near') {
+    return (
+      <span style={{
+        background:'#16a34a', color:'#fff', fontSize:12, fontWeight:700,
+        padding:'4px 10px', borderRadius:6,
+      }}>
+        ✅ HIT{pnl != null ? ` +${pnl}%` : ""}
+      </span>
+    );
+  }
+  if (outcome === 'miss') {
+    return (
+      <span style={{
+        background:'#dc2626', color:'#fff', fontSize:12, fontWeight:700,
+        padding:'4px 10px', borderRadius:6,
+      }}>
+        ❌ MISS
+      </span>
+    );
+  }
+  if (outcome === 'partial') {
+    return (
+      <span style={{
+        background:'#d97706', color:'#fff', fontSize:12, fontWeight:700,
+        padding:'4px 10px', borderRadius:6,
+      }}>
+        ⚡ PARTIAL
+      </span>
+    );
+  }
+  return null;
+}
+
+function PnLBadge({ action, lockPrice, targetPrice }) {
+  const pnl = calcUpside(action, lockPrice, targetPrice);
+  if (!pnl) return null;
+  const isPos = parseFloat(pnl) >= 0;
+  return (
+    <span style={{
+      fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6,
+      background: isPos ? '#f0fdf4' : '#fef2f2',
+      color: isPos ? '#16a34a' : '#dc2626',
+      border: `1px solid ${isPos ? '#bbf7d0' : '#fecaca'}`,
+    }}>
+      {isPos ? '+' : '-'}{Math.abs(pnl)}% target
+    </span>
+  );
+}
+
+function QuickPoll({ action }) {
+  const [vote, setVote] = useState(null);
+  const opts = [
+    { id: 'long',    label: '📈 Long',    pct: 68 },
+    { id: 'short',   label: '📉 Short',   pct: 21 },
+    { id: 'neutral', label: '🤔 Neutral', pct: 11 },
+  ];
+
+  const handleVote = (e, id) => {
+    e.stopPropagation();
+    setVote(v => v === id ? null : id);
+  };
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ background:'#f8fafc', borderRadius:8, padding:'10px 12px', marginBottom:10 }}
+    >
+      <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:8 }}>Do you agree with this call?</p>
+      {!vote ? (
+        <div style={{ display:'flex', gap:6 }}>
+          {opts.map(o => (
+            <button key={o.id} onClick={e => handleVote(e, o.id)} style={{
+              flex:1, fontSize:12, fontWeight:600, padding:'6px 0',
+              borderRadius:6, border:'1px solid #e2e8f0', background:'#fff',
+              color:'#475569', cursor:'pointer', transition:'all 150ms ease',
+            }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+          {opts.map(o => (
+            <div key={o.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:10, width:64, color:'#64748b', flexShrink:0 }}>{o.label}</span>
+              <div style={{ flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden' }}>
+                <div style={{
+                  height:'100%', borderRadius:3, width:`${o.pct}%`,
+                  background: vote === o.id ? '#2563eb' : '#94a3b8',
+                  transition:'width 400ms ease',
+                }} />
+              </div>
+              <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: vote === o.id ? '#2563eb' : '#64748b' }}>{o.pct}%</span>
+            </div>
+          ))}
+          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>142 votes</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── main card ─────────────────────────────────────────────────────────────────
+export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [] }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(report.likes || 0);
-  const [vote, setVote] = useState(null); // "long" | "short" | "neutral"
+  const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
 
-  const authorName = report.author_name || report.created_by?.split("@")[0] || "Analyst";
-  const authorAvatar = report.author_avatar || null;
-  const authorEmail = report.created_by || "";
-  const isPremium = report.is_premium || false;
-  const isLocked = isPremium && !isSubscribed;
-
-  const tier = report.author_tier || null;
-  const tierCfg = TIER_CONFIG[tier] || null;
-  const winStreak = report.author_win_streak || 0;
-  const followersCount = report.author_followers || null;
-  const isFollowing = followedEmails.includes(authorEmail);
+  const authorName    = report.author_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorAvatar  = report.author_avatar || null;
+  const authorEmail   = report.created_by || "";
+  const isPremium     = report.is_premium || false;
+  const isLocked      = isPremium && !isSubscribed;
+  const isFollowing   = followedEmails.includes(authorEmail);
 
   const publishedDate = report.created_date;
-  const hoursAgo = publishedDate ? differenceInHours(new Date(), new Date(publishedDate)) : 999;
-  const isNew = hoursAgo < 2;
-  const isLive = isNew;
+  const hoursAgo      = publishedDate ? differenceInHours(new Date(), new Date(publishedDate)) : 999;
+  const isLive        = hoursAgo < 2;
 
-  // Prediction info
-  const hasPredict = !!report.prediction_action;
-  const action = report.prediction_action;
-  const ticker = report.prediction_ticker;
-  const lockPrice = report.prediction_lock_price;
-  const targetPrice = report.prediction_target_price;
+  const hasPredict    = !!report.prediction_action;
+  const action        = report.prediction_action;
+  const ticker        = report.prediction_ticker;
+  const lockPrice     = report.prediction_lock_price;
+  const targetPrice   = report.prediction_target_price;
   const resolvedPrice = report.prediction_resolved_price;
-  const outcome = report.prediction_outcome;
-  const isPending = outcome === "pending" || !outcome;
+  const outcome       = report.prediction_outcome;
+  const isPending     = !outcome || outcome === 'pending';
 
-  const actionCfg = ACTION_CONFIG[action] || ACTION_CONFIG.Hold;
-  const upside = calcUpside(action, lockPrice, targetPrice);
-  const pnl = calcPnL(action, lockPrice, resolvedPrice);
+  const winStreak    = report.author_win_streak || 0;
+  const postsThisWk  = getPostsThisWeek(authorEmail, allReports);
 
-  // Expiry within 24h
-  const lockTime = report.prediction_lock_time ? new Date(report.prediction_lock_time) : null;
-  const resolvedTime = report.prediction_resolved_time ? new Date(report.prediction_resolved_time) : null;
-  const expiresInH = lockTime && isPending ? Math.round((lockTime.getTime() + 7 * 24 * 3600 * 1000 - Date.now()) / 3600000) : null;
-  const expiringSoon = expiresInH != null && expiresInH > 0 && expiresInH <= 24;
+  const tickers = Array.isArray(report.tickers)
+    ? report.tickers
+    : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
 
   const handleLike = (e) => {
     e.stopPropagation();
@@ -93,263 +224,245 @@ export default function ReportCard({ report, compact = false, isSubscribed = fal
     setLikeCount(p => liked ? p - 1 : p + 1);
   };
 
-  const handleVote = (e, v) => {
-    e.stopPropagation();
-    setVote(v === vote ? null : v);
-  };
-
-  // Outcome badge
-  const OutcomeBadge = () => {
-    if (isPending) return null;
-    if (outcome === "hit" || outcome === "near") {
-      const pnlLabel = pnl != null ? ` +${pnl}%` : "";
-      return (
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#22c55e] text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-          ✅ HIT{pnlLabel}
-        </div>
-      );
-    }
-    if (outcome === "miss") {
-      return (
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#ef4444] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-          ❌ MISS
-        </div>
-      );
-    }
-    if (outcome === "partial") {
-      return (
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-          ⚡ PARTIAL
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Live P&L badge (only for active/pending predictions)
-  const PnLBadge = () => {
-    if (!isPending || !hasPredict || !pnl) return null;
-    const isPos = parseFloat(pnl) >= 0;
-    return (
-      <div className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full border ${isPos ? "bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/30" : "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/30"}`}>
-        {isPos ? "+" : ""}{pnl}% since call
-      </div>
-    );
-  };
-
-  const tickers = Array.isArray(report.tickers)
-    ? report.tickers
-    : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
+  const slug = getAnalystSlug({ full_name: authorName, email: authorEmail });
 
   return (
-    <div
-      onClick={() => navigate(`/report?id=${report.id}`)}
-      className="relative bg-card border border-border rounded-xl p-5 hover:border-primary/30 hover:shadow-lg transition-all duration-200 cursor-pointer group"
-    >
-      {/* Outcome badge overlay (resolved) */}
-      {!isPending && <OutcomeBadge />}
-      {/* Live P&L badge (active pending) */}
-      {isPending && hasPredict && <PnLBadge />}
-
-      {/* Premium badge top-left */}
-      {isPremium && (
-        <div className="absolute top-3 left-3 flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-          <Lock className="w-2.5 h-2.5" /> PREMIUM
-        </div>
-      )}
-
-      {/* Row 1: Author header */}
-      <div className={`flex items-start gap-2.5 mb-3 ${isPremium ? "mt-5" : ""}`}>
-        <Link
-          to={`/analyst/${getAnalystSlug({ full_name: authorName, email: authorEmail })}`}
-          onClick={e => e.stopPropagation()}
-          className="flex-shrink-0"
-        >
-          <div className="w-10 h-10 rounded-full border border-border bg-primary/10 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
-            {authorAvatar
-              ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
-              : authorName[0]?.toUpperCase()}
-          </div>
-        </Link>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center flex-wrap gap-1.5">
-            <Link
-              to={`/analyst/${getAnalystSlug({ full_name: authorName, email: authorEmail })}`}
-              onClick={e => e.stopPropagation()}
-              className="text-sm font-bold text-foreground hover:text-primary transition-colors"
-            >
-              {authorName}
-            </Link>
-            {/* Tier badge */}
-            {tierCfg && (
-              <span className={`text-[10px] font-semibold px-1.5 py-0 rounded-full border ${tierCfg.className}`}>
-                {tierCfg.label}
-              </span>
-            )}
-            {/* Win streak */}
-            {winStreak >= 2 && (
-              <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0 rounded-full">
-                🔥 x{winStreak} Streak
-              </span>
-            )}
-            {/* LIVE badge */}
-            {isLive && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
-                LIVE
-              </span>
-            )}
-            {/* NEW badge */}
-            {isNew && !isLive && (
-              <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0 rounded-full">NEW</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-            {followersCount && <span>{fmtFollowers(followersCount)} followers</span>}
-            {followersCount && <span>·</span>}
-            <span>{publishedDate ? formatDistanceToNow(new Date(publishedDate), { addSuffix: true }) : ""}</span>
-          </div>
-        </div>
-
-        {/* Expiring soon badge */}
-        {expiringSoon && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex-shrink-0">
-            <Clock className="w-2.5 h-2.5" /> ⏰ {expiresInH}h
+    <>
+      <style>{`
+        @keyframes livePulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+      `}</style>
+      <div
+        onClick={() => navigate(`/report?id=${report.id}`)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          background: '#ffffff',
+          borderRadius: 12,
+          border: '1px solid #e2e8f0',
+          padding: 20,
+          boxShadow: hovered
+            ? '0 4px 12px rgba(0,0,0,0.10)'
+            : '0 1px 3px rgba(0,0,0,0.06)',
+          transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+          transition: 'all 200ms ease',
+          cursor: 'pointer',
+          position: 'relative',
+          marginBottom: 12,
+        }}
+      >
+        {/* Premium badge */}
+        {isPremium && (
+          <span style={{
+            position:'absolute', top:12, left:12,
+            background:'#d97706', color:'#fff', fontSize:10, fontWeight:700,
+            padding:'2px 8px', borderRadius:10, letterSpacing:'0.04em',
+          }}>
+            ⭐ PREMIUM
           </span>
         )}
-      </div>
 
-      {/* Row 2: Prediction pill */}
-      {hasPredict && (
-        <div className={`inline-flex items-center gap-2 text-sm font-bold px-4 py-1.5 rounded-full border mb-3 ${actionCfg.bg} ${actionCfg.border} ${actionCfg.color}`}>
-          {actionCfg.arrow} {action} ${ticker}
-          {targetPrice && !isLocked && (
-            <span className="font-semibold">→ ${targetPrice}</span>
-          )}
-          {upside && !isLocked && (
-            <span className="font-normal text-xs opacity-90">
-              ({action === "Long" ? "+" : "-"}{Math.abs(upside)}% upside)
-            </span>
-          )}
-          {isLocked && targetPrice && (
-            <span className="flex items-center gap-0.5 opacity-70 text-xs">
-              <Lock className="w-3 h-3" /> Target hidden
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Row 3: Title */}
-      <h3 className="font-bold text-[17px] leading-snug text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
-        {report.title}
-      </h3>
-
-      {/* Row 4: Excerpt — blurred for locked premium */}
-      {!compact && report.excerpt && (
-        <div className="mb-3 relative">
-          <p className={`text-sm text-muted-foreground leading-relaxed line-clamp-3 ${isLocked ? "blur-sm select-none" : ""}`}>
-            {report.excerpt}
-          </p>
-          {isLocked && (
-            <div className="absolute inset-0 flex items-center justify-center" onClick={e => e.stopPropagation()}>
-              <div className="bg-card/95 border border-border rounded-xl px-4 py-2.5 text-center shadow-md">
-                <Lock className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-                <p className="text-xs font-semibold text-foreground mb-1.5">Subscribe to {authorName} to unlock</p>
-                <Link
-                  to={`/analyst/${getAnalystSlug({ full_name: authorName, email: authorEmail })}`}
-                  className="inline-block text-xs font-bold bg-primary text-white rounded-full px-3 py-1 hover:bg-primary/90 transition-colors"
-                >
-                  Subscribe
-                </Link>
-              </div>
+        {/* ── HEADER ROW ── */}
+        <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:12, marginTop: isPremium ? 22 : 0 }}>
+          {/* Avatar */}
+          <Link to={`/analyst/${slug}`} onClick={e => e.stopPropagation()} style={{ flexShrink:0 }}>
+            <div style={{
+              width:40, height:40, borderRadius:'50%', border:'2px solid #e2e8f0',
+              background:'#dbeafe', display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:14, fontWeight:700, color:'#2563eb', overflow:'hidden', cursor:'pointer',
+            }}>
+              {authorAvatar
+                ? <img src={authorAvatar} alt={authorName} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : authorName[0]?.toUpperCase()}
             </div>
-          )}
-        </div>
-      )}
+          </Link>
 
-      {/* "See how this played out" teaser for pending resolved predictions */}
-      {hasPredict && isPending && !isLocked && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 border border-dashed border-border rounded-lg px-3 py-2 bg-secondary/50">
-          <Eye className="w-3.5 h-3.5" />
-          <span>See how this played out →</span>
-        </div>
-      )}
+          {/* Name + badges */}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+              <Link
+                to={`/analyst/${slug}`}
+                onClick={e => e.stopPropagation()}
+                style={{ fontSize:14, fontWeight:700, color:'#0f172a', textDecoration:'none' }}
+              >
+                {authorName}
+              </Link>
 
-      {/* Quick poll for active predictions */}
-      {hasPredict && isPending && !compact && (
-        <div className="mb-3 p-3 bg-secondary rounded-xl" onClick={e => e.stopPropagation()}>
-          <p className="text-xs font-semibold text-foreground mb-2">Do you agree with this call?</p>
-          {!vote ? (
-            <div className="flex gap-2">
-              {[
-                { id: "long", label: "📈 Long" },
-                { id: "short", label: "📉 Short" },
-                { id: "neutral", label: "🤔 Neutral" },
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={e => handleVote(e, opt.id)}
-                  className="flex-1 text-xs font-medium py-1.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all"
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {report.author_accuracy != null && (
+                <AccuracyTierBadge accuracy={report.author_accuracy} />
+              )}
+
+              {/* Win streak */}
+              {winStreak >= 3 && (
+                <span style={{
+                  background:'#fff7ed', color:'#c2410c', fontSize:10, fontWeight:700,
+                  padding:'2px 7px', borderRadius:10,
+                }}>
+                  🔥 x{winStreak}
+                </span>
+              )}
+
+              <InlineFollowButton
+                analystEmail={authorEmail}
+                analystName={authorName}
+                analystAvatar={authorAvatar}
+                isFollowing={isFollowing}
+              />
+
+              {postsThisWk > 0 && (
+                <span style={{ fontSize:11, color:'#94a3b8' }}>{postsThisWk} posts this week</span>
+              )}
             </div>
-          ) : (
-            <div className="space-y-1">
-              {[
-                { id: "long", label: "📈 Long", pct: 68 },
-                { id: "short", label: "📉 Short", pct: 21 },
-                { id: "neutral", label: "🤔 Neutral", pct: 11 },
-              ].map(opt => (
-                <div key={opt.id} className="flex items-center gap-2">
-                  <span className="text-[10px] w-16 text-muted-foreground">{opt.label}</span>
-                  <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${vote === opt.id ? "bg-primary" : "bg-muted-foreground/40"}`}
-                      style={{ width: `${opt.pct}%` }}
-                    />
-                  </div>
-                  <span className={`text-[10px] font-semibold w-8 text-right ${vote === opt.id ? "text-primary" : "text-muted-foreground"}`}>{opt.pct}%</span>
-                </div>
-              ))}
-              <p className="text-[10px] text-muted-foreground mt-1">142 votes</p>
+
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3 }}>
+              <span style={{ fontSize:12, color:'#94a3b8' }}>{timeAgo(publishedDate)}</span>
+              {isLive && (
+                <span style={{
+                  background:'#ef4444', color:'#fff', fontSize:10, fontWeight:700,
+                  padding:'2px 7px', borderRadius:10,
+                  animation:'livePulse 2s infinite',
+                }}>
+                  🔴 LIVE
+                </span>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
 
-      {/* Tickers row */}
-      {tickers.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3" onClick={e => e.stopPropagation()}>
-          {tickers.map(t => <TickerTag key={t} ticker={t} />)}
+          {/* Right: outcome or P&L badge */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+            {!isPending && (
+              <OutcomeBadge
+                outcome={outcome}
+                lockPrice={lockPrice}
+                resolvedPrice={resolvedPrice}
+                action={action}
+              />
+            )}
+            {isPending && hasPredict && lockPrice && (
+              <PnLBadge action={action} lockPrice={lockPrice} targetPrice={targetPrice} />
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Row 5: Footer */}
-      <div className="flex items-center gap-4 pt-2 border-t border-border/40">
-        <button
-          onClick={handleLike}
-          className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-[#ef4444]" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          <Heart className={`w-4 h-4 ${liked ? "fill-[#ef4444]" : ""}`} />
-          {likeCount}
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); navigate(`/report?id=${report.id}#comments`); }}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Comment
-        </button>
-        {isPremium && report.price && (
-          <span className="text-xs font-bold text-amber-600">${report.price}</span>
+        {/* ── PREDICTION PILL ── */}
+        {hasPredict && (
+          <PredictionPill
+            action={action}
+            ticker={ticker}
+            lockPrice={lockPrice}
+            targetPrice={targetPrice}
+            isLocked={isLocked}
+          />
         )}
-        <span onClick={e => e.stopPropagation()} className="ml-auto">
-          <ShareMenu title={report.title} reportId={report.id} />
-        </span>
+
+        {/* ── TITLE ── */}
+        <h3 style={{
+          fontSize:17, fontWeight:700, color:'#0f172a', lineHeight:1.4,
+          marginBottom:8, display:'-webkit-box', WebkitLineClamp:2,
+          WebkitBoxOrient:'vertical', overflow:'hidden',
+        }}>
+          {report.title}
+        </h3>
+
+        {/* ── EXCERPT ── */}
+        {report.excerpt && (
+          <div style={{ marginBottom:10, position:'relative' }}>
+            <p style={{
+              fontSize:14, color:'#475569', lineHeight:1.6,
+              display:'-webkit-box', WebkitLineClamp:3,
+              WebkitBoxOrient:'vertical', overflow:'hidden',
+              filter: isLocked ? 'blur(3px)' : 'none',
+              userSelect: isLocked ? 'none' : 'auto',
+              pointerEvents: isLocked ? 'none' : 'auto',
+            }}>
+              {report.excerpt}
+            </p>
+            {isLocked && (
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position:'absolute', inset:0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}
+              >
+                <div style={{
+                  background:'rgba(255,255,255,0.95)', borderRadius:10,
+                  border:'1px solid #e2e8f0', padding:'12px 18px', textAlign:'center',
+                  boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
+                }}>
+                  <Lock size={22} color="#d97706" style={{ marginBottom:6, display:'block', margin:'0 auto 6px' }} />
+                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:8 }}>
+                    Subscribe to {authorName} to read
+                  </p>
+                  <Link
+                    to={`/analyst/${slug}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      fontSize:12, fontWeight:700, background:'#2563eb', color:'#fff',
+                      borderRadius:6, padding:'5px 14px', textDecoration:'none', display:'inline-block',
+                    }}
+                  >
+                    Subscribe — $29/mo
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── QUICK POLL ── */}
+        {hasPredict && isPending && (
+          <QuickPoll action={action} />
+        )}
+
+        {/* ── TICKERS ── */}
+        {tickers.length > 0 && (
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}
+          >
+            {tickers.map(t => <TickerTag key={t} ticker={t} />)}
+          </div>
+        )}
+
+        {/* ── FOOTER ── */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:12,
+          paddingTop:12, borderTop:'1px solid #f1f5f9', marginTop:4,
+        }}>
+          <button
+            onClick={handleLike}
+            style={{
+              display:'flex', alignItems:'center', gap:5,
+              fontSize:13, fontWeight:600, background:'none', border:'none',
+              color: liked ? '#ef4444' : '#94a3b8', cursor:'pointer',
+              transition:'color 150ms ease',
+            }}
+          >
+            <Heart size={15} fill={liked ? '#ef4444' : 'none'} color={liked ? '#ef4444' : '#94a3b8'} />
+            {likeCount}
+          </button>
+
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/report?id=${report.id}#comments`); }}
+            style={{
+              display:'flex', alignItems:'center', gap:5,
+              fontSize:13, fontWeight:600, background:'none', border:'none',
+              color:'#94a3b8', cursor:'pointer', transition:'color 150ms ease',
+            }}
+          >
+            <MessageCircle size={15} />
+            Comment
+          </button>
+
+          {isPremium && report.price && (
+            <span style={{ fontSize:12, fontWeight:700, color:'#d97706' }}>${report.price}</span>
+          )}
+
+          <span onClick={e => e.stopPropagation()} style={{ marginLeft:'auto' }}>
+            <ShareMenu title={report.title} reportId={report.id} />
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
