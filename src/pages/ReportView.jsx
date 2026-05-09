@@ -204,6 +204,10 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  // Like helpers (imported inline to avoid circular deps)
+  const isLikedKey = (id) => `stoa_liked_report_${id}`;
+  const checkLiked = (id) => localStorage.getItem(isLikedKey(id)) === '1';
+  const writeLiked = (id, val) => val ? localStorage.setItem(isLikedKey(id), '1') : localStorage.removeItem(isLikedKey(id));
   const [viewCount, setViewCount] = useState(0);
   const [authorUser, setAuthorUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -221,7 +225,7 @@ export default function ReportView() {
         setReport(data);
         setLikeCount(data.likes || 0);
         setViewCount(data.views || 0);
-        setLiked(localStorage.getItem(`liked_${reportId}`) === 'true');
+        setLiked(checkLiked(reportId));
         base44.analytics.track({ eventName: "report_viewed", properties: { report_id: reportId, is_premium: data.is_premium || false } });
         if (data.content_blocks) {
           try {
@@ -372,7 +376,7 @@ export default function ReportView() {
               const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
               setLiked(newLiked);
               setLikeCount(newCount);
-              localStorage.setItem(`liked_${report.id}`, String(newLiked));
+              writeLiked(report.id, newLiked);
               await base44.entities.Report.update(report.id, { likes: newCount });
               base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
             }}

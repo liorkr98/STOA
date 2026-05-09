@@ -6,7 +6,8 @@ import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, SlidersHorizontal, X, Flame, Users, Star } from "lucide-react";
+import { SlidersHorizontal, X, Flame, Users, Star } from "lucide-react";
+import MarketsWidget from "@/components/feed/MarketsWidget.jsx";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
 import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
@@ -370,16 +371,7 @@ export default function HomeFeed() {
         <aside className="hidden lg:flex flex-col gap-4 w-64 flex-shrink-0">
           <Leaderboard />
           <TrendingPanel />
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-sm text-primary">Become an Analyst</h3>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">Publish research, lock predictions, build your audience.</p>
-            <Link to="/editor">
-              <Button size="sm" className="w-full text-xs">Start Writing</Button>
-            </Link>
-          </div>
+          <MarketsWidget />
         </aside>
       </div>
 

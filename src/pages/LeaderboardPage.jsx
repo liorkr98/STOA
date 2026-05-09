@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, TrendingUp, Loader2, PenLine } from "lucide-react";
+import { Trophy, TrendingUp, Loader2, PenLine, Heart, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalystSlug } from "@/lib/analystSlug";
@@ -28,6 +28,9 @@ function SkeletonRow() {
   );
 }
 
+// Tier rank for sorting: higher = better
+const TIER_RANK = { legend: 5, elite: 4, expert: 3, strong: 2, rising: 1, building: 0 };
+
 export default function LeaderboardPage() {
   const navigate = useNavigate();
   const [analysts, setAnalysts] = useState([]);
@@ -45,6 +48,27 @@ export default function LeaderboardPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
+  // Top 5 by tier → then likes → then yield
+  const top5ByTier = useMemo(() => {
+    if (!analysts.length) return [];
+    // Compute total likes per analyst from reports
+    const likesMap = {};
+    allReports.forEach(r => {
+      if (!r.created_by) return;
+      likesMap[r.created_by] = (likesMap[r.created_by] || 0) + (r.likes || 0);
+    });
+    return [...analysts]
+      .map(a => ({ ...a, _tier: computeAnalystTier(a, allReports), _totalLikes: likesMap[a.email] || 0 }))
+      .sort((a, b) => {
+        const td = (TIER_RANK[b._tier?.tier] || 0) - (TIER_RANK[a._tier?.tier] || 0);
+        if (td !== 0) return td;
+        const ld = b._totalLikes - a._totalLikes;
+        if (ld !== 0) return ld;
+        return (b.yearly_yield || 0) - (a.yearly_yield || 0);
+      })
+      .slice(0, 5);
+  }, [analysts, allReports]);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -54,6 +78,64 @@ export default function LeaderboardPage() {
           <p className="text-sm text-muted-foreground">Ranked by prediction accuracy</p>
         </div>
       </div>
+
+      {/* ── Top 5 Tier Spotlight ── */}
+      {!loading && top5ByTier.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Star className="w-4 h-4 text-amber-500" />
+            <h2 className="font-bold text-sm">Top Analysts by Tier</h2>
+            <span className="text-xs text-muted-foreground">Ranked by badge level · likes · yield</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            {top5ByTier.map((analyst, i) => {
+              const tier = analyst._tier;
+              const yield_ = analyst.yearly_yield;
+              const slug = getAnalystSlug(analyst);
+              return (
+                <button
+                  key={analyst.id}
+                  onClick={() => navigate(`/analyst/${slug}`)}
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl border text-center hover:shadow-md transition-all"
+                  style={{ background: tier?.bg, borderColor: tier?.border }}
+                >
+                  {/* Avatar */}
+                  <div className="relative">
+                    {analyst.picture
+                      ? <img src={analyst.picture} alt={analyst.full_name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: tier?.border }} />
+                      : <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2" style={{ background: '#fff', borderColor: tier?.border, color: tier?.color }}>
+                          {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
+                        </div>
+                    }
+                    <span className="absolute -top-1 -left-1 text-base leading-none">{["🥇","🥈","🥉","4️⃣","5️⃣"][i]}</span>
+                  </div>
+
+                  {/* Name */}
+                  <p className="text-xs font-bold truncate w-full" style={{ color: tier?.color }}>
+                    {analyst.full_name || analyst.email?.split("@")[0]}
+                  </p>
+
+                  {/* Tier badge */}
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#fff', color: tier?.color, border: `1px solid ${tier?.border}` }}>
+                    {tier?.label}
+                  </span>
+
+                  {/* Likes & Yield */}
+                  <div className="flex items-center gap-2 text-[10px] font-semibold" style={{ color: tier?.color }}>
+                    <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{analyst._totalLikes}</span>
+                    {yield_ != null && (
+                      <span className="flex items-center gap-0.5">
+                        <TrendingUp className="w-2.5 h-2.5" />
+                        {yield_ >= 0 ? "+" : ""}{yield_.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Period filter */}
       <div className="flex gap-2 mb-6">
