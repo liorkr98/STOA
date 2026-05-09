@@ -161,44 +161,27 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     notify({ studies: next });
   };
 
-  // Save chart using TradingView's built-in screenshot API
+  // Save chart using html2canvas to capture the chart container
   const handleSaveChart = async () => {
     setSaving(true);
     try {
-      // TradingView widget exposes takeScreenshot() which triggers a "onScreenshotReady" event
-      // We listen for the event, then fetch & upload the screenshot URL
-      const screenshotUrl = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Screenshot timed out")), 15000);
+      const container = chartContainerRef.current;
+      if (!container) throw new Error("Chart container not found");
 
-        // Listen for TradingView's screenshot event on the iframe
-        const handler = (event) => {
-          if (event.data && event.data.name === "tv-widget-screenshot") {
-            clearTimeout(timeout);
-            window.removeEventListener("message", handler);
-            resolve(event.data.data);
-          }
-        };
-        window.addEventListener("message", handler);
-
-        // Trigger the screenshot
-        if (widgetRef.current && widgetRef.current.takeScreenshot) {
-          widgetRef.current.takeScreenshot();
-        } else {
-          // Fallback: post message directly to the iframe
-          const iframe = chartContainerRef.current?.querySelector("iframe");
-          if (iframe?.contentWindow) {
-            iframe.contentWindow.postMessage({ name: "take-screenshot" }, "*");
-          } else {
-            clearTimeout(timeout);
-            window.removeEventListener("message", handler);
-            reject(new Error("Widget not ready"));
-          }
-        }
+      // Dynamically import html2canvas
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(container, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 1,
+        logging: false,
+        foreignObjectRendering: false,
       });
 
-      // Fetch the screenshot image from TradingView's CDN and re-upload to our storage
-      const imgRes = await fetch(screenshotUrl);
-      const blob = await imgRes.blob();
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error("Canvas to blob failed")), "image/png", 0.92);
+      });
+
       const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
 
       const patch = {
@@ -217,7 +200,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       toast.success(`Chart saved! ${ticker} · ${interval}`);
     } catch (e) {
       console.error(e);
-      toast.error("Could not capture chart — please try again.");
+      toast.error("Could not capture chart: " + e.message);
     } finally {
       setSaving(false);
     }

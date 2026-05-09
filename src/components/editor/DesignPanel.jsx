@@ -42,29 +42,6 @@ export default function DesignPanel({ theme, font, layout, accentColor, onThemeC
         <Palette className="w-3.5 h-3.5 text-primary" /> Design
       </h3>
 
-      {/* Theme */}
-      <div>
-        <label className="text-xs text-muted-foreground mb-2 block font-medium">Theme</label>
-        <div className="grid grid-cols-4 gap-1.5">
-          {REPORT_THEMES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => onThemeChange(t.id)}
-              title={t.label}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${
-                theme === t.id ? "border-primary" : "border-border hover:border-primary/30"
-              }`}
-            >
-              <div className="w-full h-6 rounded-lg border border-black/10 overflow-hidden flex">
-                <div className="flex-1" style={{ background: t.bg }} />
-                <div className="w-2" style={{ background: t.accent }} />
-              </div>
-              <span className="text-[9px] text-muted-foreground font-medium">{t.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Accent color */}
       {onAccentColorChange && (
         <div>

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import {
   Sparkles, CheckCircle2, AlertTriangle, Info, MessageSquareQuote,
-  Loader2, X, TrendingUp, ExternalLink
+  Loader2, X, TrendingUp, ExternalLink, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 const TYPE_CONFIG = {
   Fact: {
@@ -39,6 +40,21 @@ function ClaimCard({ claim }) {
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState("");
+  const [reportSent, setReportSent] = useState(false);
+
+  const handleReportMistake = async () => {
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: "baramsalem1@gmail.com",
+        subject: `AI Fact Check Dispute — ${claim.type}`,
+        body: `A user flagged a potential AI fact-check mistake.\n\nClaim type: ${claim.type}\nConfidence: ${claim.confidence || "N/A"}\n\nClaim text:\n"${claim.text}"\n\nAI note: ${claim.note || "N/A"}\n\nPlease review this claim.`,
+      });
+      setReportSent(true);
+      toast.success("Thanks! We'll review this claim.");
+    } catch {
+      toast.error("Failed to send. Please try again.");
+    }
+  };
 
   const addNote = () => {
     if (!noteText.trim()) return;
@@ -83,6 +99,22 @@ function ClaimCard({ claim }) {
               claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-orange-50 text-orange-700"
             }`}>
               <strong>Yahoo Finance:</strong> {claim.yahooCheck.detail}
+            </div>
+          )}
+
+          {/* AI Mistaken button for Fact, Unverified, Yahoo-Disputed */}
+          {(claim.type === "Fact" || claim.type === "Unverified" || claim.type === "Yahoo-Disputed") && (
+            <div className="mt-2">
+              {reportSent ? (
+                <span className="text-[10px] text-muted-foreground italic">✓ Reported — thanks!</span>
+              ) : (
+                <button
+                  onClick={handleReportMistake}
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-amber-600 transition-colors"
+                >
+                  <Flag className="w-2.5 h-2.5" /> AI mistaken? Tell us
+                </button>
+              )}
             </div>
           )}
 

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2 } from "lucide-react";
+import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock } from "lucide-react";
 import { format } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
@@ -13,6 +13,122 @@ import { calculateAccuracyScore } from "@/lib/accuracyScore";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
+
+// ── Inline DM component for dashboard ────────────────────────────────────────
+function DashboardDMs({ subscriptions, currentUser }) {
+  const [selectedAnalyst, setSelectedAnalyst] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+
+  const openDM = (sub) => {
+    setSelectedAnalyst(sub);
+    setMessages([{
+      id: "welcome",
+      from: "analyst",
+      text: `Hi! I'm ${sub.analyst_name}. Feel free to ask me anything about my analysis.`,
+      time: "Welcome",
+    }]);
+  };
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async () => {
+    if (!input.trim() || sending) return;
+    setSending(true);
+    const text = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { id: Date.now(), from: "me", text, time: "just now" }]);
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1, from: "analyst",
+        text: "Thanks for your message! I'll get back to you soon.",
+        time: "just now",
+      }]);
+      setSending(false);
+    }, 1200);
+  };
+
+  if (subscriptions.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <Lock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+        <p className="text-sm font-medium text-muted-foreground">No subscriptions yet</p>
+        <p className="text-xs text-muted-foreground/60">Subscribe to an analyst to message them.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-3" style={{ minHeight: 360 }}>
+      {/* Analyst list */}
+      <div className="w-44 flex-shrink-0 space-y-1 border-r border-border pr-3">
+        {subscriptions.map(sub => (
+          <button
+            key={sub.id}
+            onClick={() => openDM(sub)}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all ${selectedAnalyst?.id === sub.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`}
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
+              {sub.analyst_avatar
+                ? <img src={sub.analyst_avatar} alt={sub.analyst_name} className="w-full h-full object-cover" />
+                : (sub.analyst_name || "A")[0]}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium truncate">{sub.analyst_name || sub.analyst_email}</p>
+              <p className="text-[10px] text-muted-foreground">Subscribed</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Chat area */}
+      {selectedAnalyst ? (
+        <div className="flex-1 flex flex-col gap-2">
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <MessageCircle className="w-3.5 h-3.5 text-primary" />
+            <span className="text-sm font-semibold">{selectedAnalyst.analyst_name}</span>
+            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1"><Lock className="w-3 h-3" /> Subscribers only</span>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2 max-h-60 pr-1">
+            {messages.map(msg => (
+              <div key={msg.id} className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${msg.from === "me" ? "bg-primary text-white" : "bg-secondary text-foreground"}`}>
+                  {msg.text}
+                  <p className={`text-[10px] mt-0.5 ${msg.from === "me" ? "text-white/60" : "text-muted-foreground"}`}>{msg.time}</p>
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && send()}
+              placeholder="Send a message..."
+              className="flex-1 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              disabled={sending}
+            />
+            <Button size="sm" onClick={send} disabled={!input.trim() || sending} className="h-9 w-9 p-0">
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <div className="text-center">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Select an analyst to message</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AnalystDashboard() {
   const [tab, setTab] = useState("published");
@@ -219,6 +335,7 @@ export default function AnalystDashboard() {
             { id: "boost", label: "Boost" },
             { id: "profile-boost", label: "Profile Boost" },
             { id: "subscriptions", label: "Subscribed" },
+            { id: "messages", label: "💬 Messages" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${tab === t.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"}`}>
@@ -349,6 +466,10 @@ export default function AnalystDashboard() {
             <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Subscriptions coming soon.</p>
           </div>
+        )}
+
+        {tab === "messages" && (
+          <DashboardDMs subscriptions={mySubscriptions} currentUser={currentUser} />
         )}
       </div>
 
