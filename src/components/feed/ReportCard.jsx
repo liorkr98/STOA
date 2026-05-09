@@ -215,7 +215,8 @@ function QuickPoll({ reportId }) {
 
 // ── main card ─────────────────────────────────────────────────────────────────
 export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [], userMap = {} }) {
-  const [liked, setLiked] = useState(false);
+  const likedKey = `liked_${report.id}`;
+  const [liked, setLiked] = useState(() => localStorage.getItem(likedKey) === 'true');
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
@@ -249,10 +250,14 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
     ? report.tickers
     : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
 
-  const handleLike = (e) => {
+  const handleLike = async (e) => {
     e.stopPropagation();
-    setLiked(p => !p);
-    setLikeCount(p => liked ? p - 1 : p + 1);
+    const newLiked = !liked;
+    const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+    setLiked(newLiked);
+    setLikeCount(newCount);
+    localStorage.setItem(likedKey, String(newLiked));
+    await base44.entities.Report.update(report.id, { likes: newCount });
   };
 
   const slug = getAnalystSlug({ full_name: authorName, email: authorEmail });

@@ -132,7 +132,7 @@ export default function AnalystProfilePage() {
       subscriber_email: currentUser.email,
       analyst_email: analyst.email,
       analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
-      analyst_avatar: analyst.picture || "",
+      analyst_avatar: analyst.picture || analyst.profile_picture || "",
       status: "active",
       plan: "monthly",
     });

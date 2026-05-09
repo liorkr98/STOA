@@ -204,6 +204,7 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [authorUser, setAuthorUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [livePrice, setLivePrice] = useState(null);
 
@@ -214,10 +215,11 @@ export default function ReportView() {
   useEffect(() => {
     if (!reportId) { setError("No report ID specified."); setLoading(false); return; }
     base44.entities.Report.get(reportId)
-      .then(data => {
+      .then(async data => {
         if (!data) { setError("Report not found."); return; }
         setReport(data);
         setLikeCount(data.likes || 0);
+        setLiked(localStorage.getItem(`liked_${reportId}`) === 'true');
         base44.analytics.track({ eventName: "report_viewed", properties: { report_id: reportId, is_premium: data.is_premium || false } });
         if (data.content_blocks) {
           try {
@@ -226,6 +228,11 @@ export default function ReportView() {
           } catch {
             setBlocks([{ type: "text", content: data.content_blocks, id: 0 }]);
           }
+        }
+        // Fetch author user for avatar fallback
+        if (data.created_by) {
+          const users = await base44.entities.User.filter({ email: data.created_by }).catch(() => []);
+          if (users?.[0]) setAuthorUser(users[0]);
         }
       })
       .catch(() => setError("Failed to load report."))
@@ -281,8 +288,8 @@ export default function ReportView() {
     </div>
   );
 
-  const authorName = report.author_name || report.created_by?.split("@")[0] || "Analyst";
-  const authorAvatar = report.author_avatar;
+  const authorName = report.author_name || authorUser?.full_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorAvatar = report.author_avatar || authorUser?.profile_picture || authorUser?.picture || null;
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
 
@@ -337,7 +344,15 @@ export default function ReportView() {
         )}
         <div className="flex items-center gap-3 ml-auto">
           <button
-            onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } }); }}
+            onClick={async () => {
+              const newLiked = !liked;
+              const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+              setLiked(newLiked);
+              setLikeCount(newCount);
+              localStorage.setItem(`liked_${report.id}`, String(newLiked));
+              await base44.entities.Report.update(report.id, { likes: newCount });
+              base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
+            }}
             className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
           >
             <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} /> {likeCount}
