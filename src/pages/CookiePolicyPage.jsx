@@ -1,7 +1,8 @@
 import React from "react";
 export default function CookiePolicyPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">Cookie Policy</h1>
       <p className="text-muted-foreground mb-6">Last updated: May 1, 2026</p>
       <div className="space-y-4 text-sm text-foreground/90">
@@ -13,6 +14,7 @@ export default function CookiePolicyPage() {
         <h3 className="font-semibold">Managing Cookies</h3>
         <p>You can disable non-essential cookies in your browser settings. This may affect some functionality.</p>
       </div>
+    </div>
     </div>
   );
 }

@@ -44,7 +44,8 @@ export default function PrivacyPage() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="max-w-6xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
@@ -160,6 +161,7 @@ export default function PrivacyPage() {
           </SectionBlock>
         </main>
       </div>
+    </div>
     </div>
   );
 }

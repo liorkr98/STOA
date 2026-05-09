@@ -11,32 +11,32 @@ const FOOTER_COLS = [
 
 export default function AppFooter() {
   return (
-    <footer style={{ background: "#0d1117", borderTop: "1px solid rgba(255,255,255,0.08)" }} className="mt-12">
+    <footer style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0" }} className="mt-12">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <StoaLogo size={22} textSize="text-base" className="mb-3" light />
-            <p className="text-xs leading-relaxed mb-2" style={{ color: "#9ca3af" }}>
+            <StoaLogo size={32} textSize="text-lg" className="mb-3" />
+            <p className="text-xs leading-relaxed mb-2" style={{ color: "#64748b" }}>
               Transparent financial research with verified, locked predictions.
             </p>
-            <p className="text-xs italic" style={{ color: "#6b7280" }}>
+            <p className="text-xs italic" style={{ color: "#94a3b8" }}>
               Not financial advice. Always DYOR.
             </p>
           </div>
           {/* Link columns */}
-          {FOOTER_COLS.map((col) => (
+           {FOOTER_COLS.map((col) => (
             <div key={col.label}>
-              <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: "#f9fafb" }}>{col.label}</p>
+              <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: "#0f172a" }}>{col.label}</p>
               <ul className="space-y-2">
                 {col.links.map((link) => (
                   <li key={link.path}>
                     <Link
                       to={link.path}
                       className="text-xs transition-colors"
-                      style={{ color: "#9ca3af" }}
-                      onMouseEnter={e => e.currentTarget.style.color = "#f9fafb"}
-                      onMouseLeave={e => e.currentTarget.style.color = "#9ca3af"}
+                      style={{ color: "#64748b" }}
+                      onMouseEnter={e => e.currentTarget.style.color = "#0f172a"}
+                      onMouseLeave={e => e.currentTarget.style.color = "#64748b"}
                     >
                       {link.label}
                     </Link>
@@ -46,9 +46,9 @@ export default function AppFooter() {
             </div>
           ))}
         </div>
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <p className="text-xs" style={{ color: "#6b7280" }}>© 2026 STOA. All rights reserved.</p>
-          <p className="text-xs" style={{ color: "#6b7280" }}>Not financial advice. Always DYOR.</p>
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2" style={{ borderTop: "1px solid #e2e8f0" }}>
+          <p className="text-xs" style={{ color: "#94a3b8" }}>© 2026 STOA. All rights reserved.</p>
+          <p className="text-xs" style={{ color: "#94a3b8" }}>Not financial advice. Always DYOR.</p>
         </div>
       </div>
     </footer>
