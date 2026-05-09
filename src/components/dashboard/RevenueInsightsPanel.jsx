@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BarChart3, Eye, DollarSign, TrendingUp, Users, ArrowUpRight, ShoppingCart, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
 export default function RevenueInsightsPanel() {
@@ -78,6 +79,12 @@ export default function RevenueInsightsPanel() {
         <BarChart3 className="w-4 h-4 text-primary" />
         <h3 className="font-semibold text-sm">Analytics & Revenue</h3>
       </div>
+      <Link to="/analytics/creator" className="block mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg hover:bg-primary/10 transition-colors">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-primary">📊 View Full Analytics →</span>
+          <ArrowUpRight className="w-3.5 h-3.5 text-primary" />
+        </div>
+      </Link>
       <div className="grid grid-cols-2 gap-2">
         {stats.map(s => {
           const Icon = s.icon;
