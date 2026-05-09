@@ -54,16 +54,11 @@ export default function AccuracyBreakdown({ analystUser }) {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm">Track Record — Elo Engine</h3>
-        <div className="flex items-center gap-2">
-          {analystUser?.specialization && (
-            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-semibold">
-              {analystUser.specialization}
-            </span>
-          )}
-          <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${tierConfig.bg} ${tierConfig.color}`}>
-            {tierConfig.icon} {tier}
+        {analystUser?.specialization && (
+          <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-semibold">
+            {analystUser.specialization}
           </span>
-        </div>
+        )}
       </div>
 
       {/* Top KPIs */}

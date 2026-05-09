@@ -183,10 +183,18 @@ export default function AnalystProfilePage() {
             : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-2xl font-bold text-primary">{displayName?.[0] || "A"}</div>
           }
           <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-xl font-bold">{displayName}</h1>
-              <AccuracyTierBadge tierData={tier} size="lg" />
-            </div>
+            <h1 className="text-xl font-bold mb-1">{displayName}</h1>
+            {tier && (
+              <div className="mb-2">
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 13, fontWeight: 700, padding: '5px 12px', borderRadius: 20,
+                  background: tier.bg, color: tier.color, border: `1px solid ${tier.border}`,
+                }}>
+                  {tier.icon} {tier.label}
+                </span>
+              </div>
+            )}
             {analyst.tagline && <p className="text-sm text-muted-foreground mb-2">{analyst.tagline}</p>}
             {analyst.bio && <p className="text-sm text-muted-foreground mb-3">{analyst.bio}</p>}
             <div className="flex flex-wrap gap-1.5">
@@ -217,7 +225,7 @@ export default function AnalystProfilePage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-5 gap-2 mb-4">
           {[
             { label: "Accuracy", value: analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—", color: "text-primary", onClick: analyst.accuracy_score > 0 ? () => setShowAccModal(true) : null },
             { label: "Avg Yield", value: displayYield, color: yieldColor, onClick: computedYield != null ? () => setShowYieldModal(true) : null },
@@ -229,6 +237,11 @@ export default function AnalystProfilePage() {
               <p className="text-[10px] text-muted-foreground">{stat.label}{stat.onClick ? " ↗" : ""}</p>
             </button>
           ))}
+          {/* Tier stat card */}
+          <div className="text-center p-3 rounded-xl cursor-default transition-all" style={{ background: tier?.bg, border: `1px solid ${tier?.border}` }}>
+            <p className="text-base font-bold leading-tight" style={{ color: tier?.color }}>{tier?.label}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Analyst Tier</p>
+          </div>
         </div>
 
         {/* Track record by timeframe */}
