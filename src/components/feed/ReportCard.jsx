@@ -459,23 +459,41 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               >
                 <div style={{
                   background:'rgba(255,255,255,0.95)', borderRadius:10,
-                  border:'1px solid #e2e8f0', padding:'12px 18px', textAlign:'center',
+                  border:'1px solid #e2e8f0', padding:'16px 18px', textAlign:'center',
                   boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
                 }}>
                   <Lock size={22} color="#d97706" style={{ marginBottom:6, display:'block', margin:'0 auto 6px' }} />
-                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:8 }}>
-                    Subscribe to {authorName} to read
+                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:10 }}>
+                    {isPremium && report.price ? 'Unlock to read' : 'Subscribe to read'}
                   </p>
-                  <Link
-                    to={`/analyst/${slug}`}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      fontSize:12, fontWeight:700, background:'#2563eb', color:'#fff',
-                      borderRadius:6, padding:'5px 14px', textDecoration:'none', display:'inline-block',
-                    }}
-                  >
-                    Subscribe — $29/mo
-                  </Link>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <Link
+                      to={`/analyst/${slug}`}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        fontSize:12, fontWeight:700, background:'#2563eb', color:'#fff',
+                        borderRadius:6, padding:'6px 14px', textDecoration:'none', display:'inline-block',
+                        width:'100%', boxSizing:'border-box',
+                      }}
+                    >
+                      Subscribe — $29/mo
+                    </Link>
+                    {isPremium && report.price && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          navigate(`/pay?reportId=${report.id}&price=${report.price}`);
+                        }}
+                        style={{
+                          fontSize:12, fontWeight:700, background:'#059669', color:'#fff',
+                          borderRadius:6, padding:'6px 14px', border:'none', cursor:'pointer',
+                          width:'100%',
+                        }}
+                      >
+                        Buy Report — ${report.price}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
