@@ -215,11 +215,25 @@ function QuickPoll({ reportId }) {
 
 // ── main card ─────────────────────────────────────────────────────────────────
 export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [], userMap = {} }) {
-  const likedKey = `liked_${report.id}`;
-  const [liked, setLiked] = useState(() => localStorage.getItem(likedKey) === 'true');
+  const { user, isAuthenticated } = useAuth();
+  const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(report.likes || 0);
+  const [likeId, setLikeId] = useState(null);
   const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
+
+  // Check if current user already liked this report
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    base44.entities.Like.filter({ report_id: report.id, user_email: user.email })
+      .then(data => {
+        if (data && data.length > 0) {
+          setLiked(true);
+          setLikeId(data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, [report.id, isAuthenticated, user?.email]);
 
   const authorUser    = userMap[report.created_by] || {};
   const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Analyst";
@@ -252,12 +266,24 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
 
   const handleLike = async (e) => {
     e.stopPropagation();
-    const newLiked = !liked;
-    const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
-    setLiked(newLiked);
-    setLikeCount(newCount);
-    localStorage.setItem(likedKey, String(newLiked));
-    await base44.entities.Report.update(report.id, { likes: newCount });
+    if (!isAuthenticated || !user) return;
+    if (liked) {
+      // Unlike
+      const newCount = Math.max(0, likeCount - 1);
+      setLiked(false);
+      setLikeCount(newCount);
+      if (likeId) await base44.entities.Like.delete(likeId).catch(() => {});
+      await base44.entities.Report.update(report.id, { likes: newCount });
+      setLikeId(null);
+    } else {
+      // Like (only if not already liked)
+      const newCount = likeCount + 1;
+      setLiked(true);
+      setLikeCount(newCount);
+      const created = await base44.entities.Like.create({ report_id: report.id, user_email: user.email });
+      setLikeId(created?.id || null);
+      await base44.entities.Report.update(report.id, { likes: newCount });
+    }
   };
 
   const slug = getAnalystSlug({ full_name: authorName, email: authorEmail });

@@ -1,0 +1,27 @@
+{
+  "name": "Like",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "ID of the report being liked"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who liked"
+    }
+  },
+  "required": [
+    "report_id",
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {},
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
