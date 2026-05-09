@@ -18,11 +18,13 @@ import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer"
 import FeedSkeletonCard from "@/components/feed/FeedSkeletonCard";
 import QuickFilterRow from "@/components/feed/QuickFilterRow";
 import { TrendingDivider, AnalystSpotlight } from "@/components/feed/FeedDividerCard";
+import AnalystFeedCard from "@/components/feed/AnalystFeedCard";
 
 const FEED_TABS = [
   { id: "trending", label: "Trending", icon: Flame },
   { id: "following", label: "Following", icon: Users },
   { id: "subscriptions", label: "Subscriptions", icon: Star },
+  { id: "analysts", label: "Analysts", icon: Users },
 ];
 
 const PAGE_SIZE = 10;
@@ -315,6 +317,12 @@ export default function HomeFeed() {
           <div className="space-y-4">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <FeedSkeletonCard key={i} />)
+            ) : activeTab === "analysts" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {topAnalysts.map(analyst => (
+                  <AnalystFeedCard key={analyst.id} analyst={analyst} allReports={reports} />
+                ))}
+              </div>
             ) : filtered.length === 0 ? (
               activeTab === "following" ? (
                 <EmptyFollowingState onFollow={handleFollowAnalyst} />

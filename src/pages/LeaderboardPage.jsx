@@ -37,6 +37,7 @@ export default function LeaderboardPage() {
   const [allReports, setAllReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("all");
+  const [metric, setMetric] = useState("accuracy");
 
   useEffect(() => {
     Promise.all([
@@ -137,14 +138,24 @@ export default function LeaderboardPage() {
         </div>
       )}
 
-      {/* Period filter */}
-      <div className="flex gap-2 mb-6">
-        {[["all", "All Time"], ["month", "This Month"], ["week", "This Week"]].map(([key, label]) => (
-          <button key={key} onClick={() => setPeriod(key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${period === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-            {label}
-          </button>
-        ))}
+      {/* Period & Metric filters */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex gap-2">
+          {[["all", "All Time"], ["month", "This Month"], ["week", "This Week"]].map(([key, label]) => (
+            <button key={key} onClick={() => setPeriod(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${period === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {[["accuracy", "Accuracy"], ["likes", "Total Likes"], ["views", "Views"], ["yield", "Yield"]].map(([key, label]) => (
+            <button key={key} onClick={() => setMetric(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${metric === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -161,56 +172,96 @@ export default function LeaderboardPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {analysts.map((analyst, i) => {
-            const rank = i + 1;
-            const reward = RANK_REWARDS[i];
-            const accPct = analyst.accuracy_score || 0;
-            const tier = computeAnalystTier(analyst, allReports);
-            return (
-              <button key={analyst.id} onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
-                className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
-                <span className="text-lg font-bold w-8 text-center flex-shrink-0">
-                  {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-semibold">#{rank}</span>}
-                </span>
-                {analyst.picture
-                  ? <img src={analyst.picture} alt={analyst.full_name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
-                  : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                      {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
-                    </div>
-                }
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
-                    <AccuracyTierBadge tierData={tier} />
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Analyst"}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`text-sm font-bold ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>
-                    {accPct.toFixed(1)}%
+          {(() => {
+            // Compute metrics
+            const likesMap = {};
+            const viewsMap = {};
+            allReports.forEach(r => {
+              if (!r.created_by) return;
+              likesMap[r.created_by] = (likesMap[r.created_by] || 0) + (r.likes || 0);
+              viewsMap[r.created_by] = (viewsMap[r.created_by] || 0) + (r.views || 0);
+            });
+            // Sort by metric
+            const sorted = [...analysts].sort((a, b) => {
+              switch (metric) {
+                case "likes": return (likesMap[b.email] || 0) - (likesMap[a.email] || 0);
+                case "views": return (viewsMap[b.email] || 0) - (viewsMap[a.email] || 0);
+                case "yield": return (b.yearly_yield || 0) - (a.yearly_yield || 0);
+                default: return (b.accuracy_score || 0) - (a.accuracy_score || 0);
+              }
+            });
+            return sorted.map((analyst, i) => {
+              const rank = i + 1;
+              const reward = RANK_REWARDS[i];
+              const accPct = analyst.accuracy_score || 0;
+              const tier = computeAnalystTier(analyst, allReports);
+              const totalLikes = likesMap[analyst.email] || 0;
+              const totalViews = viewsMap[analyst.email] || 0;
+              return (
+                <button key={analyst.id} onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
+                  className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
+                  <span className="text-lg font-bold w-8 text-center flex-shrink-0">
+                    {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-semibold">#{rank}</span>}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">Accuracy</span>
-                  {analyst.yearly_yield != null && (
-                    <span className={`flex items-center gap-0.5 text-[11px] font-semibold ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
-                      <TrendingUp className="w-2.5 h-2.5" />{analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
-                    </span>
-                  )}
-                  {reward && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${reward.color}`}>⚡ {reward.label}</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="text-xs max-w-[180px]">
-                          Top analysts earn monthly AI credits for template generation, fact checker & AI assistant.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                  {analyst.picture
+                    ? <img src={analyst.picture} alt={analyst.full_name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
+                    : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                        {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
+                      </div>
+                  }
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
+                      <AccuracyTierBadge tierData={tier} />
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Analyst"}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    {metric === "accuracy" && (
+                      <>
+                        <span className={`text-sm font-bold ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>
+                          {accPct.toFixed(1)}%
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Accuracy</span>
+                      </>
+                    )}
+                    {metric === "likes" && (
+                      <>
+                        <span className="text-sm font-bold text-destructive">{totalLikes}</span>
+                        <span className="text-[10px] text-muted-foreground">Total Likes</span>
+                      </>
+                    )}
+                    {metric === "views" && (
+                      <>
+                        <span className="text-sm font-bold">{totalViews}</span>
+                        <span className="text-[10px] text-muted-foreground">Total Views</span>
+                      </>
+                    )}
+                    {metric === "yield" && (
+                      <>
+                        <span className={`text-sm font-bold ${(analyst.yearly_yield || 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                          {(analyst.yearly_yield || 0) >= 0 ? "+" : ""}{(analyst.yearly_yield || 0).toFixed(1)}%
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Yearly Yield</span>
+                      </>
+                    )}
+                    {reward && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${reward.color}`}>⚡ {reward.label}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs max-w-[180px]">
+                            Top analysts earn monthly AI credits for template generation, fact checker & AI assistant.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </button>
+              );
+            });
+          })()}
         </div>
       )}
     </div>
