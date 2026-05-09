@@ -28,8 +28,6 @@ const COLUMNS = [
   { key: "full_name", label: "User" },
   { key: "role", label: "Role" },
   { key: "accuracy_score", label: "Accuracy" },
-  { key: "last_login", label: "Last Login" },
-  { key: "login_count", label: "Logins" },
   { key: "last_seen", label: "Last Seen" },
   { key: "created_date", label: "Joined" },
   { key: "report_count", label: "Reports" },
@@ -94,14 +92,12 @@ export default function AdminUsersPage() {
   }, [filtered, sortKey, sortDir]);
 
   const exportCSV = () => {
-    const headers = ["Name", "Email", "Role", "Accuracy", "Last Login", "Logins", "Last Seen", "Joined", "Reports", "Followers"];
+    const headers = ["Name", "Email", "Role", "Accuracy", "Last Seen", "Joined", "Reports", "Followers"];
     const rows = sorted.map(u => [
       u.full_name || "",
       u.email || "",
       u.role || "user",
       u.accuracy_score || 0,
-      u.last_login || "",
-      u.login_count || 0,
       u.last_seen || "",
       u.created_date || "",
       u.report_count || 0,
@@ -221,10 +217,6 @@ export default function AdminUsersPage() {
                       : <span className="text-xs text-muted-foreground">—</span>
                     }
                   </td>
-                  {/* Last Login */}
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(u.last_login)}</td>
-                  {/* Login Count */}
-                  <td className="px-4 py-3 text-xs font-medium">{u.login_count || 0}</td>
                   {/* Last Seen */}
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(u.last_seen)}</td>
                   {/* Joined */}
@@ -237,7 +229,7 @@ export default function AdminUsersPage() {
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">No users found</td>
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-sm">No users found</td>
                 </tr>
               )}
             </tbody>
