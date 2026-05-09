@@ -2,49 +2,57 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
-import { Users, Star, FileText, ChevronDown, ChevronUp, Lock, BadgeCheck, PlusCircle } from "lucide-react";
+import { Users, Star, FileText, ChevronDown, ChevronUp, Lock, BadgeCheck } from "lucide-react";
 import { getAnalystSlug } from "@/lib/analystSlug";
+import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 function Section({ icon: SectionIcon, title, children, defaultOpen = true }) {
-  const Icon = SectionIcon;
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="mb-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-secondary transition-colors group"
+        className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-secondary transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+          <SectionIcon className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
         </div>
-        {open
-          ? <ChevronUp className="w-3 h-3 text-muted-foreground" />
-          : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+        {open ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
       </button>
       {open && <div className="mt-1 space-y-0.5">{children}</div>}
     </div>
   );
 }
 
-function AnalystRow({ name, avatar, accuracy, slug }) {
+function AnalystRow({ name, avatar, accuracy, slug, lastPostDate, postCountThisWeek, hasNewPost }) {
   return (
     <Link
       to={`/analyst/${slug}`}
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary transition-colors group"
     >
-      <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
+      <div className="relative w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
         {avatar
           ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
           : name?.[0]?.toUpperCase()}
+        {/* Red dot for new post */}
+        {hasNewPost && (
+          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-card" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{name}</p>
-        {accuracy != null && accuracy > 0 && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-            <BadgeCheck className="w-2.5 h-2.5" />{accuracy}% Acc.
-          </p>
-        )}
+        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+          {accuracy != null && accuracy > 0 && (
+            <span className="flex items-center gap-0.5"><BadgeCheck className="w-2.5 h-2.5" />{accuracy}%</span>
+          )}
+          {lastPostDate && (
+            <span>· Last: {formatDistanceToNow(new Date(lastPostDate), { addSuffix: true })}</span>
+          )}
+          {postCountThisWeek > 0 && !lastPostDate && (
+            <span>{postCountThisWeek} posts this week</span>
+          )}
+        </p>
       </div>
     </Link>
   );
@@ -66,11 +74,49 @@ function ReportRow({ report }) {
   );
 }
 
+function SuggestedAnalysts() {
+  const [topAnalysts, setTopAnalysts] = useState([]);
+
+  useEffect(() => {
+    base44.entities.User.list("-accuracy_score", 5)
+      .then(data => setTopAnalysts((data || []).filter(u => u.accuracy_score > 0).slice(0, 3)))
+      .catch(() => {});
+  }, []);
+
+  if (topAnalysts.length === 0) return (
+    <div className="px-3 py-2">
+      <Link to="/leaderboard" className="text-xs text-primary hover:underline font-medium">Discover analysts →</Link>
+    </div>
+  );
+
+  return (
+    <div className="px-3 py-2 space-y-2">
+      <p className="text-[10px] text-muted-foreground font-semibold">Suggested for you</p>
+      {topAnalysts.map(a => {
+        const name = a.full_name || a.email?.split("@")[0] || "Analyst";
+        return (
+          <Link key={a.id} to={`/analyst/${getAnalystSlug(a)}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary overflow-hidden flex-shrink-0">
+              {a.picture ? <img src={a.picture} alt={name} className="w-full h-full object-cover" /> : name[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{name}</p>
+              <p className="text-[9px] text-muted-foreground">{a.accuracy_score?.toFixed(1)}% acc.</p>
+            </div>
+          </Link>
+        );
+      })}
+      <Link to="/leaderboard" className="block text-[10px] text-primary hover:underline font-medium pt-1">View all →</Link>
+    </div>
+  );
+}
+
 export default function LeftSidebar() {
   const { user, isAuthenticated } = useAuth();
   const [following, setFollowing] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [purchasedReports, setPurchasedReports] = useState([]);
+  const [analystReports, setAnalystReports] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,21 +124,30 @@ export default function LeftSidebar() {
 
     const fetchData = async () => {
       try {
-        // Load follows from entity
         const follows = await base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 50).catch(() => []);
         setFollowing(follows || []);
 
-        // Load subscriptions from entity
         const subs = await base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 50).catch(() => []);
         setSubscriptions(subs || []);
 
-        // Load purchased reports from localStorage
         const storedPurchases = JSON.parse(localStorage.getItem("stoa_purchases") || "[]");
         if (storedPurchases.length > 0) {
           const results = await Promise.all(
             storedPurchases.map(id => base44.entities.Report.filter({ id }).then(r => r[0]).catch(() => null))
           );
           setPurchasedReports(results.filter(Boolean));
+        }
+
+        // Fetch recent reports for followed analysts to show "last post" info
+        if ((follows || []).length > 0) {
+          const emails = follows.slice(0, 8).map(f => f.analyst_email);
+          const recentReports = await base44.entities.Report.filter({ status: "published" }, "-created_date", 50).catch(() => []);
+          const byAuthor = {};
+          recentReports.forEach(r => {
+            if (!byAuthor[r.created_by]) byAuthor[r.created_by] = [];
+            byAuthor[r.created_by].push(r);
+          });
+          setAnalystReports(byAuthor);
         }
       } finally {
         setLoading(false);
@@ -105,11 +160,13 @@ export default function LeftSidebar() {
   if (!isAuthenticated) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-xs text-muted-foreground text-center mb-3">Sign in to see your followed analysts and subscriptions</p>
+        <p className="text-xs text-muted-foreground text-center mb-3">Sign in to see your followed analysts</p>
         <Link to="/signin" className="block text-center text-xs font-semibold text-primary hover:underline">Sign In</Link>
       </div>
     );
   }
+
+  const oneWeekAgo = Date.now() - 7 * 24 * 3600 * 1000;
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -131,24 +188,29 @@ export default function LeftSidebar() {
         <Section icon={Users} title={`Following (${following.length})`} defaultOpen={true}>
           {loading ? (
             <div className="px-3 py-2 space-y-2">
-              {[1,2].map(i => <div key={i} className="h-8 bg-muted rounded animate-pulse" />)}
+              {[1, 2].map(i => <div key={i} className="h-8 bg-muted rounded animate-pulse" />)}
             </div>
           ) : following.length === 0 ? (
-            <div className="px-3 py-2">
-              <p className="text-xs text-muted-foreground mb-2">No analysts followed yet</p>
-              <Link to="/leaderboard" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
-                <PlusCircle className="w-3 h-3" /> Discover analysts →
-              </Link>
-            </div>
+            <SuggestedAnalysts />
           ) : (
-            following.slice(0, 8).map(f => (
-              <AnalystRow
-                key={f.id}
-                name={f.analyst_name}
-                avatar={f.analyst_avatar}
-                slug={f.analyst_name?.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || f.analyst_email?.split("@")[0]}
-              />
-            ))
+            following.slice(0, 8).map(f => {
+              const authorReports = analystReports[f.analyst_email] || [];
+              const lastPost = authorReports[0]?.created_date || null;
+              const weeklyCount = authorReports.filter(r => new Date(r.created_date).getTime() > oneWeekAgo).length;
+              const hasNewPost = lastPost ? differenceInHours(new Date(), new Date(lastPost)) < 2 : false;
+              const slug = getAnalystSlug({ full_name: f.analyst_name, email: f.analyst_email });
+              return (
+                <AnalystRow
+                  key={f.id}
+                  name={f.analyst_name}
+                  avatar={f.analyst_avatar}
+                  slug={slug}
+                  lastPostDate={lastPost}
+                  postCountThisWeek={weeklyCount}
+                  hasNewPost={hasNewPost}
+                />
+              );
+            })
           )}
         </Section>
 
@@ -168,7 +230,7 @@ export default function LeftSidebar() {
                 key={s.id}
                 name={s.analyst_name}
                 avatar={s.analyst_avatar}
-                slug={s.analyst_name?.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || s.analyst_email?.split("@")[0]}
+                slug={getAnalystSlug({ full_name: s.analyst_name, email: s.analyst_email })}
               />
             ))
           )}

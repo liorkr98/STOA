@@ -129,8 +129,11 @@ export default function Leaderboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{analyst.full_name || analyst.name}</p>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     <span className={`text-[10px] font-semibold ${AccuracyColor(accPct)}`}>{accPct.toFixed(1)}%</span>
+                    {analyst.win_streak >= 2 && (
+                      <span className="text-[9px] font-semibold text-orange-600">🔥{analyst.win_streak}</span>
+                    )}
                     {reward && (
                       <TooltipProvider>
                         <Tooltip>
@@ -148,12 +151,15 @@ export default function Leaderboard() {
                     )}
                   </div>
                 </div>
-                {analyst.yearly_yield != null && (
-                  <div className={`flex items-center gap-0.5 text-[10px] font-semibold flex-shrink-0 ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
-                    <TrendingUp className="w-2.5 h-2.5" />
-                    {analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
-                  </div>
-                )}
+                <div className="text-right flex-shrink-0">
+                  {analyst.yearly_yield != null && (
+                    <div className={`flex items-center gap-0.5 text-[10px] font-semibold ${analyst.yearly_yield >= 0 ? "text-gain" : "text-loss"}`}>
+                      <TrendingUp className="w-2.5 h-2.5" />
+                      {analyst.yearly_yield >= 0 ? "+" : ""}{analyst.yearly_yield.toFixed(1)}%
+                    </div>
+                  )}
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5">Free + Pro</p>
+                </div>
               </button>
             );
           })}

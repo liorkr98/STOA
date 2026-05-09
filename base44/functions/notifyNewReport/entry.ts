@@ -34,19 +34,21 @@ Deno.serve(async (req) => {
       `.trim(),
     });
 
-    // Create in-app notification for all users who follow the author
-    // For now, notify all users (can be scoped to followers later)
-    const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 200);
-    const notifPromises = allUsers
-      .filter(u => u.email !== report.created_by) // don't notify the author themselves
-      .map(u => base44.asServiceRole.entities.Notification.create({
-        user_email: u.email,
+    // Notify followers of this analyst with compelling copy
+    const follows = await base44.asServiceRole.entities.Follow.filter({ analyst_email: report.created_by });
+    const analystName = report.author_name || report.created_by?.split('@')[0] || 'An analyst';
+    const direction = report.prediction_action ? `${report.prediction_action} $${report.prediction_ticker} —` : '';
+
+    const notifPromises = (follows || []).map(f =>
+      base44.asServiceRole.entities.Notification.create({
+        user_email: f.follower_email,
         type: 'report',
-        title: 'New Report Published',
-        body: `${report.author_name || 'An analyst'} published: "${report.title}"`,
+        title: `📊 ${analystName} just published`,
+        body: `${direction} Don't miss it: "${report.title}"`,
         link: `/report?id=${report.id}`,
         read: false,
-      }));
+      })
+    );
     await Promise.all(notifPromises);
 
     return Response.json({ ok: true });
