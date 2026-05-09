@@ -7,7 +7,7 @@ import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SlidersHorizontal, X, Flame, Users, Star } from "lucide-react";
-import MarketsWidget from "@/components/feed/MarketsWidget.jsx";
+import MarketsWidget from "@/components/feed/MarketsWidget";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
 import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
