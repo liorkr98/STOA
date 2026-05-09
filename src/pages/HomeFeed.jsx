@@ -84,6 +84,13 @@ export default function HomeFeed() {
       .catch(() => {});
   }, []);
 
+  const refreshSubscriptions = useCallback(() => {
+    if (!isAuthenticated || !user) return;
+    base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100)
+      .then(subs => setSubscribedAnalysts(subs || []))
+      .catch(() => {});
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     if (!isAuthenticated || !user) {
       if (!tabInitialized) { setActiveTab("trending"); setTabInitialized(true); }
@@ -311,7 +318,7 @@ export default function HomeFeed() {
               activeTab === "following" ? (
                 <EmptyFollowingState onFollow={handleFollowAnalyst} />
               ) : activeTab === "subscriptions" ? (
-                <EmptySubscriptionsState />
+                <EmptySubscriptionsState currentUser={user} onSubscribed={refreshSubscriptions} />
               ) : (
                 <div className="text-center py-16">
                   <p className="text-2xl mb-2">🔍</p>
