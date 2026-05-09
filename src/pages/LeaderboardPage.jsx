@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalystSlug } from "@/lib/analystSlug";
 import { computeAnalystTier } from "@/lib/analystTier";
+import { computeAvgYield } from "@/lib/yieldCalc";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
@@ -173,20 +174,25 @@ export default function LeaderboardPage() {
       ) : (
         <div className="space-y-3">
           {(() => {
-            // Compute metrics
+            // Compute metrics & yield
             const likesMap = {};
             const viewsMap = {};
+            const yieldMap = {};
             allReports.forEach(r => {
               if (!r.created_by) return;
               likesMap[r.created_by] = (likesMap[r.created_by] || 0) + (r.likes || 0);
               viewsMap[r.created_by] = (viewsMap[r.created_by] || 0) + (r.views || 0);
+            });
+            analysts.forEach(a => {
+              const analystReports = allReports.filter(r => r.created_by === a.email);
+              yieldMap[a.email] = computeAvgYield(analystReports);
             });
             // Sort by metric
             const sorted = [...analysts].sort((a, b) => {
               switch (metric) {
                 case "likes": return (likesMap[b.email] || 0) - (likesMap[a.email] || 0);
                 case "views": return (viewsMap[b.email] || 0) - (viewsMap[a.email] || 0);
-                case "yield": return (b.yearly_yield || 0) - (a.yearly_yield || 0);
+                case "yield": return (yieldMap[b.email] ?? -999) - (yieldMap[a.email] ?? -999);
                 default: return (b.accuracy_score || 0) - (a.accuracy_score || 0);
               }
             });
@@ -239,10 +245,10 @@ export default function LeaderboardPage() {
                     )}
                     {metric === "yield" && (
                       <>
-                        <span className={`text-sm font-bold ${(analyst.yearly_yield || 0) >= 0 ? "text-gain" : "text-loss"}`}>
-                          {(analyst.yearly_yield || 0) >= 0 ? "+" : ""}{(analyst.yearly_yield || 0).toFixed(1)}%
+                        <span className={`text-sm font-bold ${(yieldMap[analyst.email] ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                          {yieldMap[analyst.email] != null ? (yieldMap[analyst.email] >= 0 ? "+" : "") + yieldMap[analyst.email].toFixed(1) + "%" : "—"}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">Yearly Yield</span>
+                        <span className="text-[10px] text-muted-foreground">Avg Yield</span>
                       </>
                     )}
                     {reward && (
