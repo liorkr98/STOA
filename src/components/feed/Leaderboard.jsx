@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { TrendingUp, Trophy } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { getAnalystSlug } from "@/lib/analystSlug";
+import { computeAnalystStats } from "@/lib/analystStats";
 
 const TIME_PERIODS = ["All Time", "This Month", "This Week"];
 const RANK_MEDALS  = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -31,16 +32,20 @@ export default function Leaderboard() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [analysts, setAnalysts] = useState([]);
+  const [allReports, setAllReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("All Time");
   const [followedEmails, setFollowedEmails] = useState([]);
   const [followingLoading, setFollowingLoading] = useState({});
 
   useEffect(() => {
-    base44.entities.User.list("-accuracy_score", 20)
-      .then(data => setAnalysts((data || []).filter(u => u.accuracy_score > 0)))
-      .catch(() => setAnalysts([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      base44.entities.User.list("-accuracy_score", 20),
+      base44.entities.Report.filter({ status: "published" }, "-created_date", 200),
+    ]).then(([users, reports]) => {
+      setAnalysts((users || []).filter(u => u.accuracy_score > 0));
+      setAllReports(reports || []);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -169,16 +174,19 @@ export default function Leaderboard() {
                 </div>
 
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
-                  {analyst.yearly_yield != null && (
-                    <div style={{
-                      display:'flex', alignItems:'center', gap:2,
-                      fontSize:10, fontWeight:700,
-                      color: analyst.yearly_yield >= 0 ? '#16a34a' : '#dc2626',
-                    }}>
-                      <TrendingUp size={10} />
-                      {analyst.yearly_yield >= 0 ? '+' : ''}{analyst.yearly_yield.toFixed(1)}%
-                    </div>
-                  )}
+                  {(() => {
+                    const computed = computeAnalystStats(allReports, analyst.email);
+                    return computed.avgYield != null ? (
+                      <div style={{
+                        display:'flex', alignItems:'center', gap:2,
+                        fontSize:10, fontWeight:700,
+                        color: computed.avgYield >= 0 ? '#16a34a' : '#dc2626',
+                      }}>
+                        <TrendingUp size={10} />
+                        {computed.avgYield >= 0 ? '+' : ''}{computed.avgYield.toFixed(1)}%
+                      </div>
+                    ) : null;
+                  })()}
                   <span style={{ fontSize:8, color:'#94a3b8' }}>Free + Pro</span>
                   {isAuthenticated && user?.email !== analyst.email && (
                     <button

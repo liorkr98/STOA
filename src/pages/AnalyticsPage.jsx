@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { base44 } from "@/api/base44Client";
 import { format, differenceInDays, parseISO } from "date-fns";
+import { computeAnalystStats, fmtYield, fmtHitRate } from "@/lib/analystStats";
 
 const ACTION_COLORS = { Long: "#22c55e", Short: "#ef4444", Hold: "#f59e0b" };
 const OUTCOME_COLORS = { hit: "#22c55e", near: "#3b82f6", partial: "#f59e0b", miss: "#ef4444", pending: "#94a3b8" };
@@ -457,22 +458,23 @@ export default function AnalyticsPage() {
           </div>
           {analysts.map((a, i) => {
             const accPct = a.accuracy_score || 0;
-            const yield_ = a.yearly_yield;
             const medals = ["🥇","🥈","🥉"];
+            // Compute stats fresh from reports — never read User.yearly_yield / hit_rate / total_calls
+            const computed = computeAnalystStats(reports, a.email);
             return (
               <button key={a.id}
-                onClick={() => navigate(`/analyst?id=${a.id}`)}
+                onClick={() => navigate(`/analyst/${a.email}`)}
                 className="grid grid-cols-12 gap-2 px-4 py-3 w-full text-left bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all">
                 <div className="col-span-1 flex items-center">
                   <span className="text-base">{i < 3 ? medals[i] : <span className="text-xs font-bold text-muted-foreground">#{i+1}</span>}</span>
                 </div>
                 <div className="col-span-3 flex items-center gap-2.5">
                   {a.picture
-                    ? <img src={a.picture} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                    : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                        {(a.full_name || "?")[0]}
-                      </div>
-                  }
+                    ? <img src={a.picture} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+                    : null}
+                  <div className={`w-8 h-8 rounded-full bg-primary/10 items-center justify-center text-sm font-bold text-primary flex-shrink-0 ${a.picture ? 'hidden' : 'flex'}`}>
+                    {(a.full_name || "?")[0]}
+                  </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{a.full_name || a.email?.split("@")[0]}</p>
                     {a.tagline && <p className="text-[10px] text-muted-foreground truncate">{a.tagline}</p>}
@@ -484,21 +486,19 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
                 <div className="col-span-2 flex items-center">
-                  {yield_ != null && yield_ !== 0
-                    ? <span className={`text-sm font-bold flex items-center gap-0.5 ${yield_ >= 0 ? "text-gain" : "text-loss"}`}>
-                        {yield_ >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                        {yield_ >= 0 ? "+" : ""}{yield_.toFixed(1)}%
+                  {computed.avgYield != null
+                    ? <span className={`text-sm font-bold flex items-center gap-0.5 ${computed.avgYield >= 0 ? "text-gain" : "text-loss"}`}>
+                        {computed.avgYield >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                        {fmtYield(computed.avgYield)}
                       </span>
                     : <span className="text-sm text-muted-foreground">—</span>
                   }
                 </div>
                 <div className="col-span-2 flex items-center">
-                  <span className="text-sm font-semibold text-foreground">
-                    {a.hit_rate != null ? `${Number(a.hit_rate).toFixed(1)}%` : "—"}
-                  </span>
+                  <span className="text-sm font-semibold text-foreground">{fmtHitRate(computed.hitRate)}</span>
                 </div>
                 <div className="col-span-2 flex items-center">
-                  <span className="text-sm text-muted-foreground">{a.total_calls ?? "—"}</span>
+                  <span className="text-sm text-muted-foreground">{computed.totalCalls > 0 ? computed.totalCalls : "—"}</span>
                 </div>
               </button>
             );

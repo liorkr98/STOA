@@ -1,0 +1,34 @@
+{
+  "name": "Vote",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "ID of the report being voted on"
+    },
+    "voter_email": {
+      "type": "string",
+      "description": "Email of the voter"
+    },
+    "vote": {
+      "type": "string",
+      "enum": [
+        "long",
+        "short",
+        "neutral"
+      ],
+      "description": "The vote direction"
+    }
+  },
+  "required": [
+    "report_id",
+    "voter_email",
+    "vote"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {}
+  }
+}

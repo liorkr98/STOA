@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
 import { Lock, MessageCircle, Heart, Share2 } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
@@ -131,32 +133,63 @@ function PnLBadge({ action, lockPrice, targetPrice }) {
   );
 }
 
-function QuickPoll({ action }) {
-  const [vote, setVote] = useState(null);
-  const opts = [
-    { id: 'long',    label: '📈 Long',    pct: 68 },
-    { id: 'short',   label: '📉 Short',   pct: 21 },
-    { id: 'neutral', label: '🤔 Neutral', pct: 11 },
-  ];
+function QuickPoll({ reportId }) {
+  const { user, isAuthenticated } = useAuth();
+  const [votes, setVotes] = useState(null);
+  const [myVote, setMyVote] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleVote = (e, id) => {
+  useEffect(() => {
+    if (!reportId) return;
+    base44.entities.Vote.filter({ report_id: reportId })
+      .then(data => {
+        setVotes(data || []);
+        if (isAuthenticated && user) {
+          const mv = (data || []).find(v => v.voter_email === user.email);
+          setMyVote(mv?.vote || null);
+        }
+      })
+      .catch(() => setVotes([]));
+  }, [reportId, isAuthenticated, user?.email]);
+
+  const handleVote = async (e, direction) => {
     e.stopPropagation();
-    setVote(v => v === id ? null : id);
+    if (!isAuthenticated || !user || myVote || submitting) return;
+    setSubmitting(true);
+    const optimistic = { id: 'tmp_' + direction, report_id: reportId, voter_email: user.email, vote: direction };
+    setVotes(prev => [...(prev || []), optimistic]);
+    setMyVote(direction);
+    try {
+      const created = await base44.entities.Vote.create({ report_id: reportId, voter_email: user.email, vote: direction });
+      setVotes(prev => prev.map(v => v.id === optimistic.id ? created : v));
+    } catch {
+      setVotes(prev => prev.filter(v => v.id !== optimistic.id));
+      setMyVote(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  const opts = [
+    { id: 'long',    label: '📈 Long' },
+    { id: 'short',   label: '📉 Short' },
+    { id: 'neutral', label: '🤔 Neutral' },
+  ];
+
+  const total = (votes || []).length;
+  const pct = (id) => total > 0 ? Math.round((votes || []).filter(v => v.vote === id).length / total * 100) : 0;
+
   return (
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{ background:'#f8fafc', borderRadius:8, padding:'10px 12px', marginBottom:10 }}
-    >
+    <div onClick={e => e.stopPropagation()} style={{ background:'#f8fafc', borderRadius:8, padding:'10px 12px', marginBottom:10 }}>
       <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:8 }}>Do you agree with this call?</p>
-      {!vote ? (
+      {!myVote ? (
         <div style={{ display:'flex', gap:6 }}>
           {opts.map(o => (
-            <button key={o.id} onClick={e => handleVote(e, o.id)} style={{
+            <button key={o.id} onClick={e => handleVote(e, o.id)} disabled={submitting || !isAuthenticated} style={{
               flex:1, fontSize:12, fontWeight:600, padding:'6px 0',
               borderRadius:6, border:'1px solid #e2e8f0', background:'#fff',
-              color:'#475569', cursor:'pointer', transition:'all 150ms ease',
+              color:'#475569', cursor: isAuthenticated ? 'pointer' : 'default',
+              transition:'all 150ms ease', opacity: submitting ? 0.6 : 1,
             }}>
               {o.label}
             </button>
@@ -168,16 +201,12 @@ function QuickPoll({ action }) {
             <div key={o.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={{ fontSize:10, width:64, color:'#64748b', flexShrink:0 }}>{o.label}</span>
               <div style={{ flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden' }}>
-                <div style={{
-                  height:'100%', borderRadius:3, width:`${o.pct}%`,
-                  background: vote === o.id ? '#2563eb' : '#94a3b8',
-                  transition:'width 400ms ease',
-                }} />
+                <div style={{ height:'100%', borderRadius:3, width:`${pct(o.id)}%`, background: myVote === o.id ? '#2563eb' : '#94a3b8', transition:'width 400ms ease' }} />
               </div>
-              <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: vote === o.id ? '#2563eb' : '#64748b' }}>{o.pct}%</span>
+              <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: myVote === o.id ? '#2563eb' : '#64748b' }}>{pct(o.id)}%</span>
             </div>
           ))}
-          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>142 votes</p>
+          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>{total} vote{total !== 1 ? 's' : ''}</p>
         </div>
       )}
     </div>
@@ -185,14 +214,16 @@ function QuickPoll({ action }) {
 }
 
 // ── main card ─────────────────────────────────────────────────────────────────
-export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [] }) {
+export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [], userMap = {} }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
 
-  const authorName    = report.author_name || report.created_by?.split("@")[0] || "Analyst";
-  const authorAvatar  = report.author_avatar || null;
+  const authorUser    = userMap[report.created_by] || {};
+  const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Analyst";
+  // Avatar: prefer report field, fallback to current user profile picture
+  const authorAvatar  = report.author_avatar || authorUser.picture || authorUser.profile_picture || null;
   const authorEmail   = report.created_by || "";
   const isPremium     = report.is_premium || false;
   const isLocked      = isPremium && !isSubscribed;
@@ -411,7 +442,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
 
         {/* ── QUICK POLL ── */}
         {hasPredict && isPending && (
-          <QuickPoll action={action} />
+          <QuickPoll reportId={report.id} />
         )}
 
         {/* ── TICKERS ── */}

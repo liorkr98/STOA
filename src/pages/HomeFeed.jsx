@@ -45,6 +45,7 @@ export default function HomeFeed() {
   const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
   const [page, setPage] = useState(1);
   const [topAnalysts, setTopAnalysts] = useState([]);
+  const [userMap, setUserMap] = useState({});
 
   // Follows & subscriptions
   const [followedAnalysts, setFollowedAnalysts] = useState([]);
@@ -70,10 +71,16 @@ export default function HomeFeed() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load follows/subs + top analysts
+  // Load top analysts + build userMap for avatar fallback
   useEffect(() => {
-    base44.entities.User.list("-accuracy_score", 10)
-      .then(d => setTopAnalysts((d || []).filter(u => u.accuracy_score > 0)))
+    base44.entities.User.list("-accuracy_score", 50)
+      .then(d => {
+        const users = d || [];
+        setTopAnalysts(users.filter(u => u.accuracy_score > 0).slice(0, 10));
+        const map = {};
+        users.forEach(u => { if (u.email) map[u.email] = u; });
+        setUserMap(map);
+      })
       .catch(() => {});
   }, []);
 
@@ -327,6 +334,7 @@ export default function HomeFeed() {
                         currentUserEmail={user?.email}
                         followedEmails={followedEmails}
                         allReports={reports}
+                        userMap={userMap}
                       />
                     );
                   }
