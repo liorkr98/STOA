@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Lock, ArrowUp, ArrowDown, Minus, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
+import { getMarketStatus } from "@/lib/marketStatus";
 
 const ACTION_STYLES = {
   Long:  { bg: "bg-gain/10 border-gain/20",   text: "text-gain",        icon: ArrowUp },
@@ -17,8 +18,10 @@ const OUTCOME_STYLES = {
 };
 
 export default function PredictionBadge({ prediction, currentPrice }) {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   if (!prediction) return null;
   const style = ACTION_STYLES[prediction.action] || ACTION_STYLES.Hold;
+  const marketStatus = getMarketStatus();
   const Icon = style.icon;
 
   const lockPrice = prediction.lockPrice;
@@ -71,9 +74,27 @@ export default function PredictionBadge({ prediction, currentPrice }) {
         </div>
         {displayPrice && (
           <div className="bg-white/60 rounded-lg px-2.5 py-1.5">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              {resolvedPrice ? "Resolved price" : "Current price"}
-            </p>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="text-[10px] text-muted-foreground">
+                {resolvedPrice ? "Resolved price" : "Current price"}
+              </p>
+              {!resolvedPrice && (
+                <div className="relative">
+                  <span
+                    style={{ fontSize: 11, color: marketStatus.color, cursor: 'default', whiteSpace: 'nowrap' }}
+                    onMouseEnter={() => setTooltipVisible(true)}
+                    onMouseLeave={() => setTooltipVisible(false)}
+                  >
+                    {marketStatus.label}
+                  </span>
+                  {tooltipVisible && (
+                    <div className="absolute bottom-full left-0 mb-1 z-10 bg-foreground text-background text-[10px] px-2 py-1 rounded-lg whitespace-nowrap shadow-lg pointer-events-none">
+                      {marketStatus.tooltip}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-sm font-semibold">${displayPrice}</p>
           </div>
         )}

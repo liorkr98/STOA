@@ -34,6 +34,9 @@ async function getYahooCrumb() {
 }
 
 async function getLivePrice(ticker) {
+  // Fetches live price including extended hours (pre-market and after-hours)
+  // Yahoo Finance returns preMarketPrice/postMarketPrice when applicable,
+  // falling back to regularMarketPrice — this covers extended hours pricing.
   const { crumb, cookie } = await getYahooCrumb();
   const sep = crumb ? `?crumb=${encodeURIComponent(crumb)}` : "";
   const res = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}${sep}&modules=price`, {
@@ -45,7 +48,14 @@ async function getLivePrice(ticker) {
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw ?? null;
+  const priceData = data?.quoteSummary?.result?.[0]?.price;
+  if (!priceData) return null;
+  // Prefer extended hours price if available — includes pre-market and after-hours pricing
+  const preMarket = priceData?.preMarketPrice?.raw;
+  const postMarket = priceData?.postMarketPrice?.raw;
+  const regular = priceData?.regularMarketPrice?.raw;
+  // Use whichever is most recent/live (extended hours when available)
+  return postMarket ?? preMarket ?? regular ?? null;
 }
 
 function parseTimeframeMonths(timeframe) {
@@ -266,6 +276,7 @@ Deno.serve(async (req) => {
         const expiryMs = lockTime.getTime() + months * 30 * 24 * 60 * 60 * 1000;
         const isExpired = now.getTime() >= expiryMs;
 
+        // Check resolution against live price — includes extended hours pricing (pre-market and after-hours)
         const outcome = resolveOutcome(report.prediction_action, report.prediction_lock_price, report.prediction_target_price, livePrice);
         const shouldResolve = outcome === "hit" || isExpired;
 

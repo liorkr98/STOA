@@ -7,6 +7,7 @@ import { Lock, MessageCircle, Heart, Share2 } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
+import { isExtendedHours } from "@/lib/marketStatus";
 import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
 import { getAnalystSlug } from "@/lib/analystSlug";
@@ -122,6 +123,7 @@ function PnLBadge({ action, lockPrice, targetPrice }) {
   const pnl = calcUpside(action, lockPrice, targetPrice);
   if (!pnl) return null;
   const isPos = parseFloat(pnl) >= 0;
+  const extHours = isExtendedHours();
   return (
     <span style={{
       fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6,
@@ -129,7 +131,7 @@ function PnLBadge({ action, lockPrice, targetPrice }) {
       color: isPos ? '#16a34a' : '#dc2626',
       border: `1px solid ${isPos ? '#bbf7d0' : '#fecaca'}`,
     }}>
-      {isPos ? '+' : '-'}{Math.abs(pnl)}% target
+      {isPos ? '+' : '-'}{Math.abs(pnl)}% target{extHours ? ' (ext)' : ''}
     </span>
   );
 }

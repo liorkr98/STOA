@@ -101,6 +101,8 @@ export default function TradingViewWidget({ ticker = "NVDA", containerHeight = 3
         hide_side_toolbar: false,
         allow_symbol_change: false,
         container_id: containerId,
+        session: "extended", // show pre-market and after-hours prices
+        show_popup_button: false,
         studies: [],
         disabled_features: [
           "use_localstorage_for_settings",
@@ -108,7 +110,7 @@ export default function TradingViewWidget({ ticker = "NVDA", containerHeight = 3
           "header_screenshot",
           "header_undo_redo",
         ],
-        enabled_features: [],
+        enabled_features: ["extended_hours"],
       });
 
       const containerEl2 = document.getElementById(containerId);
