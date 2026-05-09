@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
-import { Lock, MessageCircle, Heart, Share2, Bookmark } from "lucide-react";
+import { Lock, MessageCircle, Heart, Share2, Bookmark, CreditCard } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
@@ -225,6 +225,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const [saved, setSaved] = useState(() => isReportSaved(report.id));
   const [hovered, setHovered] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
   const navigate = useNavigate();
 
   const authorUser    = userMap[report.created_by] || {};
@@ -464,25 +465,28 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                 }}>
                   <Lock size={22} color="#d97706" style={{ marginBottom:6, display:'block', margin:'0 auto 6px' }} />
                   <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:10 }}>
-                    {isPremium && report.price ? 'Unlock to read' : 'Subscribe to read'}
+                    Choose your access option
                   </p>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <Link
-                      to={`/analyst/${slug}`}
-                      onClick={e => e.stopPropagation()}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}&analystEmail=${authorEmail}`);
+                      }}
                       style={{
                         fontSize:12, fontWeight:700, background:'#2563eb', color:'#fff',
-                        borderRadius:6, padding:'6px 14px', textDecoration:'none', display:'inline-block',
-                        width:'100%', boxSizing:'border-box',
+                        borderRadius:6, padding:'6px 14px', textDecoration:'none', display:'inline-flex',
+                        alignItems:'center', justifyContent:'center', gap:'6px',
+                        width:'100%', boxSizing:'border-box', border:'none', cursor:'pointer',
                       }}
                     >
-                      Subscribe — $29/mo
-                    </Link>
+                      <CreditCard size={14} /> Subscribe to {authorName}
+                    </button>
                     {isPremium && report.price && (
                       <button
                         onClick={e => {
                           e.stopPropagation();
-                          navigate(`/pay?reportId=${report.id}&price=${report.price}`);
+                          navigate(`/pay?mode=report&price=${report.price}&title=${encodeURIComponent(report.title)}&analyst=${encodeURIComponent(authorName)}`);
                         }}
                         style={{
                           fontSize:12, fontWeight:700, background:'#059669', color:'#fff',
@@ -490,7 +494,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                           width:'100%',
                         }}
                       >
-                        Buy Report — ${report.price}
+                        Buy This Report — ${report.price}
                       </button>
                     )}
                   </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Lock, ArrowLeft, Shield, Zap, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb"; // "sb" = sandbox for testing
@@ -73,16 +74,35 @@ export default function PaymentPage() {
   const reportTitle = urlParams.get("title") || "Premium Report";
   const reportPrice = parseFloat(urlParams.get("price") || "4.99");
   const analystName = urlParams.get("analyst") || "";
+  const analystEmail = urlParams.get("analystEmail") || "";
   const [selectedPlan, setSelectedPlan] = useState("pro");
 
   if (urlParams.get("success") === "true" || urlParams.get("subscription") === "success" || urlParams.get("analyst_sub") === "success") {
-    return <SuccessScreen mode="subscription" />;
+    return <SuccessScreen mode={mode === "report" ? "report" : "subscription"} />;
   }
   if (urlParams.get("boost") === "success") {
     return <SuccessScreen mode="boost" />;
   }
 
-  const handleSuccess = () => navigate("?success=true");
+  const handleSuccess = async () => {
+    if (mode === "report" || mode === "analyst") {
+      try {
+        const user = await base44.auth.me();
+        if (mode === "report") {
+          const liked = await base44.entities.Like.create({ report_id: urlParams.get("reportId"), user_email: user.email }).catch(() => null);
+        } else if (mode === "analyst") {
+          await base44.entities.Subscription.create({
+            subscriber_email: user.email,
+            analyst_email: analystEmail,
+            analyst_name: analystName,
+            status: "active",
+            plan: "monthly",
+          }).catch(() => null);
+        }
+      } catch {}
+    }
+    navigate("?success=true");
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
@@ -93,7 +113,7 @@ export default function PaymentPage() {
       {mode === "report" && (
         <div className="bg-card border border-border rounded-2xl p-6">
           <h1 className="text-xl font-bold mb-1">Unlock Report</h1>
-          <p className="text-sm text-muted-foreground mb-4">One-time purchase — yours forever.</p>
+          <p className="text-sm text-muted-foreground mb-4">One-time purchase — read forever.</p>
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
             <p className="text-xs text-amber-700 font-semibold mb-1">Premium Report</p>
             <p className="font-semibold text-sm">{reportTitle}</p>
@@ -103,12 +123,44 @@ export default function PaymentPage() {
             <span className="text-sm text-muted-foreground">One-time access</span>
             <span className="font-bold text-lg">${reportPrice.toFixed(2)}</span>
           </div>
-          <PayPalButton amount={reportPrice} description={reportTitle} onSuccess={handleSuccess} />
+          <PayPalButton amount={reportPrice} description={`${reportTitle} - Report Unlock`} onSuccess={handleSuccess} />
           <p className="text-xs text-center text-muted-foreground mt-3">
-            Or <button onClick={() => navigate("/pay?mode=subscription")} className="text-primary hover:underline">subscribe from $9/mo</button> for unlimited access.
+            Or <button onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(analystName)}&analystEmail=${analystEmail}`)} className="text-primary hover:underline">subscribe to {analystName}</button> for unlimited access.
           </p>
           <p className="text-xs text-center text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <Shield className="w-3 h-3" /> Secured by PayPal
+          </p>
+        </div>
+      )}
+
+      {mode === "analyst" && (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h1 className="text-xl font-bold mb-1">{`Subscribe to ${analystName}`}</h1>
+          <p className="text-sm text-muted-foreground mb-6">Monthly subscription — access all reports and locked content.</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <p className="text-xs text-blue-700 font-semibold mb-1">Analyst Subscription</p>
+            <p className="font-semibold text-sm">{analystName}</p>
+            <p className="text-xs text-blue-700 mt-2">Get immediate access to all premium reports and predictions.</p>
+          </div>
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-sm text-muted-foreground">Monthly subscription</span>
+            <span className="font-bold text-lg">$29/mo</span>
+          </div>
+          <ul className="space-y-2 mb-6">
+            {[
+              "All current & future reports",
+              "Locked prediction details",
+              "Direct messaging with analyst",
+              "Cancel anytime"
+            ].map((feature, i) => (
+              <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                <Check className="w-4 h-4 text-gain" /> {feature}
+              </li>
+            ))}
+          </ul>
+          <PayPalButton amount={29} description={`${analystName} - Monthly Subscription`} onSuccess={handleSuccess} />
+          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> Secured by PayPal · Cancel anytime
           </p>
         </div>
       )}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Send, Zap } from "lucide-react";
+import { ImageIcon, Send, Zap, BarChart3, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -15,12 +15,15 @@ export default function QuickPostEditor({
   title, setTitle,
 }) {
   const navigate = useNavigate();
+  const [quickChart, setQuickChart] = React.useState(null);
 
   const handlePublish = async () => {
     if (!title.trim()) { toast.error("Write something first!"); return; }
     try {
       const currentUser = await base44.auth.me();
-      const blocks = quickImage ? [{ type: "image", content: quickImage }] : [];
+      const blocks = [];
+      if (quickImage) blocks.push({ type: "image", content: quickImage });
+      if (quickChart) blocks.push({ type: "chart", ticker: quickChart });
       await base44.entities.Report.create({
         title: title.trim(),
         content_blocks: JSON.stringify(blocks),
@@ -56,31 +59,51 @@ export default function QuickPostEditor({
           onChange={e => setTitle(e.target.value)}
         />
 
-        {/* Image attachment */}
-        {!quickImage ? (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
-            padding: "8px 12px", border: "1px dashed #e2e8f0", borderRadius: 8,
-            fontSize: 13, color: "#6b7280", width: "fit-content" }}>
-            <ImageIcon style={{ width: 15, height: 15 }} />
-            Add image
-            <input type="file" accept="image/*" style={{ display: "none" }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                setQuickImage(file_url);
-              }} />
-          </label>
-        ) : (
-          <div style={{ position: "relative" }}>
-            <img src={quickImage} style={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 8 }} alt="attachment" />
-            <button onClick={() => setQuickImage(null)}
-              style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.5)",
-                color: "white", border: "none", borderRadius: "50%", width: 24, height: 24,
-                cursor: "pointer", fontSize: 14, lineHeight: "24px", textAlign: "center" }}>
-              ×
+        {/* Image & Chart attachments */}
+        <div className="flex gap-2">
+          {!quickImage ? (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+              padding: "8px 12px", border: "1px dashed #e2e8f0", borderRadius: 8,
+              fontSize: 13, color: "#6b7280", width: "fit-content" }}>
+              <ImageIcon style={{ width: 15, height: 15 }} />
+              Add image
+              <input type="file" accept="image/*" style={{ display: "none" }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                  setQuickImage(file_url);
+                }} />
+            </label>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <img src={quickImage} style={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 8 }} alt="attachment" />
+              <button onClick={() => setQuickImage(null)}
+                style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.5)",
+                  color: "white", border: "none", borderRadius: "50%", width: 24, height: 24,
+                  cursor: "pointer", fontSize: 14, lineHeight: "24px", textAlign: "center" }}>
+                ×
+              </button>
+            </div>
+          )}
+          
+          {!quickChart ? (
+            <button onClick={() => setQuickChart("AAPL")} className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors flex items-center gap-1">
+              <BarChart3 className="w-3.5 h-3.5" /> Add chart
             </button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg">
+              <span className="text-xs font-semibold text-primary">${quickChart}</span>
+              <button onClick={() => setQuickChart(null)} className="text-primary hover:text-primary/70">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {quickChart && (
+          <input placeholder="Ticker (e.g. AAPL)" value={quickChart} onChange={e => setQuickChart(e.target.value.toUpperCase())}
+            className="text-xs border border-border rounded-lg px-2 py-1.5 w-24 focus:outline-none focus:ring-1 focus:ring-primary/30" />
         )}
 
         {/* Short prediction toggle */}
