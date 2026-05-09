@@ -38,6 +38,7 @@ import BrandingDashboard from '@/pages/BrandingDashboard';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import StocksPage from '@/pages/StocksPage';
 import SubscribersPage from '@/pages/SubscribersPage';
+import ScoringPage from '@/pages/ScoringPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
         <Route path="/newsroom" element={<NewsroomPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/calculations" element={<CalculationsPage />} />
+        <Route path="/scoring" element={<ScoringPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />

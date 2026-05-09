@@ -1,39 +1,126 @@
 import React from "react";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PLANS = [
-  { name: "Free", price: "$0", period: "forever", features: ["Browse published reports", "Follow analysts", "View prediction outcomes", "Basic search & filters"], cta: "Get Started", highlight: false },
-  { name: "Pro", price: "$29", period: "/month", features: ["Everything in Free", "Locked prediction access", "Premium reports included", "Direct analyst DMs", "Weekly live Q&A", "Export to PDF", "Early access to reports"], cta: "Start Pro", highlight: true },
-  { name: "Analyst", price: "Revenue share", period: "", features: ["Publish unlimited reports", "Lock predictions publicly", "Monetize with subscriptions", "AI writing assistant", "Analytics dashboard", "15% platform fee on sales"], cta: "Start Writing", highlight: false },
+  {
+    name: "FREE FOREVER",
+    price: "$0",
+    badge: null,
+    features: [
+      "Browse all public reports",
+      "Follow analysts",
+      "See prediction outcomes",
+      "Access the leaderboard",
+    ],
+    cta: "Get Started Free",
+    dest: "/feed",
+    highlight: false,
+  },
+  {
+    name: "ANALYST SUBSCRIPTIONS",
+    price: "Set by each analyst",
+    badge: "FLEXIBLE",
+    sub: "Typically $5 – $99/month",
+    features: [
+      "Each analyst sets their own monthly rate",
+      "Full access to that analyst's premium reports",
+      "Locked predictions and price targets",
+      "Real-time alerts when they publish",
+      "Cancel anytime",
+    ],
+    cta: "Browse Analysts",
+    dest: "/leaderboard",
+    highlight: true,
+  },
+  {
+    name: "BECOME AN ANALYST",
+    price: "Free to publish",
+    badge: null,
+    features: [
+      "Publish unlimited free reports",
+      "Charge subscribers your chosen rate",
+      "STOA keeps 15% of subscription revenue",
+      "Full analytics dashboard & wallet",
+    ],
+    cta: "Start Writing",
+    dest: "/editor",
+    highlight: false,
+  },
 ];
 
 export default function PricingPage() {
   const navigate = useNavigate();
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold text-center mb-2">Simple Pricing</h1>
-      <p className="text-muted-foreground text-center mb-10">Start free. Upgrade when you're ready.</p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PLANS.map(plan => (
-          <div key={plan.name} className={`p-6 rounded-2xl border-2 ${plan.highlight ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
-            {plan.highlight && <span className="text-[10px] bg-primary text-white rounded-full px-2 py-0.5 mb-3 inline-block">Most Popular</span>}
-            <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-3xl font-bold">{plan.price}</span>
-              <span className="text-sm text-muted-foreground">{plan.period}</span>
+    <div className="max-w-5xl mx-auto px-4 py-14">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-extrabold mb-3 tracking-tight">Transparent Pricing</h1>
+        <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+          Every analyst sets their own subscription price. Pay only for the research you want.
+        </p>
+      </div>
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-14">
+        {PLANS.map((plan, i) => (
+          <div
+            key={i}
+            className={`rounded-2xl p-7 flex flex-col border-2 transition-all relative ${
+              plan.highlight
+                ? "border-primary shadow-lg shadow-primary/10 bg-primary/5"
+                : "border-border bg-card hover:border-primary/30"
+            }`}
+            style={{ marginTop: plan.highlight ? -8 : 0 }}
+          >
+            {plan.badge && (
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full">
+                {plan.badge}
+              </span>
+            )}
+            <p className="text-xs font-bold text-muted-foreground tracking-widest uppercase mb-3">{plan.name}</p>
+            <div className="mb-1">
+              <span className={`font-extrabold ${plan.price.length > 5 ? "text-xl" : "text-4xl"}`}>{plan.price}</span>
             </div>
-            <ul className="space-y-2 mb-6">
-              {plan.features.map(f => (
-                <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="w-3.5 h-3.5 text-gain flex-shrink-0" /> {f}
+            {plan.sub && <p className="text-xs text-muted-foreground mb-4">{plan.sub}</p>}
+            <ul className="space-y-3 flex-1 mt-4 mb-7">
+              {plan.features.map((f, j) => (
+                <li key={j} className="flex items-start gap-2.5 text-sm text-foreground/80">
+                  <Check className="w-4 h-4 text-gain flex-shrink-0 mt-0.5" />
+                  {f}
                 </li>
               ))}
             </ul>
-            <Button onClick={() => navigate(plan.name === "Analyst" ? "/editor" : "/pay?mode=subscription")} className="w-full" variant={plan.highlight ? "default" : "outline"}>{plan.cta}</Button>
+            <button
+              onClick={() => navigate(plan.dest)}
+              className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                plan.highlight
+                  ? "bg-primary text-white hover:bg-primary/90"
+                  : "bg-secondary text-foreground hover:bg-secondary/70 border border-border"
+              }`}
+            >
+              {plan.cta} <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         ))}
+      </div>
+
+      {/* FAQ / Notes */}
+      <div className="bg-secondary rounded-2xl p-8">
+        <h2 className="text-lg font-bold mb-5">Frequently Asked Questions</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          {[
+            { q: "How much does an analyst subscription cost?", a: "Each analyst independently sets their own subscription price. Rates typically range from $5 to $99/month. Browse analyst profiles to see individual pricing." },
+            { q: "Can I cancel anytime?", a: "Yes. Analyst subscriptions can be cancelled at any time. Your access continues until the end of your current billing period." },
+            { q: "What does STOA take as a platform fee?", a: "STOA retains 15% of subscription revenue generated through the platform. Analysts keep 85% of all subscription income." },
+            { q: "Is financial advice included?", a: "No. STOA is an information and research platform. Nothing on STOA constitutes financial advice. Always do your own research (DYOR)." },
+          ].map((item, i) => (
+            <div key={i}>
+              <p className="text-sm font-semibold mb-1.5">{item.q}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

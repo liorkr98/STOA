@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import StoaLogo from "@/components/StoaLogo";
 
 const FOOTER_COLS = [
-  { label: "Platform", links: [{ label: "About Us", path: "/about" }, { label: "Features", path: "/features" }, { label: "Pricing", path: "/pricing" }, { label: "Newsroom", path: "/newsroom" }, { label: "How It Works", path: "/how-it-works" }, { label: "Scoring & Calculations", path: "/calculations" }] },
+  { label: "Platform", links: [{ label: "Feed", path: "/feed" }, { label: "Markets", path: "/stocks" }, { label: "Leaderboard", path: "/leaderboard" }, { label: "Pricing", path: "/pricing" }, { label: "Features", path: "/features" }] },
+  { label: "Analysts", links: [{ label: "Start Writing", path: "/editor" }, { label: "Dashboard", path: "/dashboard" }, { label: "Scoring", path: "/scoring" }] },
+  { label: "Company", links: [{ label: "About Us", path: "/about" }, { label: "How It Works", path: "/how-it-works" }, { label: "Newsroom", path: "/newsroom" }] },
   { label: "Legal", links: [{ label: "Terms & Conditions", path: "/terms" }, { label: "Privacy Policy", path: "/privacy" }, { label: "Cookie Policy", path: "/cookies" }, { label: "Accessibility", path: "/accessibility" }] },
 ];
 
