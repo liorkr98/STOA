@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { getAnalystSlug } from "@/lib/analystSlug";
 
 export default function SearchBar() {
   const [query, setQuery]       = useState("");
@@ -90,7 +91,7 @@ export default function SearchBar() {
             <>
               <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-secondary/50">Analysts</div>
               {analysts.map(analyst => (
-                <button key={analyst.id} onClick={() => go(`/analyst?id=${analyst.id}`)}
+                <button key={analyst.id} onClick={() => go(`/analyst/${getAnalystSlug(analyst)}`)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors text-left">
                   {analyst.picture
                     ? <img src={analyst.picture} alt={analyst.full_name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
