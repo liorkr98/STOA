@@ -2,10 +2,31 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Sparkles, Send, X, Loader2, GripHorizontal, ChevronDown,
   TrendingUp, Plus, Copy, Check, MessageSquare, Minimize2,
-  BarChart3, BookOpen, Shield, Zap
+  BarChart3, BookOpen, Shield, Zap, Coins, AlertTriangle
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+
+// ── AI Credit helpers ────────────────────────────────────────────────────────
+const CREDITS_KEY   = "stoa_ai_credits";
+const INITIAL_CREDITS = 100;
+const COST_PER_MSG  = 1;
+
+function getCredits() {
+  const stored = localStorage.getItem(CREDITS_KEY);
+  if (stored === null) {
+    localStorage.setItem(CREDITS_KEY, String(INITIAL_CREDITS));
+    return INITIAL_CREDITS;
+  }
+  return parseInt(stored, 10) || 0;
+}
+
+function spendCredits(n) {
+  const current = getCredits();
+  const next    = Math.max(0, current - n);
+  localStorage.setItem(CREDITS_KEY, String(next));
+  return next;
+}
 
 // ── System prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are an elite equity research analyst at a top-tier investment bank with 15+ years of experience covering global markets. You have deep expertise in:
@@ -79,6 +100,7 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   const [loading, setLoading]   = useState(false);
   const [quickTicker, setQuickTicker] = useState("");
   const [copiedId, setCopiedId] = useState(null);
+  const [credits, setCredits]   = useState(() => getCredits());
 
   // Draggable position
   const [pos, setPos]           = useState({ x: 0, y: 0 });
@@ -132,6 +154,14 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   const send = useCallback(async (overrideText) => {
     const userText = (overrideText ?? input).trim();
     if (!userText || loading) return;
+
+    // Credit check
+    const currentCredits = getCredits();
+    if (currentCredits < COST_PER_MSG) {
+      toast.error("No AI credits remaining. Purchase more in your Wallet.");
+      return;
+    }
+
     setInput("");
 
     const userMsg = { id: mkId(), role: "user", content: userText };
@@ -171,6 +201,13 @@ Analyst:`;
 
       const content = raw.trim() || "I couldn't generate a response. Please try again.";
       const blockType = detectBlockType(content);
+
+      // Deduct credit after successful response
+      const remaining = spendCredits(COST_PER_MSG);
+      setCredits(remaining);
+      if (remaining <= 10 && remaining > 0) {
+        toast.warning(`${remaining} AI credits remaining`);
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -254,7 +291,14 @@ Analyst:`;
           <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm">AI Market Analyst</span>
-          <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">Claude Sonnet</span>
+          {/* Credit badge */}
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+            credits <= 0 ? "bg-loss/10 text-loss" :
+            credits <= 10 ? "bg-amber-100 text-amber-700" :
+            "bg-secondary text-muted-foreground"
+          }`}>
+            <Coins className="w-2.5 h-2.5" /> {credits}
+          </span>
         </div>
         <div className="flex items-center gap-0.5 pointer-events-auto">
           <button
@@ -386,6 +430,17 @@ Analyst:`;
             )}
             <div ref={bottomRef} />
           </div>
+
+          {/* Out-of-credits banner */}
+          {credits <= 0 && (
+            <div className="mx-3 mb-2 p-2.5 bg-loss/8 border border-loss/20 rounded-xl flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-loss flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-loss">No AI credits remaining</p>
+                <p className="text-[10px] text-muted-foreground">Top up in your <a href="/wallet" className="underline text-primary">Wallet</a> to continue</p>
+              </div>
+            </div>
+          )}
 
           {/* Input row */}
           <div className="p-3 border-t border-border flex gap-2">

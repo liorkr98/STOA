@@ -89,6 +89,7 @@ const sanitizeBlock = (b) => {
     studies:      b.studies      || undefined,
     savedAt:      b.savedAt      || undefined,
     rowGroup:     b.rowGroup     || undefined,
+    blockAlign:   b.blockAlign   || undefined,
   };
 };
 
@@ -871,21 +872,33 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                                   <GripVertical className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
                                 </div>
 
-                                {/* Block content */}
-                                <div className="flex-1 min-w-0" style={{ maxWidth: block.blockWidth || "100%", margin: block.blockWidth ? "0 auto" : undefined }}>
+                                {/* Block content — alignment applied here */}
+                                <div className="flex-1 min-w-0" style={(() => {
+                                  const align = block.blockAlign;
+                                  if (!align || align === "full") return {};
+                                  if (align === "center") return { maxWidth: "65%", margin: "0 auto" };
+                                  if (align === "left")   return { maxWidth: "55%", marginRight: "auto", marginLeft: 0 };
+                                  if (align === "right")  return { maxWidth: "55%", marginLeft: "auto", marginRight: 0 };
+                                  return {};
+                                })()}>
                                   {renderBlockRow(block, idx)}
                                 </div>
 
-                                {/* Block width toggle — appears on hover */}
+                                {/* Block alignment toggle — appears on hover */}
                                 <div className="flex-shrink-0 flex flex-col gap-0.5 pt-2 opacity-0 group-hover/draggable:opacity-100 transition-opacity">
-                                  {["100%", "75%", "50%"].map(w => (
+                                  {[
+                                    { key: "full",   label: "⬛", title: "Full width" },
+                                    { key: "left",   label: "◧",  title: "Align left (55%)" },
+                                    { key: "center", label: "▣",  title: "Center (65%)" },
+                                    { key: "right",  label: "◨",  title: "Align right (55%)" },
+                                  ].map(({ key, label, title }) => (
                                     <button
-                                      key={w}
-                                      onClick={() => updateBlock(block.id, { blockWidth: w === "100%" ? undefined : w })}
-                                      title={`Width: ${w}`}
-                                      className={`text-[8px] font-mono px-1 py-0.5 rounded border transition-colors ${(block.blockWidth || "100%") === w ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                                      key={key}
+                                      onClick={() => updateBlock(block.id, { blockAlign: key === "full" ? undefined : key })}
+                                      title={title}
+                                      className={`text-[9px] font-mono px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
                                     >
-                                      {w}
+                                      {label}
                                     </button>
                                   ))}
                                 </div>

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import StoaLogo from "@/components/StoaLogo";
 import { base44 } from "@/api/base44Client";
+import AIChat from "@/components/editor/AIChat";
 
 const NAV_ITEMS = [
   { path: "/", label: "Feed", icon: Home },
@@ -125,6 +126,9 @@ export default function AppLayout() {
       </main>
 
       {location.pathname !== "/" && <AppFooter />}
+
+      {/* Global AI analyst — available on every page except the editor (which has its own) */}
+      {location.pathname !== "/editor" && <AIChat />}
     </div>
   );
 }

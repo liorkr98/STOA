@@ -98,13 +98,22 @@ function ClaimWithNotes({ claim }) {
 
 // ─── Saved fact-check panel ──────────────────────────────────────────────────
 function SavedFactCheck({ claims }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen]           = useState(true);
+  const [activeFilter, setFilter] = useState(null); // null = show all
+
   const summary = {
     Fact:       claims.filter(c => c.type === "Fact").length,
     Opinion:    claims.filter(c => c.type === "Opinion").length,
     Misleading: claims.filter(c => c.type === "Misleading").length,
     Unverified: claims.filter(c => c.type === "Unverified").length,
   };
+
+  const visible = activeFilter
+    ? claims.filter(c => c.type === activeFilter)
+    : claims;
+
+  const toggleFilter = (type) => setFilter(prev => prev === type ? null : type);
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 mt-4">
       <div className="flex items-center justify-between mb-3">
@@ -119,19 +128,45 @@ function SavedFactCheck({ claims }) {
           {open ? <X className="w-3.5 h-3.5" /> : "Show"}
         </button>
       </div>
+
+      {/* Filter pills — clickable to filter */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {Object.entries(summary).filter(([, v]) => v > 0).map(([type, count]) => {
           const cfg = TYPE_CONFIG[type];
+          const isActive = activeFilter === type;
           return (
-            <span key={type} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+            <button
+              key={type}
+              onClick={() => toggleFilter(type)}
+              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cfg.bg} ${cfg.color} ${
+                isActive ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-70 hover:opacity-100"
+              }`}
+              title={isActive ? "Clear filter" : `Show only ${cfg.label}s`}
+            >
               {count} {cfg.label}{count > 1 ? "s" : ""}
-            </span>
+              {isActive && " ×"}
+            </button>
           );
         })}
+        {activeFilter && (
+          <button
+            onClick={() => setFilter(null)}
+            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-full border border-border"
+          >
+            Show all ({claims.length})
+          </button>
+        )}
       </div>
+
       {open && (
         <div className="space-y-2">
-          {claims.map((claim, i) => <ClaimWithNotes key={i} claim={claim} />)}
+          {visible.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-3">
+              No {TYPE_CONFIG[activeFilter]?.label}s in this report.
+            </p>
+          ) : (
+            visible.map((claim, i) => <ClaimWithNotes key={i} claim={claim} />)
+          )}
         </div>
       )}
     </div>
@@ -142,7 +177,7 @@ function SavedFactCheck({ claims }) {
 function BlockRenderer({ blocks }) {
   if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 report-body">
       {blocks.map((block, i) => {
         const content = block.content ?? "";
         if (block.type === "heading") return (
