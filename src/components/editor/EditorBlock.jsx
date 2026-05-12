@@ -1,7 +1,9 @@
 import React, { useRef, useCallback, useEffect, useState } from "react";
-import { GripVertical, MoreVertical } from "lucide-react";
+import { GripVertical, MoreVertical, Info } from "lucide-react";
 import SlashCommandMenu from "./SlashCommandMenu";
 import BlockOptionsMenu from "./BlockOptionsMenu";
+import MetricsBlock from "./MetricsBlock";
+import ThesisBlock from "./ThesisBlock";
 
 const BLOCK_STYLES = {
   heading:  "text-2xl font-bold text-foreground leading-tight",
@@ -22,7 +24,7 @@ const PLACEHOLDERS = {
   bullets:  "• Bullet point...",
   numbered: "1. List item...",
   quote:    "Notable quote or key statistic...",
-  callout:  "💡 Key insight or callout...",
+  callout:  "Key insight or important note...",
 };
 
 function renderBullets(content) {
@@ -154,7 +156,11 @@ export default function EditorBlock({ block, onChange, onDelete, onEnter, onInse
     } else if (type === "table") {
       onChange({ ...block, type: "table", content: "Header 1|Header 2|Header 3\nValue 1|Value 2|Value 3" });
     } else if (type === "callout") {
-      onChange({ ...block, type: "callout", content: "💡 Key insight here..." });
+      onChange({ ...block, type: "callout", content: "" });
+    } else if (type === "metrics") {
+      onChange({ ...block, type: "metrics", content: "P/E Ratio | 24.5x | +2.1%\nRevenue | $85.2B | +12.3%\nEPS | $3.40 | +8.7%\nGross Margin | 42.1% | -0.3%" });
+    } else if (type === "thesis") {
+      onChange({ ...block, type: "thesis", content: "Bull: Strong market position and durable pricing power\nBull: Growing TAM with expanding product suite\nBear: Multiple compression risk at current valuation\nBear: Increasing competition from well-funded entrants" });
     } else {
       onChange({ ...block, type, content: "" });
       if (["stockchart", "image"].includes(type) && onInsertAfter) {
@@ -162,6 +168,27 @@ export default function EditorBlock({ block, onChange, onDelete, onEnter, onInse
       }
     }
   };
+
+  // Finance block types — delegate to dedicated components
+  if (block.type === "metrics") {
+    return (
+      <MetricsBlock
+        block={block}
+        onChange={onChange}
+        onDelete={onDelete}
+      />
+    );
+  }
+
+  if (block.type === "thesis") {
+    return (
+      <ThesisBlock
+        block={block}
+        onChange={onChange}
+        onDelete={onDelete}
+      />
+    );
+  }
 
   // Special non-editable block types
   if (block.type === "divider") {
@@ -209,8 +236,8 @@ export default function EditorBlock({ block, onChange, onDelete, onEnter, onInse
         onMouseLeave={() => setIsHovered(false)}
       >
         {dropIndicator && <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded" />}
-        <div className="flex gap-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-xl p-3">
-          <span className="text-xl flex-shrink-0">💡</span>
+        <div className="flex gap-3 bg-primary/5 border-l-4 border-primary/50 rounded-r-xl p-3">
+          <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
           <div
             ref={ref}
             contentEditable
@@ -220,9 +247,9 @@ export default function EditorBlock({ block, onChange, onDelete, onEnter, onInse
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             data-placeholder={PLACEHOLDERS.callout}
-            className={`flex-1 min-h-[1.5em] outline-none text-blue-900 text-sm leading-relaxed empty:before:content-[attr(data-placeholder)] empty:before:text-blue-400/60 ${focused ? "border-l-0" : ""}`}
+            className={`flex-1 min-h-[1.5em] outline-none text-foreground text-sm leading-relaxed empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/40 ${focused ? "border-l-0" : ""}`}
           />
-          <button onClick={onDelete} className={`text-blue-300 hover:text-loss self-start transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>✕</button>
+          <button onClick={onDelete} className={`text-muted-foreground/40 hover:text-loss self-start transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>✕</button>
         </div>
       </div>
     );

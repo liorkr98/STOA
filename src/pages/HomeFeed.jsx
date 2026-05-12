@@ -6,8 +6,9 @@ import Leaderboard from "@/components/feed/Leaderboard";
 import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { SlidersHorizontal, X, Flame, Users, Star } from "lucide-react";
+import { SlidersHorizontal, X, Flame, Users, Star, Search } from "lucide-react";
 import MarketsWidget from "@/components/feed/MarketsWidget";
+import MarketTickerBar from "@/components/feed/MarketTickerBar";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
 import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
@@ -28,6 +29,54 @@ const FEED_TABS = [
 ];
 
 const PAGE_SIZE = 10;
+
+function FeaturedHero({ report, userMap }) {
+  if (!report) return null;
+  const authorUser = userMap[report.created_by] || {};
+  const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorAvatar = report.author_avatar || authorUser.picture || null;
+
+  return (
+    <Link
+      to={`/report?id=${report.id}`}
+      className="block bg-card border border-border rounded-2xl p-6 mb-5 hover:shadow-md transition-all group no-underline"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+          Featured Analysis
+        </span>
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+          Top Rated This Week
+        </span>
+      </div>
+      <h2 className="text-xl font-bold leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif">
+        {report.title}
+      </h2>
+      {report.excerpt && (
+        <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+          {report.excerpt}
+        </p>
+      )}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary overflow-hidden flex-shrink-0">
+          {authorAvatar
+            ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
+            : authorName[0]?.toUpperCase()}
+        </div>
+        <span className="text-xs font-medium text-foreground">{authorName}</span>
+        {report.prediction_action && (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+            report.prediction_action === "Long" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+          }`}>
+            {report.prediction_action}{report.prediction_ticker ? ` · ${report.prediction_ticker}` : ""}
+          </span>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">{report.likes || 0} likes</span>
+      </div>
+    </Link>
+  );
+}
 
 // Determine default tab: following if user has follows, else trending
 function getDefaultTab(hasFollows) {
@@ -229,10 +278,12 @@ export default function HomeFeed() {
   const hasMore = visibleReports.length < filtered.length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6" style={{ background:'#f8fafc', minHeight:'100vh' }}>
+    <div className="min-h-screen bg-background">
+      <MarketTickerBar />
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
 
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
       <div className="flex gap-6">
         {/* Left Sidebar */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
@@ -243,6 +294,11 @@ export default function HomeFeed() {
 
         {/* Main Feed */}
         <div className="flex-1 min-w-0">
+          {/* Featured hero — top-rated report this week */}
+          {!loading && topWeeklyReport && activeTab === "trending" && (
+            <FeaturedHero report={topWeeklyReport} userMap={userMap} />
+          )}
+
           {/* Page title + FOMO counter */}
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -330,9 +386,9 @@ export default function HomeFeed() {
                 <EmptySubscriptionsState currentUser={user} onSubscribed={refreshSubscriptions} />
               ) : (
                 <div className="text-center py-16">
-                  <p className="text-2xl mb-2">🔍</p>
-                  <p className="font-semibold text-foreground">Be the first to discover new research — check back soon</p>
-                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+                  <Search className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-semibold text-foreground">No reports match your current filters</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back soon</p>
                   {prefActiveCount > 0 && (
                     <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={clearPrefs}>Clear Filters</Button>
                   )}
@@ -389,6 +445,7 @@ export default function HomeFeed() {
           onApply={(prefs) => setFeedPrefs(prefs)}
         />
       )}
+      </div>
     </div>
   );
 }

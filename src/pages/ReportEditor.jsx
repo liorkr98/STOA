@@ -30,6 +30,8 @@ import FloatingToolbar from "@/components/editor/FloatingToolbar";
 import ReportQualityScore from "@/components/editor/ReportQualityScore";
 import QuickPostEditor from "@/components/editor/QuickPostEditor";
 import ColumnsBlock from "@/components/editor/ColumnsBlock";
+import MetricsBlock from "@/components/editor/MetricsBlock";
+import ThesisBlock from "@/components/editor/ThesisBlock";
 
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -47,6 +49,8 @@ const BLOCK_TYPES = [
   { type: "stockchart",label: "Stock Chart", icon: BarChart3, shortcut: "C" },
   { type: "image",     label: "Image",       icon: ImageIcon, shortcut: "I" },
   { type: "columns",   label: "Text + Media", icon: Layout,    shortcut: "T" },
+  { type: "metrics",   label: "Key Metrics",  icon: BarChart3, shortcut: "K" },
+  { type: "thesis",    label: "Bull / Bear",  icon: TrendingUp, shortcut: "B" },
 ];
 
 const INDUSTRIES = [
@@ -508,6 +512,18 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           duplicateBlock={duplicateBlock}
           moveBlock={moveBlock}
           turnIntoBlock={turnIntoBlock}
+        />
+      ) : block.type === "metrics" ? (
+        <MetricsBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+        />
+      ) : block.type === "thesis" ? (
+        <ThesisBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
         />
       ) : (
         <EditorBlock
