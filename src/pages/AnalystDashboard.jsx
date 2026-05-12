@@ -273,8 +273,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link to="/editor"><Button size="sm" className="text-xs gap-1"><span>+</span> Write Report</Button></Link>
-            <Link to="/analyst"><Button variant="outline" size="sm" className="text-xs">View Public Profile</Button></Link>
-            <Link to="/analyst?edit=1"><Button variant="outline" size="sm" className="text-xs">Edit My Page</Button></Link>
+            <Link to="/analyst"><Button variant="outline" size="sm" className="text-xs">View My Profile</Button></Link>
             <Link to="/creator-analytics"><Button variant="outline" size="sm" className="text-xs gap-1"><BarChart3 className="w-3.5 h-3.5" /> Analytics</Button></Link>
             <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setTab("messages")} style={{ scrollMarginTop: 100 }}>
               <MessageCircle className="w-3.5 h-3.5" /> Messages

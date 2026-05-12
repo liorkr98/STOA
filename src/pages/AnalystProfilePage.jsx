@@ -18,6 +18,8 @@ import { computeAnalystTier, computeAchievements } from "@/lib/analystTier";
 import { computeScore } from "@/lib/scoringEngine";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
+import ShareModal from "@/components/profile/ShareModal";
+import { CustomBlocksSection } from "@/components/profile/CustomBlocks";
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -25,6 +27,7 @@ const DEFAULT_CONFIG = {
   hidden_stats:   [],
   sections_order: ["Reports", "Track Record", "About"],
   pinned_reports: [],
+  custom_blocks:  [],
 };
 
 const BANNER_THEMES = {
@@ -221,8 +224,8 @@ export default function AnalystProfilePage() {
   const [isSubscribed,  setIsSubscribed]  = useState(false);
   const [showSubModal,  setShowSubModal]  = useState(false);
   const [showAccModal,  setShowAccModal]  = useState(false);
-  const [activeTab,     setActiveTab]     = useState("Reports");
-  const [copied,        setCopied]        = useState(false);
+  const [activeTab,       setActiveTab]       = useState("Reports");
+  const [showShareModal,  setShowShareModal]  = useState(false);
 
   // Edit mode state
   const [isEditMode,  setIsEditMode]  = useState(false);
@@ -328,12 +331,9 @@ export default function AnalystProfilePage() {
   };
 
   // ── Share ─────────────────────────────────────────────────────────────────
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  // Share button now opens a proper modal with copy + social options.
+  // Old version silently failed in insecure contexts (no HTTPS, no permission).
+  const openShare = () => setShowShareModal(true);
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
   const enterEditMode = () => {
@@ -350,7 +350,10 @@ export default function AnalystProfilePage() {
     setIsEditMode(true);
   };
 
-  // Auto-enter edit mode when ?edit=1 in URL (from /branding, /edit-profile redirects)
+  // Auto-enter edit mode when ?edit=1 in URL (from /branding, /edit-profile,
+  // dropdown "Edit My Page", etc.). searchParams MUST be in deps — without it,
+  // clicking the dropdown item while already on /analyst would no-op because
+  // the component stays mounted and analyst/currentUser don't change.
   useEffect(() => {
     if (!analyst || !currentUser) return;
     const wantsEdit = searchParams.get("edit") === "1";
@@ -361,7 +364,7 @@ export default function AnalystProfilePage() {
       setSearchParams(searchParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analyst, currentUser]);
+  }, [analyst, currentUser, searchParams]);
 
   const cancelEditMode = () => setIsEditMode(false);
 
@@ -583,10 +586,12 @@ export default function AnalystProfilePage() {
               {/* Action buttons */}
               <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                 <button
-                  onClick={handleShare}
+                  onClick={openShare}
                   className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="Share profile"
+                  title="Share profile"
                 >
-                  {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                  <Share2 className="w-4 h-4" />
                 </button>
 
                 {!isOwnProfile && currentUser && (
@@ -919,6 +924,13 @@ export default function AnalystProfilePage() {
               </div>
             )}
 
+            {/* Custom sections — owner-editable: text, image, links, ticker spotlight */}
+            <CustomBlocksSection
+              blocks={config.custom_blocks || []}
+              isEditMode={isEditMode}
+              onChange={blocks => setEditConfig(c => ({ ...c, custom_blocks: blocks }))}
+            />
+
             {/* Tier progress (own profile) */}
             {isOwnProfile && <TierProgressBar user={analyst} allReports={myReports} />}
 
@@ -1030,6 +1042,14 @@ export default function AnalystProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Share modal */}
+      <ShareModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={`${displayName} on STOA`}
+        description={analyst.tagline || "Verified analyst on STOA"}
+      />
     </div>
   );
 }

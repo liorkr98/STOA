@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Palette, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Pencil } from "lucide-react";
+import { BarChart3, Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
@@ -145,9 +145,6 @@ export default function AppLayout() {
                       <>
                         <DropdownMenuItem onClick={() => navigate("/analyst")}>
                           <UserIcon className="w-4 h-4 mr-2" /> My Public Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/analyst?edit=1")}>
-                          <Pencil className="w-4 h-4 mr-2" /> Edit My Page
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                           <LayoutDashboard className="w-4 h-4 mr-2" /> Creator Dashboard
