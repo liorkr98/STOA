@@ -6,6 +6,7 @@ import { TrendingUp, Trophy } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { getAnalystSlug } from "@/lib/analystSlug";
 import { computeAnalystStats } from "@/lib/analystStats";
+import { computeScore } from "@/lib/scoringEngine";
 
 const TIME_PERIODS = ["All Time", "This Month", "This Week"];
 const RANK_MEDALS  = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -55,10 +56,22 @@ export default function Leaderboard() {
       .catch(() => {});
   }, [isAuthenticated, user]);
 
+  // Compute new scores from reports for each analyst
+  const analystScores = React.useMemo(() => {
+    const map = {};
+    analysts.forEach(a => {
+      const mine = allReports.filter(r => r.created_by === a.email);
+      map[a.email] = computeScore(mine);
+    });
+    return map;
+  }, [analysts, allReports]);
+
   const sorted = [...analysts].sort((a, b) => {
-    if (period === "This Week")  return (b.reports || 0) - (a.reports || 0);
-    if (period === "This Month") return (b.yearly_yield || 0) - (a.yearly_yield || 0);
-    return (b.accuracy_score || 0) - (a.accuracy_score || 0);
+    const sa = analystScores[a.email] || {};
+    const sb = analystScores[b.email] || {};
+    if (period === "This Week")  return (sb.total || 0) - (sa.total || 0);
+    if (period === "This Month") return (sb.avgReturn || 0) - (sa.avgReturn || 0);
+    return (sb.score || 0) - (sa.score || 0);
   });
 
   const handleFollow = async (e, analyst) => {
@@ -158,12 +171,14 @@ export default function Leaderboard() {
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</p>
                   <div style={{ display:'flex', alignItems:'center', gap:4, flexWrap:'wrap' }}>
-                    <span style={{
-                      fontSize:10, fontWeight:700,
-                      color: accPct >= 80 ? '#16a34a' : accPct >= 60 ? '#d97706' : '#dc2626',
-                    }}>
-                      {accPct.toFixed(1)}%
-                    </span>
+                    {(() => {
+                      const s = analystScores[analyst.email] || {};
+                      return s.rawWR != null ? (
+                        <span style={{ fontSize:10, fontWeight:700, color: s.rawWR >= 0.6 ? '#16a34a' : s.rawWR >= 0.45 ? '#d97706' : '#dc2626' }}>
+                          {(s.rawWR * 100).toFixed(0)}% WR
+                        </span>
+                      ) : null;
+                    })()}
                     {analyst.win_streak >= 2 && (
                       <span style={{ fontSize:9, fontWeight:700, color:'#c2410c' }}>🔥{analyst.win_streak}</span>
                     )}
@@ -175,19 +190,21 @@ export default function Leaderboard() {
 
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
                   {(() => {
-                    const computed = computeAnalystStats(allReports, analyst.email);
-                    return computed.avgYield != null ? (
-                      <div style={{
-                        display:'flex', alignItems:'center', gap:2,
-                        fontSize:10, fontWeight:700,
-                        color: computed.avgYield >= 0 ? '#16a34a' : '#dc2626',
-                      }}>
+                    const s = analystScores[analyst.email] || {};
+                    return s.profitFactor != null ? (
+                      <div style={{ fontSize:10, fontWeight:700, color: s.profitFactor >= 2 ? '#16a34a' : s.profitFactor >= 1 ? '#d97706' : '#dc2626' }}>
+                        {s.profitFactor.toFixed(1)}x PF
+                      </div>
+                    ) : s.avgReturn != null ? (
+                      <div style={{ display:'flex', alignItems:'center', gap:2, fontSize:10, fontWeight:700, color: s.avgReturn >= 0 ? '#16a34a' : '#dc2626' }}>
                         <TrendingUp size={10} />
-                        {computed.avgYield >= 0 ? '+' : ''}{computed.avgYield.toFixed(1)}%
+                        {s.avgReturn >= 0 ? '+' : ''}{s.avgReturn.toFixed(1)}%
                       </div>
                     ) : null;
                   })()}
-                  <span style={{ fontSize:8, color:'#94a3b8' }}>Free + Pro</span>
+                  <span style={{ fontSize:9, fontWeight:700, color:'#2563eb' }}>
+                    {(analystScores[analyst.email] || {}).score ?? '—'}
+                  </span>
                   {isAuthenticated && user?.email !== analyst.email && (
                     <button
                       onClick={e => handleFollow(e, analyst)}

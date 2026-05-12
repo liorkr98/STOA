@@ -14,6 +14,7 @@ import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
 import { getAnalystSlug } from "@/lib/analystSlug";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 import { computeAnalystTier, computeAchievements } from "@/lib/analystTier";
+import { computeScore } from "@/lib/scoringEngine";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 
@@ -239,6 +240,9 @@ export default function AnalystProfilePage() {
   const displayYield = formatYield(computedYield);
   const yieldColor = computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-green-600" : "text-red-500";
 
+  // New scoring
+  const scoring = computeScore(resolvedReports);
+
   const BUCKET_LABELS = { INTRADAY: "Intraday", SHORT: "Short-Term", MEDIUM: "Medium-Term", LONG: "Long-Term" };
   const bucketStats = { INTRADAY: { total: 0, hits: 0 }, SHORT: { total: 0, hits: 0 }, MEDIUM: { total: 0, hits: 0 }, LONG: { total: 0, hits: 0 } };
   resolvedReports.forEach(r => {
@@ -356,43 +360,105 @@ export default function AnalystProfilePage() {
             )}
 
             {/* Key metrics strip */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+
+              {/* Composite score — hero metric */}
               <button
-                onClick={analyst.accuracy_score > 0 ? () => setShowAccModal(true) : undefined}
-                className={`text-center p-4 rounded-xl bg-primary/5 border border-primary/10 ${analyst.accuracy_score > 0 ? "hover:bg-primary/10 cursor-pointer" : "cursor-default"} transition-all`}
+                onClick={scoring.total > 0 ? () => setShowAccModal(true) : undefined}
+                className={`text-center p-4 rounded-xl bg-primary/5 border border-primary/10 ${scoring.total > 0 ? "hover:bg-primary/10 cursor-pointer" : "cursor-default"} transition-all`}
               >
                 <p className="text-2xl font-extrabold text-primary leading-none mb-1">
-                  {analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—"}
+                  {scoring.total >= 5 ? scoring.score : "—"}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Accuracy</p>
-                {resolvedReports.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{hitCount}/{resolvedReports.length} resolved</p>
-                )}
+                <p className="text-[11px] text-muted-foreground font-medium">Score</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {scoring.total > 0 ? `${scoring.total} calls` : "No calls yet"}
+                </p>
               </button>
 
-              <button
-                onClick={computedYield != null ? () => setShowYieldModal(true) : undefined}
-                className={`text-center p-4 rounded-xl bg-secondary ${computedYield != null ? "hover:bg-secondary/70 cursor-pointer" : "cursor-default"} transition-all`}
-              >
-                <p className={`text-2xl font-extrabold leading-none mb-1 ${yieldColor}`}>{displayYield}</p>
-                <p className="text-[11px] text-muted-foreground font-medium">Avg Yield</p>
-                {resolvedReports.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{resolvedReports.length} calls</p>
-                )}
-              </button>
+              {/* Win Rate (Wilson-adjusted) */}
+              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
+                <p className={`text-2xl font-extrabold leading-none mb-1 ${
+                  scoring.rawWR == null ? "text-muted-foreground"
+                  : scoring.rawWR >= 0.6 ? "text-green-600"
+                  : scoring.rawWR >= 0.45 ? "text-amber-600"
+                  : "text-red-500"
+                }`}>
+                  {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">Win Rate</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {scoring.total > 0 ? `${hitCount}W · ${scoring.misses}L` : ""}
+                </p>
+              </div>
 
+              {/* Profit Factor */}
+              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
+                <p className={`text-2xl font-extrabold leading-none mb-1 ${
+                  scoring.profitFactor == null ? "text-muted-foreground"
+                  : scoring.profitFactor >= 2 ? "text-green-600"
+                  : scoring.profitFactor >= 1 ? "text-amber-600"
+                  : "text-red-500"
+                }`}>
+                  {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">Profit Factor</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">avg win / avg loss</p>
+              </div>
+
+              {/* Avg Return per call */}
+              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
+                <p className={`text-2xl font-extrabold leading-none mb-1 ${
+                  scoring.avgReturn == null ? "text-muted-foreground"
+                  : scoring.avgReturn >= 0 ? "text-green-600"
+                  : "text-red-500"
+                }`}>
+                  {scoring.avgReturn != null
+                    ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%`
+                    : "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">Avg Return</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">per call</p>
+              </div>
+
+              {/* Followers */}
               <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
                 <p className="text-2xl font-extrabold text-foreground leading-none mb-1">
                   {(analyst.followers_count || 0).toLocaleString()}
                 </p>
                 <p className="text-[11px] text-muted-foreground font-medium">Followers</p>
-              </div>
-
-              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
-                <p className="text-2xl font-extrabold text-foreground leading-none mb-1">{publishedReports.length}</p>
-                <p className="text-[11px] text-muted-foreground font-medium">Reports</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{publishedReports.length} reports</p>
               </div>
             </div>
+
+            {/* Score breakdown row — only if enough calls */}
+            {scoring.total >= 5 && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Score breakdown</p>
+                <div className="flex gap-4 flex-wrap">
+                  {[
+                    { label: "Win Rate component", value: scoring._winRateScore, color: "#2563eb" },
+                    { label: "Profit Factor component", value: scoring._pfScore, color: "#16a34a" },
+                    scoring._alphaScore != null && { label: "Alpha component", value: scoring._alphaScore, color: "#d97706" },
+                  ].filter(Boolean).map(item => (
+                    <div key={item.label} className="flex-1 min-w-[100px]">
+                      <div className="flex justify-between text-[10px] mb-1">
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className="font-bold" style={{ color: item.color }}>{item.value}</span>
+                      </div>
+                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${item.value}%`, background: item.color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {scoring._alphaScore == null && (
+                  <p className="text-[10px] text-muted-foreground/60 mt-1.5">
+                    Alpha vs benchmark will appear once 5+ calls have benchmark data recorded at resolution.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -560,17 +626,36 @@ export default function AnalystProfilePage() {
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Prediction Accuracy</h3>
-            <p className="text-4xl font-extrabold text-primary mb-4">{analyst.accuracy_score?.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground mb-2">Based on {resolvedReports.length} resolved predictions using STOA's scoring system.</p>
-            <div className="flex justify-between text-sm py-3 border-y border-border my-3">
-              <span className="text-muted-foreground">Hits</span>
-              <span className="font-semibold text-green-600">{hitCount}</span>
+            <h3 className="font-bold text-base mb-1">Analyst Score</h3>
+            <p className="text-5xl font-extrabold text-primary mb-1">{scoring.score}</p>
+            <p className="text-xs text-muted-foreground mb-5">out of 100 · {scoring.total} resolved predictions</p>
+
+            <div className="space-y-3 mb-5">
+              {[
+                { label: "Win Rate", value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—", sub: `${hitCount} wins · ${scoring.misses} losses`, color: "#2563eb", bar: scoring._winRateScore },
+                { label: "Profit Factor", value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—", sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, color: "#16a34a", bar: scoring._pfScore },
+                scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "—", sub: "excess return vs benchmark", color: "#d97706", bar: scoring._alphaScore },
+              ].filter(Boolean).map(item => (
+                <div key={item.label}>
+                  <div className="flex justify-between mb-1">
+                    <div>
+                      <span className="text-sm font-semibold">{item.label}</span>
+                      <p className="text-[10px] text-muted-foreground">{item.sub}</p>
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: item.color }}>{item.value}</span>
+                  </div>
+                  {item.bar != null && (
+                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${item.bar}%`, background: item.color }} />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="flex justify-between text-sm pb-3 border-b border-border mb-4">
-              <span className="text-muted-foreground">Misses</span>
-              <span className="font-semibold text-red-500">{resolvedReports.length - hitCount}</span>
-            </div>
+
+            <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+              Score = Wilson-adjusted Win Rate (52%) + Profit Factor (48%). Alpha component adds when benchmark data is available. Sample-size adjusted — more calls = more reliable score.
+            </p>
             <button onClick={() => setShowAccModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Close</button>
           </div>
         </div>
