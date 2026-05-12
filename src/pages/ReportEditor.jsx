@@ -34,7 +34,7 @@ import ColumnsBlock from "@/components/editor/ColumnsBlock";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const DYOR_TEXT =
-  "⚠️ Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
+  "Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
 
 const BLOCK_TYPES = [
   { type: "heading",    label: "Heading",     icon: Type,      shortcut: "H" },

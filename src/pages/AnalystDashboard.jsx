@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock } from "lucide-react";
+import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock, Eye, Heart } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
@@ -285,10 +285,10 @@ export default function AnalystDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { key: "predictions", label: "Elo Score", value: predictions.length > 0 ? `${accuracyScore}` : "—", icon: Target, color: "text-green-600", bg: "bg-green-50 border-green-200", sub: currentUser.accuracy_rating ? `Elo ${currentUser.accuracy_rating} · ${currentUser.accuracy_tier || "Building"} · ${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved` : `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
-          { key: "points", label: "AI Credits", value: (currentUser.ai_credits_balance ?? 100).toLocaleString(), icon: Zap, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", sub: "Available balance" },
-          { key: "yield", label: "Avg Prediction Yield", value: yieldDisplay, icon: TrendingUp, color: computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss", bg: "bg-primary/5 border-primary/20", sub: computedYield != null ? `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved predictions` : "No resolved predictions yet" },
-          { key: "followers", label: "Followers", value: analyst.followers.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", sub: "Total followers" },
+          { key: "predictions", label: "Elo Score", value: predictions.length > 0 ? `${accuracyScore}` : "—", icon: Target, color: "text-foreground", bg: "bg-secondary border-border", sub: currentUser.accuracy_rating ? `Elo ${currentUser.accuracy_rating} · ${currentUser.accuracy_tier || "Building"} · ${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved` : `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved / ${predictions.length} total` },
+          { key: "points", label: "AI Credits", value: (currentUser.ai_credits_balance ?? 100).toLocaleString(), icon: Zap, color: "text-foreground", bg: "bg-secondary border-border", sub: "Available balance" },
+          { key: "yield", label: "Avg Prediction Yield", value: yieldDisplay, icon: TrendingUp, color: computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss", bg: "bg-secondary border-border", sub: computedYield != null ? `${predictions.filter(r=>r.prediction_outcome && r.prediction_outcome !== "pending").length} resolved predictions` : "No resolved predictions yet" },
+          { key: "followers", label: "Followers", value: analyst.followers.toLocaleString(), icon: Users, color: "text-foreground", bg: "bg-secondary border-border", sub: "Total followers" },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -308,15 +308,15 @@ export default function AnalystDashboard() {
       {/* Achievements */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Trophy className="w-4 h-4 text-amber-500" />
+          <Trophy className="w-4 h-4 text-primary" />
           <h2 className="font-semibold text-sm">Achievements <span className="text-muted-foreground">{achievements.filter(a => a.earned).length}/{achievements.length} earned</span></h2>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
           {achievements.map(a => {
             const Icon = a.icon;
             return (
-              <div key={a.label} className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all ${a.earned ? "bg-amber-50 border-amber-200" : "bg-secondary border-border opacity-40"}`}>
-                <Icon className={`w-4 h-4 ${a.earned ? "text-amber-600" : "text-muted-foreground"}`} />
+              <div key={a.label} className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all ${a.earned ? "bg-primary/5 border-primary/20" : "bg-secondary border-border opacity-40"}`}>
+                <Icon className={`w-4 h-4 ${a.earned ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-[9px] font-medium leading-tight">{a.label}</span>
               </div>
             );
@@ -327,7 +327,7 @@ export default function AnalystDashboard() {
       {/* My Subscriptions */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Star className="w-4 h-4 text-amber-500" />
+          <Star className="w-4 h-4 text-primary" />
           <h2 className="font-semibold text-sm">My Subscriptions</h2>
         </div>
         {mySubscriptions.length === 0 ? (
@@ -364,7 +364,7 @@ export default function AnalystDashboard() {
             { id: "boost", label: "Boost" },
             { id: "profile-boost", label: "Profile Boost" },
             { id: "subscriptions", label: "Subscribed" },
-            { id: "messages", label: "💬 Messages", hidden: true },
+            { id: "messages", label: "Messages", hidden: true },
           ].filter(t => !t.hidden).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${tab === t.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"}`}>
@@ -392,9 +392,9 @@ export default function AnalystDashboard() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{format(new Date(report.created_date), "MMM d, yyyy")}</span>
                       <span>·</span>
-                      <span>👁 {report.views || 0}</span>
+                      <span className="inline-flex items-center gap-1"><Eye className="w-3 h-3" />{report.views || 0}</span>
                       <span>·</span>
-                      <span>❤️ {report.likes || 0}</span>
+                      <span className="inline-flex items-center gap-1"><Heart className="w-3 h-3" />{report.likes || 0}</span>
                       {report.prediction_outcome && report.prediction_outcome !== "pending" && (
                         <span className={`capitalize font-semibold ${report.prediction_outcome === "hit" ? "text-gain" : report.prediction_outcome === "miss" ? "text-loss" : "text-amber-600"}`}>
                           {report.prediction_outcome}
@@ -452,7 +452,7 @@ export default function AnalystDashboard() {
                     <p className="text-xs text-muted-foreground">{report.likes || 0} likes</p>
                   </div>
                   {boosts[report.id] ? (
-                    <span className="text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">Boosted 🔥</span>
+                    <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">Promoted</span>
                   ) : (
                     <Button size="sm" variant="outline" className="text-xs" onClick={() => setBoosts(prev => ({ ...prev, [report.id]: true }))}>Boost</Button>
                   )}
@@ -468,18 +468,18 @@ export default function AnalystDashboard() {
             <p className="text-sm text-muted-foreground mb-4">Boost your analyst profile to appear higher in the Leaderboard and gain more followers.</p>
             {profileBoosted ? (
               <div className="text-center py-6">
-                <p className="font-bold text-base mb-1">Profile is Boosted 🔥</p>
+                <p className="font-bold text-base mb-1">Profile Promoted</p>
                 <p className="text-sm text-muted-foreground">Your profile is being promoted to new followers for 7 days.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {[
-                  { label: "7 Day Boost", price: "$9.99", reach: "~2,000 impressions", icon: "🚀" },
-                  { label: "30 Day Boost", price: "$29.99", reach: "~10,000 impressions", icon: "🔥" },
-                  { label: "Featured Analyst", price: "$79.99", reach: "Homepage feature for 7 days", icon: "⭐" },
+                  { label: "7 Day Boost", price: "$9.99", reach: "~2,000 impressions", Icon: Rocket },
+                  { label: "30 Day Boost", price: "$29.99", reach: "~10,000 impressions", Icon: Flame },
+                  { label: "Featured Analyst", price: "$79.99", reach: "Homepage feature for 7 days", Icon: Star },
                 ].map(plan => (
-                  <button key={plan.label} onClick={() => setProfileBoosted(true)} className="w-full flex items-center gap-4 p-4 border border-border rounded-xl hover:border-orange-300 hover:bg-orange-50/50 text-left transition-all">
-                    <span className="text-xl">{plan.icon}</span>
+                  <button key={plan.label} onClick={() => setProfileBoosted(true)} className="w-full flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 text-left transition-all">
+                    <plan.Icon className="w-5 h-5 text-primary flex-shrink-0" />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">{plan.label}</p>
                       <p className="text-xs text-muted-foreground">{plan.reach}</p>

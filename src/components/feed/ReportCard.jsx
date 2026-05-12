@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
-import { Lock, MessageCircle, Heart, Share2, Bookmark, CreditCard } from "lucide-react";
+import { Lock, MessageCircle, Heart, Share2, Bookmark, CreditCard, TrendingUp, TrendingDown, Minus, Eye, CheckCircle, XCircle, AlertCircle, Flame, Radio } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
@@ -51,10 +51,10 @@ function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
   if (!action) return null;
   const upside = calcUpside(action, lockPrice, targetPrice);
   const cfg = {
-    Long:  { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0', icon: '📈' },
-    Short: { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca', icon: '📉' },
-    Hold:  { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', icon: '—' },
-  }[action] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', icon: '—' };
+    Long:  { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0', Icon: TrendingUp },
+    Short: { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca', Icon: TrendingDown },
+    Hold:  { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', Icon: Minus },
+  }[action] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', Icon: Minus };
 
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:10 }}>
@@ -64,7 +64,7 @@ function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
         background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
         fontSize:13, fontWeight:700,
       }}>
-        {cfg.icon} {action} ${ticker}
+        <cfg.Icon size={13} /> {action} ${ticker}
         {targetPrice && !isLocked && (
           <span style={{ fontWeight:600 }}>→ ${targetPrice}</span>
         )}
@@ -91,30 +91,33 @@ function OutcomeBadge({ outcome, lockPrice, resolvedPrice, action }) {
   if (outcome === 'hit' || outcome === 'near') {
     return (
       <span style={{
+        display:'inline-flex', alignItems:'center', gap:4,
         background:'#16a34a', color:'#fff', fontSize:12, fontWeight:700,
         padding:'4px 10px', borderRadius:6,
       }}>
-        ✅ HIT{pnl != null ? ` +${pnl}%` : ""}
+        <CheckCircle size={11} /> HIT{pnl != null ? ` +${pnl}%` : ""}
       </span>
     );
   }
   if (outcome === 'miss') {
     return (
       <span style={{
+        display:'inline-flex', alignItems:'center', gap:4,
         background:'#dc2626', color:'#fff', fontSize:12, fontWeight:700,
         padding:'4px 10px', borderRadius:6,
       }}>
-        ❌ MISS
+        <XCircle size={11} /> MISS
       </span>
     );
   }
   if (outcome === 'partial') {
     return (
       <span style={{
+        display:'inline-flex', alignItems:'center', gap:4,
         background:'#d97706', color:'#fff', fontSize:12, fontWeight:700,
         padding:'4px 10px', borderRadius:6,
       }}>
-        ⚡ PARTIAL
+        <AlertCircle size={11} /> PARTIAL
       </span>
     );
   }
@@ -176,9 +179,9 @@ function QuickPoll({ reportId }) {
   };
 
   const opts = [
-    { id: 'long',    label: '📈 Long' },
-    { id: 'short',   label: '📉 Short' },
-    { id: 'neutral', label: '🤔 Neutral' },
+    { id: 'long',    label: 'Long' },
+    { id: 'short',   label: 'Short' },
+    { id: 'neutral', label: 'Neutral' },
   ];
 
   const total = (votes || []).length;
@@ -324,10 +327,11 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         {isPremium && (
           <span style={{
             position:'absolute', top:12, left:12,
+            display:'inline-flex', alignItems:'center', gap:4,
             background:'#d97706', color:'#fff', fontSize:10, fontWeight:700,
             padding:'2px 8px', borderRadius:10, letterSpacing:'0.04em',
           }}>
-            ⭐ PREMIUM
+            <Lock size={9} /> PREMIUM
           </span>
         )}
 
@@ -368,10 +372,11 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               {/* Win streak */}
               {winStreak >= 3 && (
                 <span style={{
+                  display:'inline-flex', alignItems:'center', gap:3,
                   background:'#fff7ed', color:'#c2410c', fontSize:10, fontWeight:700,
                   padding:'2px 7px', borderRadius:10,
                 }}>
-                  🔥 x{winStreak}
+                  <Flame size={10} /> {winStreak}
                 </span>
               )}
 
@@ -391,11 +396,12 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               <span style={{ fontSize:12, color:'#94a3b8' }}>{timeAgo(publishedDate)}</span>
               {isLive && (
                 <span style={{
+                  display:'inline-flex', alignItems:'center', gap:4,
                   background:'#ef4444', color:'#fff', fontSize:10, fontWeight:700,
                   padding:'2px 7px', borderRadius:10,
                   animation:'livePulse 2s infinite',
                 }}>
-                  🔴 LIVE
+                  <Radio size={9} /> LIVE
                 </span>
               )}
             </div>
@@ -525,7 +531,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           paddingTop:12, borderTop:'1px solid #f1f5f9', marginTop:4,
         }}>
           <span style={{ display:'flex', alignItems:'center', gap:4, fontSize:13, fontWeight:600, color:'#94a3b8', pointerEvents:'none' }}>
-            👁 {report.views || 0}
+            <Eye size={13} /> {report.views || 0}
           </span>
           <button
             onClick={handleLike}
