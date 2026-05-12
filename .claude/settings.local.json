@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\liorkr\\\\Downloads\\\\stakify-f5b3c3a0\" -Force | Select-Object Name, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}} | Format-Table -AutoSize)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "WebSearch",
+      "Bash(git restore *)",
+      "Bash(git -C . status --short)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\liorkr\\\\Downloads\\\\stakify-f5b3c3a0\" -Recurse -Force)",
+      "Bash(Select-Object -First 30)",
+      "Bash(Format-List FullName)",
+      "Bash(git rebase *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\liorkr\\\\Downloads\\\\stakify-f5b3c3a0\\\\src\" -Recurse -File)",
+      "Bash(Select-Object -First 100)",
+      "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__list_user_apps",
+      "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__list_entity_schemas",
+      "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__create_entity_schema",
+      "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__update_entity_schema",
+      "Bash(git rev-list *)"
+    ]
+  }
+}

@@ -7,6 +7,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import ChatChart from "@/components/editor/ChatChart";
+import { spendAICredits, loadMyWallet } from "@/lib/walletService";
 
 // ── AI Credit helpers ────────────────────────────────────────────────────────
 const CREDITS_KEY   = "stoa_ai_credits";
@@ -242,7 +243,13 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   const [loading, setLoading]   = useState(false);
   const [quickTicker, setQuickTicker] = useState("");
   const [copiedId, setCopiedId] = useState(null);
-  const [credits, setCredits]   = useState(() => getCredits());
+  // Wallet AI credits — single source of truth (not localStorage). The
+  // legacy localStorage `stoa_ai_credits` is no longer authoritative.
+  const [credits, setCredits]   = useState(null);
+  useEffect(() => {
+    if (!open) return;
+    loadMyWallet().then(({ wallet }) => setCredits(wallet.ai_credits || 0)).catch(() => setCredits(0));
+  }, [open]);
 
   // Draggable position — offset is held in closure inside onHeaderMouseDown
   const [pos, setPos]           = useState({ x: 0, y: 0 });
@@ -307,10 +314,9 @@ export default function AIChat({ reportContent, onInsertBlock }) {
     const userText = (overrideText ?? input).trim();
     if (!userText || loading) return;
 
-    // Credit check
-    const currentCredits = getCredits();
-    if (currentCredits < COST_PER_MSG) {
-      toast.error("No AI credits remaining. Purchase more in your Wallet.");
+    // Credit check — read from wallet (source of truth)
+    if (credits != null && credits < COST_PER_MSG) {
+      toast.error("No AI credits remaining. Convert cash → credits in your Wallet.");
       return;
     }
 
@@ -371,8 +377,9 @@ Analyst:`;
       const { text: content, charts } = parseChartDirectives(rawContent);
       const blockType = detectBlockType(content);
 
-      // Deduct credit after successful response
-      const remaining = spendCredits(COST_PER_MSG);
+      // Deduct credit from wallet after successful response
+      const res = await spendAICredits(COST_PER_MSG, "AIChat message").catch(() => null);
+      const remaining = res?.remaining ?? credits;
       setCredits(remaining);
       if (remaining <= 10 && remaining > 0) {
         toast.warning(`${remaining} AI credits remaining`);
@@ -462,11 +469,12 @@ Analyst:`;
           <span className="font-semibold text-sm">AI Market Analyst</span>
           {/* Credit badge */}
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-            credits <= 0 ? "bg-loss/10 text-loss" :
-            credits <= 10 ? "bg-amber-100 text-amber-700" :
+            credits == null ? "bg-secondary text-muted-foreground" :
+            credits <= 0   ? "bg-loss/10 text-loss" :
+            credits <= 10  ? "bg-amber-100 text-amber-700" :
             "bg-secondary text-muted-foreground"
           }`}>
-            <Coins className="w-2.5 h-2.5" /> {credits}
+            <Coins className="w-2.5 h-2.5" /> {credits == null ? "—" : credits}
           </span>
         </div>
         <div className="flex items-center gap-0.5 pointer-events-auto">
@@ -612,7 +620,7 @@ Analyst:`;
           </div>
 
           {/* Out-of-credits banner */}
-          {credits <= 0 && (
+          {credits != null && credits <= 0 && (
             <div className="mx-3 mb-2 p-2.5 bg-loss/8 border border-loss/20 rounded-xl flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-loss flex-shrink-0" />
               <div className="flex-1 min-w-0">

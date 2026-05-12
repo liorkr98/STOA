@@ -1,49 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Check, Lock, ArrowLeft, Shield, Zap, Loader2, CheckCircle2, Wallet } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { ArrowLeft, Shield, Loader2, CheckCircle2, Wallet, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { depositToWallet, MIN_DEPOSIT_USD } from "@/lib/walletService";
 
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb"; // "sb" = sandbox for testing
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
 
-const SUBSCRIPTION_PLANS = [
-  { key: "basic", label: "Basic", price: 9, description: "For casual investors", features: ["All published reports", "Weekly market digest", "Community comments", "Prediction tracking"] },
-  { key: "pro", label: "Pro", price: 29, description: "For serious analysts", features: ["Everything in Basic", "Locked predictions access", "Direct analyst DMs", "Weekly live Q&A", "Export reports to PDF", "Early access to reports"], highlight: true },
-];
+// Quick top-up amounts
+const QUICK_AMOUNTS = [10, 25, 50, 100];
 
-const CREDIT_PACKS = [
-  { credits: 50,  price: 5,  label: "Starter",  popular: false },
-  { credits: 120, price: 10, label: "Creator",  popular: true  },
-  { credits: 350, price: 25, label: "Pro",       popular: false },
-];
-
-function SuccessScreen({ mode, credits }) {
-  const navigate = useNavigate();
-  return (
-    <div className="max-w-sm mx-auto px-4 py-16 text-center">
-      <CheckCircle2 className="w-12 h-12 text-gain mx-auto mb-4" />
-      <h2 className="text-xl font-bold mb-2">
-        {mode === 'report'  ? 'Report Unlocked!'
-        : mode === 'boost'  ? 'Boost Activated!'
-        : mode === 'credits'? `${credits} Credits Added!`
-        : 'Subscription Active!'}
-      </h2>
-      <p className="text-sm text-muted-foreground mb-6">
-        {mode === 'credits'
-          ? `${credits} AI credits have been added to your wallet.`
-          : 'Your payment was processed successfully.'}
-      </p>
-      <div className="flex gap-2 justify-center">
-        {mode === 'credits'
-          ? <Button onClick={() => navigate('/wallet')}>View Wallet</Button>
-          : <Button onClick={() => navigate('/')}>Back to Feed</Button>}
-      </div>
-    </div>
-  );
-}
-
-function PayPalButton({ amount, description, onSuccess }) {
+// ── PayPal SDK loader + button renderer ───────────────────────────────────────
+function PayPalDepositButton({ amount, onSuccess }) {
   const containerRef = useRef(null);
   const [ready, setReady] = useState(false);
   const rendered = useRef(false);
@@ -57,261 +25,148 @@ function PayPalButton({ amount, description, onSuccess }) {
     document.head.appendChild(script);
   }, []);
 
+  // Re-render the button whenever the amount changes
   useEffect(() => {
-    if (!ready || !containerRef.current || rendered.current) return;
+    if (!ready || !containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    rendered.current = false;
+    if (!amount || amount < MIN_DEPOSIT_USD) return;
     rendered.current = true;
     window.paypal.Buttons({
-      createOrder: (data, actions) => actions.order.create({
-        purchase_units: [{ amount: { value: String(amount) }, description }]
+      createOrder: (_, actions) => actions.order.create({
+        purchase_units: [{ amount: { value: amount.toFixed(2) }, description: `STOA wallet deposit · $${amount.toFixed(2)}` }]
       }),
-      onApprove: async (data, actions) => {
-        await actions.order.capture();
-        toast.success("Payment successful!");
-        onSuccess();
+      onApprove: async (_, actions) => {
+        const capture = await actions.order.capture();
+        await onSuccess(amount, capture?.id);
       },
       onError: () => toast.error("Payment failed. Please try again."),
-      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay" }
+      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay" },
     }).render(containerRef.current);
-  }, [ready, amount, description, onSuccess]);
+  }, [ready, amount, onSuccess]);
 
   if (!ready) return (
     <div className="flex items-center justify-center py-6">
       <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      <span className="ml-2 text-sm text-muted-foreground">Loading PayPal...</span>
+      <span className="ml-2 text-sm text-muted-foreground">Loading PayPal…</span>
     </div>
   );
-
   return <div ref={containerRef} className="mt-2" />;
+}
+
+function SuccessScreen({ amount }) {
+  const navigate = useNavigate();
+  return (
+    <div className="max-w-sm mx-auto px-4 py-16 text-center">
+      <CheckCircle2 className="w-12 h-12 text-gain mx-auto mb-4" />
+      <h2 className="text-xl font-bold mb-2">Deposit successful</h2>
+      {amount && <p className="text-3xl font-extrabold text-primary mb-1">${amount.toFixed(2)}</p>}
+      <p className="text-sm text-muted-foreground mb-6">Funds are available in your wallet immediately.</p>
+      <div className="flex gap-2 justify-center">
+        <Button onClick={() => navigate("/wallet")}>Go to Wallet</Button>
+        <Button variant="outline" onClick={() => navigate("/")}>Home</Button>
+      </div>
+    </div>
+  );
 }
 
 export default function PaymentPage() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get("mode") || "subscription";
-  const reportTitle = urlParams.get("title") || "Premium Report";
-  const priceParam   = parseFloat(urlParams.get("price") || "0");
-  const reportPrice  = priceParam || 4.99;
-  const analystName  = urlParams.get("analyst") || "";
-  const analystEmail = urlParams.get("analystEmail") || "";
-  const creditsCount = parseInt(urlParams.get("credits") || "0");
-  const creditsPrice = priceParam || 5;
-  const creditsLabel = urlParams.get("label") || "Starter";
-  const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [selectedPack, setSelectedPack] = useState(CREDIT_PACKS[1]);
+  const mode = urlParams.get("mode");
 
-  if (urlParams.get("success") === "true" || urlParams.get("subscription") === "success" || urlParams.get("analyst_sub") === "success") {
-    const addedCredits = parseInt(urlParams.get("addedCredits") || "0");
-    return <SuccessScreen mode={mode === "report" ? "report" : mode === "credits" ? "credits" : "subscription"} credits={addedCredits} />;
-  }
-  if (urlParams.get("boost") === "success") {
-    return <SuccessScreen mode="boost" />;
+  // Legacy modes redirect to /wallet — every internal purchase now happens
+  // through the wallet-confirm dialog on the page where the action originated
+  // (report unlock, subscribe, AI credits convert, boost).
+  if (mode && !["deposit", "withdraw"].includes(mode)) {
+    return <Navigate to="/wallet" replace />;
   }
 
-  const handleSuccess = async () => {
+  const presetAmount = parseFloat(urlParams.get("amount") || "0");
+  const [amount, setAmount] = useState(presetAmount && presetAmount >= MIN_DEPOSIT_USD ? presetAmount : 25);
+  const [success, setSuccess] = useState(null);
+
+  const handleSuccess = async (paidAmount, orderId) => {
     try {
-      const user = await base44.auth.me();
-      if (mode === "report") {
-        await base44.entities.Like.create({ report_id: urlParams.get("reportId"), user_email: user.email }).catch(() => null);
-      } else if (mode === "analyst") {
-        await base44.entities.Subscription.create({
-          subscriber_email: user.email,
-          analyst_email: analystEmail,
-          analyst_name: analystName,
-          status: "active",
-          plan: "monthly",
-        }).catch(() => null);
-      } else if (mode === "credits") {
-        const pack = creditsCount > 0 ? { credits: creditsCount, price: creditsPrice } : selectedPack;
-        // Record transaction
-        await base44.entities.WalletTransaction.create({
-          type: "credits",
-          credits: pack.credits,
-          amount: pack.price,
-          status: "completed",
-          note: `Purchased ${pack.credits} AI credits`,
-        }).catch(() => null);
-        // Update user ai_credits
-        const wallets = await base44.entities.Wallet.filter({ created_by: user.email });
-        if (wallets[0]) {
-          await base44.entities.Wallet.update(wallets[0].id, {
-            ai_credits: (wallets[0].ai_credits || 0) + pack.credits,
-          }).catch(() => null);
-        }
-        navigate(`?success=true&mode=credits&addedCredits=${pack.credits}`);
-        return;
-      }
-    } catch {}
-    navigate("?success=true");
+      await depositToWallet(paidAmount, orderId);
+      toast.success(`+$${paidAmount.toFixed(2)} added to your wallet`);
+      setSuccess(paidAmount);
+    } catch (err) {
+      toast.error(err.message || "Deposit failed to record. Contact support with your PayPal receipt.");
+    }
   };
+
+  if (success != null) return <SuccessScreen amount={success} />;
+
+  const isValid = amount >= MIN_DEPOSIT_USD;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      {mode === "report" && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-1">Unlock Report</h1>
-          <p className="text-sm text-muted-foreground mb-4">One-time purchase — read forever.</p>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-            <p className="text-xs text-amber-700 font-semibold mb-1">Premium Report</p>
-            <p className="font-semibold text-sm">{reportTitle}</p>
-            {analystName && <p className="text-xs text-muted-foreground">by {analystName}</p>}
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-muted-foreground">One-time access</span>
-            <span className="font-bold text-lg">${reportPrice.toFixed(2)}</span>
-          </div>
-          <PayPalButton amount={reportPrice} description={`${reportTitle} - Report Unlock`} onSuccess={handleSuccess} />
-          <p className="text-xs text-center text-muted-foreground mt-3">
-            Or <button onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(analystName)}&analystEmail=${analystEmail}`)} className="text-primary hover:underline">subscribe to {analystName}</button> for unlimited access.
-          </p>
-          <p className="text-xs text-center text-muted-foreground mt-2 flex items-center justify-center gap-1">
-            <Shield className="w-3 h-3" /> Secured by PayPal
-          </p>
+      <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Wallet className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-bold">Deposit to Wallet</h1>
         </div>
-      )}
+        <p className="text-sm text-muted-foreground mb-6">
+          One balance for everything on STOA. Spend it on reports, subscriptions, AI credits, or anything else.
+        </p>
 
-      {mode === "analyst" && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-1">{`Subscribe to ${analystName}`}</h1>
-          <p className="text-sm text-muted-foreground mb-6">Monthly subscription — access all reports and locked content.</p>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-xs text-blue-700 font-semibold mb-1">Analyst Subscription</p>
-            <p className="font-semibold text-sm">{analystName}</p>
-            <p className="text-xs text-blue-700 mt-2">Get immediate access to all premium reports and predictions.</p>
-          </div>
-          <div className="flex items-center justify-between mb-6">
-            <span className="text-sm text-muted-foreground">Monthly subscription</span>
-            <span className="font-bold text-lg">$29/mo</span>
-          </div>
-          <ul className="space-y-2 mb-6">
-            {[
-              "All current & future reports",
-              "Locked prediction details",
-              "Direct messaging with analyst",
-              "Cancel anytime"
-            ].map((feature, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                <Check className="w-4 h-4 text-gain" /> {feature}
-              </li>
-            ))}
-          </ul>
-          <PayPalButton amount={29} description={`${analystName} - Monthly Subscription`} onSuccess={handleSuccess} />
-          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
-            <Shield className="w-3 h-3" /> Secured by PayPal · Cancel anytime
-          </p>
-        </div>
-      )}
-
-      {mode === "boost" && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-1">Boost Report</h1>
-          <p className="text-sm text-muted-foreground mb-4">Increase your report's visibility on the feed.</p>
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
-            <p className="font-semibold text-sm">{reportTitle}</p>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-muted-foreground">One-time boost</span>
-            <span className="font-bold text-lg">${reportPrice.toFixed(2)}</span>
-          </div>
-          <PayPalButton amount={reportPrice} description={`Boost: ${reportTitle}`} onSuccess={handleSuccess} />
-          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
-            <Shield className="w-3 h-3" /> Secured by PayPal
-          </p>
-        </div>
-      )}
-
-      {mode === "credits" && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" /> Buy AI Credits
-          </h1>
-          <p className="text-sm text-muted-foreground mb-6">Credits are used for AI analysis, fact-checking, and prediction assistance.</p>
-
-          {creditsCount > 0 ? (
-            /* Direct pack from URL (wallet page link) */
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 mb-6 text-center">
-              <Zap className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-              <p className="text-3xl font-black text-amber-600">{creditsCount}</p>
-              <p className="text-sm text-muted-foreground mb-1">AI Credits — {creditsLabel} Pack</p>
-              <p className="text-xl font-bold">${creditsPrice.toFixed(2)}</p>
-            </div>
-          ) : (
-            /* Pack picker */
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {CREDIT_PACKS.map(pack => (
-                <button
-                  key={pack.credits}
-                  onClick={() => setSelectedPack(pack)}
-                  className={`relative rounded-xl border-2 p-3 text-center transition-all ${selectedPack.credits === pack.credits ? "border-amber-400 bg-amber-50" : "border-border hover:border-amber-300"}`}
-                >
-                  {pack.popular && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
-                      Best Value
-                    </span>
-                  )}
-                  <Zap className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                  <p className="text-xl font-black text-amber-600">{pack.credits}</p>
-                  <p className="text-[10px] text-muted-foreground mb-1">credits</p>
-                  <p className="text-sm font-bold">${pack.price}</p>
-                  <p className="text-[10px] text-muted-foreground">{(pack.price / pack.credits * 100).toFixed(1)}¢ ea</p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <ul className="space-y-2 mb-6">
-            {["AI report analysis (10 cr.)", "Fact checker per report (5 cr.)", "Prediction assistance (15 cr.)", "Credits never expire"].map((f, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                <Check className="w-4 h-4 text-amber-500" /> {f}
-              </li>
-            ))}
-          </ul>
-
-          <PayPalButton
-            amount={creditsCount > 0 ? creditsPrice : selectedPack.price}
-            description={`STOA AI Credits — ${creditsCount > 0 ? creditsCount : selectedPack.credits} credits`}
-            onSuccess={handleSuccess}
-          />
-          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
-            <Shield className="w-3 h-3" /> Secured by PayPal · One-time purchase
-          </p>
-        </div>
-      )}
-
-      {(mode === "subscription" || mode === "analyst") && (
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-1">{mode === "analyst" ? `Subscribe to ${analystName || "Analyst"}` : "Unlock Full Access"}</h1>
-          <p className="text-sm text-muted-foreground mb-6">Monthly subscription · Cancel anytime.</p>
-          <div className="space-y-3 mb-6">
-            {SUBSCRIPTION_PLANS.map(plan => (
-              <button key={plan.key} onClick={() => setSelectedPlan(plan.key)}
-                className={`w-full text-left rounded-xl border-2 p-4 transition-all ${selectedPlan === plan.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{plan.label}</span>
-                    {plan.highlight && <span className="text-[10px] bg-primary text-white rounded-full px-1.5 py-0.5">Popular</span>}
-                  </div>
-                  <span className="font-bold text-primary">${plan.price}/mo</span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">{plan.description}</p>
-                {plan.features.map(f => (
-                  <p key={f} className="text-xs text-muted-foreground flex items-center gap-1"><Check className="w-3 h-3 text-gain" /> {f}</p>
-                ))}
+        {/* Amount picker */}
+        <div className="mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Choose amount</p>
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {QUICK_AMOUNTS.map(a => (
+              <button
+                key={a}
+                onClick={() => setAmount(a)}
+                className={`rounded-xl border-2 py-2 text-sm font-bold transition-all ${
+                  amount === a ? "border-primary bg-primary/5 text-primary" : "border-border text-foreground/70 hover:border-primary/30"
+                }`}
+              >
+                ${a}
               </button>
             ))}
           </div>
-          {(() => {
-            const plan = SUBSCRIPTION_PLANS.find(p => p.key === selectedPlan);
-            return <PayPalButton amount={plan.price} description={`STOA ${plan.label} Subscription`} onSuccess={handleSuccess} />;
-          })()}
-          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
-            <Shield className="w-3 h-3" /> Secured by PayPal · Cancel anytime
-          </p>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
+            <input
+              type="number"
+              min={MIN_DEPOSIT_USD}
+              step="0.01"
+              value={amount}
+              onChange={e => setAmount(parseFloat(e.target.value) || 0)}
+              placeholder={`${MIN_DEPOSIT_USD}.00`}
+              className="w-full border border-input rounded-xl pl-7 pr-4 py-3 text-lg font-bold outline-none focus:border-primary"
+            />
+          </div>
+          {!isValid && (
+            <p className="text-[10px] text-amber-700 mt-1.5">Minimum deposit is ${MIN_DEPOSIT_USD}.</p>
+          )}
         </div>
-      )}
+
+        {/* What you can do with the balance */}
+        <div className="bg-secondary/40 border border-border rounded-xl p-3 mb-4">
+          <div className="flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Your wallet balance pays for everything internally — no PayPal popup per purchase. Convert any time to AI credits ($1 = 10 credits). Analysts withdraw earnings to PayPal anytime above $25.
+            </p>
+          </div>
+        </div>
+
+        {/* PayPal button */}
+        {isValid && (
+          <PayPalDepositButton amount={amount} onSuccess={handleSuccess} />
+        )}
+
+        <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+          <Shield className="w-3 h-3" /> Secured by PayPal
+        </p>
+      </div>
     </div>
   );
 }

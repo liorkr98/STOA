@@ -15,6 +15,9 @@ import ShareMenu from "@/components/feed/ShareMenu";
 import CommentsSection from "@/components/report/CommentsSection";
 import FactChecker from "@/components/report/FactChecker";
 import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
+import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
+import { buyReport, subscribeAnalyst } from "@/lib/walletService";
+import { toast } from "sonner";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 
@@ -241,6 +244,9 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [showSubDialog,    setShowSubDialog]    = useState(false);
+  const [unlockedNow, setUnlockedNow] = useState(false); // optimistic reveal after purchase
   // Like helpers (imported inline to avoid circular deps)
   const isLikedKey = (id) => `stoa_liked_report_${id}`;
   const checkLiked = (id) => localStorage.getItem(isLikedKey(id)) === '1';
@@ -359,7 +365,7 @@ export default function ReportView() {
   const publishedDate = report.created_date;
 
   const isAuthor = currentUser && report.created_by === currentUser.email;
-  const canSeeTarget = !isPremium || isPaid || isAuthor;
+  const canSeeTarget = !isPremium || isPaid || isAuthor || unlockedNow;
 
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
@@ -442,7 +448,7 @@ export default function ReportView() {
       )}
 
       <div className="mb-8">
-        {(!isPremium || isPaid || isAuthor) ? (
+        {(!isPremium || isPaid || isAuthor || unlockedNow) ? (
           <BlockRenderer blocks={blocks} />
         ) : (
           <>
@@ -498,7 +504,7 @@ export default function ReportView() {
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
-                    onClick={() => navigate(`/pay?mode=report&id=${report.id}&title=${encodeURIComponent(report.title)}&price=${report.price || 4.99}&analyst=${encodeURIComponent(authorName)}`)}
+                    onClick={() => setShowUnlockDialog(true)}
                     className="bg-amber-500 hover:bg-amber-600 text-white gap-2 px-6 shadow-md"
                     size="lg"
                   >
@@ -507,7 +513,7 @@ export default function ReportView() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}`)}
+                    onClick={() => setShowSubDialog(true)}
                     className="border-amber-300 gap-2 px-6"
                     size="lg"
                   >
@@ -516,7 +522,7 @@ export default function ReportView() {
                 </div>
 
                 <p className="text-[11px] text-muted-foreground mt-3">
-                  One-time unlock or subscribe for unlimited access to {authorName}'s reports
+                  Paid from your wallet · One-time unlock or unlimited access via subscription
                 </p>
               </div>
             </div>
@@ -599,6 +605,67 @@ export default function ReportView() {
           </div>
         </div>
       )}
+
+      {/* Wallet-based unlock dialog */}
+      <WalletConfirmDialog
+        open={showUnlockDialog}
+        onClose={() => setShowUnlockDialog(false)}
+        onConfirm={async () => {
+          const res = await buyReport({
+            authorEmail:   report.created_by,
+            reportId:      report.id,
+            reportTitle:   report.title,
+            priceUSD:      report.price || 4.99,
+          });
+          if (!res.ok) {
+            if (res.reason === "insufficient") {
+              toast.error(`Need $${res.needed.toFixed(2)} more in wallet.`, {
+                action: { label: "Top up", onClick: () => navigate("/pay?mode=deposit") },
+                duration: 6000,
+              });
+            }
+            return;
+          }
+          setUnlockedNow(true);
+          setShowUnlockDialog(false);
+          toast.success("Report unlocked");
+        }}
+        title="Unlock report"
+        amountUSD={report.price || 4.99}
+        itemLabel={`${report.title} · by ${authorName}`}
+        showSplit={true}
+        confirmLabel="Unlock"
+      />
+
+      {/* Wallet-based subscribe dialog */}
+      <WalletConfirmDialog
+        open={showSubDialog}
+        onClose={() => setShowSubDialog(false)}
+        onConfirm={async () => {
+          const res = await subscribeAnalyst({
+            analystEmail:    report.created_by,
+            analystName:     authorName,
+            monthlyPriceUSD: 9,
+          });
+          if (!res.ok) {
+            if (res.reason === "insufficient") {
+              toast.error(`Need $${res.needed.toFixed(2)} more in wallet.`, {
+                action: { label: "Top up", onClick: () => navigate("/pay?mode=deposit") },
+                duration: 6000,
+              });
+            }
+            return;
+          }
+          setUnlockedNow(true);
+          setShowSubDialog(false);
+          toast.success(`Subscribed to ${authorName}!`);
+        }}
+        title={`Subscribe to ${authorName}`}
+        amountUSD={9}
+        itemLabel={`${authorName} · Monthly subscription · Full access to all reports`}
+        showSplit={true}
+        confirmLabel="Subscribe"
+      />
     </div>
   );
 }

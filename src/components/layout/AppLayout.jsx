@@ -32,8 +32,23 @@ export default function AppLayout() {
   const navigate  = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(null);
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
   const NAV_ITEMS = isAuthenticated && isAnalyst ? NAV_ANALYST : NAV_INVESTOR;
+
+  // Poll wallet balance for header chip
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const refresh = async () => {
+      try {
+        const wallets = await base44.entities.Wallet.filter({ created_by: user.email }).catch(() => []);
+        setWalletBalance(wallets?.[0]?.balance ?? 0);
+      } catch {}
+    };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user]);
 
   // Poll unread message count
   useEffect(() => {
@@ -84,6 +99,15 @@ export default function AppLayout() {
             })}
             {isAuthenticated ? (
               <div className="flex items-center gap-1">
+                {/* Wallet balance chip — quick spend + top-up */}
+                <Link
+                  to="/wallet"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-border hover:border-primary/30 hover:bg-secondary transition-all"
+                  title="Wallet"
+                >
+                  <Wallet className="w-3.5 h-3.5 text-primary" />
+                  ${walletBalance == null ? "—" : walletBalance.toFixed(2)}
+                </Link>
                 <NotificationCenter />
                 <Link to="/inbox" className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all" title="Messages">
                   <MessageSquare className="w-4 h-4" />

@@ -20,6 +20,9 @@ import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 import ShareModal from "@/components/profile/ShareModal";
 import { CustomBlocksSection } from "@/components/profile/CustomBlocks";
+import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
+import { subscribeAnalyst } from "@/lib/walletService";
+import { toast } from "sonner";
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -315,19 +318,29 @@ export default function AnalystProfilePage() {
     }
   };
 
-  // ── Subscribe ─────────────────────────────────────────────────────────────
+  // ── Subscribe — paid via wallet (no PayPal popup, instant) ────────────────
+  const SUBSCRIPTION_PRICE_USD = 9; // monthly; tweak per analyst pricing in future
   const handleSubscribe = async () => {
     if (!currentUser || !analyst) return;
-    await base44.entities.Subscription.create({
-      subscriber_email: currentUser.email,
-      analyst_email:    analyst.email,
-      analyst_name:     analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
-      analyst_avatar:   analyst.picture || "",
-      status:           "active",
-      plan:             "monthly",
-    });
-    setIsSubscribed(true);
-    setShowSubModal(false);
+    try {
+      const result = await subscribeAnalyst({
+        analystEmail:    analyst.email,
+        analystName:     analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+        monthlyPriceUSD: SUBSCRIPTION_PRICE_USD,
+      });
+      if (!result.ok && result.reason === "insufficient") {
+        toast.error(`Need $${result.needed.toFixed(2)} more in wallet.`, {
+          action: { label: "Top up", onClick: () => navigate("/pay?mode=deposit") },
+          duration: 6000,
+        });
+        return;
+      }
+      setIsSubscribed(true);
+      setShowSubModal(false);
+      toast.success(`Subscribed to ${analyst.full_name || analyst.email.split("@")[0]}!`);
+    } catch (err) {
+      toast.error(err.message || "Subscription failed");
+    }
   };
 
   // ── Share ─────────────────────────────────────────────────────────────────
@@ -1014,34 +1027,17 @@ export default function AnalystProfilePage() {
         </div>
       )}
 
-      {/* ── Subscribe modal ── */}
-      {showSubModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSubModal(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-1">Subscribe to {displayName}</h3>
-            <p className="text-sm text-muted-foreground mb-5">
-              {publishedReports.length} published report{publishedReports.length !== 1 ? "s" : ""}
-            </p>
-            <button
-              onClick={handleSubscribe}
-              className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all mb-3"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold">Monthly Access</span>
-                <span className="font-bold text-primary text-sm">Free (Beta)</span>
-              </div>
-              <ul className="space-y-1.5">
-                {["Full access to all reports", "Premium predictions & targets", "Direct analyst messaging", "Track record transparency"].map(b => (
-                  <li key={b} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" /> {b}
-                  </li>
-                ))}
-              </ul>
-            </button>
-            <button onClick={() => setShowSubModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Maybe later</button>
-          </div>
-        </div>
-      )}
+      {/* ── Subscribe modal (wallet-based) ── */}
+      <WalletConfirmDialog
+        open={showSubModal}
+        onClose={() => setShowSubModal(false)}
+        onConfirm={handleSubscribe}
+        title={`Subscribe to ${displayName}`}
+        amountUSD={SUBSCRIPTION_PRICE_USD}
+        itemLabel={`${displayName} · Monthly subscription · ${publishedReports.length} published report${publishedReports.length !== 1 ? "s" : ""}`}
+        showSplit={true}
+        confirmLabel="Subscribe"
+      />
 
       {/* Share modal */}
       <ShareModal

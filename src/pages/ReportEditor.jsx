@@ -22,6 +22,7 @@ import StockChartBlock from "@/components/editor/StockChartBlock";
 import ImageBlock from "@/components/editor/ImageBlock";
 import PredictionBlock from "@/components/editor/PredictionBlock";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { loadMyWallet, spendAICredits } from "@/lib/walletService";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
 import EditorSettingsPanel from "@/components/editor/EditorSettingsPanel";
@@ -435,11 +436,12 @@ export default function ReportEditor() {
       const currentUser = await base44.auth.me();
       if (!currentUser) throw new Error("Not logged in.");
 
-      // ── Step 1: AI credits gate ───────────────────────────────────────────
-      const credits = currentUser.ai_credits_balance ?? 0;
+      // ── Step 1: AI credits gate — read from wallet (source of truth) ─────
+      const { wallet } = await loadMyWallet();
+      const credits = wallet.ai_credits || 0;
       if (credits < PUBLISH_COST) {
         toast.error(`Need ${PUBLISH_COST} AI credits to publish · You have ${credits}`, {
-          action: { label: "Buy credits", onClick: () => navigate("/wallet") },
+          action: { label: "Get credits", onClick: () => navigate("/wallet") },
           duration: 6000,
         });
         return;
@@ -521,17 +523,10 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         likes: 0,
       });
 
-      // ── Step 6: Deduct AI credits + log transaction ───────────────────────
-      try {
-        await base44.entities.AICreditsTransaction.create({
-          user_id: currentUser.id,
-          amount:  -PUBLISH_COST,
-          reason:  `Publish: ${title.slice(0, 50)}`,
-        });
-        await base44.entities.User.update(currentUser.id, {
-          ai_credits_balance: credits - PUBLISH_COST,
-        });
-      } catch (e) { console.warn("Credit deduction failed (non-fatal):", e); }
+      // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
+      await spendAICredits(PUBLISH_COST, `Publish: ${title.slice(0, 50)}`).catch(e =>
+        console.warn("Credit deduction failed (non-fatal):", e)
+      );
 
       toast.success(lockPrice
         ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
