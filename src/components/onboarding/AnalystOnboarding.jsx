@@ -113,7 +113,7 @@ const STEPS = [
     body: "Your public analyst profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links — it's your creator landing page.",
     visual: (
       <div className="mt-4 rounded-xl overflow-hidden border border-border">
-        <div className="h-8" style={{ background: "linear-gradient(135deg,#1e3a8a,#7c3aed)" }} />
+        <div className="h-8" style={{ background: "linear-gradient(135deg,#0d1f3c,#1e3a6e)" }} />
         <div className="bg-card px-3 pb-3">
           <div className="w-10 h-10 rounded-full bg-violet-100 border-2 border-card -mt-5 mb-1 flex items-center justify-center text-sm font-bold text-violet-700">A</div>
           <div className="text-xs font-bold">Your Name</div>

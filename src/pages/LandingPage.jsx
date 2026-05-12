@@ -63,7 +63,7 @@ function ReportCard({ r }) {
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <div style={{
             width: 24, height: 24, borderRadius: "50%",
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            background: "linear-gradient(135deg, #1e3a6e, #2d5ba3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 9, fontWeight: 800, color: "#fff",
           }}>
@@ -92,9 +92,9 @@ const COMPARISON = [
 
 // ── Top analyst mocks ────────────────────────────────────────────────────────
 const MOCK_ANALYSTS = [
-  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#3b82f6","#6366f1"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Analyst", revenue: "$4,200/mo" },
-  { name: "Sarah Chen", handle: "schen", initials: "SC", grad: ["#0ea5e9","#14b8a6"], accuracy: 88, calls: 31, subscribers: "3.1K", sector: "Macro / Rates", badge: "Macro Expert", revenue: "$7,800/mo" },
-  { name: "Priya Nair", handle: "pnair", initials: "PN", grad: ["#f59e0b","#ef4444"], accuracy: 85, calls: 18, subscribers: "940", sector: "Energy & Commodities", badge: "Rising Star", revenue: "$2,100/mo" },
+  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#1e3a6e","#2d5ba3"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Analyst", revenue: "$4,200/mo" },
+  { name: "Sarah Chen", handle: "schen", initials: "SC", grad: ["#1e3a6e","#c99613"], accuracy: 88, calls: 31, subscribers: "3.1K", sector: "Macro / Rates", badge: "Macro Expert", revenue: "$7,800/mo" },
+  { name: "Priya Nair", handle: "pnair", initials: "PN", grad: ["#c99613","#a07710"], accuracy: 85, calls: 18, subscribers: "940", sector: "Energy & Commodities", badge: "Rising Star", revenue: "$2,100/mo" },
 ];
 
 // ── CSS animations (injected once) ──────────────────────────────────────────
@@ -125,12 +125,12 @@ const STYLES = `
   .marquee-wrap:hover .marquee-track-rev { animation-play-state: paused; }
   .landing-btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
-    background: #3b82f6; color: #fff; font-weight: 700; font-size: 15px;
+    background: #c99613; color: #fff; font-weight: 700; font-size: 15px;
     padding: 13px 28px; border-radius: 10px; border: none; cursor: pointer;
-    transition: all 0.2s; box-shadow: 0 4px 24px rgba(59,130,246,0.3);
+    transition: all 0.2s; box-shadow: 0 4px 24px rgba(201,150,19,0.35);
     text-decoration: none;
   }
-  .landing-btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(59,130,246,0.4); }
+  .landing-btn-primary:hover { background: #a07710; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(201,150,19,0.45); }
   .landing-btn-ghost {
     display: inline-flex; align-items: center; gap: 8px;
     background: transparent; color: #e2e8f0; font-weight: 600; font-size: 15px;
@@ -142,12 +142,12 @@ const STYLES = `
     background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px; padding: 28px; transition: border-color 0.2s, background 0.2s;
   }
-  .feature-card:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
+  .feature-card:hover { border-color: rgba(201,150,19,0.3); background: rgba(30,58,110,0.06); }
   .analyst-card {
     background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px; padding: 32px 28px; transition: all 0.25s; flex: 1;
   }
-  .analyst-card:hover { border-color: rgba(59,130,246,0.25); transform: translateY(-4px); background: rgba(255,255,255,0.05); }
+  .analyst-card:hover { border-color: rgba(201,150,19,0.3); transform: translateY(-4px); background: rgba(255,255,255,0.05); }
   .nav-link { font-size: 14px; color: #9ca3af; text-decoration: none; transition: color 0.2s; font-weight: 500; }
   .nav-link:hover { color: #f9fafb; }
 `;
@@ -215,9 +215,9 @@ export default function LandingPage() {
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <BarChart2 size={22} color="#3b82f6" />
+            <BarChart2 size={22} color="#c99613" />
             <span style={{ fontSize: 20, fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.04em" }}>STOA</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "rgba(59,130,246,0.12)", padding: "2px 7px", borderRadius: 4, letterSpacing: "0.06em", marginLeft: 4 }}>BETA</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#c99613", background: "rgba(201,150,19,0.15)", padding: "2px 7px", borderRadius: 4, letterSpacing: "0.06em", marginLeft: 4 }}>BETA</span>
           </div>
 
           <div className="hidden md:flex" style={{ gap: 32, alignItems: "center" }}>
@@ -254,9 +254,9 @@ export default function LandingPage() {
         padding: "120px 24px 0", textAlign: "center", position: "relative", overflow: "hidden",
       }}>
         {/* Glow orbs */}
-        <div style={{ position: "absolute", top: "8%", left: "12%", width: 600, height: 600, background: "rgba(59,130,246,0.07)", borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "20%", right: "8%", width: 400, height: 400, background: "rgba(139,92,246,0.05)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "20%", left: "30%", width: 500, height: 300, background: "rgba(34,197,94,0.04)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "8%", left: "12%", width: 600, height: 600, background: "rgba(30,58,110,0.18)", borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "20%", right: "8%", width: 400, height: 400, background: "rgba(201,150,19,0.08)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "20%", left: "30%", width: 500, height: 300, background: "rgba(30,58,110,0.10)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", zIndex: 1, maxWidth: 820, margin: "0 auto", animation: "fadeUp 0.7s ease both" }}>
           {/* Live badge */}
@@ -276,7 +276,7 @@ export default function LandingPage() {
             letterSpacing: "-0.04em",
           }}>
             Where Financial Analysts<br />
-            <span style={{ background: "linear-gradient(92deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <span style={{ background: "linear-gradient(92deg, #c99613 0%, #f0c040 50%, #c99613 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               Build Their Reputation
             </span>
           </h1>
@@ -510,7 +510,7 @@ export default function LandingPage() {
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 20, padding: 28, position: "relative" }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 16 }}>Locked Prediction — Jan 15, 2025 · 09:32 AM</div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>JM</div>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #1e3a6e, #2d5ba3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>JM</div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>James Mercer</div>
                   <div style={{ fontSize: 11, color: "#6b7280" }}>91% accuracy · 24 calls</div>
@@ -693,12 +693,12 @@ export default function LandingPage() {
 
       {/* ── FINAL CTA ── */}
       <section style={{ padding: "120px 24px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "20%", left: "20%", width: 600, height: 400, background: "rgba(59,130,246,0.06)", borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "10%", right: "15%", width: 400, height: 300, background: "rgba(139,92,246,0.05)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "20%", left: "20%", width: 600, height: 400, background: "rgba(30,58,110,0.15)", borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "10%", right: "15%", width: 400, height: 300, background: "rgba(201,150,19,0.07)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
           <h2 style={{ fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.04em", marginBottom: 20, lineHeight: 1.1 }}>
             Your track record<br />
-            <span style={{ background: "linear-gradient(92deg, #3b82f6, #8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <span style={{ background: "linear-gradient(92deg, #c99613, #f0c040)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               is the product.
             </span>
           </h2>

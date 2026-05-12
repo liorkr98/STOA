@@ -34,12 +34,13 @@ const DEFAULT_CONFIG = {
 };
 
 const BANNER_THEMES = {
-  slate:   { label: "Dark",    bg: "linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",  dot: "#334155" },
-  blue:    { label: "Ocean",   bg: "linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%)",  dot: "#3b82f6" },
-  emerald: { label: "Forest",  bg: "linear-gradient(135deg,#064e3b 0%,#059669 100%)",  dot: "#34d399" },
-  purple:  { label: "Royal",   bg: "linear-gradient(135deg,#3b0764 0%,#7c3aed 100%)",  dot: "#a855f7" },
-  rose:    { label: "Crimson", bg: "linear-gradient(135deg,#881337 0%,#e11d48 100%)",  dot: "#fb7185" },
-  amber:   { label: "Gold",    bg: "linear-gradient(135deg,#78350f 0%,#d97706 100%)",  dot: "#fbbf24" },
+  slate:    { label: "Dark",       bg: "linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",              dot: "#334155" },
+  blue:     { label: "Navy",       bg: "linear-gradient(135deg,#0d1f3c 0%,#1e3a6e 100%)",              dot: "#2d5ba3" },
+  navygold: { label: "Navy/Gold",  bg: "linear-gradient(135deg,#0d1f3c 0%,#1e3a6e 60%,#c99613 100%)", dot: "#c99613" },
+  emerald:  { label: "Forest",     bg: "linear-gradient(135deg,#064e3b 0%,#059669 100%)",              dot: "#34d399" },
+  purple:   { label: "Royal",      bg: "linear-gradient(135deg,#3b0764 0%,#7c3aed 100%)",              dot: "#a855f7" },
+  rose:     { label: "Crimson",    bg: "linear-gradient(135deg,#881337 0%,#e11d48 100%)",              dot: "#fb7185" },
+  amber:    { label: "Gold",       bg: "linear-gradient(135deg,#78350f 0%,#d97706 100%)",              dot: "#fbbf24" },
 };
 
 function parseConfig(analyst) {
