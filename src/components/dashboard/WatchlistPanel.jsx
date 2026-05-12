@@ -28,11 +28,13 @@ function saveWatchlist(entries) {
 }
 
 function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
-  const { ticker, timeframe } = entry;
+  const ticker = entry?.ticker;
+  const timeframe = entry?.timeframe;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPrice = useCallback(async () => {
+    if (!ticker) return;
     setLoading(true);
     try {
       const res = await base44.functions.invoke("getStockChange", { ticker, timeframe });
@@ -43,12 +45,14 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
 
   useEffect(() => { fetchPrice(); }, [fetchPrice]);
 
-  const relatedReports = reports.filter(r => {
+  if (!ticker) return null;
+
+  const relatedReports = ticker ? reports.filter(r => {
     const tickers = (r.tickers || "").split(",").map(t => t.trim().toUpperCase());
     return tickers.includes(ticker.toUpperCase()) ||
       (r.title || "").toUpperCase().includes(ticker.toUpperCase()) ||
       (r.prediction_ticker || "").toUpperCase() === ticker.toUpperCase();
-  });
+  }) : [];
 
   const change = data?.changePercent;
   const isUp = change > 0;
