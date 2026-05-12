@@ -7,6 +7,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import ChatChart from "@/components/editor/ChatChart";
+import ChatCompareChart from "@/components/editor/ChatCompareChart";
 import { spendAICredits, loadMyWallet } from "@/lib/walletService";
 
 // ── AI Credit helpers ────────────────────────────────────────────────────────
@@ -74,28 +75,44 @@ Rules:
 - Conclude report drafts with a summary sentence.
 
 CHART DIRECTIVES:
-When the user asks for a chart, graph, plot, or visual of a stock's price action,
-append a directive at the END of your text response in this exact format:
+When the user asks for a chart, graph, plot, or visual of price action,
+append a directive at the END of your text response.
 
-  [CHART:TICKER]            (defaults to 1-month daily)
-  [CHART:TICKER:TIMEFRAME]  (TIMEFRAME = 1W | 1M | 3M | 6M | 1Y)
+  [CHART:TICKER]              — single ticker, defaults to 1-month daily
+  [CHART:TICKER:TIMEFRAME]    — TIMEFRAME = 1W | 1M | 3M | 6M | 1Y
+
+  [COMPARE:T1,T2]             — overlay 2-4 tickers, normalized to % return
+  [COMPARE:T1,T2,T3:TIMEFRAME] — defaults to 3M timeframe
+
+USE COMPARE when the user wants to see two or more stocks together,
+versus, against each other, side-by-side, or "compare" them. COMPARE
+normalizes each line to % change from the start of the period, so
+stocks at very different price levels (NVDA $200, MSFT $400) become
+visually comparable. Up to 4 tickers per COMPARE block.
+
+USE CHART (separately, can do multiple) when the user explicitly wants
+each plotted on its own chart with absolute prices, not relative returns.
 
 Examples:
   User: "Show me Apple's chart"
-  You:  "AAPL has been consolidating around $180, with support at $172 and resistance near $190.\n\n[CHART:AAPL]"
+  You:  "AAPL has been consolidating around \$180.\n\n[CHART:AAPL]"
 
-  User: "Compare NVDA and AMD over 3 months"
-  You:  "NVDA has outperformed AMD by ~15% on AI tailwinds.\n\n[CHART:NVDA:3M]\n[CHART:AMD:3M]"
+  User: "Compare NVDA and MSFT over 3 months"
+  You:  "Both are in uptrends but NVDA has outperformed MSFT by ~15% on AI demand.\n\n[COMPARE:NVDA,MSFT:3M]"
 
-  User: "Plot Tesla over the past year"
-  You:  "TSLA had a volatile year — a 40% drawdown in spring followed by a recovery.\n\n[CHART:TSLA:1Y]"
+  User: "Plot Tesla, Apple, and Google for the past year"
+  You:  "All three were positive but Tesla led on margin recovery.\n\n[COMPARE:TSLA,AAPL,GOOGL:1Y]"
 
-Only emit chart directives when the user explicitly asks for a chart/graph/plot/visual.
-Do NOT emit them automatically. One ticker per directive. Tickers in caps.`;
+  User: "Show NVDA and AMD separately"  (user explicitly asked separate)
+  You:  "[CHART:NVDA:3M]\n[CHART:AMD:3M]"
+
+Only emit chart directives when the user explicitly asks for a chart/graph/plot/visual/compare.
+Tickers in CAPS, comma-separated for COMPARE.`;
 
 // ── Quick prompt chips ───────────────────────────────────────────────────────
 const QUICK_PROMPTS = [
   { icon: BarChart3,   label: "Chart",        prompt: "Show me a 1-month chart of " },
+  { icon: BarChart3,   label: "Compare",      prompt: "Compare these two over 3 months: " },
   { icon: TrendingUp,  label: "Bull thesis",  prompt: "Write a compelling 4-point bull thesis for " },
   { icon: Shield,      label: "Key risks",    prompt: "What are the 5 biggest risks for " },
   { icon: BarChart3,   label: "Valuation",    prompt: "Analyze the current valuation of " },
@@ -205,22 +222,40 @@ function normalizeForBlock(content, type) {
     .join("\n");
 }
 
-// Pull [CHART:TICKER] and [CHART:TICKER:TIMEFRAME] directives out of the AI's
-// response. Returns the cleaned text + an array of chart specs to render.
+// Pull [CHART:TICKER], [CHART:TICKER:TIMEFRAME], and
+// [COMPARE:T1,T2,T3:TIMEFRAME] directives out of the AI's response.
+// Returns the cleaned text + an array of chart specs (single + compare).
 // Allowed ticker chars: A-Z 0-9 . - = ^ (covers ^GSPC, BTC-USD, BRK.A, EURUSD=X)
 function parseChartDirectives(content) {
   const charts = [];
-  const re = /\[CHART:([A-Z0-9.\-=^]+)(?::([1-9](?:W|M|Y)))?\]/gi;
-  const cleanText = content.replace(re, (_, ticker, tf) => {
+
+  // First: COMPARE — multiple tickers, one normalized chart
+  const compareRe = /\[COMPARE:([A-Z0-9.\-=^,\s]+?)(?::([1-9](?:W|M|Y)))?\]/gi;
+  let cleanText = content.replace(compareRe, (_, list, tf) => {
+    const tickers = list.split(",").map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 4);
+    if (tickers.length < 2) return ""; // need at least 2 to compare
+    charts.push({
+      id:        `cmp_${charts.length}_${tickers.join("_")}`,
+      kind:      "compare",
+      tickers,
+      timeframe: (tf || "3M").toUpperCase(), // 3M default for compare (more meaningful)
+    });
+    return "";
+  });
+
+  // Then: single CHART
+  const singleRe = /\[CHART:([A-Z0-9.\-=^]+)(?::([1-9](?:W|M|Y)))?\]/gi;
+  cleanText = cleanText.replace(singleRe, (_, ticker, tf) => {
     charts.push({
       id:        `chart_${charts.length}_${ticker}`,
+      kind:      "single",
       ticker:    ticker.toUpperCase(),
       timeframe: (tf || "1M").toUpperCase(),
     });
-    return ""; // strip directive from displayed text
+    return "";
   })
-  // collapse the blank lines left behind
   .replace(/\n{3,}/g, "\n\n").trim();
+
   return { text: cleanText, charts };
 }
 
@@ -231,7 +266,7 @@ const INIT_MSG = {
   id: mkId(),
   role: "assistant",
   content:
-    "I'm your AI market analyst. Ask me anything — stock analysis, sector trends, macro themes, valuation models, or ask me to draft a paragraph for your report.\n\n📊 Ask for charts too: \"show me NVDA chart\" or \"compare AAPL and MSFT over 3 months\".\n\nYou can drag any of my answers directly into the report, or click the + button to insert.",
+    "I'm your AI market analyst. Ask me anything — stock analysis, sector trends, macro themes, valuation models, or ask me to draft a paragraph for your report.\n\n📊 Charts:  \"show me NVDA chart\" or \"plot TSLA over 1 year\"\n📈 Compare: \"compare NVDA and MSFT over 3 months\" — both lines on one chart, normalized to % return\n\nYou can drag any of my answers directly into the report, or click the + button to insert.",
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -308,6 +343,17 @@ export default function AIChat({ reportContent, onInsertBlock }) {
       return () => clearTimeout(t);
     }
   }, [open, minimized]);
+
+  // Click anywhere on the panel that ISN'T an interactive element → refocus
+  // the input. Fixes the bug where clicking a message bubble (or any plain
+  // text inside the chat) stole focus and the user could no longer type.
+  const handlePanelClick = useCallback((e) => {
+    // If the click landed on a button, link, input, textarea, or anything
+    // explicitly marked as a control, let it do its thing.
+    if (e.target.closest("button, a, input, textarea, [data-no-refocus]")) return;
+    // Otherwise return focus to the message input.
+    inputRef.current?.focus();
+  }, []);
 
   // ── Send message ────────────────────────────────────────────────────────
   const send = useCallback(async (overrideText) => {
@@ -457,6 +503,7 @@ Analyst:`;
         userSelect: dragging ? "none" : "auto",
       }}
       className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+      onClick={handlePanelClick}
     >
       {/* Header / drag handle */}
       <div
@@ -547,12 +594,14 @@ Analyst:`;
                       </div>
                     )}
 
-                    {/* Inline charts from [CHART:TICKER] directives */}
+                    {/* Inline charts from [CHART:..] and [COMPARE:..] directives */}
                     {msg.charts?.length > 0 && (
                       <div className="space-y-1">
-                        {msg.charts.map((c) => (
-                          <ChatChart key={c.id} ticker={c.ticker} timeframe={c.timeframe} />
-                        ))}
+                        {msg.charts.map((c) =>
+                          c.kind === "compare"
+                            ? <ChatCompareChart key={c.id} tickers={c.tickers} timeframe={c.timeframe} />
+                            : <ChatChart        key={c.id} ticker={c.ticker}   timeframe={c.timeframe} />
+                        )}
                       </div>
                     )}
 
