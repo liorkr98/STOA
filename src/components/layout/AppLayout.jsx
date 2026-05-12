@@ -32,7 +32,7 @@ const NAV_INVESTOR = [
 export default function AppLayout() {
   const location  = useLocation();
   const navigate  = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [walletBalance, setWalletBalance] = useState(null);
   const [showInvestorOnboarding, setShowInvestorOnboarding] = useState(false);
@@ -213,7 +213,7 @@ export default function AppLayout() {
                       </>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { base44.auth.logout("/"); }} className="text-loss focus:text-loss">
+                    <DropdownMenuItem onClick={() => logout(true)} className="text-loss focus:text-loss">
                       <LogOut className="w-4 h-4 mr-2" /> Log Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
