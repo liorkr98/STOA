@@ -44,9 +44,29 @@ OPTIONS: Implied volatility, IV percentile, Greeks, covered calls, protective pu
 
 PORTFOLIO: Position sizing, Kelly criterion, correlation analysis, risk/reward, stop-loss discipline, portfolio construction.
 
+⚠️ GROUND TRUTH (CRITICAL):
+You are provided a "LIVE MARKET DATA" block before each user message containing
+real-time price, 52-week range, P/E, EPS, market cap and volume for any tickers
+the user mentions.
+
+- ALWAYS use the LIVE MARKET DATA for any prices, support/resistance levels,
+  P/E ratios, or 52-week highs/lows.
+- NEVER quote price levels from memory. Your training data is outdated by
+  months or years. Recent example: the model claimed NVDA support was $900
+  when the live price was $200 — DO NOT make this kind of mistake.
+- Support/resistance numbers must be inside the live 52-week range. Anchor
+  technical analysis to the current price ± realistic % moves (e.g., "support
+  at the 50-day MA near $X" where X is plausible given the current price).
+- If a ticker the user asks about is NOT in the LIVE MARKET DATA block,
+  explicitly say "I don't have live data for [TICKER] right now — could you
+  confirm the symbol or paste a recent price?" rather than guessing.
+- For valuation, use the provided P/E and market cap. Don't invent forward
+  multiples — frame them as estimates ("at a forward P/E of ~X assuming Y%
+  growth").
+
 Rules:
 - Be specific and data-driven. Avoid generic statements.
-- When discussing a stock, mention real metrics (P/E, revenue growth, margin trends).
+- When discussing a stock, mention real metrics from the LIVE MARKET DATA.
 - When asked to write/draft/create report content, produce professional analyst-quality prose.
 - Format bullet-point content using • prefix, one per line.
 - Keep answers concise and actionable — 3–8 sentences for discussion, longer only for requested drafts.
@@ -82,6 +102,87 @@ const QUICK_PROMPTS = [
   { icon: BookOpen,    label: "Sector view",  prompt: "What is the current macro and sector outlook for " },
   { icon: MessageSquare, label: "Earnings",  prompt: "What should I watch in the next earnings for " },
 ];
+
+// ── Ticker grounding ─────────────────────────────────────────────────────────
+// The model hallucinates prices badly when relying on training data (e.g., it
+// once told a user NVDA support was $900 while the stock was at $200). We
+// extract any ticker the user mentions, fetch live data from Yahoo, and inject
+// it into the prompt as ground truth. The system prompt is updated to forbid
+// quoting prices/support/resistance numbers that aren't in the data block.
+
+// Common all-caps acronyms that are NOT tickers — must skip to avoid noise
+const NOT_TICKERS = new Set([
+  "I", "A", "AM", "PM", "OK", "USA", "USD", "EUR", "GBP", "JPY", "CNY", "EU", "UK",
+  "AI", "ML", "API", "IPO", "ETF", "GDP", "CPI", "PCE", "PPI", "ISM", "GDP",
+  "FED", "ECB", "BOJ", "SEC", "FDA", "FTC", "DOJ", "IRS",
+  "ATH", "ATL", "DCF", "ROE", "ROA", "ROI", "ROIC", "EBITDA", "EV", "PE", "EPS", "FCF",
+  "DD", "TLDR", "IMO", "FYI", "ASAP", "AKA", "BTW", "ETA",
+  "OEM", "SAAS", "B2B", "B2C", "ARR", "MRR", "CAC", "LTV", "TAM", "SAM",
+  "Q1", "Q2", "Q3", "Q4", "YOY", "QOQ", "MOM",
+  "ML", "NLP", "GPT", "LLM", "RAG", "ASIC", "GPU", "CPU", "RAM", "ROM",
+  "BUY", "SELL", "HOLD", "LONG", "SHORT", "RSI", "MACD", "SMA", "EMA", "VWAP",
+]);
+
+function extractTickers(text) {
+  if (!text) return [];
+  const found = new Set();
+  // Capture $TICKER or 1-5 uppercase letters as standalone tokens.
+  // Crypto pairs like BTC-USD also caught.
+  const re = /\$?\b([A-Z]{1,5}(?:-USD)?)\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const t = m[1].toUpperCase();
+    if (t.length >= 2 && !NOT_TICKERS.has(t)) found.add(t);
+  }
+  // Limit to 4 to keep latency low
+  return Array.from(found).slice(0, 4);
+}
+
+async function fetchMarketContext(tickers) {
+  if (!tickers || tickers.length === 0) return [];
+  try {
+    const r = await base44.functions.invoke("proxyFetch", {
+      url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tickers.join(","))}&formatted=false`,
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    return (r?.data?.quoteResponse?.result || [])
+      .filter(q => q.regularMarketPrice != null)
+      .map(q => ({
+        ticker:    q.symbol,
+        name:      q.shortName || q.longName || q.symbol,
+        price:     q.regularMarketPrice,
+        change:    q.regularMarketChangePercent,
+        dayHigh:   q.regularMarketDayHigh,
+        dayLow:    q.regularMarketDayLow,
+        yearHigh:  q.fiftyTwoWeekHigh,
+        yearLow:   q.fiftyTwoWeekLow,
+        volume:    q.regularMarketVolume,
+        pe:        q.trailingPE,
+        eps:       q.epsTrailingTwelveMonths,
+        marketCap: q.marketCap,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function formatMarketContext(quotes) {
+  if (!quotes || quotes.length === 0) return null;
+  const cap = v => v >= 1e12 ? `$${(v/1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v/1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v/1e6).toFixed(0)}M` : `$${v}`;
+  return quotes.map(q => {
+    const parts = [
+      `${q.ticker} (${q.name})`,
+      `Current: $${q.price.toFixed(2)} (${q.change >= 0 ? "+" : ""}${q.change?.toFixed(2)}% today)`,
+      q.yearLow && q.yearHigh ? `52W range: $${q.yearLow.toFixed(2)} – $${q.yearHigh.toFixed(2)}` : null,
+      q.dayLow && q.dayHigh ? `Today range: $${q.dayLow.toFixed(2)} – $${q.dayHigh.toFixed(2)}` : null,
+      q.pe ? `P/E (TTM): ${q.pe.toFixed(1)}` : null,
+      q.eps ? `EPS (TTM): $${q.eps.toFixed(2)}` : null,
+      q.marketCap ? `Market Cap: ${cap(q.marketCap)}` : null,
+      q.volume ? `Volume: ${(q.volume / 1e6).toFixed(1)}M` : null,
+    ].filter(Boolean);
+    return parts.join(" · ");
+  }).join("\n");
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function detectBlockType(content) {
@@ -220,12 +321,27 @@ export default function AIChat({ reportContent, onInsertBlock }) {
     setLoading(true);
 
     try {
+      // ── Ground the AI in real prices ────────────────────────────────────
+      // Extract tickers from the user message AND the last ~3 assistant/user
+      // turns (covers follow-up questions like "what about its competitors").
+      // Then fetch real live data and inject it into the prompt as ground truth.
+      const recentTurns = messages.slice(-6).map(m => m.content).join(" ");
+      const tickers = extractTickers(`${userText} ${recentTurns}`);
+      const liveData = await fetchMarketContext(tickers);
+      const marketBlock = liveData.length > 0
+        ? formatMarketContext(liveData)
+        : "(none — user did not mention specific tickers, or symbols were unrecognized)";
+
       // Build full conversation context
       const history = messages
         .map((m) => `${m.role === "user" ? "User" : "Analyst"}: ${m.content}`)
         .join("\n\n");
 
       const prompt = `${SYSTEM_PROMPT}
+
+---
+LIVE MARKET DATA (fetched ${new Date().toISOString()}, source: Yahoo Finance):
+${marketBlock}
 
 ---
 CONVERSATION HISTORY:
