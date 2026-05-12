@@ -16,7 +16,28 @@
       "type": "number",
       "default": 0,
       "description": "Total amount ever withdrawn"
+    },
+    "ai_credits": {
+      "type": "number",
+      "default": 0,
+      "description": "Current AI credits balance"
     }
   },
-  "required": []
+  "required": [],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
