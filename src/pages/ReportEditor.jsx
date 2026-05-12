@@ -1057,10 +1057,10 @@ Report:"""${fullText.slice(0, 3000)}"""`,
       <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} initialTicker={urlTicker} />
       <AIChat
         reportContent={[title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n")}
-        onInsertBlock={(text) => {
-          const nb = makeBlock("text", text);
+        onInsertBlock={(text, type = "text") => {
+          const nb = makeBlock(type, text);
           setBlocks(prev => { const next = [...prev, nb]; pushHistory(next); return next; });
-          toast.success("Block inserted from AI!");
+          toast.success("Block added to report!");
         }}
       />
     </div>
