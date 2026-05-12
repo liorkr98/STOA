@@ -136,12 +136,14 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    // Clear the Base44 token from localStorage so appParams.token is null on reload
+    // and the app never tries to re-authenticate the cleared session.
+    localStorage.removeItem('base44_access_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('stoa_last_landing_visit');
-    
     if (shouldRedirect) {
-      base44.auth.logout(window.location.origin + '/');
-    } else {
-      base44.auth.logout();
+      // Navigate directly to landing — no OAuth redirect chain that could intercept us.
+      window.location.replace('/');
     }
   };
 
