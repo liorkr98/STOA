@@ -424,8 +424,8 @@ Analyst:`;
       const blockType = detectBlockType(content);
 
       // Deduct credit from wallet after successful response
-      const res = await spendAICredits(COST_PER_MSG, "AIChat message").catch(() => null);
-      const remaining = res?.remaining ?? credits;
+      const creditRes = await spendAICredits(COST_PER_MSG, "AIChat message").catch(() => null);
+      const remaining = creditRes?.remaining ?? credits;
       setCredits(remaining);
       if (remaining <= 10 && remaining > 0) {
         toast.warning(`${remaining} AI credits remaining`);

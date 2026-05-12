@@ -226,10 +226,6 @@ export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Investors see the consumer home; analysts/admins see the creator dashboard
-  const isAnalyst = user?.role === "analyst" || user?.role === "admin";
-  if (user && !isAnalyst) return <InvestorHome />;
-
   // left column
   const [drafts, setDrafts] = useState([]);
   const [myPublished, setMyPublished] = useState([]);
@@ -248,6 +244,9 @@ export default function HomePageDashboard() {
   const [followedEmails, setFollowedEmails] = useState([]);
 
   const [loading, setLoading] = useState(true);
+
+  // Investors see the consumer home; analysts/admins see the creator dashboard
+  const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
   // load watchlist from localStorage
   useEffect(() => {
@@ -363,6 +362,9 @@ export default function HomePageDashboard() {
       setFollowedEmails(prev => isNow ? [...prev, analyst.email] : prev.filter(e => e !== analyst.email));
     }
   };
+
+  // Investors see the consumer home; analysts/admins see the creator dashboard
+  if (user && !isAnalyst) return <InvestorHome />;
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Analyst";
   const hour = new Date().getHours();

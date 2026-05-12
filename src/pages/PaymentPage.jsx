@@ -74,6 +74,9 @@ export default function PaymentPage() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get("mode");
+  const presetAmount = parseFloat(urlParams.get("amount") || "0");
+  const [amount, setAmount] = useState(presetAmount && presetAmount >= MIN_DEPOSIT_USD ? presetAmount : 25);
+  const [success, setSuccess] = useState(null);
 
   // Legacy modes redirect to /wallet — every internal purchase now happens
   // through the wallet-confirm dialog on the page where the action originated
@@ -81,10 +84,6 @@ export default function PaymentPage() {
   if (mode && !["deposit", "withdraw"].includes(mode)) {
     return <Navigate to="/wallet" replace />;
   }
-
-  const presetAmount = parseFloat(urlParams.get("amount") || "0");
-  const [amount, setAmount] = useState(presetAmount && presetAmount >= MIN_DEPOSIT_USD ? presetAmount : 25);
-  const [success, setSuccess] = useState(null);
 
   const handleSuccess = async (paidAmount, orderId) => {
     try {
