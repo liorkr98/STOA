@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { setMeta } from "@/lib/seo";
-import { ArrowLeft, UserPlus, MessageCircle, BarChart3, FileText, Star, Target, Users, Flame, Trophy, TrendingUp, Eye, DollarSign, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft, UserPlus, BarChart3, FileText, Star, Target, Users, Trophy,
+  TrendingUp, Eye, Loader2, CheckCircle2, Share2, ExternalLink,
+  Flame, Shield, Clock, ChevronRight, BookOpen, Award, Zap, Lock
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { Link } from "react-router-dom";
 import ReportCard from "@/components/feed/ReportCard";
 import AccuracyBreakdown from "@/components/analyst/AccuracyBreakdown";
 import PerformanceVsMarket from "@/components/analyst/PerformanceVsMarket";
@@ -14,9 +17,6 @@ import { computeAnalystTier, computeAchievements } from "@/lib/analystTier";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 
-
-
-// Map timeframe string → bucket
 function getTimeframeBucket(tf) {
   if (!tf) return null;
   const t = tf.toLowerCase();
@@ -26,6 +26,87 @@ function getTimeframeBucket(tf) {
   if (t.includes("year") || t.includes("long")) return "LONG";
   return null;
 }
+
+function OutcomeBadge({ outcome }) {
+  if (!outcome || outcome === "pending") return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">ACTIVE</span>
+  );
+  if (outcome === "hit" || outcome === "near") return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">HIT</span>
+  );
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">MISS</span>
+  );
+}
+
+function PredictionRow({ report }) {
+  const isHit = report.prediction_outcome === "hit" || report.prediction_outcome === "near";
+  const isMiss = report.prediction_outcome === "miss";
+  const isPending = !report.prediction_outcome || report.prediction_outcome === "pending";
+  const yld = report.prediction_yield;
+
+  return (
+    <div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{report.title || "Untitled"}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {report.stock_ticker && (
+            <span className="text-[11px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+              {report.stock_ticker}
+            </span>
+          )}
+          {report.prediction_timeframe && (
+            <span className="text-[11px] text-muted-foreground">{report.prediction_timeframe}</span>
+          )}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        {yld != null && (
+          <p className={`text-sm font-bold ${yld >= 0 ? "text-green-600" : "text-red-500"}`}>
+            {yld >= 0 ? "+" : ""}{yld.toFixed(1)}%
+          </p>
+        )}
+        <OutcomeBadge outcome={report.prediction_outcome} />
+      </div>
+    </div>
+  );
+}
+
+function ReportMiniCard({ report }) {
+  const directionColor = report.prediction_direction === "LONG"
+    ? "text-green-600 bg-green-50 border-green-200"
+    : report.prediction_direction === "SHORT"
+    ? "text-red-600 bg-red-50 border-red-200"
+    : "text-muted-foreground bg-secondary border-border";
+
+  return (
+    <Link to={`/report/${report.id}`} className="block group">
+      <div className="border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          {report.prediction_direction && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${directionColor}`}>
+              {report.prediction_direction}
+            </span>
+          )}
+          {report.prediction_outcome && report.prediction_outcome !== "pending" && (
+            <OutcomeBadge outcome={report.prediction_outcome} />
+          )}
+        </div>
+        <h4 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors font-serif mb-2">
+          {report.title || "Untitled Report"}
+        </h4>
+        {report.stock_ticker && (
+          <p className="text-xs font-mono font-bold text-primary/80 mb-1">{report.stock_ticker}</p>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          {report.created_date ? new Date(report.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+const TABS = ["Reports", "Track Record", "About"];
 
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
@@ -42,6 +123,8 @@ export default function AnalystProfilePage() {
   const [showSubModal, setShowSubModal] = useState(false);
   const [showAccModal, setShowAccModal] = useState(false);
   const [showYieldModal, setShowYieldModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("Reports");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -49,13 +132,11 @@ export default function AnalystProfilePage() {
         const me = await base44.auth.me().catch(() => null);
         setCurrentUser(me || null);
 
-        // Find analyst by slug (all users)
         let userData = null;
         const allUsers = await base44.entities.User.list("-created_date", 200).catch(() => []);
 
         if (username) {
           userData = allUsers.find(u => getAnalystSlug(u) === username) || null;
-          // fallback: exact email or id match
           if (!userData) userData = allUsers.find(u => u.id === username || u.email === username) || null;
         } else if (me) {
           userData = me;
@@ -69,11 +150,9 @@ export default function AnalystProfilePage() {
             image: userData.picture,
           });
 
-          // Check follow/subscription via entities
           if (me && me.email !== userData.email) {
             const follows = await base44.entities.Follow.filter({ follower_email: me.email, analyst_email: userData.email }).catch(() => []);
             setFollowing(follows.length > 0);
-
             const subs = await base44.entities.Subscription.filter({ subscriber_email: me.email, analyst_email: userData.email, status: "active" }).catch(() => []);
             setIsSubscribed(subs.length > 0);
           }
@@ -96,15 +175,12 @@ export default function AnalystProfilePage() {
     setFollowLoading(true);
     try {
       if (following) {
-        // Unfollow: delete Follow record
         const follows = await base44.entities.Follow.filter({ follower_email: currentUser.email, analyst_email: analyst.email });
         for (const f of follows) await base44.entities.Follow.delete(f.id);
-        // Decrement followers_count
         await base44.entities.User.update(analyst.id, { followers_count: Math.max(0, (analyst.followers_count || 1) - 1) });
         setAnalyst(prev => ({ ...prev, followers_count: Math.max(0, (prev.followers_count || 1) - 1) }));
         setFollowing(false);
       } else {
-        // Follow
         await base44.entities.Follow.create({
           follower_email: currentUser.email,
           analyst_email: analyst.email,
@@ -134,6 +210,13 @@ export default function AnalystProfilePage() {
     setShowSubModal(false);
   };
 
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -150,13 +233,12 @@ export default function AnalystProfilePage() {
   const isOwnProfile = currentUser && analyst.id === currentUser.id;
   const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
 
-  // Compute yield from actual reports
   const resolvedReports = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
+  const hitCount = resolvedReports.filter(r => r.prediction_outcome === "hit" || r.prediction_outcome === "near").length;
   const computedYield = computeAvgYield(resolvedReports);
   const displayYield = formatYield(computedYield);
-  const yieldColor = computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss";
+  const yieldColor = computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-green-600" : "text-red-500";
 
-  // Track record breakdown from timeframe strings
   const BUCKET_LABELS = { INTRADAY: "Intraday", SHORT: "Short-Term", MEDIUM: "Medium-Term", LONG: "Long-Term" };
   const bucketStats = { INTRADAY: { total: 0, hits: 0 }, SHORT: { total: 0, hits: 0 }, MEDIUM: { total: 0, hits: 0 }, LONG: { total: 0, hits: 0 } };
   resolvedReports.forEach(r => {
@@ -168,174 +250,308 @@ export default function AnalystProfilePage() {
 
   const tier = computeAnalystTier(analyst, myReports);
   const achievements = computeAchievements(analyst, myReports);
+  const publishedReports = myReports.filter(r => r.status === "published");
+  const activePredictions = myReports.filter(r => !r.prediction_outcome || r.prediction_outcome === "pending");
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
+    <div className="min-h-screen bg-background">
+      {/* Hero banner */}
+      <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-36">
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.05) 40px, rgba(255,255,255,0.05) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.05) 40px, rgba(255,255,255,0.05) 41px)"
+        }} />
+        <div className="max-w-4xl mx-auto px-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+        </div>
+      </div>
 
-      {/* Profile card */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
-        <div className="flex items-start gap-4 mb-4">
-          {analyst.picture
-            ? <img src={analyst.picture} alt={displayName} loading="lazy" className="w-16 h-16 rounded-full border-2 border-border object-cover" />
-            : <div className="w-16 h-16 rounded-full border-2 border-border bg-secondary flex items-center justify-center text-2xl font-bold text-primary">{displayName?.[0] || "A"}</div>
-          }
-          <div className="flex-1">
-            <h1 className="text-xl font-bold mb-1">{displayName}</h1>
-            {tier && (
-              <div className="mb-2">
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 13, fontWeight: 700, padding: '5px 12px', borderRadius: 20,
-                  background: tier.bg, color: tier.color, border: `1px solid ${tier.border}`,
-                }}>
-                  {tier.icon} {tier.label}
-                </span>
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Profile header — overlaps hero */}
+        <div className="relative -mt-12 mb-6">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <div className="flex items-end gap-4 mb-5">
+              {/* Avatar */}
+              <div className="shrink-0 -mt-10 ring-4 ring-background rounded-full">
+                {analyst.picture
+                  ? <img src={analyst.picture} alt={displayName} className="w-20 h-20 rounded-full object-cover border border-border" />
+                  : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-bold text-primary">
+                      {displayName?.[0] || "A"}
+                    </div>
+                }
+              </div>
+
+              {/* Name + badges */}
+              <div className="flex-1 min-w-0 pb-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold">{displayName}</h1>
+                  {tier && (
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}>
+                      {tier.icon} {tier.label}
+                    </span>
+                  )}
+                  {activePredictions.length > 0 && (
+                    <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      {activePredictions.length} active call{activePredictions.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                {analyst.tagline && <p className="text-sm text-muted-foreground mt-1">{analyst.tagline}</p>}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleShare}
+                  className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  title="Copy profile link"
+                >
+                  {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                </button>
+                {!isOwnProfile && currentUser && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant={following ? "secondary" : "outline"}
+                      className={`gap-1.5 text-xs ${following ? "text-green-600 border-green-200" : ""}`}
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                    >
+                      {followLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : following ? <CheckCircle2 className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                      {following ? "Following" : "Follow"}
+                    </Button>
+                    {isSubscribed ? (
+                      <span className="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
+                        Subscribed
+                      </span>
+                    ) : (
+                      <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">
+                        Subscribe
+                      </Button>
+                    )}
+                  </>
+                )}
+                {isOwnProfile && (
+                  <Link to="/subscribers">
+                    <Button size="sm" variant="outline" className="text-xs gap-1.5">
+                      <Users className="w-3.5 h-3.5" /> Subscribers
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Specialties */}
+            {(analyst.specialties || []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-5">
+                {(analyst.specialties || []).map(s => (
+                  <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-primary/8 text-primary border border-primary/15 font-medium">{s}</span>
+                ))}
               </div>
             )}
-            {analyst.tagline && <p className="text-sm text-muted-foreground mb-2">{analyst.tagline}</p>}
-            {analyst.bio && <p className="text-sm text-muted-foreground mb-3">{analyst.bio}</p>}
-            <div className="flex flex-wrap gap-1.5">
-              {(analyst.specialties || []).map(s => (
-                <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{s}</span>
-              ))}
+
+            {/* Key metrics strip */}
+            <div className="grid grid-cols-4 gap-3">
+              <button
+                onClick={analyst.accuracy_score > 0 ? () => setShowAccModal(true) : undefined}
+                className={`text-center p-4 rounded-xl bg-primary/5 border border-primary/10 ${analyst.accuracy_score > 0 ? "hover:bg-primary/10 cursor-pointer" : "cursor-default"} transition-all`}
+              >
+                <p className="text-2xl font-extrabold text-primary leading-none mb-1">
+                  {analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—"}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">Accuracy</p>
+                {resolvedReports.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{hitCount}/{resolvedReports.length} resolved</p>
+                )}
+              </button>
+
+              <button
+                onClick={computedYield != null ? () => setShowYieldModal(true) : undefined}
+                className={`text-center p-4 rounded-xl bg-secondary ${computedYield != null ? "hover:bg-secondary/70 cursor-pointer" : "cursor-default"} transition-all`}
+              >
+                <p className={`text-2xl font-extrabold leading-none mb-1 ${yieldColor}`}>{displayYield}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Avg Yield</p>
+                {resolvedReports.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{resolvedReports.length} calls</p>
+                )}
+              </button>
+
+              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
+                <p className="text-2xl font-extrabold text-foreground leading-none mb-1">
+                  {(analyst.followers_count || 0).toLocaleString()}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">Followers</p>
+              </div>
+
+              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
+                <p className="text-2xl font-extrabold text-foreground leading-none mb-1">{publishedReports.length}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Reports</p>
+              </div>
             </div>
           </div>
-          {!isOwnProfile && currentUser && (
-            <div className="flex flex-col gap-2">
-              {isSubscribed ? (
-                <span className="text-xs font-semibold text-gain bg-gain/10 border border-gain/20 rounded-full px-2.5 py-0.5">Subscribed ✓</span>
-              ) : (
-                <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">Subscribe</Button>
-              )}
-              <Button
-                size="sm"
-                variant={following ? "secondary" : "outline"}
-                className={`text-xs gap-1 ${following ? "text-gain border-gain/30" : ""}`}
-                onClick={handleFollow}
-                disabled={followLoading}
-              >
-                {followLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : following ? <CheckCircle2 className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                {following ? "Following ✓" : "Follow"}
-              </Button>
-            </div>
-          )}
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-5 gap-2 mb-4">
-          {[
-            { label: "Accuracy", value: analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}%` : "—", color: "text-primary", onClick: analyst.accuracy_score > 0 ? () => setShowAccModal(true) : null },
-            { label: "Avg Yield", value: displayYield, color: yieldColor, onClick: computedYield != null ? () => setShowYieldModal(true) : null },
-            { label: "Followers", value: (analyst.followers_count || 0).toLocaleString(), color: "text-blue-500", onClick: null },
-            { label: "Reports", value: myReports.length, color: "text-muted-foreground", onClick: null },
-          ].map(stat => (
-            <button key={stat.label} onClick={stat.onClick || undefined} className={`text-center p-3 bg-secondary rounded-xl ${stat.onClick ? "hover:bg-secondary/70 cursor-pointer" : "cursor-default"} transition-all`}>
-              <p className={`text-base font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}{stat.onClick ? " ↗" : ""}</p>
+        {/* Tabs */}
+        <div className="flex gap-0 border-b border-border mb-6">
+          {TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab}
             </button>
           ))}
-          {/* Tier stat card */}
-          <div className="text-center p-3 rounded-xl cursor-default transition-all" style={{ background: tier?.bg, border: `1px solid ${tier?.border}` }}>
-            <p className="text-base font-bold leading-tight" style={{ color: tier?.color }}>{tier?.label}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Analyst Tier</p>
-          </div>
         </div>
 
-        {/* Track record by timeframe */}
-        <div className="bg-secondary rounded-xl p-3 mb-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Track Record by Timeframe</p>
-          <div className="grid grid-cols-4 gap-2">
-            {Object.entries(bucketStats).map(([key, stats]) => (
-              <div key={key} className="text-center">
-                <p className="text-[10px] text-muted-foreground">{BUCKET_LABELS[key]}</p>
-                {stats.total > 0 ? (
-                  <p className="text-sm font-bold text-foreground">{Math.round((stats.hits / stats.total) * 100)}%</p>
-                ) : (
-                  <p className="text-sm font-bold text-muted-foreground/40">—</p>
-                )}
-                {stats.total > 0 && <p className="text-[9px] text-muted-foreground">{stats.hits}/{stats.total}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Owner extras */}
-        {isOwnProfile && (
-          <Link to="/subscribers" className="block rounded-xl border p-3 text-center bg-purple-50 border-purple-200 hover:border-purple-400 transition-colors">
-            <Users className="w-4 h-4 mx-auto mb-1 text-purple-600" />
-            <p className="text-sm font-bold text-purple-600">Manage</p>
-            <p className="text-[10px] text-muted-foreground">Subscribers & Following</p>
-          </Link>
-        )}
-      </div>
-
-      <AccuracyBreakdown analystUser={analyst} />
-      <PerformanceVsMarket analyst={analyst} />
-
-      {/* Tier Progress */}
-      {isOwnProfile && <TierProgressBar user={analyst} allReports={myReports} />}
-
-      {/* Achievements */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-        <h2 className="font-semibold text-sm mb-3">
-          Achievements <span className="text-muted-foreground">{achievements.filter(a => a.earned).length}/{achievements.length}</span>
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {[...achievements.filter(a => a.earned), ...achievements.filter(a => !a.earned)].map(a => (
-            <div
-              key={a.name}
-              className="flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all"
-              style={{
-                background: a.earned ? '#fefce8' : '#f8fafc',
-                borderColor: a.earned ? '#fde68a' : '#e2e8f0',
-                opacity: a.earned ? 1 : 0.4,
-                filter: a.earned ? 'none' : 'grayscale(1)',
-              }}
-              title={a.earned ? a.desc : `Locked: ${a.desc}`}
-            >
-              <span className="text-xl leading-none">{a.icon}</span>
-              <span className="text-[10px] font-bold leading-tight text-foreground">{a.name}</span>
-              <span className="text-[9px] text-muted-foreground leading-tight">{a.desc}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Twits */}
-      {twits.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-          <h2 className="font-semibold text-sm mb-3">Quick Twits</h2>
-          <div className="space-y-3">
-            {twits.map(t => (
-              <div key={t.id} className="flex gap-3">
-                {analyst.picture
-                  ? <img src={analyst.picture} alt="" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
-                  : <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName?.[0]}</div>
-                }
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold">{displayName}</span>
-                    <span className="text-[10px] text-muted-foreground">{new Date(t.created_date).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-sm text-foreground/90">{t.content}</p>
+        {/* Tab: Reports */}
+        {activeTab === "Reports" && (
+          <div className="pb-12">
+            {twits.length > 0 && (
+              <div className="bg-card border border-border rounded-xl p-4 mb-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Quick Notes</h3>
+                <div className="space-y-3">
+                  {twits.map(t => (
+                    <div key={t.id} className="flex gap-3">
+                      {analyst.picture
+                        ? <img src={analyst.picture} alt="" className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
+                        : <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName?.[0]}</div>
+                      }
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold">{displayName}</span>
+                          <span className="text-[10px] text-muted-foreground">{new Date(t.created_date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm text-foreground/90">{t.content}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            )}
 
-      {/* Reports */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h2 className="font-semibold text-sm mb-4">Published Reports</h2>
-        {myReports.filter(r => r.status === "published").length === 0 ? (
-          <p className="text-sm text-muted-foreground">No reports published yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {myReports.filter(r => r.status === "published").map(r => <ReportCard key={r.id} report={r} compact />)}
+            {publishedReports.length === 0 ? (
+              <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
+                <FileText className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No published reports yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {publishedReports.map(r => <ReportMiniCard key={r.id} report={r} />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab: Track Record */}
+        {activeTab === "Track Record" && (
+          <div className="pb-12 space-y-5">
+            {/* Timeframe breakdown */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold mb-4">Accuracy by Timeframe</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {Object.entries(bucketStats).map(([key, stats]) => (
+                  <div key={key} className="text-center p-4 bg-secondary rounded-xl">
+                    <p className="text-[11px] text-muted-foreground mb-1">{BUCKET_LABELS[key]}</p>
+                    {stats.total > 0 ? (
+                      <>
+                        <p className="text-xl font-bold text-foreground">{Math.round((stats.hits / stats.total) * 100)}%</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{stats.hits}/{stats.total}</p>
+                      </>
+                    ) : (
+                      <p className="text-xl font-bold text-muted-foreground/30">—</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Charts */}
+            <AccuracyBreakdown analystUser={analyst} />
+            <PerformanceVsMarket analyst={analyst} />
+
+            {/* Prediction list */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold mb-1">All Predictions</h3>
+              <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved · {activePredictions.length} active</p>
+              {myReports.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No predictions yet.</p>
+              ) : (
+                <div>
+                  {myReports.filter(r => r.prediction_direction || r.stock_ticker).map(r => (
+                    <PredictionRow key={r.id} report={r} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: About */}
+        {activeTab === "About" && (
+          <div className="pb-12 space-y-5">
+            {/* Bio */}
+            {analyst.bio && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="text-sm font-semibold mb-3">About</h3>
+                <p className="text-sm text-foreground/80 leading-relaxed">{analyst.bio}</p>
+              </div>
+            )}
+
+            {/* Tier progress (own profile) */}
+            {isOwnProfile && <TierProgressBar user={analyst} allReports={myReports} />}
+
+            {/* Achievements */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold">Achievements</h3>
+                <span className="text-xs text-muted-foreground">{achievements.filter(a => a.earned).length}/{achievements.length} unlocked</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[...achievements.filter(a => a.earned), ...achievements.filter(a => !a.earned)].map(a => (
+                  <div
+                    key={a.name}
+                    className="flex items-start gap-3 p-3 rounded-xl border transition-all"
+                    style={{
+                      background: a.earned ? "#fefce8" : "#f8fafc",
+                      borderColor: a.earned ? "#fde68a" : "#e2e8f0",
+                      opacity: a.earned ? 1 : 0.4,
+                      filter: a.earned ? "none" : "grayscale(1)",
+                    }}
+                    title={a.earned ? a.desc : `Locked: ${a.desc}`}
+                  >
+                    <span className="text-2xl leading-none shrink-0">{a.icon}</span>
+                    <div>
+                      <p className="text-xs font-bold text-foreground leading-tight">{a.name}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{a.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Owner: manage */}
+            {isOwnProfile && (
+              <Link to="/subscribers" className="flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm font-bold text-purple-700">Subscribers & Following</p>
+                    <p className="text-xs text-muted-foreground">Manage your audience</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-purple-500" />
+              </Link>
+            )}
           </div>
         )}
       </div>
@@ -345,9 +561,17 @@ export default function AnalystProfilePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Prediction Accuracy</h3>
-            <p className="text-3xl font-bold text-primary mb-4">{analyst.accuracy_score?.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground mb-4">Based on resolved locked predictions using STOA's Elo-based scoring system.</p>
-            <button onClick={() => setShowAccModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground mt-2">Close</button>
+            <p className="text-4xl font-extrabold text-primary mb-4">{analyst.accuracy_score?.toFixed(1)}%</p>
+            <p className="text-sm text-muted-foreground mb-2">Based on {resolvedReports.length} resolved predictions using STOA's scoring system.</p>
+            <div className="flex justify-between text-sm py-3 border-y border-border my-3">
+              <span className="text-muted-foreground">Hits</span>
+              <span className="font-semibold text-green-600">{hitCount}</span>
+            </div>
+            <div className="flex justify-between text-sm pb-3 border-b border-border mb-4">
+              <span className="text-muted-foreground">Misses</span>
+              <span className="font-semibold text-red-500">{resolvedReports.length - hitCount}</span>
+            </div>
+            <button onClick={() => setShowAccModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Close</button>
           </div>
         </div>
       )}
@@ -357,7 +581,7 @@ export default function AnalystProfilePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowYieldModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Average Yield</h3>
-            <p className={`text-3xl font-bold mb-4 ${yieldColor}`}>{displayYield}</p>
+            <p className={`text-4xl font-extrabold mb-4 ${yieldColor}`}>{displayYield}</p>
             <p className="text-sm text-muted-foreground">Average return across {resolvedReports.length} resolved prediction{resolvedReports.length !== 1 ? "s" : ""}.</p>
             <button onClick={() => setShowYieldModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground mt-4">Close</button>
           </div>
@@ -368,19 +592,28 @@ export default function AnalystProfilePage() {
       {showSubModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSubModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Subscribe to {displayName}</h3>
-            <p className="text-sm text-muted-foreground mb-4">Get full access to reports and predictions.</p>
+            <h3 className="font-bold text-lg mb-1">Subscribe to {displayName}</h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              {analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}% prediction accuracy · ` : ""}
+              {publishedReports.length} published report{publishedReports.length !== 1 ? "s" : ""}
+            </p>
             <button
               onClick={handleSubscribe}
               className="w-full text-left border border-border rounded-xl p-4 hover:border-primary/40 transition-all mb-3"
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm">Monthly</span>
-                <span className="font-bold text-primary">Free (Beta)</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold">Monthly Access</span>
+                <span className="font-bold text-primary text-sm">Free (Beta)</span>
               </div>
-              <p className="text-xs text-muted-foreground">✓ Full report access · ✓ Premium predictions</p>
+              <ul className="space-y-1.5">
+                {["Full access to all reports", "Premium predictions & targets", "Direct analyst updates", "Track record transparency"].map(b => (
+                  <li key={b} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" /> {b}
+                  </li>
+                ))}
+              </ul>
             </button>
-            <button onClick={() => setShowSubModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+            <button onClick={() => setShowSubModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Maybe later</button>
           </div>
         </div>
       )}

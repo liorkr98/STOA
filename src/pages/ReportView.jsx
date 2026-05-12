@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
   ArrowLeft, Heart, Lock, Loader2, Sparkles,
-  CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X
+  CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X,
+  Eye, BarChart2, Target, ShieldAlert, TrendingUp, Lightbulb, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -247,6 +248,7 @@ export default function ReportView() {
   const [authorUser, setAuthorUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [livePrice, setLivePrice] = useState(null);
+  const [moreReports, setMoreReports] = useState([]);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -270,10 +272,13 @@ export default function ReportView() {
             setBlocks([{ type: "text", content: data.content_blocks, id: 0 }]);
           }
         }
-        // Fetch author user for avatar fallback
+        // Fetch author user for avatar fallback + more reports
         if (data.created_by) {
           const users = await base44.entities.User.filter({ email: data.created_by }).catch(() => []);
           if (users?.[0]) setAuthorUser(users[0]);
+          base44.entities.Report.filter({ created_by: data.created_by, status: "published" }, "-created_date", 5)
+            .then(more => setMoreReports((more || []).filter(r => r.id !== reportId).slice(0, 3)))
+            .catch(() => {});
         }
       })
       .catch(() => setError("Failed to load report."))
@@ -403,7 +408,7 @@ export default function ReportView() {
         )}
         <div className="flex items-center gap-3 ml-auto">
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            👁 {viewCount}
+            <Eye className="w-3.5 h-3.5" /> {viewCount}
           </span>
           <button
             onClick={async () => {
@@ -454,13 +459,13 @@ export default function ReportView() {
             <div className="relative rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 mt-0">
               {/* Premium badge */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                  💎 PREMIUM REPORT
+                <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm tracking-wide uppercase">
+                  Premium Report
                 </span>
               </div>
 
               <div className="text-center pt-2">
-                <Lock className="w-9 h-9 text-amber-500 mx-auto mb-3" />
+                <Lock className="w-8 h-8 text-amber-500 mx-auto mb-3" />
                 <h3 className="font-bold text-lg mb-1">Full Analysis Locked</h3>
                 <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
                   Get the complete research: valuation model, price target, catalysts, risks, and analyst conviction.
@@ -469,15 +474,16 @@ export default function ReportView() {
                 {/* What's inside */}
                 <div className="grid grid-cols-2 gap-2 mb-5 text-left max-w-sm mx-auto">
                   {[
-                    "📊 Full valuation model",
-                    "🎯 Price target & catalysts",
-                    "⚠️ Key risks breakdown",
-                    "📈 Technical setup",
-                    "💡 Analyst conviction score",
-                    "🔒 Locked prediction",
-                  ].map(item => (
-                    <div key={item} className="flex items-center gap-1.5 text-xs text-foreground/80">
-                      <span>{item}</span>
+                    { icon: BarChart2, label: "Full valuation model" },
+                    { icon: Target, label: "Price target & catalysts" },
+                    { icon: ShieldAlert, label: "Key risks breakdown" },
+                    { icon: TrendingUp, label: "Technical setup" },
+                    { icon: Lightbulb, label: "Analyst conviction score" },
+                    { icon: Lock, label: "Locked prediction" },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-1.5 text-xs text-foreground/80">
+                      <Icon className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>{label}</span>
                     </div>
                   ))}
                 </div>
@@ -543,6 +549,48 @@ export default function ReportView() {
       )}
 
       <CommentsSection reportId={report.id} />
+
+      {/* More from this analyst */}
+      {moreReports.length > 0 && (
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-sm">More from {authorName}</h3>
+            <button
+              onClick={() => navigate(`/analyst?id=${report.created_by}`)}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View profile <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {moreReports.map(r => (
+              <button
+                key={r.id}
+                onClick={() => navigate(`/report?id=${r.id}`)}
+                className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/40 transition-all group"
+              >
+                {r.prediction_direction && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
+                    r.prediction_direction === "LONG" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  }`}>
+                    {r.prediction_direction}
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                    {r.title}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {r.created_date ? new Date(r.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                    {r.stock_ticker ? ` · ${r.stock_ticker}` : ""}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary shrink-0 mt-1 transition-colors" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
