@@ -143,10 +143,9 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   const [copiedId, setCopiedId] = useState(null);
   const [credits, setCredits]   = useState(() => getCredits());
 
-  // Draggable position
+  // Draggable position — offset is held in closure inside onHeaderMouseDown
   const [pos, setPos]           = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const dragOffset              = useRef({ x: 0, y: 0 });
   const initialized             = useRef(false);
 
   const bottomRef     = useRef(null);
@@ -167,29 +166,40 @@ export default function AIChat({ reportContent, onInsertBlock }) {
     if (!minimized) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, minimized]);
 
-  // Drag logic
+  // Drag logic — attach listeners SYNCHRONOUSLY in mousedown so a fast
+  // click-release on the header can't miss the mouseup and leave dragging
+  // stuck true (which made the panel follow the cursor and prevented typing).
   const onHeaderMouseDown = useCallback((e) => {
+    // Ignore mousedown on buttons inside the header (close, minimize)
+    if (e.target.closest("button")) return;
     e.preventDefault();
+    const startOffsetX = e.clientX - pos.x;
+    const startOffsetY = e.clientY - pos.y;
     setDragging(true);
-    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
-  }, [pos]);
 
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e) => {
+    const onMove = (ev) => {
       setPos({
-        x: Math.max(0, Math.min(window.innerWidth - 380, e.clientX - dragOffset.current.x)),
-        y: Math.max(0, Math.min(window.innerHeight - 52, e.clientY - dragOffset.current.y)),
+        x: Math.max(0, Math.min(window.innerWidth  - 380, ev.clientX - startOffsetX)),
+        y: Math.max(0, Math.min(window.innerHeight - 52,  ev.clientY - startOffsetY)),
       });
     };
-    const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
+    const onUp = () => {
+      setDragging(false);
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("mouseup",   onUp);
     };
-  }, [dragging]);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
+  }, [pos]);
+
+  // Auto-focus the message input when the chat opens or un-minimizes
+  useEffect(() => {
+    if (open && !minimized) {
+      // setTimeout 0 lets the panel finish rendering before we grab focus
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [open, minimized]);
 
   // ── Send message ────────────────────────────────────────────────────────
   const send = useCallback(async (overrideText) => {
