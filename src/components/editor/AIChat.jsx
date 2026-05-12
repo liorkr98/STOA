@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import ChatChart from "@/components/editor/ChatChart";
 
 // ── AI Credit helpers ────────────────────────────────────────────────────────
 const CREDITS_KEY   = "stoa_ai_credits";
@@ -49,10 +50,31 @@ Rules:
 - When asked to write/draft/create report content, produce professional analyst-quality prose.
 - Format bullet-point content using • prefix, one per line.
 - Keep answers concise and actionable — 3–8 sentences for discussion, longer only for requested drafts.
-- Conclude report drafts with a summary sentence.`;
+- Conclude report drafts with a summary sentence.
+
+CHART DIRECTIVES:
+When the user asks for a chart, graph, plot, or visual of a stock's price action,
+append a directive at the END of your text response in this exact format:
+
+  [CHART:TICKER]            (defaults to 1-month daily)
+  [CHART:TICKER:TIMEFRAME]  (TIMEFRAME = 1W | 1M | 3M | 6M | 1Y)
+
+Examples:
+  User: "Show me Apple's chart"
+  You:  "AAPL has been consolidating around $180, with support at $172 and resistance near $190.\n\n[CHART:AAPL]"
+
+  User: "Compare NVDA and AMD over 3 months"
+  You:  "NVDA has outperformed AMD by ~15% on AI tailwinds.\n\n[CHART:NVDA:3M]\n[CHART:AMD:3M]"
+
+  User: "Plot Tesla over the past year"
+  You:  "TSLA had a volatile year — a 40% drawdown in spring followed by a recovery.\n\n[CHART:TSLA:1Y]"
+
+Only emit chart directives when the user explicitly asks for a chart/graph/plot/visual.
+Do NOT emit them automatically. One ticker per directive. Tickers in caps.`;
 
 // ── Quick prompt chips ───────────────────────────────────────────────────────
 const QUICK_PROMPTS = [
+  { icon: BarChart3,   label: "Chart",        prompt: "Show me a 1-month chart of " },
   { icon: TrendingUp,  label: "Bull thesis",  prompt: "Write a compelling 4-point bull thesis for " },
   { icon: Shield,      label: "Key risks",    prompt: "What are the 5 biggest risks for " },
   { icon: BarChart3,   label: "Valuation",    prompt: "Analyze the current valuation of " },
@@ -81,6 +103,25 @@ function normalizeForBlock(content, type) {
     .join("\n");
 }
 
+// Pull [CHART:TICKER] and [CHART:TICKER:TIMEFRAME] directives out of the AI's
+// response. Returns the cleaned text + an array of chart specs to render.
+// Allowed ticker chars: A-Z 0-9 . - = ^ (covers ^GSPC, BTC-USD, BRK.A, EURUSD=X)
+function parseChartDirectives(content) {
+  const charts = [];
+  const re = /\[CHART:([A-Z0-9.\-=^]+)(?::([1-9](?:W|M|Y)))?\]/gi;
+  const cleanText = content.replace(re, (_, ticker, tf) => {
+    charts.push({
+      id:        `chart_${charts.length}_${ticker}`,
+      ticker:    ticker.toUpperCase(),
+      timeframe: (tf || "1M").toUpperCase(),
+    });
+    return ""; // strip directive from displayed text
+  })
+  // collapse the blank lines left behind
+  .replace(/\n{3,}/g, "\n\n").trim();
+  return { text: cleanText, charts };
+}
+
 let msgCounter = 0;
 const mkId = () => ++msgCounter;
 
@@ -88,7 +129,7 @@ const INIT_MSG = {
   id: mkId(),
   role: "assistant",
   content:
-    "I'm your AI market analyst. Ask me anything — stock analysis, sector trends, macro themes, valuation models, or ask me to draft a paragraph for your report.\n\nYou can drag any of my answers directly into the report, or click the + button to insert.",
+    "I'm your AI market analyst. Ask me anything — stock analysis, sector trends, macro themes, valuation models, or ask me to draft a paragraph for your report.\n\n📊 Ask for charts too: \"show me NVDA chart\" or \"compare AAPL and MSFT over 3 months\".\n\nYou can drag any of my answers directly into the report, or click the + button to insert.",
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -199,7 +240,9 @@ Analyst:`;
           ? res
           : res?.content?.[0]?.text || res?.text || res?.response || "";
 
-      const content = raw.trim() || "I couldn't generate a response. Please try again.";
+      const rawContent = raw.trim() || "I couldn't generate a response. Please try again.";
+      // Extract any [CHART:...] directives the AI emitted
+      const { text: content, charts } = parseChartDirectives(rawContent);
       const blockType = detectBlockType(content);
 
       // Deduct credit after successful response
@@ -211,7 +254,7 @@ Analyst:`;
 
       setMessages((prev) => [
         ...prev,
-        { id: mkId(), role: "assistant", content, blockType },
+        { id: mkId(), role: "assistant", content, blockType, charts },
       ]);
     } catch {
       toast.error("AI assistant error. Please try again.");
@@ -359,14 +402,25 @@ Analyst:`;
                 {msg.role === "assistant" ? (
                   <div className="group max-w-[92%] relative">
                     {/* Drag hint label */}
-                    <div
-                      draggable
-                      onDragStart={(e) => onDragStart(e, msg)}
-                      className="bg-secondary border border-border rounded-xl px-3 py-2.5 text-xs text-foreground leading-relaxed whitespace-pre-wrap cursor-grab active:cursor-grabbing hover:border-primary/30 transition-colors"
-                      title="Drag to drop into report"
-                    >
-                      {msg.content}
-                    </div>
+                    {msg.content && (
+                      <div
+                        draggable
+                        onDragStart={(e) => onDragStart(e, msg)}
+                        className="bg-secondary border border-border rounded-xl px-3 py-2.5 text-xs text-foreground leading-relaxed whitespace-pre-wrap cursor-grab active:cursor-grabbing hover:border-primary/30 transition-colors"
+                        title="Drag to drop into report"
+                      >
+                        {msg.content}
+                      </div>
+                    )}
+
+                    {/* Inline charts from [CHART:TICKER] directives */}
+                    {msg.charts?.length > 0 && (
+                      <div className="space-y-1">
+                        {msg.charts.map((c) => (
+                          <ChatChart key={c.id} ticker={c.ticker} timeframe={c.timeframe} />
+                        ))}
+                      </div>
+                    )}
 
                     {/* Action row */}
                     <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
