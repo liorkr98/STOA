@@ -6,8 +6,9 @@ import {
   Send, Save, FolderOpen, Trash2, Clock, CheckCircle2,
   ChevronDown, Settings2, TrendingUp, Lock,
   Hash, FileText, Zap, AlignLeft, Palette, X, Layout, Eye,
-  Undo2, Redo2
+  Undo2, Redo2, GripVertical, Languages
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
@@ -148,7 +149,11 @@ export default function ReportEditor() {
   const [reportTheme,    setReportTheme]    = useState("default");
   const [reportFont,     setReportFont]     = useState("inter");
   const [reportLayout,   setReportLayout]   = useState("standard");
-  const [accentColor,    setAccentColor]    = useState("#3b82f6");
+  const [accentColor,    setAccentColor]    = useState("#1d4ed8");
+  const [isRTL,          setIsRTL]          = useState(false);
+  const [brandName,      setBrandName]      = useState("");
+  const [brandLogo,      setBrandLogo]      = useState("");
+  const [reportFooter,   setReportFooter]   = useState("");
 
   // UI state
   const [showPrediction, setShowPrediction] = useState(false);
@@ -297,6 +302,17 @@ export default function ReportEditor() {
   const turnIntoBlock = useCallback((id, newType) => {
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, type: newType } : b));
   }, []);
+
+  const handleBlockDragEnd = useCallback((result) => {
+    if (!result.destination || result.destination.index === result.source.index) return;
+    setBlocks(prev => {
+      const next = Array.from(prev);
+      const [removed] = next.splice(result.source.index, 1);
+      next.splice(result.destination.index, 0, removed);
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
 
   const addBlock = useCallback((type) => {
     const nb = makeBlock(type);
@@ -638,6 +654,16 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   </DropdownMenuContent>
                 </DropdownMenu>
 
+                <Button
+                  variant={isRTL ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsRTL(r => !r)}
+                  className="text-xs h-8 gap-1"
+                  title="Toggle RTL writing (Hebrew / Arabic)"
+                >
+                  <Languages className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">RTL</span>
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/5">
                   <Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI</span>
                 </Button>
@@ -682,6 +708,12 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   minHeight: "320px",
                 }}
               >
+                {(brandName || brandLogo) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${themeObj?.border}` }}>
+                    {brandLogo && <img src={brandLogo} alt="" style={{ height: 20, objectFit: "contain" }} onError={e => e.currentTarget.style.display = "none"} />}
+                    {brandName && <span style={{ fontSize: 9, fontWeight: 700, color: themeObj?.text, opacity: 0.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{brandName}</span>}
+                  </div>
+                )}
                 <h2 style={{ color: accentColor }} className="text-2xl font-bold mb-2">{title || "Your Report Title"}</h2>
                 {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
                 <div className="space-y-3">
@@ -692,7 +724,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                       {b.type === "text" && <p className="text-sm leading-relaxed">{b.content?.slice(0, 200)}{b.content?.length > 200 ? "..." : ""}</p>}
                       {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{(b.content || "").split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
                       {b.type === "quote" && <blockquote style={{ borderLeftColor: accentColor }} className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
-                      {b.type === "callout" && <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r p-2 text-sm">💡 {b.content}</div>}
+                      {b.type === "callout" && <div className="border-l-4 rounded-r p-2 text-sm" style={{ background: accentColor + "18", borderLeftColor: accentColor }}>{b.content}</div>}
                       {b.type === "divider" && <hr style={{ borderColor: accentColor }} className="border-t-2 opacity-30" />}
                     </div>
                   ))}
@@ -710,6 +742,12 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 onFontChange={setReportFont}
                 onLayoutChange={setReportLayout}
                 onAccentColorChange={setAccentColor}
+                brandName={brandName}
+                brandLogo={brandLogo}
+                reportFooter={reportFooter}
+                onBrandNameChange={setBrandName}
+                onBrandLogoChange={setBrandLogo}
+                onReportFooterChange={setReportFooter}
               />
             </div>
           </div>
@@ -748,14 +786,23 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </label>
               )}
 
+              {/* Brand header */}
+              {(brandName || brandLogo) && (
+                <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border" dir="ltr">
+                  {brandLogo && <img src={brandLogo} alt={brandName} className="h-7 object-contain" onError={e => e.currentTarget.style.display = "none"} />}
+                  {brandName && <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{brandName}</span>}
+                </div>
+              )}
+
               {/* Title */}
               <textarea
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Report title..."
                 rows={1}
+                dir={isRTL ? "rtl" : "ltr"}
                 className="w-full text-3xl md:text-4xl font-bold text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
-                style={{ fontFamily: fontObj?.style?.fontFamily, color: accentColor !== "#3b82f6" ? accentColor : undefined }}
+                style={{ fontFamily: fontObj?.style?.fontFamily, color: accentColor !== "#1d4ed8" ? accentColor : undefined }}
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
 
@@ -765,6 +812,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 onChange={e => setExcerpt(e.target.value)}
                 placeholder="Write a short summary or teaser..."
                 rows={2}
+                dir={isRTL ? "rtl" : "ltr"}
                 className="w-full text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-6 leading-relaxed"
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
@@ -783,21 +831,85 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </div>
               )}
 
-              {/* Blocks */}
-              <div className="space-y-0.5 mb-4">
-                {blocks.map((block, idx) => renderBlockRow(block, idx))}
-                {/* Final drop zone */}
-                <div
-                  className="h-6"
-                  onDragOver={(e) => handleDragOver(e, blocks.length)}
-                  onDragLeave={() => setDropIndicatorAt(null)}
-                  onDrop={(e) => handleDrop(e, blocks.length)}
-                >
-                  {dropIndicatorAt === blocks.length && (
-                    <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+              {/* Blocks — drag-to-reorder */}
+              <DragDropContext onDragEnd={handleBlockDragEnd}>
+                <Droppable droppableId="editor-blocks">
+                  {(droppableProvided, droppableSnapshot) => (
+                    <div
+                      ref={droppableProvided.innerRef}
+                      {...droppableProvided.droppableProps}
+                      className={`space-y-0.5 mb-4 transition-colors rounded-xl ${droppableSnapshot.isDraggingOver ? "bg-primary/3" : ""}`}
+                      dir={isRTL ? "rtl" : "ltr"}
+                    >
+                      {blocks.map((block, idx) => (
+                        <Draggable key={String(block.id)} draggableId={String(block.id)} index={idx}>
+                          {(dragProvided, dragSnapshot) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              className={`relative group/draggable ${dragSnapshot.isDragging ? "opacity-80 shadow-xl rounded-xl bg-card ring-2 ring-primary/20 z-20" : ""}`}
+                            >
+                              {/* Drop zone for AI content */}
+                              <div
+                                className="absolute top-0 left-0 right-0 h-2 -translate-y-1 z-10"
+                                onDragOver={(e) => handleDragOver(e, idx)}
+                                onDragLeave={() => setDropIndicatorAt(null)}
+                                onDrop={(e) => handleDrop(e, idx)}
+                              >
+                                {dropIndicatorAt === idx && (
+                                  <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+                                )}
+                              </div>
+
+                              <div className="flex items-start gap-1">
+                                {/* Drag handle */}
+                                <div
+                                  {...dragProvided.dragHandleProps}
+                                  className="flex-shrink-0 mt-2 w-5 flex flex-col items-center gap-0.5 opacity-0 group-hover/draggable:opacity-100 transition-opacity"
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+                                </div>
+
+                                {/* Block content */}
+                                <div className="flex-1 min-w-0" style={{ maxWidth: block.blockWidth || "100%", margin: block.blockWidth ? "0 auto" : undefined }}>
+                                  {renderBlockRow(block, idx)}
+                                </div>
+
+                                {/* Block width toggle — appears on hover */}
+                                <div className="flex-shrink-0 flex flex-col gap-0.5 pt-2 opacity-0 group-hover/draggable:opacity-100 transition-opacity">
+                                  {["100%", "75%", "50%"].map(w => (
+                                    <button
+                                      key={w}
+                                      onClick={() => updateBlock(block.id, { blockWidth: w === "100%" ? undefined : w })}
+                                      title={`Width: ${w}`}
+                                      className={`text-[8px] font-mono px-1 py-0.5 rounded border transition-colors ${(block.blockWidth || "100%") === w ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                                    >
+                                      {w}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {droppableProvided.placeholder}
+                      {/* Final AI drop zone */}
+                      <div
+                        className="h-6"
+                        onDragOver={(e) => handleDragOver(e, blocks.length)}
+                        onDragLeave={() => setDropIndicatorAt(null)}
+                        onDrop={(e) => handleDrop(e, blocks.length)}
+                      >
+                        {dropIndicatorAt === blocks.length && (
+                          <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
+                </Droppable>
+              </DragDropContext>
 
               {/* Add block */}
               <DropdownMenu>

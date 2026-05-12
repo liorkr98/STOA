@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Loader2, X, TrendingUp } from "lucide-react";
+import { Sparkles, Loader2, X, TrendingUp, ChevronDown, GripHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -78,13 +78,47 @@ Return ONLY a valid JSON object (no markdown, no explanation, no backticks) in t
 Use type values: "heading", "text", or "bullets". For bullets use "• " prefix per item separated by \\n.
 Be concise, professional, and insight-driven. Do not explain your process—deliver the analysis only.`;
 
+const INITIAL_POS = () => ({
+  x: typeof window !== "undefined" ? Math.max(20, window.innerWidth - 380) : 800,
+  y: 80,
+});
+
 export default function AISidebar({ isOpen, onClose, onGenerate, initialTicker = "" }) {
+  const [pos, setPos] = useState(INITIAL_POS);
+  const [minimized, setMinimized] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState(initialTicker);
-  const [mode, setMode] = useState("elite"); // "elite" | "generic"
+  const [mode, setMode] = useState("elite");
 
-  // If opened with a ticker pre-filled from editor, detect it
   const isTickerLike = topic.trim().length >= 1 && topic.trim().length <= 6 && /^[A-Z0-9]+$/i.test(topic.trim());
+
+  // Reset position when opened
+  useEffect(() => {
+    if (isOpen) setPos(INITIAL_POS());
+  }, [isOpen]);
+
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setDragging(true);
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+  }, [pos]);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e) => {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 360, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 52, e.clientY - dragOffset.current.y)),
+      });
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [dragging]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -131,70 +165,110 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-sm">AI Report Generator</h3>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+    <div
+      style={{
+        position: "fixed",
+        left: pos.x,
+        top: pos.y,
+        zIndex: 60,
+        width: 340,
+        userSelect: dragging ? "none" : "auto",
+      }}
+      className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+    >
+      {/* Drag handle header */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={`flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+      >
+        <div className="flex items-center gap-2 pointer-events-none">
+          <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="font-semibold text-sm">AI Research Assistant</span>
         </div>
-
-        {/* Mode toggle */}
-        <div className="flex gap-1 p-1 bg-secondary rounded-lg mb-4">
+        <div className="flex items-center gap-0.5 pointer-events-auto">
           <button
-            onClick={() => setMode("elite")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "elite" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+            onMouseDown={e => e.stopPropagation()}
+            onClick={() => setMinimized(m => !m)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            <TrendingUp className="w-3 h-3" /> Elite Research
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${minimized ? "rotate-180" : ""}`} />
           </button>
           <button
-            onClick={() => setMode("generic")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "generic" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+            onMouseDown={e => e.stopPropagation()}
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            <Sparkles className="w-3 h-3" /> Quick Template
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        {mode === "elite" ? (
-          <p className="text-xs text-muted-foreground mb-3">
-            Enter a <strong>stock ticker</strong> (e.g. NVDA) for a full institutional-grade research report with fundamentals, technicals, valuation, catalysts & price target.
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground mb-3">
-            Enter a company or topic, or leave blank for a generic template.
-          </p>
-        )}
-
-        <Input
-          value={topic}
-          onChange={e => setTopic(e.target.value.toUpperCase())}
-          placeholder={mode === "elite" ? "Ticker e.g. NVDA, AAPL, TSLA..." : "e.g. NVIDIA, Tesla, Bitcoin..."}
-          className="mb-4 font-mono"
-          onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-          autoFocus
-        />
-
-        {mode === "elite" && isTickerLike && topic.trim() && (
-          <div className="mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs text-primary">
-            ✓ Will generate full 8-section institutional research for <strong>{topic.trim().toUpperCase()}</strong> using live internet data
-          </div>
-        )}
-
-        <Button onClick={handleGenerate} disabled={generating} className="w-full">
-          {generating
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "elite" ? "Researching with AI..." : topic ? "Writing with AI..." : "Loading template..."}</>
-            : <><Sparkles className="w-4 h-4 mr-2" />{mode === "elite" && isTickerLike && topic ? `Research ${topic.trim().toUpperCase()}` : topic ? "Generate with AI" : "Use Generic Template"}</>
-          }
-        </Button>
-
-        {mode === "elite" && (
-          <p className="text-[10px] text-muted-foreground text-center mt-2">
-            Uses Claude Sonnet + live internet data. Takes ~20–40 seconds.
-          </p>
-        )}
       </div>
+
+      {/* Body — hidden when minimized */}
+      {!minimized && (
+        <div className="p-4">
+          {/* Mode toggle */}
+          <div className="flex gap-1 p-1 bg-secondary rounded-lg mb-4">
+            <button
+              onClick={() => setMode("elite")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "elite" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+            >
+              <TrendingUp className="w-3 h-3" /> Elite Research
+            </button>
+            <button
+              onClick={() => setMode("generic")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "generic" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+            >
+              <Sparkles className="w-3 h-3" /> Quick Template
+            </button>
+          </div>
+
+          {mode === "elite" ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Enter a <strong>stock ticker</strong> (e.g. NVDA) for a full institutional-grade research report with fundamentals, technicals, valuation, catalysts & price target.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mb-3">
+              Enter a company or topic, or leave blank for a generic template.
+            </p>
+          )}
+
+          <Input
+            value={topic}
+            onChange={e => setTopic(e.target.value.toUpperCase())}
+            placeholder={mode === "elite" ? "Ticker e.g. NVDA, AAPL, TSLA..." : "e.g. NVIDIA, Tesla, Bitcoin..."}
+            className="mb-4 font-mono"
+            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+            autoFocus
+          />
+
+          {mode === "elite" && isTickerLike && topic.trim() && (
+            <div className="mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs text-primary">
+              Will generate full 8-section institutional research for <strong>{topic.trim().toUpperCase()}</strong> using live internet data
+            </div>
+          )}
+
+          <Button onClick={handleGenerate} disabled={generating} className="w-full">
+            {generating
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "elite" ? "Researching with AI..." : topic ? "Writing with AI..." : "Loading template..."}</>
+              : <><Sparkles className="w-4 h-4 mr-2" />{mode === "elite" && isTickerLike && topic ? `Research ${topic.trim().toUpperCase()}` : topic ? "Generate with AI" : "Use Generic Template"}</>
+            }
+          </Button>
+
+          {mode === "elite" && (
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
+              Uses Claude Sonnet + live internet data · ~20–40 seconds
+            </p>
+          )}
+
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag to report</p>
+            <p className="text-[10px] text-muted-foreground">
+              Generate above to populate your report, or drag this panel anywhere on screen.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
