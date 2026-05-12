@@ -408,6 +408,23 @@ export default function ReportEditor() {
   const handleDrop = (e, idx) => {
     e.preventDefault();
     setDropIndicatorAt(null);
+
+    // Multi-block payload (e.g., dragging a compare-chart inserts one
+    // stockchart block per ticker)
+    const blocksJson = e.dataTransfer.getData("ai-blocks");
+    if (blocksJson) {
+      try {
+        const blocks = JSON.parse(blocksJson);
+        if (Array.isArray(blocks) && blocks.length > 0) {
+          blocks.forEach((b, i) => insertBlockAt(idx + i, b));
+          return;
+        }
+      } catch {
+        // fall through to single-block path
+      }
+    }
+
+    // Single-block payload
     const text = e.dataTransfer.getData("ai-text");
     const type = e.dataTransfer.getData("ai-type") || "text";
     if (text) insertBlockAt(idx, { type, content: text });

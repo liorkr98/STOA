@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Loader2, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, ExternalLink, GripHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 // Timeframe → days mapping
@@ -106,13 +106,34 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
   const areaPath = `${linePath} L${xFor(pts[pts.length - 1].t).toFixed(1)},${padT + innerH} L${xFor(pts[0].t).toFixed(1)},${padT + innerH} Z`;
   const gradId = `chat-grad-${ticker}-${tf}`;
 
+  // Drag-to-report: when the user drags this chart into the report editor,
+  // we tell the editor to insert it as a real interactive stockchart block.
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("ai-type", "stockchart");
+    e.dataTransfer.setData("ai-text", ticker);
+    e.dataTransfer.effectAllowed = "copy";
+    // Optional: a nicer ghost image showing the ticker
+    const ghost = document.createElement("div");
+    ghost.textContent = `📊 ${ticker}`;
+    ghost.style.cssText = "position:absolute;top:-1000px;padding:8px 12px;background:#0f172a;color:white;font:bold 12px ui-monospace;border-radius:8px";
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 30, 15);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+  };
+
   return (
-    <a
-      href={`/stock?ticker=${ticker}`}
-      className="block bg-card border border-border rounded-xl my-2 overflow-hidden hover:border-primary/30 transition-all group"
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="bg-card border border-border rounded-xl my-2 overflow-hidden hover:border-primary/30 transition-all group cursor-grab active:cursor-grabbing"
+      title="Drag to report · Click to open full chart"
     >
-      {/* Header */}
-      <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+      {/* Header — click navigates, drag uses the parent's listener */}
+      <a
+        href={`/stock?ticker=${ticker}`}
+        onClick={e => e.stopPropagation()}
+        className="px-3 py-2 border-b border-border flex items-center justify-between gap-2 cursor-pointer"
+      >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="font-mono font-extrabold text-sm">${ticker}</span>
@@ -127,8 +148,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
             {isUp ? "+" : ""}{change.toFixed(2)}%
           </p>
         </div>
-        <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-      </div>
+      </a>
 
       {/* SVG chart */}
       <div ref={containerRef} className="px-1">
@@ -143,6 +163,16 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
           <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
       </div>
-    </a>
+
+      {/* Drag hint footer — appears on hover */}
+      <div className="px-3 py-1 border-t border-border bg-secondary/30 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+          <GripHorizontal className="w-2.5 h-2.5" /> Drag to report
+        </span>
+        <a href={`/stock?ticker=${ticker}`} onClick={e => e.stopPropagation()} className="text-[9px] text-primary hover:underline flex items-center gap-0.5">
+          Open <ExternalLink className="w-2.5 h-2.5" />
+        </a>
+      </div>
+    </div>
   );
 }
