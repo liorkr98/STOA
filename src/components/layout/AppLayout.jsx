@@ -13,10 +13,10 @@ import { base44 } from "@/api/base44Client";
 import AIChat from "@/components/editor/AIChat";
 
 const NAV_ITEMS = [
-  { path: "/", label: "Feed", icon: Home },
+  { path: "/", label: "Home", icon: Home },
+  { path: "/feed", label: "Feed", icon: LayoutDashboard },
   { path: "/stocks", label: "Markets", icon: TrendingUp },
   { path: "/editor", label: "Write", icon: PenLine },
-  { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
 ];
 
 export default function AppLayout() {
@@ -128,7 +128,7 @@ export default function AppLayout() {
       {location.pathname !== "/" && <AppFooter />}
 
       {/* Global AI analyst — available on every page except the editor (which has its own) */}
-      {location.pathname !== "/editor" && <AIChat />}
+      {!["/editor"].includes(location.pathname) && <AIChat />}
     </div>
   );
 }

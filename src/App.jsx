@@ -10,6 +10,7 @@ import { Toaster as SonnerToaster } from 'sonner';
 
 // Pages
 import HomeFeed from '@/pages/HomeFeed';
+import HomePageDashboard from '@/pages/HomePageDashboard';
 import ReportView from '@/pages/ReportView';
 import ReportEditor from '@/pages/ReportEditor';
 import AnalystDashboard from '@/pages/AnalystDashboard';
@@ -44,25 +45,14 @@ import CreatorAnalyticsPage from '@/pages/CreatorAnalyticsPage';
 import SavedReportsPage from '@/pages/SavedReportsPage';
 
 
-// Root route: landing for logged-out users, 24h splash for logged-in, else /feed
+// Root route: landing for logged-out, dashboard for logged-in
 function RootRoute() {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings } = useAuth();
   const isLoading = isLoadingAuth || isLoadingPublicSettings;
 
   if (isLoading) return <LandingPage />;
-
   if (!isAuthenticated) return <LandingPage />;
-
-  const lastVisit = localStorage.getItem('stoa_last_landing_visit');
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const shouldShowLanding = !lastVisit || parseInt(lastVisit) < oneDayAgo;
-
-  if (shouldShowLanding) {
-    localStorage.setItem('stoa_last_landing_visit', Date.now().toString());
-    return <LandingPage />;
-  }
-
-  return <Navigate to="/feed" replace />;
+  return <HomePageDashboard />;
 }
 
 const AuthenticatedApp = () => {
