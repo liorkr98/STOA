@@ -34,7 +34,7 @@ async function getMyWallet() {
   const list = await base44.entities.Wallet.filter({ created_by: me.email }).catch(() => []);
   if (list?.[0]) return { wallet: list[0], user: me };
   const created = await base44.entities.Wallet.create({
-    balance: 0, total_earned: 0, total_withdrawn: 0, ai_credits: 0,
+    balance: 0, total_earned: 0, total_withdrawn: 0, ai_credits: 50,
   });
   return { wallet: created, user: me };
 }

@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import StoaLogo from "@/components/StoaLogo";
 import { base44 } from "@/api/base44Client";
 import AIChat from "@/components/editor/AIChat";
+import InvestorOnboarding, { shouldShowInvestorOnboarding, markInvestorOnboardingDone } from "@/components/onboarding/InvestorOnboarding";
+import AnalystOnboarding, { shouldShowAnalystOnboarding, markAnalystOnboardingDone } from "@/components/onboarding/AnalystOnboarding";
 
 // Nav for analysts (creators) — full toolset including Write
 const NAV_ANALYST = [
@@ -33,8 +35,20 @@ export default function AppLayout() {
   const { isAuthenticated, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [walletBalance, setWalletBalance] = useState(null);
+  const [showInvestorOnboarding, setShowInvestorOnboarding] = useState(false);
+  const [showAnalystOnboarding, setShowAnalystOnboarding] = useState(false);
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
   const NAV_ITEMS = isAuthenticated && isAnalyst ? NAV_ANALYST : NAV_INVESTOR;
+
+  // Show onboarding for new users — check once user is loaded
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    if (isAnalyst) {
+      if (shouldShowAnalystOnboarding(user)) setShowAnalystOnboarding(true);
+    } else {
+      if (shouldShowInvestorOnboarding(user)) setShowInvestorOnboarding(true);
+    }
+  }, [isAuthenticated, user, isAnalyst]);
 
   // Poll wallet balance for header chip
   useEffect(() => {
@@ -230,6 +244,14 @@ export default function AppLayout() {
 
       {/* Global AI analyst — available on every page except the editor (which has its own) */}
       {!["/editor"].includes(location.pathname) && <AIChat />}
+
+      {/* Onboarding flows — shown once for new users */}
+      {showInvestorOnboarding && (
+        <InvestorOnboarding onClose={() => { setShowInvestorOnboarding(false); markInvestorOnboardingDone(); }} />
+      )}
+      {showAnalystOnboarding && (
+        <AnalystOnboarding onClose={() => { setShowAnalystOnboarding(false); markAnalystOnboardingDone(); }} />
+      )}
     </div>
   );
 }

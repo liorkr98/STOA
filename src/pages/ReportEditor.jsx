@@ -463,6 +463,18 @@ export default function ReportEditor() {
       const currentUser = await base44.auth.me();
       if (!currentUser) throw new Error("Not logged in.");
 
+      // ── Duplicate guard: same author + same title already published ──────
+      const existing = await base44.entities.Report.filter({
+        created_by: currentUser.email,
+        title: title.trim(),
+        status: "published",
+      }).catch(() => []);
+      if (existing?.length > 0) {
+        toast.error("You already have a published report with this title. Please rename it before publishing.");
+        setPublishing(false);
+        return;
+      }
+
       // ── Step 1: AI credits gate — read from wallet (source of truth) ─────
       const { wallet } = await loadMyWallet();
       const credits = wallet.ai_credits || 0;

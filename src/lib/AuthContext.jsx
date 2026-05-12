@@ -109,6 +109,12 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      // Clear stale watchlist data from other sessions/users
+      const storedOwner = localStorage.getItem('stoa_watchlist_owner');
+      if (storedOwner && storedOwner !== currentUser.email) {
+        localStorage.removeItem('stoa_watchlist');
+      }
+      localStorage.setItem('stoa_watchlist_owner', currentUser.email);
       // Track login/last_seen asynchronously (don't block auth)
       trackLogin(currentUser);
     } catch (error) {

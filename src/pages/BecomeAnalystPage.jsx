@@ -128,15 +128,15 @@ export default function BecomeAnalystPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <div className="relative h-32 overflow-hidden" style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%)" }}>
+      {/* Hero — pt-4 adds room so the sticky nav doesn't clip the top */}
+      <div className="relative overflow-hidden pt-4" style={{ minHeight: 120, background: "linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%)" }}>
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />
-        <div className="max-w-2xl mx-auto px-4">
+        <div className="max-w-2xl mx-auto px-4 pb-8">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
+            className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>

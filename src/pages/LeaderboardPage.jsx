@@ -45,7 +45,7 @@ export default function LeaderboardPage() {
       base44.entities.User.list("-accuracy_score", 50),
       base44.entities.Report.filter({ status: "published" }, "-created_date", 500).catch(() => []),
     ]).then(([data, rpts]) => {
-      setAnalysts((data || []).filter(u => (u.accuracy_score || 0) > 0));
+      setAnalysts((data || []).filter(u => u.role === "analyst" || u.role === "admin"));
       setAllReports(rpts || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
