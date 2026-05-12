@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { setMeta } from "@/lib/seo";
+import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
   ArrowLeft, UserPlus, FileText, Users, TrendingUp,
   Loader2, CheckCircle2, Share2, ChevronRight, Award, Lock,
@@ -262,10 +262,28 @@ export default function AnalystProfilePage() {
 
         if (userData) {
           setAnalyst(userData);
+          const displayName = userData.full_name || userData.email?.split("@")[0] || "Analyst";
+          const tagline = userData.tagline || "Verified analyst on STOA";
           setMeta({
-            title: `${userData.full_name || userData.email?.split("@")[0] || "Analyst"} — STOA`,
-            description: `Prediction accuracy track record. Follow ${userData.full_name || "this analyst"} on STOA.`,
-            image: userData.picture,
+            title:       `${displayName} — Analyst Profile`,
+            description: `${tagline}. ${userData.accuracy_score ? `${userData.accuracy_score.toFixed(1)}% prediction accuracy. ` : ""}Follow ${displayName}'s locked predictions on STOA.`,
+            image:       userData.picture,
+            type:        "profile",
+          });
+          // Person/Author JSON-LD — surfaces analyst as an author in Google
+          injectJsonLd("ld-analyst", {
+            "@context":    "https://schema.org",
+            "@type":       "Person",
+            name:          displayName,
+            description:   userData.bio || tagline,
+            image:         userData.picture,
+            url:           window.location.href,
+            knowsAbout:    userData.specialties || [],
+            sameAs:        [
+              userData.twitter_handle ? `https://x.com/${userData.twitter_handle}` : null,
+              userData.linkedin_username ? `https://linkedin.com/in/${userData.linkedin_username}` : null,
+              userData.website || null,
+            ].filter(Boolean),
           });
 
           if (me && me.email !== userData.email) {

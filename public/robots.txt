@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Disallow private/auth-only routes
+Disallow: /editor
+Disallow: /dashboard
+Disallow: /dm
+Disallow: /inbox
+Disallow: /wallet
+Disallow: /pay
+Disallow: /edit-profile
+Disallow: /become-analyst
+Disallow: /branding
+Disallow: /subscribers
+Disallow: /predictions
+Disallow: /analytics
+Disallow: /creator-analytics
+Disallow: /saved
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://stakify-f5b3c3a0.base44.app/sitemap.xml

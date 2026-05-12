@@ -333,10 +333,27 @@ export default function ReportView() {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": report.title,
-      "author": { "@type": "Person", "name": report.author_name },
+      "author": {
+        "@type": "Person",
+        "name": report.author_name,
+        "url": `${window.location.origin}/analyst/${(report.created_by || "").split("@")[0]}`,
+      },
       "datePublished": report.created_date,
-      "publisher": { "@type": "Organization", "name": "STOA", "url": "https://stakify-f5b3c3a0.base44.app" },
-      "description": report.excerpt,
+      "dateModified":  report.updated_date || report.created_date,
+      "publisher": {
+        "@type": "Organization",
+        "name": "STOA",
+        "url": "https://stakify-f5b3c3a0.base44.app",
+        "logo": { "@type": "ImageObject", "url": "https://stakify-f5b3c3a0.base44.app/og-image.png" },
+      },
+      "description":      report.excerpt,
+      "keywords":         (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean),
+      "image":            report.author_avatar || "https://stakify-f5b3c3a0.base44.app/og-image.png",
+      "mainEntityOfPage": window.location.href,
+      "about":            (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean).map(ticker => ({
+        "@type":       "Corporation",
+        "tickerSymbol": ticker,
+      })),
     });
   }, [report]);
 

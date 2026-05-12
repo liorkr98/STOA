@@ -409,14 +409,24 @@ export default function ReportEditor() {
     e.preventDefault();
     setDropIndicatorAt(null);
 
-    // Multi-block payload (e.g., dragging a compare-chart inserts one
-    // stockchart block per ticker)
+    // Multi-block payload (compare-chart). MUST do all inserts in a single
+    // setBlocks call — earlier version called insertBlockAt N times in a
+    // forEach loop which ran into React 18's setState batching: only the
+    // last functional updater's result was committed, so the user saw
+    // only 1 chart land in the report.
     const blocksJson = e.dataTransfer.getData("ai-blocks");
     if (blocksJson) {
       try {
-        const blocks = JSON.parse(blocksJson);
-        if (Array.isArray(blocks) && blocks.length > 0) {
-          blocks.forEach((b, i) => insertBlockAt(idx + i, b));
+        const newBlocks = JSON.parse(blocksJson);
+        if (Array.isArray(newBlocks) && newBlocks.length > 0) {
+          setBlocks(prev => {
+            const next = [...prev];
+            newBlocks.forEach((b, i) => {
+              next.splice(idx + i, 0, makeBlock(b.type || "text", b.content || ""));
+            });
+            pushHistory(next);
+            return next;
+          });
           return;
         }
       } catch {

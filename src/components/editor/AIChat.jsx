@@ -15,6 +15,32 @@ const CREDITS_KEY   = "stoa_ai_credits";
 const INITIAL_CREDITS = 100;
 const COST_PER_MSG  = 1;
 
+// ── Daily rate limit ─────────────────────────────────────────────────────────
+// Protects against runaway LLM bills (one user hammering the chat would
+// cost ~$0.015/msg × N/day). Free tier: 50 messages/day, then must wait
+// until tomorrow OR be an analyst (analysts get 200/day as a perk).
+// Tracked in localStorage so it survives reloads but doesn't need server state.
+const RATE_KEY = "stoa_ai_chat_rate";
+const FREE_DAILY_LIMIT     = 50;
+const ANALYST_DAILY_LIMIT  = 200;
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function getRateUsed() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RATE_KEY) || "{}");
+    return raw.date === getTodayKey() ? (raw.count || 0) : 0;
+  } catch { return 0; }
+}
+
+function incrementRate() {
+  const count = getRateUsed() + 1;
+  localStorage.setItem(RATE_KEY, JSON.stringify({ date: getTodayKey(), count }));
+  return count;
+}
+
 function getCredits() {
   const stored = localStorage.getItem(CREDITS_KEY);
   if (stored === null) {
@@ -294,12 +320,16 @@ export default function AIChat({ reportContent, onInsertBlock }) {
   const bottomRef     = useRef(null);
   const inputRef      = useRef(null);
 
-  // Init position after mount
+  // Init position after mount — clamp so the panel always fits the viewport
+  // (the panel is ~580px tall when expanded; if window is < 660px, anchor
+  // it to bottom-right with a small margin so the input is never clipped).
   useEffect(() => {
     if (open && !initialized.current) {
+      const PANEL_HEIGHT_ESTIMATE = 580;
+      const maxY = Math.max(0, window.innerHeight - PANEL_HEIGHT_ESTIMATE - 16);
       setPos({
         x: Math.max(20, window.innerWidth - 400),
-        y: 80,
+        y: Math.min(80, maxY), // never push below where the panel would clip
       });
       initialized.current = true;
     }
@@ -366,6 +396,15 @@ export default function AIChat({ reportContent, onInsertBlock }) {
       return;
     }
 
+    // Daily rate limit — protects against runaway LLM costs from one user
+    const used = getRateUsed();
+    const dailyLimit = FREE_DAILY_LIMIT; // analysts could get more — TODO once we
+                                          // pass user role into AIChat as a prop
+    if (used >= dailyLimit) {
+      toast.error(`Daily limit reached (${dailyLimit} messages). Resets at midnight UTC.`, { duration: 5000 });
+      return;
+    }
+
     setInput("");
 
     const userMsg = { id: mkId(), role: "user", content: userText };
@@ -423,6 +462,8 @@ Analyst:`;
       const { text: content, charts } = parseChartDirectives(rawContent);
       const blockType = detectBlockType(content);
 
+      // Increment daily rate counter (free tier limit protection)
+      incrementRate();
       // Deduct credit from wallet after successful response
       const creditRes = await spendAICredits(COST_PER_MSG, "AIChat message").catch(() => null);
       const remaining = creditRes?.remaining ?? credits;
@@ -577,7 +618,16 @@ Analyst:`;
           </div>
 
           {/* Message list */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ height: 340, maxHeight: 340 }}>
+          <div
+            className="flex-1 overflow-y-auto p-3 space-y-3"
+            style={{
+              // Shrinks the message list on short viewports so the input
+              // and quick-prompts stay visible. Was a fixed 340px which
+              // pushed the input below the fold on screens < 680px tall.
+              height:    "min(340px, calc(100vh - 280px))",
+              maxHeight: "min(340px, calc(100vh - 280px))",
+            }}
+          >
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" ? (

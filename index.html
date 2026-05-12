@@ -4,19 +4,68 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Crect x='2' y='5' width='28' height='4' rx='1' fill='%231e3a6e'/%3E%3Crect x='2' y='23' width='28' height='4' rx='1' fill='%231e3a6e'/%3E%3Crect x='3' y='9' width='7' height='14' rx='1' fill='%231e3a6e'/%3E%3Crect x='12.5' y='9' width='7' height='14' rx='1' fill='%231e3a6e'/%3E%3Crect x='22' y='9' width='7' height='14' rx='1' fill='%231e3a6e'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1e3a6e" />
     <link rel="manifest" href="/manifest.json" />
-    <title>STOA — Verified Financial Research</title>
-    <meta name="description" content="Follow verified analysts, track real predictions, and make smarter investment decisions backed by transparent data." />
-    <meta name="robots" content="index, follow" />
+
+    <title>STOA — Verified Financial Research &amp; Analyst Track Records</title>
+    <meta name="description" content="STOA is the platform where analysts publish stock predictions with locked entry prices and visible track records. Follow verified creators, see real hit rates, and build conviction backed by data — not vibes." />
+    <meta name="keywords" content="stock analysis, financial research, equity research, prediction track record, investment ideas, analyst ratings, AI market analyst, fact-checked reports" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="author" content="STOA" />
+
+    <!-- Open Graph -->
     <meta property="og:site_name" content="STOA" />
     <meta property="og:type" content="website" />
+    <meta property="og:title" content="STOA — Verified Financial Research" />
+    <meta property="og:description" content="Follow verified analysts with locked predictions and visible track records." />
     <meta property="og:image" content="https://stakify-f5b3c3a0.base44.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="STOA — Verified Financial Research" />
+    <meta name="twitter:description" content="Follow verified analysts with locked predictions and visible track records." />
+    <meta name="twitter:image" content="https://stakify-f5b3c3a0.base44.app/og-image.png" />
+
+    <!-- Performance: preconnect to the origins we actually hit -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://s3.tradingview.com" crossorigin />
     <link rel="preconnect" href="https://query1.finance.yahoo.com" />
-    <script src="https://s3.tradingview.com/tv.js"></script>
+    <link rel="preconnect" href="https://query2.finance.yahoo.com" />
+    <link rel="dns-prefetch" href="https://www.paypal.com" />
+
+    <!-- Organization structured data — appears in Google Knowledge Panel -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "STOA",
+      "url": "https://stakify-f5b3c3a0.base44.app",
+      "logo": "https://stakify-f5b3c3a0.base44.app/og-image.png",
+      "description": "Verified financial research platform with locked predictions and transparent analyst track records.",
+      "sameAs": []
+    }
+    </script>
+
+    <!-- WebSite structured data — enables Google sitelinks search box -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "STOA",
+      "url": "https://stakify-f5b3c3a0.base44.app",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://stakify-f5b3c3a0.base44.app/stocks?ticker={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <script src="https://s3.tradingview.com/tv.js" defer></script>
   </head>
   <body>
     <div id="root"></div>
