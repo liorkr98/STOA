@@ -43,6 +43,18 @@ import ScoringPage from '@/pages/ScoringPage';
 import AdminUsersPage from '@/pages/AdminUsersPage';
 import CreatorAnalyticsPage from '@/pages/CreatorAnalyticsPage';
 import SavedReportsPage from '@/pages/SavedReportsPage';
+import InboxPage from '@/pages/InboxPage';
+import BecomeAnalystPage from '@/pages/BecomeAnalystPage';
+
+// Guard: send investors to the upgrade flow before they can write
+function EditorRoute() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <SignIn />;
+  if (user && user.role !== "analyst" && user.role !== "admin") {
+    return <Navigate to="/become-analyst" replace />;
+  }
+  return <ReportEditor />;
+}
 
 
 // Root route: landing for logged-out, dashboard for logged-in
@@ -105,10 +117,12 @@ const AuthenticatedApp = () => {
         <Route path="/accessibility" element={<AccessibilityPage />} />
 
         {/* Auth-required routes */}
-        <Route path="/editor" element={isAuthenticated ? <ReportEditor /> : <SignIn />} />
+        <Route path="/editor" element={<EditorRoute />} />
+        <Route path="/become-analyst" element={isAuthenticated ? <BecomeAnalystPage /> : <SignIn />} />
         <Route path="/dashboard" element={isAuthenticated ? <AnalystDashboard /> : <SignIn />} />
         <Route path="/edit-profile" element={isAuthenticated ? <EditProfilePage /> : <SignIn />} />
         <Route path="/dm" element={isAuthenticated ? <DMPage /> : <SignIn />} />
+        <Route path="/inbox" element={isAuthenticated ? <InboxPage /> : <SignIn />} />
         <Route path="/predictions" element={isAuthenticated ? <PredictionSummaryPage /> : <SignIn />} />
         <Route path="/analytics" element={isAuthenticated ? <AnalyticsPage /> : <SignIn />} />
         <Route path="/wallet" element={isAuthenticated ? <WalletPage /> : <SignIn />} />

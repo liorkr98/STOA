@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
+import InvestorHome from "@/pages/InvestorHome";
 import {
   PenLine, Star, TrendingUp, TrendingDown, RefreshCw, Trophy,
   ArrowRight, FileText, Clock, Flame, Users, BarChart3,
@@ -225,6 +226,10 @@ export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Investors see the consumer home; analysts/admins see the creator dashboard
+  const isAnalyst = user?.role === "analyst" || user?.role === "admin";
+  if (user && !isAnalyst) return <InvestorHome />;
+
   // left column
   const [drafts, setDrafts] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
@@ -401,6 +406,11 @@ export default function HomePageDashboard() {
             <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer">
               <PenLine className="w-3.5 h-3.5" />
               <span className="text-sm font-bold leading-none">Write</span>
+            </div>
+          </Link>
+          <Link to="/analyst">
+            <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-secondary transition-colors cursor-pointer">
+              <span className="text-sm font-semibold leading-none text-foreground">View public profile →</span>
             </div>
           </Link>
         </div>
