@@ -74,11 +74,17 @@ function fmtCap(n) {
 // ── Stock card ───────────────────────────────────────────────────────────────
 function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
   const isUp = (stock.change ?? 0) >= 0;
+  // NOTE: outer is a div (not button) so the star button can be a real nested
+  // interactive element. Nested <button> inside <button> is invalid HTML and
+  // caused the star clicks to be swallowed in Firefox/Safari.
   return (
     <div className="relative group">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className="w-full bg-card border border-border rounded-xl p-3 text-left hover:border-primary/40 hover:shadow-sm transition-all"
+        onKeyDown={e => (e.key === "Enter" || e.key === " ") && onClick?.()}
+        className="cursor-pointer bg-card border border-border rounded-xl p-3 hover:border-primary/40 hover:shadow-sm transition-all"
       >
         <div className="flex items-start justify-between mb-1">
           <span className="font-mono font-bold text-sm">{stock.symbol}</span>
@@ -99,12 +105,18 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
         {fmtCap(stock.mktCap) && (
           <p className="text-[10px] text-muted-foreground mt-1">{fmtCap(stock.mktCap)}</p>
         )}
-      </button>
-      {/* Watchlist star */}
+      </div>
+      {/* Watchlist star — now a sibling button, not nested */}
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); onToggleWatch(stock.symbol, stock.name); }}
-        className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full ${isWatched ? "opacity-100 text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
+        className={`absolute top-2 right-2 transition-opacity p-1.5 rounded-full bg-card/80 backdrop-blur-sm border border-transparent hover:border-amber-200 ${
+          isWatched
+            ? "opacity-100 text-amber-500"
+            : "opacity-60 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-amber-500"
+        }`}
         title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+        aria-label={isWatched ? "Remove from watchlist" : "Add to watchlist"}
       >
         <Star className={`w-3.5 h-3.5 ${isWatched ? "fill-amber-500" : ""}`} />
       </button>
@@ -113,8 +125,11 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
 }
 
 // ── Watchlist row ────────────────────────────────────────────────────────────
-function WatchlistRow({ stock, onRemove, onClick }) {
+// `isLoading` lets us distinguish "fetch in flight" from "fetch failed silently".
+// Without it, a failed quote fetch would leave the row showing "Loading…" forever.
+function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
   const isUp = (stock.change ?? 0) >= 0;
+  const hasPrice = stock.price != null;
   return (
     <div
       onClick={onClick}
@@ -126,19 +141,23 @@ function WatchlistRow({ stock, onRemove, onClick }) {
           <span className="text-xs text-muted-foreground truncate hidden sm:block">{stock.name}</span>
         </div>
       </div>
-      {stock.price != null ? (
+      {hasPrice ? (
         <>
           <span className="text-sm font-bold">${Number(stock.price).toFixed(2)}</span>
           <span className={`text-xs font-semibold w-16 text-right flex items-center justify-end gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
           </span>
         </>
+      ) : isLoading ? (
+        <span className="text-xs text-muted-foreground italic">Loading…</span>
       ) : (
-        <span className="text-xs text-muted-foreground">Loading…</span>
+        <span className="text-xs text-muted-foreground">—</span>
       )}
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); onRemove(stock.symbol); }}
         className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-loss transition-all p-1 rounded"
+        aria-label={`Remove ${stock.symbol} from watchlist`}
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -329,6 +348,7 @@ export default function StocksPage() {
                 <WatchlistRow
                   key={w.symbol}
                   stock={live || w}
+                  isLoading={watchlistLoading && !live}
                   onRemove={removeFromWatchlist}
                   onClick={() => navigate(`/stock?ticker=${w.symbol}`)}
                 />

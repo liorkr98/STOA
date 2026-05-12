@@ -50,6 +50,7 @@ export async function fetchFundamentals(ticker) {
     dividendYield:  sd?.dividendYield?.raw,
     roe:            fd?.returnOnEquity?.raw,
     roa:            fd?.returnOnAssets?.raw,
+    revenue:        fd?.totalRevenue?.raw,
     revenueGrowth:  fd?.revenueGrowth?.raw,
     grossMargin:    fd?.grossMargins?.raw,
     debtToEquity:   fd?.debtToEquity?.raw,

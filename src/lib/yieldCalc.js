@@ -13,10 +13,12 @@ export function computeAvgYield(reports) {
     const lock = r.prediction_lock_price;
     const exit = r.prediction_resolved_price;
     const action = (r.prediction_action || "").toLowerCase();
-    if (action === "short") return ((lock - exit) / lock) * 100;
-    return ((exit - lock) / lock) * 100; // Long or Hold
-  });
+    if (action === "short" || action === "sell") return ((lock - exit) / lock) * 100;
+    if (action === "long" || action === "buy")   return ((exit - lock) / lock) * 100;
+    return null; // Hold — accuracy signal only, not a return call
+  }).filter(y => y !== null);
 
+  if (yields.length === 0) return null;
   const avg = yields.reduce((s, v) => s + v, 0) / yields.length;
   return parseFloat(avg.toFixed(1));
 }

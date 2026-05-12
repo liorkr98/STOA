@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Lock, ArrowLeft, Shield, Zap, Loader2, CheckCircle2 } from "lucide-react";
+import { Check, Lock, ArrowLeft, Shield, Zap, Loader2, CheckCircle2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -12,16 +12,33 @@ const SUBSCRIPTION_PLANS = [
   { key: "pro", label: "Pro", price: 29, description: "For serious analysts", features: ["Everything in Basic", "Locked predictions access", "Direct analyst DMs", "Weekly live Q&A", "Export reports to PDF", "Early access to reports"], highlight: true },
 ];
 
-function SuccessScreen({ mode }) {
+const CREDIT_PACKS = [
+  { credits: 50,  price: 5,  label: "Starter",  popular: false },
+  { credits: 120, price: 10, label: "Creator",  popular: true  },
+  { credits: 350, price: 25, label: "Pro",       popular: false },
+];
+
+function SuccessScreen({ mode, credits }) {
   const navigate = useNavigate();
   return (
     <div className="max-w-sm mx-auto px-4 py-16 text-center">
       <CheckCircle2 className="w-12 h-12 text-gain mx-auto mb-4" />
       <h2 className="text-xl font-bold mb-2">
-        {mode === 'report' ? 'Report Unlocked!' : mode === 'boost' ? 'Boost Activated!' : 'Subscription Active!'}
+        {mode === 'report'  ? 'Report Unlocked!'
+        : mode === 'boost'  ? 'Boost Activated!'
+        : mode === 'credits'? `${credits} Credits Added!`
+        : 'Subscription Active!'}
       </h2>
-      <p className="text-sm text-muted-foreground mb-6">Your payment was processed successfully.</p>
-      <Button onClick={() => navigate('/')}>Back to Feed</Button>
+      <p className="text-sm text-muted-foreground mb-6">
+        {mode === 'credits'
+          ? `${credits} AI credits have been added to your wallet.`
+          : 'Your payment was processed successfully.'}
+      </p>
+      <div className="flex gap-2 justify-center">
+        {mode === 'credits'
+          ? <Button onClick={() => navigate('/wallet')}>View Wallet</Button>
+          : <Button onClick={() => navigate('/')}>Back to Feed</Button>}
+      </div>
     </div>
   );
 }
@@ -72,35 +89,58 @@ export default function PaymentPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get("mode") || "subscription";
   const reportTitle = urlParams.get("title") || "Premium Report";
-  const reportPrice = parseFloat(urlParams.get("price") || "4.99");
-  const analystName = urlParams.get("analyst") || "";
+  const priceParam   = parseFloat(urlParams.get("price") || "0");
+  const reportPrice  = priceParam || 4.99;
+  const analystName  = urlParams.get("analyst") || "";
   const analystEmail = urlParams.get("analystEmail") || "";
+  const creditsCount = parseInt(urlParams.get("credits") || "0");
+  const creditsPrice = priceParam || 5;
+  const creditsLabel = urlParams.get("label") || "Starter";
   const [selectedPlan, setSelectedPlan] = useState("pro");
+  const [selectedPack, setSelectedPack] = useState(CREDIT_PACKS[1]);
 
   if (urlParams.get("success") === "true" || urlParams.get("subscription") === "success" || urlParams.get("analyst_sub") === "success") {
-    return <SuccessScreen mode={mode === "report" ? "report" : "subscription"} />;
+    const addedCredits = parseInt(urlParams.get("addedCredits") || "0");
+    return <SuccessScreen mode={mode === "report" ? "report" : mode === "credits" ? "credits" : "subscription"} credits={addedCredits} />;
   }
   if (urlParams.get("boost") === "success") {
     return <SuccessScreen mode="boost" />;
   }
 
   const handleSuccess = async () => {
-    if (mode === "report" || mode === "analyst") {
-      try {
-        const user = await base44.auth.me();
-        if (mode === "report") {
-          const liked = await base44.entities.Like.create({ report_id: urlParams.get("reportId"), user_email: user.email }).catch(() => null);
-        } else if (mode === "analyst") {
-          await base44.entities.Subscription.create({
-            subscriber_email: user.email,
-            analyst_email: analystEmail,
-            analyst_name: analystName,
-            status: "active",
-            plan: "monthly",
+    try {
+      const user = await base44.auth.me();
+      if (mode === "report") {
+        await base44.entities.Like.create({ report_id: urlParams.get("reportId"), user_email: user.email }).catch(() => null);
+      } else if (mode === "analyst") {
+        await base44.entities.Subscription.create({
+          subscriber_email: user.email,
+          analyst_email: analystEmail,
+          analyst_name: analystName,
+          status: "active",
+          plan: "monthly",
+        }).catch(() => null);
+      } else if (mode === "credits") {
+        const pack = creditsCount > 0 ? { credits: creditsCount, price: creditsPrice } : selectedPack;
+        // Record transaction
+        await base44.entities.WalletTransaction.create({
+          type: "credits",
+          credits: pack.credits,
+          amount: pack.price,
+          status: "completed",
+          note: `Purchased ${pack.credits} AI credits`,
+        }).catch(() => null);
+        // Update user ai_credits
+        const wallets = await base44.entities.Wallet.filter({ created_by: user.email });
+        if (wallets[0]) {
+          await base44.entities.Wallet.update(wallets[0].id, {
+            ai_credits: (wallets[0].ai_credits || 0) + pack.credits,
           }).catch(() => null);
         }
-      } catch {}
-    }
+        navigate(`?success=true&mode=credits&addedCredits=${pack.credits}`);
+        return;
+      }
+    } catch {}
     navigate("?success=true");
   };
 
@@ -179,6 +219,64 @@ export default function PaymentPage() {
           <PayPalButton amount={reportPrice} description={`Boost: ${reportTitle}`} onSuccess={handleSuccess} />
           <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
             <Shield className="w-3 h-3" /> Secured by PayPal
+          </p>
+        </div>
+      )}
+
+      {mode === "credits" && (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" /> Buy AI Credits
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6">Credits are used for AI analysis, fact-checking, and prediction assistance.</p>
+
+          {creditsCount > 0 ? (
+            /* Direct pack from URL (wallet page link) */
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 mb-6 text-center">
+              <Zap className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-3xl font-black text-amber-600">{creditsCount}</p>
+              <p className="text-sm text-muted-foreground mb-1">AI Credits — {creditsLabel} Pack</p>
+              <p className="text-xl font-bold">${creditsPrice.toFixed(2)}</p>
+            </div>
+          ) : (
+            /* Pack picker */
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {CREDIT_PACKS.map(pack => (
+                <button
+                  key={pack.credits}
+                  onClick={() => setSelectedPack(pack)}
+                  className={`relative rounded-xl border-2 p-3 text-center transition-all ${selectedPack.credits === pack.credits ? "border-amber-400 bg-amber-50" : "border-border hover:border-amber-300"}`}
+                >
+                  {pack.popular && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+                      Best Value
+                    </span>
+                  )}
+                  <Zap className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                  <p className="text-xl font-black text-amber-600">{pack.credits}</p>
+                  <p className="text-[10px] text-muted-foreground mb-1">credits</p>
+                  <p className="text-sm font-bold">${pack.price}</p>
+                  <p className="text-[10px] text-muted-foreground">{(pack.price / pack.credits * 100).toFixed(1)}¢ ea</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ul className="space-y-2 mb-6">
+            {["AI report analysis (10 cr.)", "Fact checker per report (5 cr.)", "Prediction assistance (15 cr.)", "Credits never expire"].map((f, i) => (
+              <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                <Check className="w-4 h-4 text-amber-500" /> {f}
+              </li>
+            ))}
+          </ul>
+
+          <PayPalButton
+            amount={creditsCount > 0 ? creditsPrice : selectedPack.price}
+            description={`STOA AI Credits — ${creditsCount > 0 ? creditsCount : selectedPack.credits} credits`}
+            onSuccess={handleSuccess}
+          />
+          <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> Secured by PayPal · One-time purchase
           </p>
         </div>
       )}

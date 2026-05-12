@@ -7,11 +7,11 @@ const FOOTER_COLS = [
   {
     label: "For Creators",
     links: [
+      { label: "Become an Analyst", path: "/become-analyst" },
       { label: "Start Writing", path: "/editor" },
-      { label: "Dashboard", path: "/dashboard" },
-      { label: "Branding", path: "/branding" },
-      { label: "Wallet & Earnings", path: "/wallet" },
-      { label: "AI Research Tool", path: "/editor" },
+      { label: "My Public Profile", path: "/analyst" },
+      { label: "Creator Dashboard", path: "/dashboard" },
+      { label: "Wallet & AI Credits", path: "/wallet" },
     ],
   },
   {
