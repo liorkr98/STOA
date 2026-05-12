@@ -21,6 +21,7 @@ import EditorBlock from "@/components/editor/EditorBlock";
 import StockChartBlock from "@/components/editor/StockChartBlock";
 import ImageBlock from "@/components/editor/ImageBlock";
 import PredictionBlock from "@/components/editor/PredictionBlock";
+import { fetchLockPrice } from "@/lib/priceLockProvider";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
 import EditorSettingsPanel from "@/components/editor/EditorSettingsPanel";
@@ -412,6 +413,16 @@ export default function ReportEditor() {
   };
 
   // ── Publish ───────────────────────────────────────────────────────────────
+  // Publishing is the commitment moment:
+  //   1. Validate content
+  //   2. Verify AI credits (fact-check is paid work)
+  //   3. If there's a prediction → fetch live price NOW, lock as entry
+  //   4. Run AI fact check
+  //   5. Write to DB with status=published
+  //   6. Deduct credits + log transaction
+  // Draft saves do NONE of this — drafting is free and fast.
+  const PUBLISH_COST = 10; // AI credits
+
   const handlePublish = async () => {
     if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
     const validBlocks = sanitizeBlocks(blocks);
@@ -424,7 +435,36 @@ export default function ReportEditor() {
       const currentUser = await base44.auth.me();
       if (!currentUser) throw new Error("Not logged in.");
 
-      // Freeze any unfrozen stock charts so they become read-only after publish
+      // ── Step 1: AI credits gate ───────────────────────────────────────────
+      const credits = currentUser.ai_credits_balance ?? 0;
+      if (credits < PUBLISH_COST) {
+        toast.error(`Need ${PUBLISH_COST} AI credits to publish · You have ${credits}`, {
+          action: { label: "Buy credits", onClick: () => navigate("/wallet") },
+          duration: 6000,
+        });
+        return;
+      }
+
+      // ── Step 2: Lock live price at publish moment (if prediction) ─────────
+      // Uses the multi-source provider: Finnhub real-time → Polygon → Yahoo fallback.
+      // The source is stored on the report so we can show data provenance.
+      let lockPrice  = null;
+      let lockTime   = null;
+      let lockSource = null;
+      if (predictionData?.ticker && predictionData?.action) {
+        toast.info(`Locking live price for $${predictionData.ticker}…`, { duration: 1800 });
+        try {
+          const locked = await fetchLockPrice(predictionData.ticker);
+          lockPrice  = locked.price;
+          lockTime   = locked.timestamp;
+          lockSource = locked.source;
+        } catch {
+          toast.error(`Could not fetch live price for $${predictionData.ticker}. Publish aborted — try again in a moment.`);
+          return;
+        }
+      }
+
+      // ── Step 3: Freeze stock chart blocks ─────────────────────────────────
       const frozenBlocks = validBlocks.map(b =>
         b.type === "stockchart" && !b.frozen ? { ...b, frozen: true } : b
       );
@@ -439,10 +479,10 @@ export default function ReportEditor() {
         ...frozenBlocks.filter(b => b.type === "stockchart" && b.ticker).map(b => b.ticker),
       ].filter((v, i, a) => v && a.indexOf(v) === i);
 
-      // Fact check
+      // ── Step 4: AI fact check ─────────────────────────────────────────────
       let factCheckJson = null;
       try {
-        toast.info("Running AI fact check...", { duration: 2500 });
+        toast.info("Running AI fact check…", { duration: 2500 });
         const res = await base44.integrations.Core.InvokeLLM({
           model: "claude_sonnet_4_6",
           prompt: `Fact-check this financial report. Return ONLY valid JSON with no markdown:
@@ -454,6 +494,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         if (match) factCheckJson = match[0];
       } catch (e) { console.warn("Fact check skipped:", e); }
 
+      // ── Step 5: Write report record ───────────────────────────────────────
       const created = await base44.entities.Report.create({
         title,
         content_blocks:           JSON.stringify(frozenBlocks),
@@ -465,8 +506,9 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         prediction_action:        predictionData?.action       || null,
         prediction_ticker:        predictionData?.ticker       || null,
         prediction_target_price:  predictionData?.targetPrice  || null,
-        prediction_lock_price:    predictionData?.lockPrice    || null,
-        prediction_lock_time:     predictionData?.lockTime     || null,
+        prediction_lock_price:    lockPrice,                                 // ← snapshot AT publish
+        prediction_lock_time:     lockTime,                                  // ← snapshot AT publish
+        prediction_lock_source:   lockSource,                                // ← which data provider
         prediction_timeframe:     predictionData?.timeframe    || null,
         prediction_stop_loss:     predictionData?.stopLoss     || null,
         prediction_portfolio_pct: predictionData?.portfolioPct || null,
@@ -479,7 +521,22 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         likes: 0,
       });
 
-      toast.success("Report published!");
+      // ── Step 6: Deduct AI credits + log transaction ───────────────────────
+      try {
+        await base44.entities.AICreditsTransaction.create({
+          user_id: currentUser.id,
+          amount:  -PUBLISH_COST,
+          reason:  `Publish: ${title.slice(0, 50)}`,
+        });
+        await base44.entities.User.update(currentUser.id, {
+          ai_credits_balance: credits - PUBLISH_COST,
+        });
+      } catch (e) { console.warn("Credit deduction failed (non-fatal):", e); }
+
+      toast.success(lockPrice
+        ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
+        : "Report published!"
+      );
       setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
     } catch (err) {
       toast.error("Failed to publish: " + (err?.message || "Unknown error"));
@@ -968,7 +1025,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 </button>
                 {showPrediction && (
                   <div className="mt-3">
-                    <PredictionBlock onPublish={(p) => { setPredictionData(p); toast.success(`Prediction locked: ${p.action} $${p.ticker}`); }} />
+                    <PredictionBlock initialData={predictionData} onChange={setPredictionData} />
                   </div>
                 )}
               </div>

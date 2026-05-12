@@ -14,6 +14,7 @@ import TickerTag from "@/components/feed/TickerTag";
 import ShareMenu from "@/components/feed/ShareMenu";
 import CommentsSection from "@/components/report/CommentsSection";
 import FactChecker from "@/components/report/FactChecker";
+import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 
@@ -432,6 +433,13 @@ export default function ReportView() {
       </div>
 
       {prediction && <PredictionBadge prediction={prediction} currentPrice={livePrice} />}
+
+      {/* Visual proof — trajectory of the underlying since lock */}
+      {report.prediction_lock_price && report.prediction_lock_time && (
+        <div className="my-6">
+          <PredictionTrajectoryChart report={report} />
+        </div>
+      )}
 
       <div className="mb-8">
         {(!isPremium || isPaid || isAuthor) ? (
