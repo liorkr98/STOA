@@ -232,6 +232,7 @@ export default function HomePageDashboard() {
 
   // left column
   const [drafts, setDrafts] = useState([]);
+  const [myPublished, setMyPublished] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [watchData, setWatchData] = useState([]);
   const [wlLoading, setWlLoading] = useState(false);
@@ -276,7 +277,7 @@ export default function HomePageDashboard() {
     const load = async () => {
       try {
         const [myReports, allPub, users, follows] = await Promise.all([
-          base44.entities.Report.filter({ created_by: email }, "-updated_date", 10).catch(() => []),
+          base44.entities.Report.filter({ created_by: email }, "-updated_date", 30).catch(() => []),
           base44.entities.Report.filter({ status: "published" }, "-likes", 100).catch(() => []),
           base44.entities.User.list("-accuracy_score", 15).catch(() => []),
           base44.entities.Follow.filter({ follower_email: email }, "-created_date", 100).catch(() => []),
@@ -285,8 +286,9 @@ export default function HomePageDashboard() {
         // drafts
         setDrafts((myReports || []).filter(r => r.status !== "published").slice(0, 5));
 
-        // my stats
+        // my stats + published reports for the left column
         const myPub = (myReports || []).filter(r => r.status === "published");
+        setMyPublished(myPub.slice(0, 6));
         const me = users.find(u => u.email === email) || user;
         setMyStats({
           accuracy: me.accuracy_score || 0,
@@ -444,6 +446,88 @@ export default function HomePageDashboard() {
             ) : (
               <div className="space-y-2">
                 {drafts.map(d => <DraftCard key={d.id} report={d} />)}
+              </div>
+            )}
+          </section>
+
+          {/* My Published Reports */}
+          <section className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                My Reports
+                {myPublished.length > 0 && (
+                  <span className="text-xs text-muted-foreground font-normal">({myStats?.reports || myPublished.length})</span>
+                )}
+              </h2>
+              <Link to="/analyst" className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                See all <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            {myPublished.length === 0 ? (
+              <div className="text-center py-8 border border-dashed border-border rounded-xl">
+                <FileText className="w-7 h-7 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground mb-1">You haven't published yet</p>
+                <p className="text-xs text-muted-foreground/70 mb-3">Publish your first report to start building your track record</p>
+                <Button size="sm" onClick={() => navigate("/editor")} className="text-xs gap-1.5">
+                  <PenLine className="w-3.5 h-3.5" /> Write a report
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myPublished.map(r => {
+                  const dir = r.prediction_direction || r.prediction_action;
+                  const outcome = r.prediction_outcome;
+                  const isHit  = outcome === "hit" || outcome === "near";
+                  const isMiss = outcome === "miss";
+                  const isPending = !outcome || outcome === "pending";
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/report?id=${r.id}`)}
+                      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/30 transition-all group"
+                    >
+                      {dir && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
+                          {dir}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                          {r.title || "Untitled report"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {r.stock_ticker && (
+                            <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                          )}
+                          {!isPending && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              isHit  ? "bg-green-100 text-green-700"
+                              : isMiss ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-700"
+                            }`}>
+                              {(outcome || "").toUpperCase()}
+                            </span>
+                          )}
+                          {isPending && r.prediction_action && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+                              ACTIVE
+                            </span>
+                          )}
+                          {r.views > 0 && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              👁 {r.views}
+                            </span>
+                          )}
+                          {r.likes > 0 && (
+                            <span className="text-[10px] text-muted-foreground">♥ {r.likes}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>
