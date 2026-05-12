@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { setMeta } from "@/lib/seo";
 import {
-  ArrowLeft, UserPlus, BarChart3, FileText, Star, Target, Users, Trophy,
-  TrendingUp, Eye, Loader2, CheckCircle2, Share2, ExternalLink,
-  Flame, Shield, Clock, ChevronRight, BookOpen, Award, Zap, Lock
+  ArrowLeft, UserPlus, FileText, Users, TrendingUp,
+  Loader2, CheckCircle2, Share2, ChevronRight, Award, Lock,
+  Pencil, Eye, EyeOff, GripVertical, Globe, Twitter, Linkedin,
+  MessageSquare, Save, X, Plus, Pin, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +19,29 @@ import { computeScore } from "@/lib/scoringEngine";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 
+// ── Config helpers ────────────────────────────────────────────────────────────
+const DEFAULT_CONFIG = {
+  banner:         "slate",
+  hidden_stats:   [],
+  sections_order: ["Reports", "Track Record", "About"],
+  pinned_reports: [],
+};
+
+const BANNER_THEMES = {
+  slate:   { label: "Dark",    bg: "linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",  dot: "#334155" },
+  blue:    { label: "Ocean",   bg: "linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%)",  dot: "#3b82f6" },
+  emerald: { label: "Forest",  bg: "linear-gradient(135deg,#064e3b 0%,#059669 100%)",  dot: "#34d399" },
+  purple:  { label: "Royal",   bg: "linear-gradient(135deg,#3b0764 0%,#7c3aed 100%)",  dot: "#a855f7" },
+  rose:    { label: "Crimson", bg: "linear-gradient(135deg,#881337 0%,#e11d48 100%)",  dot: "#fb7185" },
+  amber:   { label: "Gold",    bg: "linear-gradient(135deg,#78350f 0%,#d97706 100%)",  dot: "#fbbf24" },
+};
+
+function parseConfig(analyst) {
+  try { return { ...DEFAULT_CONFIG, ...JSON.parse(analyst?.profile_config || "{}") }; }
+  catch { return { ...DEFAULT_CONFIG }; }
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 function getTimeframeBucket(tf) {
   if (!tf) return null;
   const t = tf.toLowerCase();
@@ -41,11 +65,7 @@ function OutcomeBadge({ outcome }) {
 }
 
 function PredictionRow({ report }) {
-  const isHit = report.prediction_outcome === "hit" || report.prediction_outcome === "near";
-  const isMiss = report.prediction_outcome === "miss";
-  const isPending = !report.prediction_outcome || report.prediction_outcome === "pending";
   const yld = report.prediction_yield;
-
   return (
     <div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
       <div className="flex-1 min-w-0">
@@ -73,7 +93,7 @@ function PredictionRow({ report }) {
   );
 }
 
-function ReportMiniCard({ report }) {
+function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
   const directionColor = report.prediction_direction === "LONG"
     ? "text-green-600 bg-green-50 border-green-200"
     : report.prediction_direction === "SHORT"
@@ -81,52 +101,143 @@ function ReportMiniCard({ report }) {
     : "text-muted-foreground bg-secondary border-border";
 
   return (
-    <Link to={`/report/${report.id}`} className="block group">
-      <div className="border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          {report.prediction_direction && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${directionColor}`}>
-              {report.prediction_direction}
+    <div className="relative group">
+      <Link to={`/report/${report.id}`} className="block">
+        <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-amber-300 ring-1 ring-amber-200" : "border-border"}`}>
+          {isPinned && (
+            <span className="absolute -top-2 left-3 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">
+              📌 Pinned
             </span>
           )}
-          {report.prediction_outcome && report.prediction_outcome !== "pending" && (
-            <OutcomeBadge outcome={report.prediction_outcome} />
+          <div className="flex items-start justify-between gap-2 mb-2">
+            {report.prediction_direction && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${directionColor}`}>
+                {report.prediction_direction}
+              </span>
+            )}
+            {report.prediction_outcome && report.prediction_outcome !== "pending" && (
+              <OutcomeBadge outcome={report.prediction_outcome} />
+            )}
+          </div>
+          <h4 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors font-serif mb-2">
+            {report.title || "Untitled Report"}
+          </h4>
+          {report.stock_ticker && (
+            <p className="text-xs font-mono font-bold text-primary/80 mb-1">{report.stock_ticker}</p>
           )}
+          <p className="text-[11px] text-muted-foreground">
+            {report.created_date ? new Date(report.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+          </p>
         </div>
-        <h4 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors font-serif mb-2">
-          {report.title || "Untitled Report"}
-        </h4>
-        {report.stock_ticker && (
-          <p className="text-xs font-mono font-bold text-primary/80 mb-1">{report.stock_ticker}</p>
-        )}
-        <p className="text-[11px] text-muted-foreground">
-          {report.created_date ? new Date(report.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-        </p>
-      </div>
-    </Link>
+      </Link>
+      {isEditMode && (
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onTogglePin(report.id); }}
+          className={`absolute top-2 right-2 p-1.5 rounded-lg text-xs font-bold transition-all ${
+            isPinned
+              ? "bg-amber-100 text-amber-700 border border-amber-300"
+              : "bg-card border border-border text-muted-foreground hover:text-amber-600 hover:border-amber-300 opacity-0 group-hover:opacity-100"
+          }`}
+          title={isPinned ? "Unpin" : "Pin to top"}
+        >
+          📌
+        </button>
+      )}
+    </div>
   );
 }
 
-const TABS = ["Reports", "Track Record", "About"];
+// ── Stat definitions ──────────────────────────────────────────────────────────
+const ALL_STATS = [
+  { key: "score",         label: "Score",         sub: s => `${s.total} calls`,                      bg: "bg-primary/5 border border-primary/10" },
+  { key: "winRate",       label: "Win Rate",       sub: s => s.total > 0 ? `${s.hits}W · ${s.misses}L` : "",  bg: "bg-secondary" },
+  { key: "profitFactor",  label: "Profit Factor",  sub: () => "avg win / avg loss",                   bg: "bg-secondary" },
+  { key: "avgReturn",     label: "Avg Return",     sub: () => "per call",                             bg: "bg-secondary" },
+  { key: "followers",     label: "Followers",      sub: (s, a) => `${(a.published || 0)} reports`,   bg: "bg-secondary" },
+];
 
+function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditMode, onToggle, onClick }) {
+  const renderValue = () => {
+    if (statKey === "score")
+      return <span className="text-primary">{scoring.total >= 5 ? scoring.score : "—"}</span>;
+    if (statKey === "winRate")
+      return <span className={scoring.rawWR == null ? "text-muted-foreground" : scoring.rawWR >= 0.6 ? "text-green-600" : scoring.rawWR >= 0.45 ? "text-amber-600" : "text-red-500"}>
+        {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—"}
+      </span>;
+    if (statKey === "profitFactor")
+      return <span className={scoring.profitFactor == null ? "text-muted-foreground" : scoring.profitFactor >= 2 ? "text-green-600" : scoring.profitFactor >= 1 ? "text-amber-600" : "text-red-500"}>
+        {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—"}
+      </span>;
+    if (statKey === "avgReturn")
+      return <span className={scoring.avgReturn == null ? "text-muted-foreground" : scoring.avgReturn >= 0 ? "text-green-600" : "text-red-500"}>
+        {scoring.avgReturn != null ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%` : "—"}
+      </span>;
+    if (statKey === "followers")
+      return <span>{(analyst.followers_count || 0).toLocaleString()}</span>;
+  };
+
+  const def  = ALL_STATS.find(s => s.key === statKey);
+  const subText = statKey === "followers"
+    ? `${publishedCount} reports`
+    : def?.sub(scoring, analyst) || "";
+
+  if (isHidden && !isEditMode) return null;
+
+  return (
+    <div
+      className={`relative text-center p-4 rounded-xl transition-all ${def?.bg || "bg-secondary"} ${
+        isHidden ? "opacity-30" : ""
+      } ${statKey === "score" && !isHidden && !isEditMode ? "cursor-pointer hover:bg-primary/10" : "cursor-default"}`}
+      onClick={!isEditMode && statKey === "score" && !isHidden ? onClick : undefined}
+    >
+      {isEditMode && (
+        <button
+          onClick={e => { e.stopPropagation(); onToggle(statKey); }}
+          className="absolute top-1.5 right-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isHidden ? <EyeOff className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5" />}
+        </button>
+      )}
+      <p className="text-2xl font-extrabold leading-none mb-1">{renderValue()}</p>
+      <p className="text-[11px] text-muted-foreground font-medium">{def?.label}</p>
+      {subText && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{subText}</p>}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
   const { username } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [analyst, setAnalyst] = useState(null);
-  const [myReports, setMyReports] = useState([]);
-  const [twits, setTwits] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [following, setFollowing] = useState(false);
+  const [analyst,       setAnalyst]       = useState(null);
+  const [myReports,     setMyReports]     = useState([]);
+  const [twits,         setTwits]         = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [currentUser,   setCurrentUser]   = useState(null);
+  const [following,     setFollowing]     = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [showAccModal, setShowAccModal] = useState(false);
-  const [showYieldModal, setShowYieldModal] = useState(false);
-  const [activeTab, setActiveTab] = useState("Reports");
-  const [copied, setCopied] = useState(false);
+  const [isSubscribed,  setIsSubscribed]  = useState(false);
+  const [showSubModal,  setShowSubModal]  = useState(false);
+  const [showAccModal,  setShowAccModal]  = useState(false);
+  const [activeTab,     setActiveTab]     = useState("Reports");
+  const [copied,        setCopied]        = useState(false);
 
+  // Edit mode state
+  const [isEditMode,  setIsEditMode]  = useState(false);
+  const [editConfig,  setEditConfig]  = useState(DEFAULT_CONFIG);
+  const [editBio,     setEditBio]     = useState("");
+  const [editTagline, setEditTagline] = useState("");
+  const [editSocial,  setEditSocial]  = useState({ twitter: "", linkedin: "", website: "" });
+  const [editSpecialties, setEditSpecialties] = useState([]);
+  const [newSpecialty,    setNewSpecialty]    = useState("");
+  const [saving,      setSaving]      = useState(false);
+
+  // Drag state for section reorder
+  const dragIdx = useRef(null);
+
+  // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
@@ -146,22 +257,25 @@ export default function AnalystProfilePage() {
         if (userData) {
           setAnalyst(userData);
           setMeta({
-            title: `${userData.full_name || userData.email?.split("@")[0] || "Analyst"} — Analyst Profile`,
+            title: `${userData.full_name || userData.email?.split("@")[0] || "Analyst"} — STOA`,
             description: `Prediction accuracy track record. Follow ${userData.full_name || "this analyst"} on STOA.`,
             image: userData.picture,
           });
 
           if (me && me.email !== userData.email) {
-            const follows = await base44.entities.Follow.filter({ follower_email: me.email, analyst_email: userData.email }).catch(() => []);
+            const [follows, subs] = await Promise.all([
+              base44.entities.Follow.filter({ follower_email: me.email, analyst_email: userData.email }).catch(() => []),
+              base44.entities.Subscription.filter({ subscriber_email: me.email, analyst_email: userData.email, status: "active" }).catch(() => []),
+            ]);
             setFollowing(follows.length > 0);
-            const subs = await base44.entities.Subscription.filter({ subscriber_email: me.email, analyst_email: userData.email, status: "active" }).catch(() => []);
             setIsSubscribed(subs.length > 0);
           }
 
-          const reports = await base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 20).catch(() => []);
+          const [reports, twitData] = await Promise.all([
+            base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 50).catch(() => []),
+            base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []),
+          ]);
           setMyReports(reports || []);
-
-          const twitData = await base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []);
           setTwits(twitData || []);
         }
       } finally {
@@ -171,6 +285,7 @@ export default function AnalystProfilePage() {
     load();
   }, [username]);
 
+  // ── Follow ────────────────────────────────────────────────────────────────
   const handleFollow = async () => {
     if (!currentUser || !analyst) return;
     setFollowLoading(true);
@@ -179,17 +294,17 @@ export default function AnalystProfilePage() {
         const follows = await base44.entities.Follow.filter({ follower_email: currentUser.email, analyst_email: analyst.email });
         for (const f of follows) await base44.entities.Follow.delete(f.id);
         await base44.entities.User.update(analyst.id, { followers_count: Math.max(0, (analyst.followers_count || 1) - 1) });
-        setAnalyst(prev => ({ ...prev, followers_count: Math.max(0, (prev.followers_count || 1) - 1) }));
+        setAnalyst(p => ({ ...p, followers_count: Math.max(0, (p.followers_count || 1) - 1) }));
         setFollowing(false);
       } else {
         await base44.entities.Follow.create({
           follower_email: currentUser.email,
-          analyst_email: analyst.email,
-          analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+          analyst_email:  analyst.email,
+          analyst_name:   analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
           analyst_avatar: analyst.picture || "",
         });
         await base44.entities.User.update(analyst.id, { followers_count: (analyst.followers_count || 0) + 1 });
-        setAnalyst(prev => ({ ...prev, followers_count: (prev.followers_count || 0) + 1 }));
+        setAnalyst(p => ({ ...p, followers_count: (p.followers_count || 0) + 1 }));
         setFollowing(true);
       }
     } finally {
@@ -197,20 +312,22 @@ export default function AnalystProfilePage() {
     }
   };
 
+  // ── Subscribe ─────────────────────────────────────────────────────────────
   const handleSubscribe = async () => {
     if (!currentUser || !analyst) return;
     await base44.entities.Subscription.create({
       subscriber_email: currentUser.email,
-      analyst_email: analyst.email,
-      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
-      analyst_avatar: analyst.picture || analyst.profile_picture || "",
-      status: "active",
-      plan: "monthly",
+      analyst_email:    analyst.email,
+      analyst_name:     analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+      analyst_avatar:   analyst.picture || "",
+      status:           "active",
+      plan:             "monthly",
     });
     setIsSubscribed(true);
     setShowSubModal(false);
   };
 
+  // ── Share ─────────────────────────────────────────────────────────────────
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopied(true);
@@ -218,6 +335,89 @@ export default function AnalystProfilePage() {
     });
   };
 
+  // ── Edit mode ─────────────────────────────────────────────────────────────
+  const enterEditMode = () => {
+    const cfg = parseConfig(analyst);
+    setEditConfig(cfg);
+    setEditBio(analyst.bio || "");
+    setEditTagline(analyst.tagline || "");
+    setEditSocial({
+      twitter:  analyst.twitter_handle   || "",
+      linkedin: analyst.linkedin_username || "",
+      website:  analyst.website          || "",
+    });
+    setEditSpecialties([...(analyst.specialties || [])]);
+    setIsEditMode(true);
+  };
+
+  // Auto-enter edit mode when ?edit=1 in URL (from /branding, /edit-profile redirects)
+  useEffect(() => {
+    if (!analyst || !currentUser) return;
+    const wantsEdit = searchParams.get("edit") === "1";
+    if (wantsEdit && analyst.id === currentUser.id && !isEditMode) {
+      enterEditMode();
+      // Strip ?edit=1 from URL so refresh doesn't re-trigger
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analyst, currentUser]);
+
+  const cancelEditMode = () => setIsEditMode(false);
+
+  const saveChanges = async () => {
+    if (!analyst || saving) return;
+    setSaving(true);
+    try {
+      const updates = {
+        profile_config:    JSON.stringify(editConfig),
+        bio:               editBio,
+        tagline:           editTagline,
+        twitter_handle:    editSocial.twitter,
+        linkedin_username: editSocial.linkedin,
+        website:           editSocial.website,
+        specialties:       editSpecialties,
+      };
+      const updated = await base44.entities.User.update(analyst.id, updates);
+      setAnalyst(prev => ({ ...prev, ...updates }));
+      setIsEditMode(false);
+    } catch {
+      // keep edit mode open on failure
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleHideStat = key =>
+    setEditConfig(c => ({
+      ...c,
+      hidden_stats: c.hidden_stats.includes(key)
+        ? c.hidden_stats.filter(k => k !== key)
+        : [...c.hidden_stats, key],
+    }));
+
+  const togglePinReport = id =>
+    setEditConfig(c => ({
+      ...c,
+      pinned_reports: c.pinned_reports.includes(id)
+        ? c.pinned_reports.filter(x => x !== id)
+        : [...c.pinned_reports, id],
+    }));
+
+  // Drag-to-reorder sections
+  const handleDragStart = (e, idx) => { dragIdx.current = idx; e.dataTransfer.effectAllowed = "move"; };
+  const handleDragOver  = e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  const handleDrop      = (e, dropIdx) => {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === dropIdx) return;
+    const order = [...editConfig.sections_order];
+    const [moved] = order.splice(dragIdx.current, 1);
+    order.splice(dropIdx, 0, moved);
+    setEditConfig(c => ({ ...c, sections_order: order }));
+    dragIdx.current = null;
+  };
+
+  // ── Guards ────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -231,38 +431,78 @@ export default function AnalystProfilePage() {
     </div>
   );
 
-  const isOwnProfile = currentUser && analyst.id === currentUser.id;
-  const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
-
-  const resolvedReports = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
-  const hitCount = resolvedReports.filter(r => r.prediction_outcome === "hit" || r.prediction_outcome === "near").length;
-  const computedYield = computeAvgYield(resolvedReports);
-  const displayYield = formatYield(computedYield);
-  const yieldColor = computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-green-600" : "text-red-500";
-
-  // New scoring
-  const scoring = computeScore(resolvedReports);
+  // ── Computed values ───────────────────────────────────────────────────────
+  const isOwnProfile     = currentUser && analyst.id === currentUser.id;
+  const displayName      = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const resolvedReports  = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
+  const hitCount         = resolvedReports.filter(r => r.prediction_outcome === "hit" || r.prediction_outcome === "near").length;
+  const scoring          = computeScore(resolvedReports);
+  const tier             = computeAnalystTier(analyst, myReports);
+  const achievements     = computeAchievements(analyst, myReports);
+  const publishedReports = myReports.filter(r => r.status === "published");
+  const activePredictions = myReports.filter(r => !r.prediction_outcome || r.prediction_outcome === "pending");
 
   const BUCKET_LABELS = { INTRADAY: "Intraday", SHORT: "Short-Term", MEDIUM: "Medium-Term", LONG: "Long-Term" };
   const bucketStats = { INTRADAY: { total: 0, hits: 0 }, SHORT: { total: 0, hits: 0 }, MEDIUM: { total: 0, hits: 0 }, LONG: { total: 0, hits: 0 } };
   resolvedReports.forEach(r => {
-    const bucket = getTimeframeBucket(r.prediction_timeframe);
-    if (!bucket) return;
-    bucketStats[bucket].total++;
-    if (r.prediction_outcome === "hit" || r.prediction_outcome === "near") bucketStats[bucket].hits++;
+    const b = getTimeframeBucket(r.prediction_timeframe);
+    if (!b) return;
+    bucketStats[b].total++;
+    if (r.prediction_outcome === "hit" || r.prediction_outcome === "near") bucketStats[b].hits++;
   });
 
-  const tier = computeAnalystTier(analyst, myReports);
-  const achievements = computeAchievements(analyst, myReports);
-  const publishedReports = myReports.filter(r => r.status === "published");
-  const activePredictions = myReports.filter(r => !r.prediction_outcome || r.prediction_outcome === "pending");
+  // Effective config (use editConfig in edit mode, else parse from analyst)
+  const config       = isEditMode ? editConfig : parseConfig(analyst);
+  const bannerTheme  = BANNER_THEMES[config.banner] || BANNER_THEMES.slate;
+  const sectionOrder = config.sections_order || DEFAULT_CONFIG.sections_order;
+  const tabsToShow   = isEditMode ? sectionOrder : sectionOrder;
+
+  // Active tab must be in the current order
+  const effectiveTab = sectionOrder.includes(activeTab) ? activeTab : sectionOrder[0];
+
+  // Display values: use edit state when in edit mode
+  const displayBio      = isEditMode ? editBio      : (analyst.bio      || "");
+  const displayTagline  = isEditMode ? editTagline  : (analyst.tagline  || "");
+  const displaySocial   = isEditMode ? editSocial   : {
+    twitter:  analyst.twitter_handle   || "",
+    linkedin: analyst.linkedin_username || "",
+    website:  analyst.website          || "",
+  };
+  const displaySpecialties = isEditMode ? editSpecialties : (analyst.specialties || []);
+
+  // Sorted reports: pinned first
+  const sortedReports = [
+    ...publishedReports.filter(r => config.pinned_reports.includes(r.id)),
+    ...publishedReports.filter(r => !config.pinned_reports.includes(r.id)),
+  ];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero banner */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-36">
+
+      {/* ── Edit mode sticky bar ── */}
+      {isEditMode && (
+        <div className="sticky top-0 z-50 bg-amber-50 border-b-2 border-amber-300 px-4 py-2.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-amber-700" />
+            <span className="text-sm font-semibold text-amber-800">Editing your profile page</span>
+            <span className="text-xs text-amber-600 hidden sm:block">· Changes are not public until you save</span>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={cancelEditMode} className="border-amber-300 text-amber-800 hover:bg-amber-100 gap-1.5">
+              <X className="w-3.5 h-3.5" /> Cancel
+            </Button>
+            <Button size="sm" onClick={saveChanges} disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-white border-0 gap-1.5">
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Save changes
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hero banner ── */}
+      <div className="relative h-36 overflow-hidden" style={{ background: bannerTheme.bg }}>
         <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.05) 40px, rgba(255,255,255,0.05) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.05) 40px, rgba(255,255,255,0.05) 41px)"
+          backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />
         <div className="max-w-4xl mx-auto px-4">
           <button
@@ -272,13 +512,35 @@ export default function AnalystProfilePage() {
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
         </div>
+
+        {/* Banner theme picker — edit mode only */}
+        {isEditMode && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2">
+            <span className="text-xs text-white/70 mr-1">Theme:</span>
+            {Object.entries(BANNER_THEMES).map(([key, theme]) => (
+              <button
+                key={key}
+                onClick={() => setEditConfig(c => ({ ...c, banner: key }))}
+                className="relative w-6 h-6 rounded-full border-2 transition-all hover:scale-110"
+                style={{
+                  background: theme.dot,
+                  borderColor: editConfig.banner === key ? "#fff" : "transparent",
+                  boxShadow: editConfig.banner === key ? "0 0 0 2px rgba(255,255,255,0.4)" : "none",
+                }}
+                title={theme.label}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-4xl mx-auto px-4">
-        {/* Profile header — overlaps hero */}
+
+        {/* ── Profile header card ── */}
         <div className="relative -mt-12 mb-6">
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <div className="flex items-end gap-4 mb-5">
+
               {/* Avatar */}
               <div className="shrink-0 -mt-10 ring-4 ring-background rounded-full">
                 {analyst.picture
@@ -289,7 +551,7 @@ export default function AnalystProfilePage() {
                 }
               </div>
 
-              {/* Name + badges */}
+              {/* Name + tier + tagline */}
               <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl font-bold">{displayName}</h1>
@@ -305,18 +567,28 @@ export default function AnalystProfilePage() {
                     </span>
                   )}
                 </div>
-                {analyst.tagline && <p className="text-sm text-muted-foreground mt-1">{analyst.tagline}</p>}
+
+                {/* Tagline */}
+                {isEditMode
+                  ? <input
+                      value={editTagline}
+                      onChange={e => setEditTagline(e.target.value)}
+                      placeholder="Add a tagline…"
+                      className="mt-1.5 w-full text-sm border border-dashed border-amber-400 rounded-lg px-2 py-1 bg-amber-50/50 focus:outline-none focus:border-amber-500"
+                    />
+                  : displayTagline && <p className="text-sm text-muted-foreground mt-1">{displayTagline}</p>
+                }
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                 <button
                   onClick={handleShare}
                   className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                  title="Copy profile link"
                 >
                   {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
                 </button>
+
                 {!isOwnProfile && currentUser && (
                   <>
                     <Button
@@ -330,9 +602,11 @@ export default function AnalystProfilePage() {
                       {following ? "Following" : "Follow"}
                     </Button>
                     {isSubscribed ? (
-                      <span className="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
-                        Subscribed
-                      </span>
+                      <Link to={`/dm?with=${encodeURIComponent(analyst.email)}`}>
+                        <Button size="sm" variant="outline" className="text-xs gap-1.5 text-green-600 border-green-200">
+                          <MessageSquare className="w-3 h-3" /> Message
+                        </Button>
+                      </Link>
                     ) : (
                       <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">
                         Subscribe
@@ -340,105 +614,100 @@ export default function AnalystProfilePage() {
                     )}
                   </>
                 )}
-                {isOwnProfile && (
-                  <Link to="/subscribers">
-                    <Button size="sm" variant="outline" className="text-xs gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> Subscribers
+
+                {isOwnProfile && !isEditMode && (
+                  <>
+                    <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={enterEditMode}>
+                      <Pencil className="w-3.5 h-3.5" /> Edit page
                     </Button>
-                  </Link>
+                    <Link to="/subscribers">
+                      <Button size="sm" variant="outline" className="text-xs gap-1.5">
+                        <Users className="w-3.5 h-3.5" /> Subscribers
+                      </Button>
+                    </Link>
+                  </>
                 )}
               </div>
             </div>
 
             {/* Specialties */}
-            {(analyst.specialties || []).length > 0 && (
+            {!isEditMode && displaySpecialties.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-5">
-                {(analyst.specialties || []).map(s => (
+                {displaySpecialties.map(s => (
                   <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-primary/8 text-primary border border-primary/15 font-medium">{s}</span>
                 ))}
               </div>
             )}
 
-            {/* Key metrics strip */}
+            {/* Specialty editor */}
+            {isEditMode && (
+              <div className="mb-5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Specialties</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {editSpecialties.map(s => (
+                    <span key={s} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                      {s}
+                      <button onClick={() => setEditSpecialties(p => p.filter(x => x !== s))} className="hover:text-red-500">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newSpecialty}
+                    onChange={e => setNewSpecialty(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && newSpecialty.trim()) {
+                        setEditSpecialties(p => [...p, newSpecialty.trim()]);
+                        setNewSpecialty("");
+                      }
+                    }}
+                    placeholder="Add specialty (e.g. Tech, Macro)…"
+                    className="flex-1 text-xs border border-dashed border-amber-400 rounded-lg px-2.5 py-1.5 bg-amber-50/50 focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    onClick={() => { if (newSpecialty.trim()) { setEditSpecialties(p => [...p, newSpecialty.trim()]); setNewSpecialty(""); } }}
+                    className="text-xs bg-primary/10 text-primary px-3 rounded-lg border border-primary/20 font-semibold hover:bg-primary/20"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stats strip */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-
-              {/* Composite score — hero metric */}
-              <button
-                onClick={scoring.total > 0 ? () => setShowAccModal(true) : undefined}
-                className={`text-center p-4 rounded-xl bg-primary/5 border border-primary/10 ${scoring.total > 0 ? "hover:bg-primary/10 cursor-pointer" : "cursor-default"} transition-all`}
-              >
-                <p className="text-2xl font-extrabold text-primary leading-none mb-1">
-                  {scoring.total >= 5 ? scoring.score : "—"}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Score</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                  {scoring.total > 0 ? `${scoring.total} calls` : "No calls yet"}
-                </p>
-              </button>
-
-              {/* Win Rate (Wilson-adjusted) */}
-              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
-                <p className={`text-2xl font-extrabold leading-none mb-1 ${
-                  scoring.rawWR == null ? "text-muted-foreground"
-                  : scoring.rawWR >= 0.6 ? "text-green-600"
-                  : scoring.rawWR >= 0.45 ? "text-amber-600"
-                  : "text-red-500"
-                }`}>
-                  {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—"}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Win Rate</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                  {scoring.total > 0 ? `${hitCount}W · ${scoring.misses}L` : ""}
-                </p>
-              </div>
-
-              {/* Profit Factor */}
-              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
-                <p className={`text-2xl font-extrabold leading-none mb-1 ${
-                  scoring.profitFactor == null ? "text-muted-foreground"
-                  : scoring.profitFactor >= 2 ? "text-green-600"
-                  : scoring.profitFactor >= 1 ? "text-amber-600"
-                  : "text-red-500"
-                }`}>
-                  {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—"}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Profit Factor</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">avg win / avg loss</p>
-              </div>
-
-              {/* Avg Return per call */}
-              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
-                <p className={`text-2xl font-extrabold leading-none mb-1 ${
-                  scoring.avgReturn == null ? "text-muted-foreground"
-                  : scoring.avgReturn >= 0 ? "text-green-600"
-                  : "text-red-500"
-                }`}>
-                  {scoring.avgReturn != null
-                    ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%`
-                    : "—"}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Avg Return</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">per call</p>
-              </div>
-
-              {/* Followers */}
-              <div className="text-center p-4 rounded-xl bg-secondary cursor-default">
-                <p className="text-2xl font-extrabold text-foreground leading-none mb-1">
-                  {(analyst.followers_count || 0).toLocaleString()}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Followers</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{publishedReports.length} reports</p>
-              </div>
+              {ALL_STATS.map(stat => (
+                <StatCard
+                  key={stat.key}
+                  statKey={stat.key}
+                  scoring={scoring}
+                  analyst={analyst}
+                  publishedCount={publishedReports.length}
+                  isHidden={config.hidden_stats.includes(stat.key)}
+                  isEditMode={isEditMode}
+                  onToggle={toggleHideStat}
+                  onClick={() => setShowAccModal(true)}
+                />
+              ))}
             </div>
 
-            {/* Score breakdown row — only if enough calls */}
-            {scoring.total >= 5 && (
+            {/* Edit mode stat hint */}
+            {isEditMode && (
+              <p className="text-[10px] text-amber-700 mt-2 flex items-center gap-1">
+                <Eye className="w-3 h-3" /> Click the eye icon on any stat to show/hide it from your public profile.
+              </p>
+            )}
+
+            {/* Score breakdown */}
+            {scoring.total >= 5 && !isEditMode && (
               <div className="mt-3 pt-3 border-t border-border">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Score breakdown</p>
                 <div className="flex gap-4 flex-wrap">
                   {[
-                    { label: "Win Rate component", value: scoring._winRateScore, color: "#2563eb" },
-                    { label: "Profit Factor component", value: scoring._pfScore, color: "#16a34a" },
+                    { label: "Win Rate component",     value: scoring._winRateScore, color: "#2563eb" },
+                    { label: "Profit Factor component", value: scoring._pfScore,     color: "#16a34a" },
                     scoring._alphaScore != null && { label: "Alpha component", value: scoring._alphaScore, color: "#d97706" },
                   ].filter(Boolean).map(item => (
                     <div key={item.label} className="flex-1 min-w-[100px]">
@@ -447,40 +716,48 @@ export default function AnalystProfilePage() {
                         <span className="font-bold" style={{ color: item.color }}>{item.value}</span>
                       </div>
                       <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${item.value}%`, background: item.color }} />
+                        <div className="h-full rounded-full" style={{ width: `${item.value}%`, background: item.color }} />
                       </div>
                     </div>
                   ))}
                 </div>
-                {scoring._alphaScore == null && (
-                  <p className="text-[10px] text-muted-foreground/60 mt-1.5">
-                    Alpha vs benchmark will appear once 5+ calls have benchmark data recorded at resolution.
-                  </p>
-                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* ── Section reorder hint (edit mode) ── */}
+        {isEditMode && (
+          <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+            <GripVertical className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-xs text-amber-800 font-medium">Drag the tabs below to reorder your profile sections.</p>
+          </div>
+        )}
+
+        {/* ── Tab bar ── */}
         <div className="flex gap-0 border-b border-border mb-6">
-          {TABS.map(tab => (
-            <button
+          {tabsToShow.map((tab, idx) => (
+            <div
               key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-                activeTab === tab
+              draggable={isEditMode}
+              onDragStart={e => handleDragStart(e, idx)}
+              onDragOver={handleDragOver}
+              onDrop={e => handleDrop(e, idx)}
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all select-none ${
+                effectiveTab === tab
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              } ${isEditMode ? "cursor-grab" : "cursor-pointer"}`}
+              onClick={() => !isEditMode && setActiveTab(tab)}
             >
+              {isEditMode && <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />}
               {tab}
-            </button>
+            </div>
           ))}
         </div>
 
-        {/* Tab: Reports */}
-        {activeTab === "Reports" && (
+        {/* ── Reports tab ── */}
+        {effectiveTab === "Reports" && (
           <div className="pb-12">
             {twits.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-4 mb-5">
@@ -505,23 +782,37 @@ export default function AnalystProfilePage() {
               </div>
             )}
 
-            {publishedReports.length === 0 ? (
+            {sortedReports.length === 0 ? (
               <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
                 <FileText className="w-8 h-8 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">No published reports yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {publishedReports.map(r => <ReportMiniCard key={r.id} report={r} />)}
-              </div>
+              <>
+                {isEditMode && (
+                  <p className="text-xs text-amber-700 mb-3 flex items-center gap-1.5">
+                    📌 Click the pin icon on any report to pin it to the top of your profile.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {sortedReports.map(r => (
+                    <ReportMiniCard
+                      key={r.id}
+                      report={r}
+                      isPinned={config.pinned_reports.includes(r.id)}
+                      isEditMode={isEditMode}
+                      onTogglePin={togglePinReport}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
 
-        {/* Tab: Track Record */}
-        {activeTab === "Track Record" && (
+        {/* ── Track Record tab ── */}
+        {effectiveTab === "Track Record" && (
           <div className="pb-12 space-y-5">
-            {/* Timeframe breakdown */}
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="text-sm font-semibold mb-4">Accuracy by Timeframe</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -530,7 +821,7 @@ export default function AnalystProfilePage() {
                     <p className="text-[11px] text-muted-foreground mb-1">{BUCKET_LABELS[key]}</p>
                     {stats.total > 0 ? (
                       <>
-                        <p className="text-xl font-bold text-foreground">{Math.round((stats.hits / stats.total) * 100)}%</p>
+                        <p className="text-xl font-bold">{Math.round((stats.hits / stats.total) * 100)}%</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{stats.hits}/{stats.total}</p>
                       </>
                     ) : (
@@ -540,12 +831,8 @@ export default function AnalystProfilePage() {
                 ))}
               </div>
             </div>
-
-            {/* Charts */}
             <AccuracyBreakdown analystUser={analyst} />
             <PerformanceVsMarket analyst={analyst} />
-
-            {/* Prediction list */}
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="text-sm font-semibold mb-1">All Predictions</h3>
               <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved · {activePredictions.length} active</p>
@@ -562,14 +849,73 @@ export default function AnalystProfilePage() {
           </div>
         )}
 
-        {/* Tab: About */}
-        {activeTab === "About" && (
+        {/* ── About tab ── */}
+        {effectiveTab === "About" && (
           <div className="pb-12 space-y-5">
+
             {/* Bio */}
-            {analyst.bio && (
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold mb-3">About</h3>
+              {isEditMode ? (
+                <textarea
+                  value={editBio}
+                  onChange={e => setEditBio(e.target.value)}
+                  rows={5}
+                  placeholder="Write a bio — your background, methodology, what you focus on…"
+                  className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-2 bg-amber-50/30 focus:outline-none focus:border-amber-500 resize-none"
+                />
+              ) : displayBio ? (
+                <p className="text-sm text-foreground/80 leading-relaxed">{displayBio}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No bio added yet.</p>
+              )}
+            </div>
+
+            {/* Social links */}
+            {(isEditMode || displaySocial.twitter || displaySocial.linkedin || displaySocial.website) && (
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold mb-3">About</h3>
-                <p className="text-sm text-foreground/80 leading-relaxed">{analyst.bio}</p>
+                <h3 className="text-sm font-semibold mb-3">Links</h3>
+                {isEditMode ? (
+                  <div className="space-y-3">
+                    {[
+                      { key: "twitter",  icon: <Twitter className="w-4 h-4" />,  placeholder: "Twitter/X handle (without @)",  prefix: "x.com/" },
+                      { key: "linkedin", icon: <Linkedin className="w-4 h-4" />, placeholder: "LinkedIn username",              prefix: "linkedin.com/in/" },
+                      { key: "website",  icon: <Globe className="w-4 h-4" />,    placeholder: "Website URL",                   prefix: "" },
+                    ].map(({ key, icon, placeholder, prefix }) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-8 flex justify-center">{icon}</span>
+                        {prefix && <span className="text-xs text-muted-foreground">{prefix}</span>}
+                        <input
+                          value={editSocial[key]}
+                          onChange={e => setEditSocial(s => ({ ...s, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="flex-1 text-sm border border-dashed border-amber-400 rounded-lg px-2.5 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {displaySocial.twitter && (
+                      <a href={`https://x.com/${displaySocial.twitter}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Twitter className="w-4 h-4" /> @{displaySocial.twitter}
+                      </a>
+                    )}
+                    {displaySocial.linkedin && (
+                      <a href={`https://linkedin.com/in/${displaySocial.linkedin}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Linkedin className="w-4 h-4" /> LinkedIn
+                      </a>
+                    )}
+                    {displaySocial.website && (
+                      <a href={displaySocial.website.startsWith("http") ? displaySocial.website : `https://${displaySocial.website}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Globe className="w-4 h-4" /> Website
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -584,20 +930,17 @@ export default function AnalystProfilePage() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[...achievements.filter(a => a.earned), ...achievements.filter(a => !a.earned)].map(a => (
-                  <div
-                    key={a.name}
-                    className="flex items-start gap-3 p-3 rounded-xl border transition-all"
+                  <div key={a.name} className="flex items-start gap-3 p-3 rounded-xl border transition-all"
                     style={{
-                      background: a.earned ? "#fefce8" : "#f8fafc",
-                      borderColor: a.earned ? "#fde68a" : "#e2e8f0",
-                      opacity: a.earned ? 1 : 0.4,
-                      filter: a.earned ? "none" : "grayscale(1)",
+                      background:   a.earned ? "#fefce8" : "#f8fafc",
+                      borderColor:  a.earned ? "#fde68a" : "#e2e8f0",
+                      opacity:      a.earned ? 1 : 0.4,
+                      filter:       a.earned ? "none" : "grayscale(1)",
                     }}
-                    title={a.earned ? a.desc : `Locked: ${a.desc}`}
                   >
                     <span className="text-2xl leading-none shrink-0">{a.icon}</span>
                     <div>
-                      <p className="text-xs font-bold text-foreground leading-tight">{a.name}</p>
+                      <p className="text-xs font-bold leading-tight">{a.name}</p>
                       <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{a.desc}</p>
                     </div>
                   </div>
@@ -605,13 +948,13 @@ export default function AnalystProfilePage() {
               </div>
             </div>
 
-            {/* Owner: manage */}
-            {isOwnProfile && (
+            {/* Owner links */}
+            {isOwnProfile && !isEditMode && (
               <Link to="/subscribers" className="flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 transition-colors">
                 <div className="flex items-center gap-3">
                   <Users className="w-5 h-5 text-purple-600" />
                   <div>
-                    <p className="text-sm font-bold text-purple-700">Subscribers & Following</p>
+                    <p className="text-sm font-bold text-purple-700">Subscribers &amp; Following</p>
                     <p className="text-xs text-muted-foreground">Manage your audience</p>
                   </div>
                 </div>
@@ -622,18 +965,17 @@ export default function AnalystProfilePage() {
         )}
       </div>
 
-      {/* Accuracy Modal */}
+      {/* ── Score modal ── */}
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Analyst Score</h3>
             <p className="text-5xl font-extrabold text-primary mb-1">{scoring.score}</p>
             <p className="text-xs text-muted-foreground mb-5">out of 100 · {scoring.total} resolved predictions</p>
-
             <div className="space-y-3 mb-5">
               {[
-                { label: "Win Rate", value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—", sub: `${hitCount} wins · ${scoring.misses} losses`, color: "#2563eb", bar: scoring._winRateScore },
-                { label: "Profit Factor", value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—", sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, color: "#16a34a", bar: scoring._pfScore },
+                { label: "Win Rate",       value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—",             sub: `${hitCount} wins · ${scoring.misses} losses`,                                                                   color: "#2563eb", bar: scoring._winRateScore },
+                { label: "Profit Factor",  value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—",        sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, color: "#16a34a", bar: scoring._pfScore },
                 scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "—", sub: "excess return vs benchmark", color: "#d97706", bar: scoring._alphaScore },
               ].filter(Boolean).map(item => (
                 <div key={item.label}>
@@ -652,34 +994,20 @@ export default function AnalystProfilePage() {
                 </div>
               ))}
             </div>
-
             <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
-              Score = Wilson-adjusted Win Rate (52%) + Profit Factor (48%). Alpha component adds when benchmark data is available. Sample-size adjusted — more calls = more reliable score.
+              Score = Wilson-adjusted Win Rate (52%) + Profit Factor (48%). Alpha activates with 5+ benchmark-recorded calls. Sample-size adjusted.
             </p>
             <button onClick={() => setShowAccModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground">Close</button>
           </div>
         </div>
       )}
 
-      {/* Yield Modal */}
-      {showYieldModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowYieldModal(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Average Yield</h3>
-            <p className={`text-4xl font-extrabold mb-4 ${yieldColor}`}>{displayYield}</p>
-            <p className="text-sm text-muted-foreground">Average return across {resolvedReports.length} resolved prediction{resolvedReports.length !== 1 ? "s" : ""}.</p>
-            <button onClick={() => setShowYieldModal(false)} className="w-full text-sm text-muted-foreground hover:text-foreground mt-4">Close</button>
-          </div>
-        </div>
-      )}
-
-      {/* Subscribe Modal */}
+      {/* ── Subscribe modal ── */}
       {showSubModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSubModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-lg mb-1">Subscribe to {displayName}</h3>
             <p className="text-sm text-muted-foreground mb-5">
-              {analyst.accuracy_score > 0 ? `${analyst.accuracy_score.toFixed(1)}% prediction accuracy · ` : ""}
               {publishedReports.length} published report{publishedReports.length !== 1 ? "s" : ""}
             </p>
             <button
@@ -691,7 +1019,7 @@ export default function AnalystProfilePage() {
                 <span className="font-bold text-primary text-sm">Free (Beta)</span>
               </div>
               <ul className="space-y-1.5">
-                {["Full access to all reports", "Premium predictions & targets", "Direct analyst updates", "Track record transparency"].map(b => (
+                {["Full access to all reports", "Premium predictions & targets", "Direct analyst messaging", "Track record transparency"].map(b => (
                   <li key={b} className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" /> {b}
                   </li>
