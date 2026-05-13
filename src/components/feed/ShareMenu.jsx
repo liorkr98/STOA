@@ -85,8 +85,10 @@ const PLATFORMS = [
   },
 ];
 
+const PROD_ORIGIN = "https://stakify-f5b3c3a0.base44.app";
+
 export default function ShareMenu({ title, reportId }) {
-  const reportUrl = `${window.location.origin}/report?id=${reportId}`;
+  const reportUrl = `${PROD_ORIGIN}/report?id=${reportId}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(reportUrl);
