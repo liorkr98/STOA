@@ -137,14 +137,15 @@ Tickers in CAPS, comma-separated for COMPARE.`;
 
 // ── Quick prompt chips ───────────────────────────────────────────────────────
 const QUICK_PROMPTS = [
-  { icon: BarChart3,   label: "Chart",        prompt: "Show me a 1-month chart of " },
-  { icon: BarChart3,   label: "Compare",      prompt: "Compare these two over 3 months: " },
-  { icon: TrendingUp,  label: "Bull thesis",  prompt: "Write a compelling 4-point bull thesis for " },
-  { icon: Shield,      label: "Key risks",    prompt: "What are the 5 biggest risks for " },
-  { icon: BarChart3,   label: "Valuation",    prompt: "Analyze the current valuation of " },
-  { icon: Zap,         label: "Technicals",   prompt: "Give me a technical analysis summary for " },
-  { icon: BookOpen,    label: "Sector view",  prompt: "What is the current macro and sector outlook for " },
-  { icon: MessageSquare, label: "Earnings",  prompt: "What should I watch in the next earnings for " },
+  { icon: BookOpen,    label: "Review report",   prompt: "Please read my full report and tell me: (1) are there any factual claims that look wrong or need a source? (2) what's the strongest argument? (3) what's the weakest part?" },
+  { icon: BarChart3,   label: "Chart",           prompt: "Show me a 1-month chart of " },
+  { icon: BarChart3,   label: "Compare",         prompt: "Compare these two over 3 months: " },
+  { icon: TrendingUp,  label: "Bull thesis",     prompt: "Write a compelling 4-point bull thesis for " },
+  { icon: Shield,      label: "Key risks",       prompt: "What are the 5 biggest risks for " },
+  { icon: BarChart3,   label: "Valuation",       prompt: "Analyze the current valuation of " },
+  { icon: Zap,         label: "Technicals",      prompt: "Give me a technical analysis summary for " },
+  { icon: BookOpen,    label: "Sector view",     prompt: "What is the current macro and sector outlook for " },
+  { icon: MessageSquare, label: "Earnings",      prompt: "What should I watch in the next earnings for " },
 ];
 
 // ── Ticker grounding ─────────────────────────────────────────────────────────
@@ -292,7 +293,7 @@ const INIT_MSG = {
   id: mkId(),
   role: "assistant",
   content:
-    "I'm your AI market analyst. Ask me anything — stock analysis, sector trends, macro themes, valuation models, or ask me to draft a paragraph for your report.\n\n📊 Charts:  \"show me NVDA chart\" or \"plot TSLA over 1 year\"\n📈 Compare: \"compare NVDA and MSFT over 3 months\" — both lines on one chart, normalized to % return\n\nYou can drag any of my answers directly into the report, or click the + button to insert.",
+    "I'm your AI research assistant. I can read your full report — ask me to check facts, improve arguments, or flag weak claims.\n\n📝 Report review: \"check my report\" or \"what's wrong with my thesis?\"\n📊 Charts: \"show me NVDA chart\" or \"plot TSLA over 1 year\"\n📈 Compare: \"compare NVDA and MSFT over 3 months\"\n\nDrag any answer into the report, or click ➕ to insert as a block.",
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -428,6 +429,13 @@ export default function AIChat({ reportContent, onInsertBlock }) {
         .map((m) => `${m.role === "user" ? "User" : "Analyst"}: ${m.content}`)
         .join("\n\n");
 
+      // Summarise the report for the AI — truncate at 4000 chars so the model
+      // can meaningfully read, critique, and fact-check actual content.
+      const reportSnippet = (reportContent || "").trim();
+      const reportBlock = reportSnippet
+        ? `FULL REPORT (this is the exact text the researcher has written so far — you CAN read it, quote from it, fact-check it, or suggest improvements):\n"""\n${reportSnippet.slice(0, 4000)}${reportSnippet.length > 4000 ? "\n[...truncated — report continues beyond this preview]" : ""}\n"""`
+        : "FULL REPORT: (empty — the researcher hasn't written anything yet)";
+
       const prompt = `${SYSTEM_PROMPT}
 
 ---
@@ -435,12 +443,11 @@ LIVE MARKET DATA (fetched ${new Date().toISOString()}, source: Yahoo Finance):
 ${marketBlock}
 
 ---
-CONVERSATION HISTORY:
-${history}
+${reportBlock}
 
 ---
-CURRENT REPORT CONTEXT (for reference):
-${(reportContent || "").slice(0, 600) || "No report content yet."}
+CONVERSATION HISTORY:
+${history}
 
 ---
 User: ${userText}
@@ -647,11 +654,31 @@ Analyst:`;
                     {/* Inline charts from [CHART:..] and [COMPARE:..] directives */}
                     {msg.charts?.length > 0 && (
                       <div className="space-y-1">
-                        {msg.charts.map((c) =>
-                          c.kind === "compare"
-                            ? <ChatCompareChart key={c.id} tickers={c.tickers} timeframe={c.timeframe} />
-                            : <ChatChart        key={c.id} ticker={c.ticker}   timeframe={c.timeframe} />
-                        )}
+                        {msg.charts.map((c) => (
+                          <div key={c.id} className="relative group/chart">
+                            {c.kind === "compare"
+                              ? <ChatCompareChart tickers={c.tickers} timeframe={c.timeframe} />
+                              : <ChatChart        ticker={c.ticker}   timeframe={c.timeframe} />
+                            }
+                            {/* Save chart to report button */}
+                            {onInsertBlock && (
+                              <button
+                                onClick={() => {
+                                  if (c.kind === "compare") {
+                                    // Insert one chart block per ticker
+                                    c.tickers.forEach(t => onInsertBlock(t, "stockchart"));
+                                  } else {
+                                    onInsertBlock(c.ticker, "stockchart");
+                                  }
+                                  toast.success("Chart added to report");
+                                }}
+                                className="absolute top-2 right-2 flex items-center gap-1 text-[10px] bg-primary text-white px-2 py-1 rounded-lg opacity-0 group-hover/chart:opacity-100 transition-opacity font-medium shadow"
+                              >
+                                <Plus className="w-2.5 h-2.5" /> Save to report
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
 

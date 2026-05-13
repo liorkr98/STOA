@@ -31,6 +31,7 @@ import TemplatesPanel from "@/components/editor/TemplatesPanel";
 import DesignPanel, { REPORT_THEMES, REPORT_FONTS } from "@/components/editor/DesignPanel";
 import FloatingToolbar from "@/components/editor/FloatingToolbar";
 import ReportQualityScore from "@/components/editor/ReportQualityScore";
+import FactChecker from "@/components/report/FactChecker";
 import QuickPostEditor from "@/components/editor/QuickPostEditor";
 import ColumnsBlock from "@/components/editor/ColumnsBlock";
 import MetricsBlock from "@/components/editor/MetricsBlock";
@@ -1137,6 +1138,11 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 blocks={blocks}
                 predictionData={predictionData}
                 coverImage={coverImage}
+              />
+
+              {/* AI Fact Checker — pre-publish check */}
+              <FactChecker
+                reportContent={[title, excerpt, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n")}
               />
 
               {/* Stats */}

@@ -152,9 +152,59 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Stop Loss <span className="font-normal opacity-60">(optional)</span></label>
-            <Input value={stopLoss} onChange={e => setStopLoss(e.target.value)} placeholder="$0.00" className="h-9 font-mono" type="number" min="0" step="0.01" />
+            <Input
+              value={stopLoss}
+              onChange={e => setStopLoss(e.target.value)}
+              placeholder="$0.00"
+              className={`h-9 font-mono ${
+                stopLoss && livePrice && (
+                  (action === "Long"  && parseFloat(stopLoss) >= livePrice) ||
+                  (action === "Short" && parseFloat(stopLoss) <= livePrice)
+                ) ? "border-loss" : ""
+              }`}
+              type="number" min="0" step="0.01"
+            />
+            {/* Validation hint */}
+            {stopLoss && livePrice && action === "Long" && parseFloat(stopLoss) >= livePrice && (
+              <p className="text-[10px] text-loss mt-1">Stop loss should be below current price for a Long</p>
+            )}
+            {stopLoss && livePrice && action === "Short" && parseFloat(stopLoss) <= livePrice && (
+              <p className="text-[10px] text-loss mt-1">Stop loss should be above current price for a Short</p>
+            )}
           </div>
         </div>
+
+        {/* Risk/Reward summary */}
+        {targetPrice && stopLoss && livePrice && (
+          (() => {
+            const entry  = livePrice;
+            const target = parseFloat(targetPrice);
+            const stop   = parseFloat(stopLoss);
+            const isLong = action === "Long";
+            const reward = isLong ? target - entry : entry - target;
+            const risk   = isLong ? entry - stop  : stop  - entry;
+            const rr     = risk > 0 ? (reward / risk).toFixed(2) : null;
+            const rewardPct = entry > 0 ? ((Math.abs(reward) / entry) * 100).toFixed(1) : null;
+            const riskPct   = entry > 0 ? ((Math.abs(risk)   / entry) * 100).toFixed(1) : null;
+            return rr ? (
+              <div className={`rounded-lg px-3 py-2 text-xs flex items-center justify-between ${
+                parseFloat(rr) >= 2 ? "bg-gain/10 border border-gain/20" : parseFloat(rr) >= 1 ? "bg-amber-50 border border-amber-200" : "bg-loss/10 border border-loss/20"
+              }`}>
+                <div>
+                  <span className="font-bold">R/R {rr}:1</span>
+                  <span className="text-muted-foreground ml-2">
+                    {rewardPct && `+${rewardPct}% reward`} · {riskPct && `-${riskPct}% risk`}
+                  </span>
+                </div>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                  parseFloat(rr) >= 2 ? "text-gain" : parseFloat(rr) >= 1 ? "text-amber-700" : "text-loss"
+                }`}>
+                  {parseFloat(rr) >= 2 ? "✓ Good setup" : parseFloat(rr) >= 1 ? "Marginal" : "Poor R/R"}
+                </span>
+              </div>
+            ) : null;
+          })()
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

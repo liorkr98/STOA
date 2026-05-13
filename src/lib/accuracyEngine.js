@@ -16,7 +16,16 @@ function parseTimeframeMonths(timeframe) {
 }
 
 export function scorePrediction(prediction) {
-  const { action, lockPrice, targetPrice, lockTime, resolvedPrice, resolvedTime, outcome } = prediction;
+  const { action, lockPrice, targetPrice, lockTime, resolvedPrice, resolvedTime, outcome, stopLoss } = prediction;
+
+  // Stop loss hit check — if resolvedPrice crossed the stop, it's a forced miss
+  // regardless of outcome field, since the trade would have been exited at a loss.
+  if (stopLoss && resolvedPrice && lockPrice) {
+    const isLong  = action === "Long";
+    const isShort = action === "Short";
+    if (isLong  && resolvedPrice <= stopLoss) return { baseCredit: 0, timeBonus: 1, magnitudeFactor: 1, score: 0, stopLossHit: true };
+    if (isShort && resolvedPrice >= stopLoss) return { baseCredit: 0, timeBonus: 1, magnitudeFactor: 1, score: 0, stopLossHit: true };
+  }
 
   if (!lockPrice || !targetPrice || lockPrice === 0) return null;
 
