@@ -362,7 +362,7 @@ export default function InvestorHome() {
           <div className="flex gap-2 flex-wrap">
             <Link to="/feed"><Button size="sm" className="gap-1.5 shadow-card"><Search className="w-3.5 h-3.5" /> Browse Reports</Button></Link>
             <Link to="/stocks"><Button variant="outline" size="sm" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Markets</Button></Link>
-            <Link to="/settings"><Button variant="outline" size="sm" className="gap-1.5"><Settings className="w-3.5 h-3.5" /> Settings</Button></Link>
+            <Link to="/edit-profile"><Button variant="outline" size="sm" className="gap-1.5"><Settings className="w-3.5 h-3.5" /> Settings</Button></Link>
           </div>
         </div>
       </div>

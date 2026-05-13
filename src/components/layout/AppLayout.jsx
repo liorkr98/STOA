@@ -80,10 +80,18 @@ export default function AppLayout() {
   }, [isAuthenticated, user]);
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Skip to main content — screen reader / keyboard nav */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Navbar */}
-      <header className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
+      <header role="banner" className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-          <Link to="/" className="flex-shrink-0">
+          <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
             <StoaLogo size={24} textSize="text-lg" />
           </Link>
 
@@ -91,7 +99,7 @@ export default function AppLayout() {
             <SearchBar />
           </div>
 
-          <nav className="flex items-center gap-1 ml-auto">
+          <nav role="navigation" aria-label="Main navigation" className="flex items-center gap-1 ml-auto">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -99,6 +107,8 @@ export default function AppLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
+                  aria-label={item.label}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                     isActive
@@ -106,7 +116,7 @@ export default function AppLayout() {
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                   <span className="hidden md:inline">{item.label}</span>
                 </Link>
               );
@@ -116,15 +126,15 @@ export default function AppLayout() {
                 {/* Wallet balance chip — quick spend + top-up */}
                 <Link
                   to="/wallet"
+                  aria-label={`Wallet — balance $${walletBalance == null ? "loading" : walletBalance.toFixed(2)}`}
                   className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-border hover:border-primary/30 hover:bg-secondary transition-all"
-                  title="Wallet"
                 >
-                  <Wallet className="w-3.5 h-3.5 text-primary" />
+                  <Wallet className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                   ${walletBalance == null ? "—" : walletBalance.toFixed(2)}
                 </Link>
                 <NotificationCenter />
-                <Link to="/inbox" className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all" title="Messages">
-                  <MessageSquare className="w-4 h-4" />
+                <Link to="/inbox" aria-label={`Messages${unreadCount > 0 ? ` — ${unreadCount} unread` : ""}`} className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                  <MessageSquare className="w-4 h-4" aria-hidden="true" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[9px] text-white font-bold">
                       {unreadCount > 9 ? "9+" : unreadCount}
@@ -133,7 +143,7 @@ export default function AppLayout() {
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                    <button aria-label="Account menu" className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                       {user?.picture
                         ? <img src={user.picture} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
                         : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
@@ -236,7 +246,7 @@ export default function AppLayout() {
       </header>
 
       {/* Page content */}
-      <main className="flex-1">
+      <main id="main-content" role="main" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
 

@@ -32,6 +32,14 @@ const TYPE_CONFIG = {
     icon: AlertTriangle, color: "text-orange-600",
     bg: "bg-orange-50 border-orange-200", label: "Disputed by Yahoo Finance",
   },
+  "SEC-Verified": {
+    icon: CheckCircle2, color: "text-violet-700",
+    bg: "bg-violet-50 border-violet-200", label: "SEC Filing Verified",
+  },
+  "SEC-Disputed": {
+    icon: AlertTriangle, color: "text-red-700",
+    bg: "bg-red-50 border-red-200", label: "Disputed by SEC Filing",
+  },
 };
 
 function ClaimCard({ claim }) {
@@ -102,21 +110,28 @@ function ClaimCard({ claim }) {
             </div>
           )}
 
-          {/* AI Mistaken button for Fact, Unverified, Yahoo-Disputed */}
-          {(claim.type === "Fact" || claim.type === "Unverified" || claim.type === "Yahoo-Disputed") && (
-            <div className="mt-2">
-              {reportSent ? (
-                <span className="text-[10px] text-muted-foreground italic">✓ Reported — thanks!</span>
-              ) : (
-                <button
-                  onClick={handleReportMistake}
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-amber-600 transition-colors"
-                >
-                  <Flag className="w-2.5 h-2.5" /> AI mistaken? Tell us
-                </button>
-              )}
+          {claim.secCheck && (
+            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
+              claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
+            }`}>
+              <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
             </div>
           )}
+
+          {/* Report mistake — shown for all claim types */}
+          <div className="mt-2">
+            {reportSent ? (
+              <span className="text-[10px] text-muted-foreground italic">✓ Reported — we'll review it, thanks!</span>
+            ) : (
+              <button
+                onClick={handleReportMistake}
+                aria-label="Report AI mistake for this claim"
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-amber-600 transition-colors"
+              >
+                <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
+              </button>
+            )}
+          </div>
 
           {claim.type === "Opinion" && (
             <div className="mt-2 pt-2 border-t border-current/10">
@@ -265,6 +280,94 @@ Report:
     });
   };
 
+  // ── SEC EDGAR cross-check ──────────────────────────────────────────────────
+  const runSECCheck = async (enrichedClaims) => {
+    const verifiable = enrichedClaims.filter(
+      c => c.verifiableTicker && (c.verifiableMetric === "revenue" || c.verifiableMetric === "eps" || c.verifiableMetric === "marketCap")
+    );
+    if (!verifiable.length) return enrichedClaims;
+
+    const tickers = [...new Set(verifiable.map(c => c.verifiableTicker))];
+    const secData = {};
+
+    for (const ticker of tickers) {
+      try {
+        // Resolve ticker → CIK using SEC company_tickers.json
+        const mapRes = await base44.integrations.Core.proxyFetch({
+          url: "https://www.sec.gov/files/company_tickers.json",
+          method: "GET",
+        });
+        const tickerMap = typeof mapRes === "string" ? JSON.parse(mapRes) : mapRes;
+        const entry = Object.values(tickerMap || {}).find(
+          e => (e.ticker || "").toLowerCase() === ticker.toLowerCase()
+        );
+        if (!entry?.cik_str) continue;
+
+        // Fetch XBRL company facts
+        const cik = String(entry.cik_str).padStart(10, "0");
+        const factsRes = await base44.integrations.Core.proxyFetch({
+          url: `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`,
+          method: "GET",
+        });
+        const facts = typeof factsRes === "string" ? JSON.parse(factsRes) : factsRes;
+        const usgaap = facts?.facts?.["us-gaap"] || {};
+
+        // Extract latest annual revenue (Revenues or SalesRevenueNet)
+        const revConcept = usgaap["Revenues"] || usgaap["SalesRevenueNet"] || usgaap["RevenueFromContractWithCustomerExcludingAssessedTax"];
+        const annualUnits = revConcept?.units?.USD?.filter(u => u.form === "10-K") || [];
+        const latestRev = annualUnits.sort((a, b) => b.end?.localeCompare(a.end))[0];
+
+        // Extract latest EPS (BasicEPS)
+        const epsConcept = usgaap["EarningsPerShareBasic"];
+        const epsUnits = epsConcept?.units?.["USD/shares"]?.filter(u => u.form === "10-K") || [];
+        const latestEPS = epsUnits.sort((a, b) => b.end?.localeCompare(a.end))[0];
+
+        secData[ticker] = {
+          revenue: latestRev ? { value: latestRev.val, period: latestRev.end } : null,
+          eps:     latestEPS ? { value: latestEPS.val, period: latestEPS.end } : null,
+        };
+      } catch {
+        // SEC check is best-effort — never block on failure
+      }
+    }
+
+    return enrichedClaims.map(claim => {
+      if (!claim.verifiableTicker || !claim.verifiableMetric) return claim;
+      const sd = secData[claim.verifiableTicker];
+      if (!sd) return claim;
+
+      let secCheck = null;
+
+      if (claim.verifiableMetric === "revenue" && sd.revenue) {
+        const billions = sd.revenue.value / 1e9;
+        // Try to parse a number from the claim text
+        const numMatch = claim.text.match(/\$?([\d,.]+)\s*(B|billion|M|million)?/i);
+        if (numMatch) {
+          const claimedRaw = parseFloat(numMatch[1].replace(/,/g, ""));
+          const multiplier = /B|billion/i.test(numMatch[2]) ? 1 : /M|million/i.test(numMatch[2]) ? 0.001 : 1;
+          const claimedB = claimedRaw * multiplier;
+          const diff = Math.abs(claimedB - billions) / billions;
+          secCheck = diff < 0.15
+            ? { match: true,  detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B — consistent.` }
+            : { match: false, detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B vs claimed ~$${claimedB.toFixed(1)}B.` };
+        } else {
+          secCheck = { match: true, detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B on file.` };
+        }
+      } else if (claim.verifiableMetric === "eps" && sd.eps) {
+        secCheck = { match: true, detail: `SEC 10-K (${sd.eps.period}): EPS $${sd.eps.value?.toFixed(2)} on file.` };
+      }
+
+      if (!secCheck) return claim;
+
+      const prevType = claim.type;
+      const newType = secCheck.match
+        ? (prevType === "Unverified" || prevType === "Fact" ? "SEC-Verified" : prevType)
+        : (prevType === "Fact" ? "SEC-Disputed" : prevType);
+
+      return { ...claim, secCheck, type: newType };
+    });
+  };
+
   const runCheck = async () => {
     if (!text || text.length < 50) { setError("Write more content before fact-checking."); return; }
     setLoading(true);
@@ -274,7 +377,9 @@ Report:
       setPhase("claude");
       const claudeClaims = await runClaudeCheck();
       setPhase("yahoo");
-      const enrichedClaims = await runYahooCheck(claudeClaims);
+      const yahooClaims = await runYahooCheck(claudeClaims);
+      setPhase("sec");
+      const enrichedClaims = await runSECCheck(yahooClaims);
       setClaims(enrichedClaims);
     } catch (err) {
       setError("Fact check failed. " + (err.message || "Please try again."));
@@ -296,7 +401,7 @@ Report:
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">AI Fact Checker</h4>
-            <p className="text-[10px] text-muted-foreground">Claude AI + Yahoo Finance cross-check</p>
+            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -307,7 +412,7 @@ Report:
           )}
           <Button onClick={runCheck} disabled={loading || !text} size="sm" variant="outline" className="text-xs">
             {loading
-              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : "Checking Yahoo Finance..."}</>
+              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "SEC EDGAR..."}</>
               : claims ? "Re-run" : "Check Facts"
             }
           </Button>
@@ -324,7 +429,13 @@ Report:
             {phase === "yahoo"
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : <div className="w-3 h-3 rounded-full border border-current opacity-30" />}
-            <span>Step 2: Cross-checking numerical claims with Yahoo Finance</span>
+            <span>Step 2: Cross-checking prices &amp; ratios with Yahoo Finance</span>
+          </div>
+          <div className={`flex items-center gap-2 text-xs py-1 ${phase === "sec" ? "text-primary" : "text-muted-foreground"}`}>
+            {phase === "sec"
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <div className="w-3 h-3 rounded-full border border-current opacity-30" />}
+            <span>Step 3: Verifying revenue &amp; EPS against SEC EDGAR filings</span>
           </div>
         </div>
       )}

@@ -135,14 +135,48 @@
 
   /* Stronger focus ring — accessible but elegant */
   :focus-visible {
-    outline: 2px solid hsl(var(--ring) / 0.6);
-    outline-offset: 2px;
+    outline: 2px solid hsl(var(--ring) / 0.75);
+    outline-offset: 3px;
     border-radius: 6px;
   }
 
   /* Headings: tighter tracking by default — feels editorial */
   h1, h2, h3, h4 { letter-spacing: -0.015em; }
   h1 { letter-spacing: -0.025em; }
+
+  /* Accessibility: screen-reader-only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  .not-sr-only {
+    position: static;
+    width: auto; height: auto;
+    padding: 0; margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Accessibility: reduce motion for vestibular / seizure sensitivity */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Accessibility: high-contrast focus for keyboards */
+  @media (forced-colors: active) {
+    :focus-visible { outline: 3px solid ButtonText; }
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
