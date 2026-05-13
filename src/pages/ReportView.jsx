@@ -4,7 +4,8 @@ import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
   ArrowLeft, Heart, Lock, Loader2, Sparkles,
   CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X,
-  Eye, BarChart2, Target, ShieldAlert, TrendingUp, Lightbulb, ChevronRight
+  Eye, BarChart2, Target, ShieldAlert, TrendingUp, Lightbulb, ChevronRight,
+  Flag, ExternalLink, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -23,10 +24,14 @@ import ExportPDFButton from "@/components/report/ExportPDFButton";
 
 // ─── Claim type config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {
-  Fact:       { icon: CheckCircle2,      color: "text-gain",      bg: "bg-gain/10 border-gain/20",       label: "Verified Fact" },
-  Opinion:    { icon: MessageSquareQuote, color: "text-blue-600",  bg: "bg-blue-50 border-blue-200",      label: "Opinion" },
-  Misleading: { icon: AlertTriangle,     color: "text-loss",      bg: "bg-loss/10 border-loss/20",       label: "Potentially Misleading" },
-  Unverified: { icon: Info,              color: "text-amber-600", bg: "bg-amber-50 border-amber-200",    label: "Unverified" },
+  Fact:             { icon: CheckCircle2,       color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Verified Fact" },
+  Opinion:          { icon: MessageSquareQuote, color: "text-blue-600",    bg: "bg-blue-50 border-blue-200",        label: "Opinion" },
+  Misleading:       { icon: AlertTriangle,      color: "text-loss",        bg: "bg-loss/10 border-loss/20",         label: "Potentially Misleading" },
+  Unverified:       { icon: Info,               color: "text-amber-600",   bg: "bg-amber-50 border-amber-200",      label: "Unverified" },
+  "Yahoo-Verified": { icon: TrendingUp,         color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200",  label: "Yahoo Finance Verified" },
+  "Yahoo-Disputed": { icon: AlertTriangle,      color: "text-orange-600",  bg: "bg-orange-50 border-orange-200",    label: "Disputed by Yahoo Finance" },
+  "SEC-Verified":   { icon: CheckCircle2,       color: "text-violet-700",  bg: "bg-violet-50 border-violet-200",   label: "SEC Filing Verified" },
+  "SEC-Disputed":   { icon: AlertTriangle,      color: "text-red-700",     bg: "bg-red-50 border-red-200",         label: "Disputed by SEC Filing" },
 };
 
 // ─── Community Notes under Opinion claims ────────────────────────────────────
@@ -36,6 +41,7 @@ function ClaimWithNotes({ claim }) {
   const [notes, setNotes] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [reportSent, setReportSent] = useState(false);
 
   const submitNote = () => {
     if (!noteText.trim()) return;
@@ -44,23 +50,89 @@ function ClaimWithNotes({ claim }) {
     setShowAdd(false);
   };
 
+  const handleReportMistake = async () => {
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: "baramsalem1@gmail.com",
+        subject: `AI Fact Check Dispute — ${claim.type}`,
+        body: `A user flagged a potential AI fact-check mistake.\n\nClaim type: ${claim.type}\nConfidence: ${claim.confidence || "N/A"}\n\nClaim text:\n"${claim.text}"\n\nAI note: ${claim.note || "N/A"}\n\nPlease review this claim.`,
+      });
+      setReportSent(true);
+      toast.success("Thanks! We'll review this claim.");
+    } catch {
+      toast.error("Failed to send. Please try again.");
+    }
+  };
+
   return (
     <div className={`rounded-xl border p-3 text-xs ${cfg.bg}`}>
       <div className="flex gap-2">
         <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
             {claim.confidence && (
-              <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ml-auto ${
+              <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${
                 claim.confidence === "high" ? "bg-gain/10 text-gain" :
                 claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
                 "bg-muted text-muted-foreground"
               }`}>{claim.confidence} confidence</span>
             )}
+            {claim.yahooData && (
+              <a
+                href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-0.5 text-[9px] text-blue-600 hover:underline"
+              >
+                <ExternalLink className="w-2.5 h-2.5" />Yahoo Finance
+              </a>
+            )}
           </div>
+
           <p className="text-foreground/85 leading-relaxed">{claim.text}</p>
           {claim.note && <p className="text-muted-foreground mt-1 italic">{claim.note}</p>}
+
+          {claim.yahooCheck && (
+            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
+              claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-orange-50 text-orange-700"
+            }`}>
+              <strong>Yahoo Finance:</strong> {claim.yahooCheck.detail}
+            </div>
+          )}
+
+          {claim.secCheck && (
+            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
+              claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
+            }`}>
+              <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
+              {claim.secCheck.edgarLink && (
+                <a
+                  href={claim.secCheck.edgarLink}
+                  target="_blank" rel="noopener noreferrer"
+                  className="ml-1.5 underline opacity-70 hover:opacity-100 inline-flex items-center gap-0.5"
+                >
+                  <ExternalLink className="w-2.5 h-2.5 inline" /> View 10-K
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* AI mistaken? — amber pill */}
+          <div className="mt-2">
+            {reportSent ? (
+              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
+                <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
+              </span>
+            ) : (
+              <button
+                onClick={handleReportMistake}
+                aria-label="Report AI mistake for this claim"
+                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-full font-medium transition-colors"
+              >
+                <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -93,7 +165,7 @@ function ClaimWithNotes({ claim }) {
               <button onClick={() => setShowAdd(false)} className="text-[10px] text-muted-foreground px-1"><X className="w-3 h-3" /></button>
             </div>
           ) : (
-            <button onClick={() => setShowAdd(true)} className="text-[10px] text-blue-600 hover:underline mt-0.5">+ Add a note</button>
+            <button onClick={() => setShowAdd(true)} className="text-[10px] text-blue-600 hover:underline mt.0.5">+ Add a note</button>
           )}
         </div>
       )}
@@ -102,22 +174,24 @@ function ClaimWithNotes({ claim }) {
 }
 
 // ─── Saved fact-check panel ──────────────────────────────────────────────────
-function SavedFactCheck({ claims }) {
+function SavedFactCheck({ claims, reportContent }) {
   const [open, setOpen]           = useState(true);
-  const [activeFilter, setFilter] = useState(null); // null = show all
+  const [activeFilter, setFilter] = useState(null);
+  const [showLive, setShowLive]   = useState(false);
 
-  const summary = {
-    Fact:       claims.filter(c => c.type === "Fact").length,
-    Opinion:    claims.filter(c => c.type === "Opinion").length,
-    Misleading: claims.filter(c => c.type === "Misleading").length,
-    Unverified: claims.filter(c => c.type === "Unverified").length,
-  };
+  const summary = Object.fromEntries(
+    Object.keys(TYPE_CONFIG).map(t => [t, claims.filter(c => c.type === t).length])
+  );
 
   const visible = activeFilter
     ? claims.filter(c => c.type === activeFilter)
     : claims;
 
   const toggleFilter = (type) => setFilter(prev => prev === type ? null : type);
+
+  if (showLive) {
+    return <FactChecker reportContent={reportContent} />;
+  }
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 mt-4">
@@ -126,18 +200,28 @@ function SavedFactCheck({ claims }) {
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">AI Fact Check</h4>
-            <p className="text-[10px] text-muted-foreground">Powered by Claude · Checked at publish time</p>
+            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
           </div>
         </div>
-        <button onClick={() => setOpen(v => !v)} className="text-xs text-muted-foreground hover:text-foreground">
-          {open ? <X className="w-3.5 h-3.5" /> : "Show"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLive(true)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground border border-border rounded-full px-2 py-0.5 hover:border-primary/40 transition-colors"
+            title="Re-run fact check with latest data"
+          >
+            <RefreshCw className="w-2.5 h-2.5" /> Re-run
+          </button>
+          <button onClick={() => setOpen(v => !v)} className="text-xs text-muted-foreground hover:text-foreground">
+            {open ? <X className="w-3.5 h-3.5" /> : "Show"}
+          </button>
+        </div>
       </div>
 
-      {/* Filter pills — clickable to filter */}
+      {/* Filter pills */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {Object.entries(summary).filter(([, v]) => v > 0).map(([type, count]) => {
           const cfg = TYPE_CONFIG[type];
+          if (!cfg) return null;
           const isActive = activeFilter === type;
           return (
             <button
@@ -584,7 +668,7 @@ export default function ReportView() {
       {(!isPremium || isPaid || isAuthor) && (
         <div className="mb-8">
           {savedClaims ? (
-            <SavedFactCheck claims={savedClaims} />
+            <SavedFactCheck claims={savedClaims} reportContent={plainText} />
           ) : plainText.length > 50 ? (
             <FactChecker reportContent={plainText} />
           ) : null}
