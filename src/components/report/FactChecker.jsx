@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { fetchFundamentals } from "@/lib/stockData";
 import { toast } from "sonner";
 
 const TYPE_CONFIG = {
@@ -114,19 +115,21 @@ function ClaimCard({ claim }) {
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
               claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
             }`}>
-              <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
+              <strong>Financials:</strong> {claim.secCheck.detail}
             </div>
           )}
 
-          {/* Report mistake — shown for all claim types */}
+          {/* Report mistake — amber pill, always visible */}
           <div className="mt-2">
             {reportSent ? (
-              <span className="text-[10px] text-muted-foreground italic">✓ Reported — we'll review it, thanks!</span>
+              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
+                <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
+              </span>
             ) : (
               <button
                 onClick={handleReportMistake}
                 aria-label="Report AI mistake for this claim"
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-amber-600 transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-full font-medium transition-colors"
               >
                 <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
               </button>
@@ -280,67 +283,34 @@ Report:
     });
   };
 
-  // ── SEC EDGAR cross-check ──────────────────────────────────────────────────
-  const runSECCheck = async (enrichedClaims) => {
+  // ── Financials cross-check (revenue & EPS from Yahoo Finance fundamentals) ──
+  const runFinancialsCheck = async (enrichedClaims) => {
     const verifiable = enrichedClaims.filter(
-      c => c.verifiableTicker && (c.verifiableMetric === "revenue" || c.verifiableMetric === "eps" || c.verifiableMetric === "marketCap")
+      c => c.verifiableTicker && (c.verifiableMetric === "revenue" || c.verifiableMetric === "eps")
     );
     if (!verifiable.length) return enrichedClaims;
 
     const tickers = [...new Set(verifiable.map(c => c.verifiableTicker))];
-    const secData = {};
+    const fundData = {};
 
     for (const ticker of tickers) {
       try {
-        // Resolve ticker → CIK using SEC company_tickers.json
-        const mapRes = await base44.integrations.Core.proxyFetch({
-          url: "https://www.sec.gov/files/company_tickers.json",
-          method: "GET",
-        });
-        const tickerMap = typeof mapRes === "string" ? JSON.parse(mapRes) : mapRes;
-        const entry = Object.values(tickerMap || {}).find(
-          e => (e.ticker || "").toLowerCase() === ticker.toLowerCase()
-        );
-        if (!entry?.cik_str) continue;
-
-        // Fetch XBRL company facts
-        const cik = String(entry.cik_str).padStart(10, "0");
-        const factsRes = await base44.integrations.Core.proxyFetch({
-          url: `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`,
-          method: "GET",
-        });
-        const facts = typeof factsRes === "string" ? JSON.parse(factsRes) : factsRes;
-        const usgaap = facts?.facts?.["us-gaap"] || {};
-
-        // Extract latest annual revenue (Revenues or SalesRevenueNet)
-        const revConcept = usgaap["Revenues"] || usgaap["SalesRevenueNet"] || usgaap["RevenueFromContractWithCustomerExcludingAssessedTax"];
-        const annualUnits = revConcept?.units?.USD?.filter(u => u.form === "10-K") || [];
-        const latestRev = annualUnits.sort((a, b) => b.end?.localeCompare(a.end))[0];
-
-        // Extract latest EPS (BasicEPS)
-        const epsConcept = usgaap["EarningsPerShareBasic"];
-        const epsUnits = epsConcept?.units?.["USD/shares"]?.filter(u => u.form === "10-K") || [];
-        const latestEPS = epsUnits.sort((a, b) => b.end?.localeCompare(a.end))[0];
-
-        secData[ticker] = {
-          revenue: latestRev ? { value: latestRev.val, period: latestRev.end } : null,
-          eps:     latestEPS ? { value: latestEPS.val, period: latestEPS.end } : null,
-        };
+        const fund = await fetchFundamentals(ticker);
+        fundData[ticker] = fund;
       } catch {
-        // SEC check is best-effort — never block on failure
+        // best-effort — never block on failure
       }
     }
 
     return enrichedClaims.map(claim => {
       if (!claim.verifiableTicker || !claim.verifiableMetric) return claim;
-      const sd = secData[claim.verifiableTicker];
-      if (!sd) return claim;
+      const fd = fundData[claim.verifiableTicker];
+      if (!fd) return claim;
 
       let secCheck = null;
 
-      if (claim.verifiableMetric === "revenue" && sd.revenue) {
-        const billions = sd.revenue.value / 1e9;
-        // Try to parse a number from the claim text
+      if (claim.verifiableMetric === "revenue" && fd.revenue) {
+        const billions = fd.revenue / 1e9;
         const numMatch = claim.text.match(/\$?([\d,.]+)\s*(B|billion|M|million)?/i);
         if (numMatch) {
           const claimedRaw = parseFloat(numMatch[1].replace(/,/g, ""));
@@ -348,13 +318,22 @@ Report:
           const claimedB = claimedRaw * multiplier;
           const diff = Math.abs(claimedB - billions) / billions;
           secCheck = diff < 0.15
-            ? { match: true,  detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B — consistent.` }
-            : { match: false, detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B vs claimed ~$${claimedB.toFixed(1)}B.` };
+            ? { match: true,  detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B — consistent with claim.` }
+            : { match: false, detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B vs claimed ~$${claimedB.toFixed(1)}B.` };
         } else {
-          secCheck = { match: true, detail: `SEC 10-K (${sd.revenue.period}): Revenue $${billions.toFixed(1)}B on file.` };
+          secCheck = { match: true, detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B on record.` };
         }
-      } else if (claim.verifiableMetric === "eps" && sd.eps) {
-        secCheck = { match: true, detail: `SEC 10-K (${sd.eps.period}): EPS $${sd.eps.value?.toFixed(2)} on file.` };
+      } else if (claim.verifiableMetric === "eps" && fd.eps) {
+        const numMatch = claim.text.match(/EPS[^$]*\$?([\d.]+)/i);
+        if (numMatch) {
+          const claimed = parseFloat(numMatch[1]);
+          const diff = Math.abs(claimed - fd.eps) / Math.abs(fd.eps || 1);
+          secCheck = diff < 0.2
+            ? { match: true,  detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} — consistent.` }
+            : { match: false, detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} vs claimed $${claimed.toFixed(2)}.` };
+        } else {
+          secCheck = { match: true, detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} on record.` };
+        }
       }
 
       if (!secCheck) return claim;
@@ -378,8 +357,8 @@ Report:
       const claudeClaims = await runClaudeCheck();
       setPhase("yahoo");
       const yahooClaims = await runYahooCheck(claudeClaims);
-      setPhase("sec");
-      const enrichedClaims = await runSECCheck(yahooClaims);
+      setPhase("financials");
+      const enrichedClaims = await runFinancialsCheck(yahooClaims);
       setClaims(enrichedClaims);
     } catch (err) {
       setError("Fact check failed. " + (err.message || "Please try again."));
@@ -401,7 +380,7 @@ Report:
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">AI Fact Checker</h4>
-            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
+            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · Yahoo Financials</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -412,7 +391,7 @@ Report:
           )}
           <Button onClick={runCheck} disabled={loading || !text} size="sm" variant="outline" className="text-xs">
             {loading
-              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "SEC EDGAR..."}</>
+              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "Revenue & EPS..."}</>
               : claims ? "Re-run" : "Check Facts"
             }
           </Button>
@@ -431,11 +410,11 @@ Report:
               : <div className="w-3 h-3 rounded-full border border-current opacity-30" />}
             <span>Step 2: Cross-checking prices &amp; ratios with Yahoo Finance</span>
           </div>
-          <div className={`flex items-center gap-2 text-xs py-1 ${phase === "sec" ? "text-primary" : "text-muted-foreground"}`}>
-            {phase === "sec"
+          <div className={`flex items-center gap-2 text-xs py-1 ${phase === "financials" ? "text-primary" : "text-muted-foreground"}`}>
+            {phase === "financials"
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : <div className="w-3 h-3 rounded-full border border-current opacity-30" />}
-            <span>Step 3: Verifying revenue &amp; EPS against SEC EDGAR filings</span>
+            <span>Step 3: Cross-checking revenue &amp; EPS with Yahoo Financials</span>
           </div>
         </div>
       )}
