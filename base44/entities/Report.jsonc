@@ -7,16 +7,13 @@
       "description": "Report title"
     },
     "excerpt": {
-      "type": "string",
-      "description": "Short summary/teaser"
+      "type": "string"
     },
     "content_blocks": {
-      "type": "string",
-      "description": "JSON string of editor blocks [{type, content, id}]"
+      "type": "string"
     },
     "tickers": {
-      "type": "string",
-      "description": "Comma-separated stock tickers e.g. NVDA,AAPL"
+      "type": "string"
     },
     "prediction_action": {
       "type": "string",
@@ -24,46 +21,40 @@
         "Long",
         "Short",
         "Hold"
-      ],
-      "description": "Prediction direction"
+      ]
     },
     "prediction_ticker": {
-      "type": "string",
-      "description": "Ticker for the prediction"
+      "type": "string"
     },
     "prediction_target_price": {
-      "type": "number",
-      "description": "Target price"
+      "type": "number"
     },
     "prediction_lock_price": {
-      "type": "number",
-      "description": "Price at lock time"
+      "type": "number"
     },
     "prediction_lock_time": {
       "type": "string",
-      "format": "date-time",
-      "description": "When prediction was locked"
+      "format": "date-time"
+    },
+    "prediction_lock_source": {
+      "type": "string",
+      "description": "Data provider that supplied the lock price (finnhub, polygon, iex, yahoo)"
     },
     "prediction_timeframe": {
-      "type": "string",
-      "description": "Timeframe e.g. 6 months"
+      "type": "string"
     },
     "prediction_stop_loss": {
-      "type": "number",
-      "description": "Stop loss price"
+      "type": "number"
     },
     "prediction_portfolio_pct": {
-      "type": "number",
-      "description": "Portfolio allocation percentage"
+      "type": "number"
     },
     "prediction_resolved_price": {
-      "type": "number",
-      "description": "Actual price when prediction resolved"
+      "type": "number"
     },
     "prediction_resolved_time": {
       "type": "string",
-      "format": "date-time",
-      "description": "When prediction was resolved"
+      "format": "date-time"
     },
     "prediction_outcome": {
       "type": "string",
@@ -73,24 +64,19 @@
         "partial",
         "miss",
         "pending"
-      ],
-      "description": "Prediction result"
+      ]
     },
     "author_name": {
-      "type": "string",
-      "description": "Author display name"
+      "type": "string"
     },
     "author_avatar": {
-      "type": "string",
-      "description": "Author avatar URL"
+      "type": "string"
     },
     "author_accuracy": {
-      "type": "number",
-      "description": "Author accuracy score at time of publish"
+      "type": "number"
     },
     "industry": {
-      "type": "string",
-      "description": "Industry/sector"
+      "type": "string"
     },
     "market_cap": {
       "type": "string",
@@ -100,17 +86,14 @@
         "mid",
         "small",
         "micro"
-      ],
-      "description": "Market cap category"
+      ]
     },
     "is_premium": {
       "type": "boolean",
-      "default": false,
-      "description": "Requires payment to read"
+      "default": false
     },
     "price": {
-      "type": "number",
-      "description": "Price if premium"
+      "type": "number"
     },
     "likes": {
       "type": "number",
@@ -118,8 +101,7 @@
     },
     "views": {
       "type": "number",
-      "default": 0,
-      "description": "Total view count"
+      "default": 0
     },
     "status": {
       "type": "string",
@@ -130,11 +112,56 @@
       "default": "draft"
     },
     "fact_check_results": {
-      "type": "string",
-      "description": "JSON string of AI fact check results {claims: [...]}"
+      "type": "string"
     }
   },
   "required": [
     "title"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "analyst"
+      }
+    },
+    "read": {
+      "or": [
+        {
+          "data.status": "published"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }
