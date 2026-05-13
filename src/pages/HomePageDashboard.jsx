@@ -242,17 +242,22 @@ export default function HomePageDashboard() {
   const [trendingTickers, setTrendingTickers] = useState([]);
   const [trendingSectors, setTrendingSectors] = useState([]);
   const [followedEmails, setFollowedEmails] = useState([]);
+  const [indexQuotes, setIndexQuotes] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
   // Investors see the consumer home; analysts/admins see the creator dashboard
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
-  // load watchlist from localStorage
+  // load watchlist from localStorage — normalise ticker/symbol field
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-      setWatchlist(stored);
+      // WatchlistPanel stores { ticker, timeframe }; normalise to { symbol }
+      const normalised = stored.map(e =>
+        typeof e === "string" ? { symbol: e } : { ...e, symbol: e.ticker || e.symbol }
+      );
+      setWatchlist(normalised);
     } catch {}
   }, []);
 
@@ -341,6 +346,30 @@ export default function HomePageDashboard() {
 
     load();
   }, [user]);
+
+  // Live index prices — SPY, QQQ, DIA, VIX
+  useEffect(() => {
+    const INDEX_SYMBOLS = ["SPY", "QQQ", "DIA", "^VIX"];
+    const fetchIndexes = async () => {
+      try {
+        const r = await base44.functions.invoke("proxyFetch", {
+          url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(INDEX_SYMBOLS.join(","))}&formatted=false`,
+          headers: { "User-Agent": "Mozilla/5.0" },
+        });
+        const results = (r.data?.quoteResponse?.result || []).map(q => ({
+          symbol: q.symbol === "^VIX" ? "VIX" : q.symbol,
+          price: q.regularMarketPrice,
+          change: q.regularMarketChangePercent,
+          label: q.symbol === "^VIX" ? "VIX" : q.symbol,
+        }));
+        setIndexQuotes(results);
+      } catch {}
+    };
+    fetchIndexes();
+    const interval = setInterval(fetchIndexes, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   const handleFollow = async (analyst) => {
     if (!user) return;
@@ -648,6 +677,28 @@ export default function HomePageDashboard() {
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
               Market Activity
             </h2>
+
+            {/* Live index prices */}
+            {indexQuotes.length > 0 && (
+              <div className="grid grid-cols-2 gap-1.5 mb-4">
+                {indexQuotes.map(q => {
+                  const up = (q.change ?? 0) >= 0;
+                  return (
+                    <div key={q.symbol} className="flex items-center justify-between rounded-lg bg-secondary/60 px-2.5 py-1.5">
+                      <span className="text-[11px] font-mono font-bold">{q.label}</span>
+                      <div className="text-right">
+                        <div className="text-[11px] font-semibold tabular-nums">
+                          {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
+                        </div>
+                        <div className={`text-[10px] font-semibold ${up ? "text-green-600" : "text-red-500"}`}>
+                          {up ? "+" : ""}{q.change?.toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {trendingTickers.length > 0 && (
               <>

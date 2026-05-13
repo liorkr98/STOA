@@ -24,7 +24,8 @@
       "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__create_entity_schema",
       "mcp__c6fb4afe-dfaf-4931-afac-789c985506c7__update_entity_schema",
       "Bash(git rev-list *)",
-      "Bash(git commit -m 'fix: logout routes through AuthContext to land on landing page *)"
+      "Bash(git commit -m 'fix: logout routes through AuthContext to land on landing page *)",
+      "Bash(git commit -m 'fix: logout clears token directly and navigates to landing without OAuth redirect *)"
     ]
   }
 }

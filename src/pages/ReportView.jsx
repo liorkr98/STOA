@@ -248,7 +248,7 @@ export default function ReportView() {
   const [showSubDialog,    setShowSubDialog]    = useState(false);
   const [unlockedNow, setUnlockedNow] = useState(false); // optimistic reveal after purchase
   // Like helpers (imported inline to avoid circular deps)
-  const isLikedKey = (id) => `stoa_liked_report_${id}`;
+  const isLikedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
   const checkLiked = (id) => localStorage.getItem(isLikedKey(id)) === '1';
   const writeLiked = (id, val) => val ? localStorage.setItem(isLikedKey(id), '1') : localStorage.removeItem(isLikedKey(id));
   const [viewCount, setViewCount] = useState(0);
@@ -436,12 +436,24 @@ export default function ReportView() {
           </span>
           <button
             onClick={async () => {
+              if (!currentUser) return;
+              // Guard: prevent double-like
+              if (checkLiked(report.id) && !liked) { setLiked(true); return; }
               const newLiked = !liked;
               const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
               setLiked(newLiked);
               setLikeCount(newCount);
               writeLiked(report.id, newLiked);
               await base44.entities.Report.update(report.id, { likes: newCount });
+              if (newLiked && report.created_by && report.created_by !== currentUser.email) {
+                base44.entities.Notification.create({
+                  user_email: report.created_by,
+                  type: "like",
+                  title: `${currentUser.full_name || currentUser.email?.split("@")[0]} liked your report`,
+                  body: report.title?.slice(0, 80) || "",
+                  link: `/report?id=${report.id}`,
+                }).catch(() => {});
+              }
               base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
             }}
             className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
@@ -579,7 +591,7 @@ export default function ReportView() {
         </div>
       )}
 
-      <CommentsSection reportId={report.id} />
+      <CommentsSection reportId={report.id} reportAuthorEmail={report.created_by} reportTitle={report.title} />
 
       {/* More from this analyst */}
       {moreReports.length > 0 && (

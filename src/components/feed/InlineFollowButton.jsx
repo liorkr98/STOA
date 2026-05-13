@@ -22,6 +22,14 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
           analyst_name: analystName || analystEmail?.split("@")[0] || "Analyst",
           analyst_avatar: analystAvatar || "",
         });
+        // Notify the analyst of their new follower
+        base44.entities.Notification.create({
+          user_email: analystEmail,
+          type: "follow",
+          title: `${user.full_name || user.email?.split("@")[0]} started following you`,
+          body: "Check your profile to see your new follower.",
+          link: `/analyst/${user.email?.split("@")[0]}`,
+        }).catch(() => {});
       } else {
         const existing = await base44.entities.Follow.filter({ follower_email: user.email, analyst_email: analystEmail });
         if (existing?.[0]) await base44.entities.Follow.delete(existing[0].id);
@@ -45,9 +53,9 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
         fontWeight: 700,
         cursor: 'pointer',
         transition: 'all 150ms ease',
-        border: following ? '1px solid #16a34a' : '1px solid #2563eb',
+        border: following ? '1px solid #16a34a' : '1px solid hsl(215 56% 27%)',
         background: following ? '#f0fdf4' : 'transparent',
-        color: following ? '#16a34a' : '#2563eb',
+        color: following ? '#16a34a' : 'hsl(215 56% 27%)',
         opacity: loading ? 0.6 : 1,
         flexShrink: 0,
       }}

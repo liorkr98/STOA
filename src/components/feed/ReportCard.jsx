@@ -224,7 +224,7 @@ function QuickPoll({ reportId }) {
 // ── main card ─────────────────────────────────────────────────────────────────
 export default function ReportCard({ report, isSubscribed = false, currentUserEmail = null, followedEmails = [], allReports = [], userMap = {} }) {
   const { user, isAuthenticated } = useAuth();
-  const [liked, setLiked] = useState(() => isReportLiked(report.id));
+  const [liked, setLiked] = useState(() => isReportLiked(report.id, user?.email));
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const [saved, setSaved] = useState(() => isReportSaved(report.id));
   const [hovered, setHovered] = useState(false);
@@ -263,18 +263,35 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!isAuthenticated || !user) return;
+    // Guard: prevent double-like (check persisted state for this user)
+    const alreadyLiked = isReportLiked(report.id, user.email);
+    if (alreadyLiked && !liked) {
+      // State drifted (e.g. stale render) — sync and bail
+      setLiked(true);
+      return;
+    }
     if (liked) {
       const newCount = Math.max(0, likeCount - 1);
       setLiked(false);
       setLikeCount(newCount);
-      setReportLiked(report.id, false);
+      setReportLiked(report.id, false, user.email);
       await base44.entities.Report.update(report.id, { likes: newCount });
     } else {
       const newCount = likeCount + 1;
       setLiked(true);
       setLikeCount(newCount);
-      setReportLiked(report.id, true);
+      setReportLiked(report.id, true, user.email);
       await base44.entities.Report.update(report.id, { likes: newCount });
+      // Notify the author (don't notify self-likes)
+      if (authorEmail && authorEmail !== user.email) {
+        base44.entities.Notification.create({
+          user_email: authorEmail,
+          type: "like",
+          title: `${user.full_name || user.email?.split("@")[0]} liked your report`,
+          body: report.title?.slice(0, 80) || "",
+          link: `/report?id=${report.id}`,
+        }).catch(() => {});
+      }
     }
   };
 
@@ -519,9 +536,14 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         {tickers.length > 0 && (
           <div
             onClick={e => e.stopPropagation()}
-            style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}
+            style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10, alignItems:'center' }}
           >
             {tickers.map(t => <TickerTag key={t} ticker={t} />)}
+            {report.industry && (
+              <span style={{ fontSize:10, fontWeight:600, color:'#64748b', background:'#f1f5f9', border:'1px solid #e2e8f0', borderRadius:4, padding:'2px 6px' }}>
+                {report.industry}
+              </span>
+            )}
           </div>
         )}
 

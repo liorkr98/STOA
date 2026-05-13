@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, X, Loader2 } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, Heart, MessageCircle, X, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { formatDistanceToNow } from "date-fns";
 
 const TYPE_CONFIG = {
-  hit:     { icon: CheckCircle2, color: "text-gain",      bg: "bg-gain/10" },
-  near:    { icon: CheckCircle2, color: "text-gain",      bg: "bg-gain/10" },
-  partial: { icon: TrendingUp,   color: "text-amber-500", bg: "bg-amber-50" },
-  miss:    { icon: XCircle,      color: "text-loss",      bg: "bg-loss/10" },
-  report:  { icon: FileText,     color: "text-primary",   bg: "bg-primary/10" },
-  follow:  { icon: UserPlus,     color: "text-blue-500",  bg: "bg-blue-50" },
+  hit:     { icon: CheckCircle2,  color: "text-gain",      bg: "bg-gain/10" },
+  near:    { icon: CheckCircle2,  color: "text-gain",      bg: "bg-gain/10" },
+  partial: { icon: TrendingUp,    color: "text-amber-500", bg: "bg-amber-50" },
+  miss:    { icon: XCircle,       color: "text-loss",      bg: "bg-loss/10" },
+  report:  { icon: FileText,      color: "text-primary",   bg: "bg-primary/10" },
+  follow:  { icon: UserPlus,      color: "text-primary",   bg: "bg-primary/10" },
+  like:    { icon: Heart,         color: "text-rose-500",  bg: "bg-rose-50" },
+  comment: { icon: MessageCircle, color: "text-violet-500",bg: "bg-violet-50" },
 };
 
 export default function NotificationCenter() {
@@ -26,12 +28,13 @@ export default function NotificationCenter() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser || fetchedRef.current) return;
-    fetchedRef.current = true;
-    setLoading(true);
-    base44.entities.Notification.filter({ user_email: currentUser.email }, "-created_date", 30)
-      .then(setNotifications)
-      .finally(() => setLoading(false));
+    if (!currentUser) return;
+    const fetch = () =>
+      base44.entities.Notification.filter({ user_email: currentUser.email }, "-created_date", 30)
+        .then(setNotifications).catch(() => {});
+    if (!fetchedRef.current) { fetchedRef.current = true; setLoading(true); fetch().finally(() => setLoading(false)); }
+    const interval = setInterval(fetch, 30000);
+    return () => clearInterval(interval);
   }, [currentUser]);
 
   // Refresh when opened

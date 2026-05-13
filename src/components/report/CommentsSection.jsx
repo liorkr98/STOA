@@ -68,7 +68,7 @@ function CommentItem({ comment }) {
   );
 }
 
-export default function CommentsSection({ reportId }) {
+export default function CommentsSection({ reportId, reportAuthorEmail, reportTitle }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -100,6 +100,16 @@ export default function CommentsSection({ reportId }) {
       });
       setComments(prev => [comment, ...prev]);
       setNewComment("");
+      // Notify report author of the new comment (skip self-comments)
+      if (reportAuthorEmail && currentUser?.email && reportAuthorEmail !== currentUser.email) {
+        base44.entities.Notification.create({
+          user_email: reportAuthorEmail,
+          type: "comment",
+          title: `${currentUser.full_name || currentUser.email?.split("@")[0]} commented on your report`,
+          body: newComment.trim().slice(0, 100),
+          link: `/report?id=${reportId}`,
+        }).catch(() => {});
+      }
     } finally {
       setPosting(false);
     }
