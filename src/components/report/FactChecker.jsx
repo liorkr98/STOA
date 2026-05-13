@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { fetchFundamentals } from "@/lib/stockData";
 import { toast } from "sonner";
 
 const TYPE_CONFIG = {
@@ -115,7 +114,17 @@ function ClaimCard({ claim }) {
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
               claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
             }`}>
-              <strong>Financials:</strong> {claim.secCheck.detail}
+              <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
+              {claim.secCheck.edgarLink && (
+                <a
+                  href={claim.secCheck.edgarLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-1.5 underline opacity-70 hover:opacity-100 inline-flex items-center gap-0.5"
+                >
+                  <ExternalLink className="w-2.5 h-2.5 inline" /> View 10-K
+                </a>
+              )}
             </div>
           )}
 
@@ -283,7 +292,42 @@ Report:
     });
   };
 
-  // ── Financials cross-check (revenue & EPS from Yahoo Finance fundamentals) ──
+  // ── EDGAR helpers ──────────────────────────────────────────────────────────
+  // SEC requires User-Agent: "<company> <email>" on every request.
+  const EDGAR_HEADERS = { "User-Agent": "Stakify admin@stakify.com", "Accept-Encoding": "gzip, deflate" };
+
+  // Resolve ticker → zero-padded 10-digit CIK via the EDGAR company_tickers file.
+  const resolveCIK = async (ticker) => {
+    const res = await base44.functions.invoke("proxyFetch", {
+      url: "https://www.sec.gov/files/company_tickers.json",
+      headers: EDGAR_HEADERS,
+    });
+    const raw = res?.data || res;
+    const body = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // body shape: { "0": { cik_str, ticker, title }, "1": ... }
+    const entry = Object.values(body).find(e => e.ticker?.toUpperCase() === ticker.toUpperCase());
+    if (!entry) return null;
+    return String(entry.cik_str).padStart(10, "0");
+  };
+
+  // Fetch a specific XBRL concept and return the most-recent annual value.
+  const fetchEdgarConcept = async (cik, concept) => {
+    const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`;
+    const res = await base44.functions.invoke("proxyFetch", { url, headers: EDGAR_HEADERS });
+    const raw = res?.data || res;
+    const body = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // units → USD (for revenue/netIncome) or USD/shares (for EPS)
+    const unitKey = Object.keys(body?.units || {})[0];
+    const entries = body?.units?.[unitKey];
+    if (!entries?.length) return null;
+    // Keep only 10-K annual filings, sorted newest first
+    const annual = entries
+      .filter(e => e.form === "10-K" && e.val != null)
+      .sort((a, b) => new Date(b.end) - new Date(a.end));
+    return annual[0] || null; // { val, end, accn, form, ... }
+  };
+
+  // ── SEC EDGAR cross-check (revenue & EPS from actual 10-K filings) ────────
   const runFinancialsCheck = async (enrichedClaims) => {
     const verifiable = enrichedClaims.filter(
       c => c.verifiableTicker && (c.verifiableMetric === "revenue" || c.verifiableMetric === "eps")
@@ -291,48 +335,74 @@ Report:
     if (!verifiable.length) return enrichedClaims;
 
     const tickers = [...new Set(verifiable.map(c => c.verifiableTicker))];
-    const fundData = {};
+    const edgarData = {}; // ticker → { revenue?, eps?, revenueYear?, epsYear? }
 
     for (const ticker of tickers) {
       try {
-        const fund = await fetchFundamentals(ticker);
-        fundData[ticker] = fund;
+        const cik = await resolveCIK(ticker);
+        if (!cik) continue;
+
+        // Try common revenue concepts in order of preference
+        let revEntry = null;
+        for (const concept of ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet"]) {
+          revEntry = await fetchEdgarConcept(cik, concept).catch(() => null);
+          if (revEntry) break;
+        }
+
+        const epsEntry = await fetchEdgarConcept(cik, "EarningsPerShareDiluted").catch(() => null);
+
+        edgarData[ticker] = {
+          cik,
+          revenue:     revEntry?.val  ?? null,
+          revenueYear: revEntry?.end  ?? null,
+          eps:         epsEntry?.val  ?? null,
+          epsYear:     epsEntry?.end  ?? null,
+        };
       } catch {
-        // best-effort — never block on failure
+        // Best-effort; Yahoo Financials already ran as a prior step
       }
     }
 
     return enrichedClaims.map(claim => {
       if (!claim.verifiableTicker || !claim.verifiableMetric) return claim;
-      const fd = fundData[claim.verifiableTicker];
-      if (!fd) return claim;
+      const ed = edgarData[claim.verifiableTicker];
+      if (!ed) return claim;
 
       let secCheck = null;
+      const filingYear = ed.revenueYear?.slice(0, 4) || ed.epsYear?.slice(0, 4) || "";
+      const edgarLink  = ed.cik
+        ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ed.cik}&type=10-K&dateb=&owner=include&count=5`
+        : null;
 
-      if (claim.verifiableMetric === "revenue" && fd.revenue) {
-        const billions = fd.revenue / 1e9;
-        const numMatch = claim.text.match(/\$?([\d,.]+)\s*(B|billion|M|million)?/i);
+      if (claim.verifiableMetric === "revenue" && ed.revenue != null) {
+        const billions = ed.revenue / 1e9;
+        const numMatch = claim.text.match(/\$?([\d,.]+)\s*(B|billion|T|trillion|M|million|K|thousand)?/i);
         if (numMatch) {
           const claimedRaw = parseFloat(numMatch[1].replace(/,/g, ""));
-          const multiplier = /B|billion/i.test(numMatch[2]) ? 1 : /M|million/i.test(numMatch[2]) ? 0.001 : 1;
+          const unit = numMatch[2] || "";
+          const multiplier = /T|trillion/i.test(unit) ? 1000
+            : /B|billion/i.test(unit)                ? 1
+            : /M|million/i.test(unit)                ? 0.001
+            : /K|thousand/i.test(unit)               ? 0.000001
+            : claimedRaw > 500 ? 0.001               : 1; // bare number heuristic
           const claimedB = claimedRaw * multiplier;
-          const diff = Math.abs(claimedB - billions) / billions;
+          const diff = Math.abs(claimedB - billions) / (billions || 1);
           secCheck = diff < 0.15
-            ? { match: true,  detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B — consistent with claim.` }
-            : { match: false, detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B vs claimed ~$${claimedB.toFixed(1)}B.` };
+            ? { match: true,  detail: `SEC 10-K (${filingYear}): Revenue $${billions.toFixed(1)}B — consistent with claim.`, edgarLink }
+            : { match: false, detail: `SEC 10-K (${filingYear}): Revenue $${billions.toFixed(1)}B vs claimed ~$${claimedB.toFixed(1)}B.`, edgarLink };
         } else {
-          secCheck = { match: true, detail: `Yahoo Financials (TTM): Revenue $${billions.toFixed(1)}B on record.` };
+          secCheck = { match: true, detail: `SEC 10-K (${filingYear}): Revenue $${billions.toFixed(1)}B on record.`, edgarLink };
         }
-      } else if (claim.verifiableMetric === "eps" && fd.eps) {
-        const numMatch = claim.text.match(/EPS[^$]*\$?([\d.]+)/i);
+      } else if (claim.verifiableMetric === "eps" && ed.eps != null) {
+        const numMatch = claim.text.match(/(?:EPS|earnings per share)[^$\d]*\$?([\d.]+)/i);
         if (numMatch) {
           const claimed = parseFloat(numMatch[1]);
-          const diff = Math.abs(claimed - fd.eps) / Math.abs(fd.eps || 1);
+          const diff = Math.abs(claimed - ed.eps) / Math.abs(ed.eps || 1);
           secCheck = diff < 0.2
-            ? { match: true,  detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} — consistent.` }
-            : { match: false, detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} vs claimed $${claimed.toFixed(2)}.` };
+            ? { match: true,  detail: `SEC 10-K (${filingYear}): EPS $${ed.eps.toFixed(2)} — consistent.`, edgarLink }
+            : { match: false, detail: `SEC 10-K (${filingYear}): EPS $${ed.eps.toFixed(2)} vs claimed $${claimed.toFixed(2)}.`, edgarLink };
         } else {
-          secCheck = { match: true, detail: `Yahoo Financials (TTM): EPS $${fd.eps.toFixed(2)} on record.` };
+          secCheck = { match: true, detail: `SEC 10-K (${filingYear}): EPS $${ed.eps.toFixed(2)} on record.`, edgarLink };
         }
       }
 
@@ -380,7 +450,7 @@ Report:
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">AI Fact Checker</h4>
-            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · Yahoo Financials</p>
+            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -391,10 +461,11 @@ Report:
           )}
           <Button onClick={runCheck} disabled={loading || !text} size="sm" variant="outline" className="text-xs">
             {loading
-              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "Revenue & EPS..."}</>
+              ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "SEC EDGAR..."}</>
               : claims ? "Re-run" : "Check Facts"
             }
           </Button>
+
         </div>
       </div>
 
@@ -414,7 +485,7 @@ Report:
             {phase === "financials"
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : <div className="w-3 h-3 rounded-full border border-current opacity-30" />}
-            <span>Step 3: Cross-checking revenue &amp; EPS with Yahoo Financials</span>
+            <span>Step 3: Cross-checking revenue &amp; EPS with SEC EDGAR 10-K filings</span>
           </div>
         </div>
       )}
