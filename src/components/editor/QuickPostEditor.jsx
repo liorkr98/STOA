@@ -4,6 +4,7 @@ import { ImageIcon, Send, Zap, BarChart3, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { fetchLockPrice } from "@/lib/priceLockProvider";
 
 export default function QuickPostEditor({
   quickImage, setQuickImage,
@@ -24,6 +25,22 @@ export default function QuickPostEditor({
       const blocks = [];
       if (quickImage) blocks.push({ type: "image", content: quickImage });
       if (quickChart) blocks.push({ type: "chart", ticker: quickChart });
+
+      // Lock price if prediction is set — same guarantee as the full editor
+      let lockPrice = null, lockTime = null, lockSource = null;
+      if (quickShowPrediction && quickTicker) {
+        toast.info(`Locking live price for $${quickTicker}…`, { duration: 1800 });
+        try {
+          const locked = await fetchLockPrice(quickTicker);
+          lockPrice = locked.price;
+          lockTime  = locked.timestamp;
+          lockSource = locked.source;
+        } catch {
+          toast.error(`Could not fetch live price for $${quickTicker}. Try again.`);
+          return;
+        }
+      }
+
       await base44.entities.Report.create({
         title: title.trim(),
         content_blocks: JSON.stringify(blocks),
@@ -31,13 +48,19 @@ export default function QuickPostEditor({
         author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst",
         author_avatar: currentUser?.picture || null,
         ...(quickShowPrediction && quickTicker ? {
-          prediction_action: quickAction,
-          prediction_ticker: quickTicker,
-          prediction_timeframe: quickTimeframe,
+          prediction_action:       quickAction,
+          prediction_ticker:       quickTicker,
+          prediction_timeframe:    quickTimeframe,
           prediction_target_price: quickTarget ? parseFloat(quickTarget) : null,
+          prediction_lock_price:   lockPrice,
+          prediction_lock_time:    lockTime,
+          prediction_lock_source:  lockSource,
         } : {}),
       });
-      toast.success("Quick post published!");
+      toast.success(lockPrice
+        ? `Published · Locked $${quickTicker} @ $${lockPrice.toFixed(2)}`
+        : "Quick post published!"
+      );
       navigate("/feed");
     } catch (err) {
       toast.error("Failed: " + err.message);

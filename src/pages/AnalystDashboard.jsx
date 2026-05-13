@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock, Eye, Heart } from "lucide-react";
+import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock, Eye, Heart, Clock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
@@ -167,14 +167,30 @@ export default function AnalystDashboard() {
 
   useEffect(() => {
     if (!currentUser) return;
-    // Load ALL reports (both published and draft) so the analyst sees everything
     base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 200)
-      .then(data => setMyReports(data || []))
+      .then(async data => {
+        const reports = data || [];
+        // Auto-publish any scheduled reports whose time has passed
+        const now = new Date();
+        const toPublish = reports.filter(r =>
+          r.status === "scheduled" && r.scheduled_at && new Date(r.scheduled_at) <= now
+        );
+        await Promise.all(toPublish.map(r =>
+          base44.entities.Report.update(r.id, { status: "published", scheduled_at: null }).catch(() => {})
+        ));
+        if (toPublish.length > 0) {
+          const updated = await base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 200).catch(() => reports);
+          setMyReports(updated || reports);
+        } else {
+          setMyReports(reports);
+        }
+      })
       .finally(() => setLoadingReports(false));
   }, [currentUser]);
 
-  const publishedReports = useMemo(() => myReports.filter(r => r.status === "published"), [myReports]);
-  const draftReports = useMemo(() => myReports.filter(r => r.status !== "published"), [myReports]);
+  const publishedReports  = useMemo(() => myReports.filter(r => r.status === "published"), [myReports]);
+  const scheduledReports  = useMemo(() => myReports.filter(r => r.status === "scheduled"), [myReports]);
+  const draftReports      = useMemo(() => myReports.filter(r => r.status !== "published" && r.status !== "scheduled"), [myReports]);
   const predictions = useMemo(() => publishedReports.filter(r => r.prediction_action), [publishedReports]);
 
   // Compute yield from resolved reports
@@ -360,6 +376,7 @@ export default function AnalystDashboard() {
         <div className="flex flex-wrap gap-2 mb-4">
           {[
             { id: "published", label: `Published (${publishedReports.length})` },
+            { id: "scheduled", label: `Scheduled (${scheduledReports.length})`, hidden: scheduledReports.length === 0 },
             { id: "drafts", label: `Drafts (${draftReports.length})` },
             { id: "boost", label: "Boost" },
             { id: "profile-boost", label: "Profile Boost" },
@@ -411,6 +428,50 @@ export default function AnalystDashboard() {
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {tab === "scheduled" && (
+          <div className="space-y-2">
+            {scheduledReports.length === 0 ? (
+              <div className="text-center py-10">
+                <Clock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">No scheduled reports</p>
+                <p className="text-xs text-muted-foreground/60">Use "Schedule for later" in the editor.</p>
+              </div>
+            ) : (
+              scheduledReports
+                .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
+                .map(r => {
+                  const goLive = new Date(r.scheduled_at);
+                  const diffMs = goLive - Date.now();
+                  const diffH = Math.floor(diffMs / 3600000);
+                  const diffM = Math.floor((diffMs % 3600000) / 60000);
+                  const countdown = diffH > 24
+                    ? `in ${Math.floor(diffH / 24)}d ${diffH % 24}h`
+                    : diffH > 0 ? `in ${diffH}h ${diffM}m` : `in ${diffM}m`;
+                  return (
+                    <div key={r.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{r.title || "Untitled"}</p>
+                        <p className="text-xs text-amber-700">
+                          Goes live {goLive.toLocaleDateString([], { month: "short", day: "numeric" })} at {goLive.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · <span className="font-semibold">{countdown}</span>
+                        </p>
+                      </div>
+                      <button
+                        className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        onClick={async () => {
+                          await base44.entities.Report.update(r.id, { status: "draft", scheduled_at: null }).catch(() => {});
+                          setMyReports(prev => prev.map(x => x.id === r.id ? { ...x, status: "draft", scheduled_at: null } : x));
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  );
+                })
             )}
           </div>
         )}

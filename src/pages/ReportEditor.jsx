@@ -165,6 +165,8 @@ export default function ReportEditor() {
   const [showTemplates,  setShowTemplates]  = useState(false);
   const [activePanel,    setActivePanel]    = useState("write");
   const [publishing,     setPublishing]     = useState(false);
+  const [showScheduler,  setShowScheduler]  = useState(false);
+  const [scheduledAt,    setScheduledAt]    = useState("");
   const [lastSaved,      setLastSaved]      = useState(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [dropIndicatorAt, setDropIndicatorAt] = useState(null);
@@ -451,11 +453,16 @@ export default function ReportEditor() {
   // Draft saves do NONE of this — drafting is free and fast.
   const PUBLISH_COST = 10; // AI credits
 
-  const handlePublish = async () => {
+  // Handles both immediate publish and scheduled publish.
+  // Pass scheduleTime (ISO string) to schedule; omit for immediate.
+  const handlePublish = async (scheduleTime = null) => {
     if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
     const validBlocks = sanitizeBlocks(blocks);
     if (validBlocks.every(b => !b.content?.trim() && b.type !== "stockchart" && b.type !== "image" && b.type !== "divider")) {
       toast.error("Please write some content before publishing."); return;
+    }
+    if (scheduleTime && new Date(scheduleTime) <= new Date()) {
+      toast.error("Scheduled time must be in the future."); return;
     }
 
     setPublishing(true);
@@ -536,6 +543,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
       } catch (e) { console.warn("Fact check skipped:", e); }
 
       // ── Step 5: Write report record ───────────────────────────────────────
+      const isScheduled = !!scheduleTime;
       const created = await base44.entities.Report.create({
         title,
         content_blocks:           JSON.stringify(frozenBlocks),
@@ -547,15 +555,16 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         prediction_action:        predictionData?.action       || null,
         prediction_ticker:        predictionData?.ticker       || null,
         prediction_target_price:  predictionData?.targetPrice  || null,
-        prediction_lock_price:    lockPrice,                                 // ← snapshot AT publish
-        prediction_lock_time:     lockTime,                                  // ← snapshot AT publish
-        prediction_lock_source:   lockSource,                                // ← which data provider
+        prediction_lock_price:    lockPrice,
+        prediction_lock_time:     lockTime,
+        prediction_lock_source:   lockSource,
         prediction_timeframe:     predictionData?.timeframe    || null,
         prediction_stop_loss:     predictionData?.stopLoss     || null,
         prediction_portfolio_pct: predictionData?.portfolioPct || null,
         is_premium:    isPremium,
         price:         isPremium ? parseFloat(reportPrice) : null,
-        status:        "published",
+        status:        isScheduled ? "scheduled" : "published",
+        scheduled_at:  isScheduled ? new Date(scheduleTime).toISOString() : null,
         author_name:   currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst",
         author_avatar: currentUser?.picture   || null,
         author_accuracy: currentUser?.accuracy_score || 0,
@@ -563,15 +572,23 @@ Report:"""${fullText.slice(0, 3000)}"""`,
       });
 
       // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
-      await spendAICredits(PUBLISH_COST, `Publish: ${title.slice(0, 50)}`).catch(e =>
+      await spendAICredits(PUBLISH_COST, `${isScheduled ? "Schedule" : "Publish"}: ${title.slice(0, 50)}`).catch(e =>
         console.warn("Credit deduction failed (non-fatal):", e)
       );
 
-      toast.success(lockPrice
-        ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
-        : "Report published!"
-      );
-      setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
+      if (isScheduled) {
+        const when = new Date(scheduleTime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        toast.success(`Scheduled for ${when} · It will go live automatically.`);
+        setShowScheduler(false);
+        setScheduledAt("");
+        setTimeout(() => navigate("/dashboard"), 1200);
+      } else {
+        toast.success(lockPrice
+          ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
+          : "Report published!"
+        );
+        setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
+      }
     } catch (err) {
       toast.error("Failed to publish: " + (err?.message || "Unknown error"));
     } finally {
@@ -1073,9 +1090,41 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   <Send className="w-3 h-3 text-primary" /> Publish
                 </h3>
                 <div className="space-y-2">
-                  <Button onClick={handlePublish} disabled={publishing} className="w-full gap-1.5">
-                    <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish Report"}
+                  <Button onClick={() => handlePublish()} disabled={publishing} className="w-full gap-1.5">
+                    <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish Now"}
                   </Button>
+
+                  {/* Schedule toggle */}
+                  <button
+                    onClick={() => setShowScheduler(s => !s)}
+                    className={`w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-all font-medium ${showScheduler ? "border-primary/40 text-primary bg-primary/5" : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    {showScheduler ? "Cancel schedule" : "Schedule for later"}
+                  </button>
+
+                  {showScheduler && (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-[10px] text-muted-foreground">Report goes live automatically at the chosen time.</p>
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                        onChange={e => setScheduledAt(e.target.value)}
+                        className="w-full text-xs border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:border-primary"
+                      />
+                      <Button
+                        onClick={() => handlePublish(scheduledAt)}
+                        disabled={publishing || !scheduledAt}
+                        variant="outline"
+                        className="w-full gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/5"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        {publishing ? "Scheduling..." : "Confirm Schedule"}
+                      </Button>
+                    </div>
+                  )}
+
                   <Button variant="outline" onClick={() => persistDraft()} className="w-full gap-1.5 text-xs">
                     <Save className="w-3.5 h-3.5" />Save as Draft
                   </Button>
