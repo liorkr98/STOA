@@ -30,7 +30,7 @@ export default function EmptySubscriptionsState({ currentUser, onSubscribed }) {
 
   const handleSubscribe = async (analyst) => {
     if (!currentUser) return;
-    const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+    const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
     setSubscribing(prev => ({ ...prev, [analyst.email]: true }));
     try {
       await base44.entities.Subscription.create({
@@ -61,7 +61,7 @@ export default function EmptySubscriptionsState({ currentUser, onSubscribed }) {
 
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {topAnalysts.map(a => {
-            const name = a.full_name || a.email?.split("@")[0] || "Analyst";
+            const name = a.full_name || a.email?.split("@")[0] || "Researcher";
             const callCount = reportCounts[a.email] ?? "—";
             const isBusy = subscribing[a.email];
             return (

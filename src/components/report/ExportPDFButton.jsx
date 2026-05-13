@@ -41,7 +41,7 @@ export default function ExportPDFButton({ report, blocks }) {
         pdf.setFontSize(8);
         pdf.setTextColor(148, 163, 184);
         pdf.text("STOA · Financial Research Platform", margin, 32);
-        pdf.text(`${report.author_name || "Analyst"} · ${formatDate(report.created_date)}`, pageW - margin, 32, { align: "right" });
+        pdf.text(`${report.author_name || "Researcher"} · ${formatDate(report.created_date)}`, pageW - margin, 32, { align: "right" });
         y = margin;
       };
 
@@ -99,7 +99,7 @@ export default function ExportPDFButton({ report, blocks }) {
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(15, 23, 42);
-      pdf.text(report.author_name || "Analyst", margin + 10, y + 13);
+      pdf.text(report.author_name || "Researcher", margin + 10, y + 13);
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
       pdf.setTextColor(100, 116, 139);

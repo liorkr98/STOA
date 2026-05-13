@@ -25,7 +25,7 @@ const FEED_TABS = [
   { id: "trending", label: "Trending", icon: Flame },
   { id: "following", label: "Following", icon: Users },
   { id: "subscriptions", label: "Subscriptions", icon: Star },
-  { id: "analysts", label: "Analysts", icon: Users },
+  { id: "analysts", label: "Researchers", icon: Users },
 ];
 
 const PAGE_SIZE = 10;
@@ -33,7 +33,7 @@ const PAGE_SIZE = 10;
 function FeaturedHero({ report, userMap }) {
   if (!report) return null;
   const authorUser = userMap[report.created_by] || {};
-  const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
   const authorAvatar = report.author_avatar || authorUser.picture || null;
 
   return (
@@ -176,7 +176,7 @@ export default function HomeFeed() {
     await base44.entities.Follow.create({
       follower_email: user.email,
       analyst_email: analyst.email,
-      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Researcher",
       analyst_avatar: analyst.picture || "",
     }).catch(() => {});
     setFollowedAnalysts(prev => [...prev, {

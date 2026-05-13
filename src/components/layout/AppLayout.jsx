@@ -165,7 +165,7 @@ export default function AppLayout() {
                         <span className={`mt-1 inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                           isAnalyst ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
                         }`}>
-                          {isAnalyst ? "Analyst" : "Investor"}
+                          {isAnalyst ? "Researcher" : "Investor"}
                         </span>
                       </div>
                     </button>
@@ -174,7 +174,7 @@ export default function AppLayout() {
                     {!isAnalyst && (
                       <DropdownMenuItem onClick={() => navigate("/become-analyst")} className="bg-amber-50 focus:bg-amber-100">
                         <Sparkles className="w-4 h-4 mr-2 text-amber-600" />
-                        <span className="font-bold text-amber-800">Become an Analyst</span>
+                        <span className="font-bold text-amber-800">Become a Researcher</span>
                       </DropdownMenuItem>
                     )}
 

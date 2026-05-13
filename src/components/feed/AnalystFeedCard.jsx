@@ -8,7 +8,7 @@ import AccuracyTierBadge from "./AccuracyTierBadge";
 export default function AnalystFeedCard({ analyst, allReports = [] }) {
   if (!analyst) return null;
 
-  const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const displayName = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const slug = getAnalystSlug(analyst);
 
   // Count total likes from their reports

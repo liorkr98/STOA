@@ -76,7 +76,7 @@ export default function LeaderboardPage() {
       <div className="flex items-center gap-3 mb-6">
         <Trophy className="w-6 h-6 text-amber-500" />
         <div>
-          <h1 className="text-2xl font-bold">Top Analysts Leaderboard</h1>
+          <h1 className="text-2xl font-bold">Top Researchers Leaderboard</h1>
           <p className="text-sm text-muted-foreground">Ranked by prediction accuracy</p>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function LeaderboardPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Star className="w-4 h-4 text-amber-500" />
-            <h2 className="font-bold text-sm">Top Analysts by Tier</h2>
+            <h2 className="font-bold text-sm">Top Researchers by Tier</h2>
             <span className="text-xs text-muted-foreground">Ranked by badge level · likes · yield</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -164,7 +164,7 @@ export default function LeaderboardPage() {
       ) : analysts.length === 0 ? (
         <div className="text-center py-16">
           <Trophy className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-base font-semibold text-muted-foreground mb-2">No analysts yet</h2>
+          <h2 className="text-base font-semibold text-muted-foreground mb-2">No researchers yet</h2>
           <p className="text-sm text-muted-foreground mb-4">Be the first to publish research and claim the #1 spot.</p>
           <button onClick={() => navigate("/editor")}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
@@ -220,7 +220,7 @@ export default function LeaderboardPage() {
                       <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
                       <AccuracyTierBadge tierData={tier} />
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Analyst"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Researcher"}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     {metric === "accuracy" && (
@@ -258,7 +258,7 @@ export default function LeaderboardPage() {
                             <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${reward.color}`}>⚡ {reward.label}</span>
                           </TooltipTrigger>
                           <TooltipContent side="left" className="text-xs max-w-[180px]">
-                            Top analysts earn monthly AI credits for template generation, fact checker & AI assistant.
+                            Top researchers earn monthly AI credits for template generation, fact checker & AI assistant.
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

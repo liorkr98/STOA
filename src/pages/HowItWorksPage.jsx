@@ -2,10 +2,10 @@ import React from "react";
 import { PenLine, Lock, TrendingUp, Award } from "lucide-react";
 
 const STEPS = [
-  { icon: PenLine, title: "Analysts Write Reports", desc: "Professional analysts publish research reports with their thesis, analysis, and a locked price prediction." },
+  { icon: PenLine, title: "Researchers Write Reports", desc: "Professional researchers publish research reports with their thesis, analysis, and a locked price prediction." },
   { icon: Lock, title: "Predictions are Locked", desc: "When published, the stock price is locked. The prediction target and timeframe cannot be changed retroactively." },
   { icon: TrendingUp, title: "Outcomes are Tracked", desc: "STOA automatically tracks whether predictions hit their target within the stated timeframe." },
-  { icon: Award, title: "Accuracy is Verified", desc: "Each analyst's accuracy score is calculated across all their predictions, giving you a transparent track record." },
+  { icon: Award, title: "Accuracy is Verified", desc: "Each researcher's accuracy score is calculated across all their predictions, giving you a transparent track record." },
 ];
 
 export default function HowItWorksPage() {

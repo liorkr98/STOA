@@ -527,7 +527,7 @@ Analyst:`;
         className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium"
       >
         <Sparkles className="w-4 h-4" />
-        AI Analyst
+        AI Research Assistant
       </button>
     );
   }
@@ -554,7 +554,7 @@ Analyst:`;
         <div className="flex items-center gap-2 pointer-events-none">
           <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
           <Sparkles className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm">AI Market Analyst</span>
+          <span className="font-semibold text-sm">AI Research Assistant</span>
           {/* Credit badge */}
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
             credits == null ? "bg-secondary text-muted-foreground" :

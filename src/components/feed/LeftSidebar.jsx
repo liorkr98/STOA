@@ -67,7 +67,7 @@ function ReportRow({ report }) {
       <FileText className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">{report.author_name || "Analyst"}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{report.author_name || "Researcher"}</p>
       </div>
       <Lock className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
     </Link>
@@ -85,7 +85,7 @@ function SuggestedAnalysts() {
 
   if (topAnalysts.length === 0) return (
     <div className="px-3 py-2">
-      <Link to="/leaderboard" className="text-xs text-primary hover:underline font-medium">Discover analysts →</Link>
+      <Link to="/leaderboard" className="text-xs text-primary hover:underline font-medium">Discover researchers →</Link>
     </div>
   );
 
@@ -93,7 +93,7 @@ function SuggestedAnalysts() {
     <div className="px-3 py-2 space-y-2">
       <p className="text-[10px] text-muted-foreground font-semibold">Suggested for you</p>
       {topAnalysts.map(a => {
-        const name = a.full_name || a.email?.split("@")[0] || "Analyst";
+        const name = a.full_name || a.email?.split("@")[0] || "Researcher";
         return (
           <Link key={a.id} to={`/analyst/${getAnalystSlug(a)}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary overflow-hidden flex-shrink-0">
@@ -160,7 +160,7 @@ export default function LeftSidebar() {
   if (!isAuthenticated) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-xs text-muted-foreground text-center mb-3">Sign in to see your followed analysts</p>
+        <p className="text-xs text-muted-foreground text-center mb-3">Sign in to see your followed researchers</p>
         <Link to="/signin" className="block text-center text-xs font-semibold text-primary hover:underline">Sign In</Link>
       </div>
     );

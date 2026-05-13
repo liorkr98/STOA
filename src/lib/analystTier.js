@@ -66,7 +66,7 @@ export function computeAchievements(user, allReports) {
     { icon: '🐂', name: 'Bull Master',   desc: '20 successful long calls',  earned: longs.length >= 20 },
     { icon: '🐻', name: 'Bear Master',   desc: '10 successful short calls', earned: shorts.length >= 10 },
     { icon: '📅', name: 'Veteran',       desc: '1 year on STOA',            earned: daysActive >= 365 },
-    { icon: '🌟', name: 'Pioneer',       desc: 'Among first 100 analysts',  earned: !!user.is_pioneer },
+    { icon: '🌟', name: 'Pioneer',       desc: 'Among first 100 researchers',  earned: !!user.is_pioneer },
     { icon: '📊', name: 'Century',       desc: '100 predictions resolved',  earned: resolved.length >= 100 },
     { icon: '⚡', name: 'Speed Demon',   desc: 'Prediction resolved in 24h', earned: speedDemon },
     { icon: '✅', name: 'Verified',      desc: 'Verified by STOA',          earned: !!user.verified },

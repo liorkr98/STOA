@@ -148,7 +148,7 @@ function ReportRow({ report, index }) {
 
 function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail }) {
   const navigate = useNavigate();
-  const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const acc = analyst.accuracy_score || 0;
   const following = followedEmails.includes(analyst.email);
   const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -372,7 +372,7 @@ export default function InvestorHome() {
         <StatCard
           label="Following"
           value={followedEmails.length}
-          sub="Analysts you track"
+          sub="Researchers you track"
           icon={Users}
           iconColor="hsl(var(--primary))"
           onClick={() => navigate("/leaderboard")}
@@ -501,7 +501,7 @@ export default function InvestorHome() {
                   <Users className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-sm leading-tight">From Analysts You Follow</h2>
+                  <h2 className="font-semibold text-sm leading-tight">From Researchers You Follow</h2>
                   <span className="text-[11px] text-muted-foreground">{followedReports.length} recent reports</span>
                 </div>
               </div>
@@ -512,10 +512,10 @@ export default function InvestorHome() {
             {followedReports.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-border rounded-xl">
                 <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-1">Follow analysts to see their calls here</p>
+                <p className="text-sm text-muted-foreground mb-1">Follow researchers to see their calls here</p>
                 <p className="text-xs text-muted-foreground/60 mb-3">Track top performers and get their research in your feed.</p>
                 <Button size="sm" variant="outline" onClick={() => navigate("/leaderboard")} className="text-xs">
-                  Discover Analysts
+                  Discover Researchers
                 </Button>
               </div>
             ) : (
@@ -545,7 +545,7 @@ export default function InvestorHome() {
               {/* Analyst chips */}
               <div className="flex flex-wrap gap-2 mb-5">
                 {mySubscriptions.map(sub => {
-                  const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Analyst";
+                  const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
                   return (
                     <Link
                       key={sub.id}
@@ -569,7 +569,7 @@ export default function InvestorHome() {
               {subscriptionReports.length === 0 ? (
                 <div className="text-center py-6 border border-dashed border-border rounded-xl">
                   <BookOpen className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Your subscribed analysts haven't published yet.</p>
+                  <p className="text-xs text-muted-foreground">Your subscribed researchers haven't published yet.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
@@ -613,7 +613,7 @@ export default function InvestorHome() {
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(42 96% 45% / 0.12)" }}>
                   <Trophy className="w-3.5 h-3.5" style={{ color: "hsl(42 96% 45%)" }} />
                 </div>
-                <h2 className="font-semibold text-sm">Top Analysts</h2>
+                <h2 className="font-semibold text-sm">Top Researchers</h2>
               </div>
               <Link to="/leaderboard" className="text-xs text-primary hover:underline">See all</Link>
             </div>
@@ -711,7 +711,7 @@ export default function InvestorHome() {
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
           <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "hsl(var(--accent))" }}>Have a market view?</span>
-          <h3 className="text-xl font-extrabold text-white mt-1.5 mb-2">Become an Analyst</h3>
+          <h3 className="text-xl font-extrabold text-white mt-1.5 mb-2">Become a Researcher</h3>
           <p className="text-white/55 text-sm leading-relaxed mb-5">
             Publish research, build a verified track record, and monetize your insights on the platform.
           </p>
@@ -723,7 +723,7 @@ export default function InvestorHome() {
             </Link>
             <Link to="/leaderboard">
               <button className="px-5 py-2.5 rounded-xl font-bold text-sm border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all">
-                View Top Analysts
+                View Top Researchers
               </button>
             </Link>
           </div>

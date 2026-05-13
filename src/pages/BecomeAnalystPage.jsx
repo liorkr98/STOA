@@ -57,7 +57,7 @@ export default function BecomeAnalystPage() {
   if (!isAuthenticated) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <p className="text-sm text-muted-foreground mb-4">Sign in first to become an analyst.</p>
+        <p className="text-sm text-muted-foreground mb-4">Sign in first to become a researcher.</p>
         <Button onClick={() => navigate("/signin")}>Sign In</Button>
       </div>
     );
@@ -119,7 +119,7 @@ export default function BecomeAnalystPage() {
         <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-green-100 flex items-center justify-center">
           <CheckCircle2 className="w-10 h-10 text-green-600" />
         </div>
-        <h1 className="text-2xl font-extrabold mb-2">You're an analyst now</h1>
+        <h1 className="text-2xl font-extrabold mb-2">You're a researcher now</h1>
         <p className="text-sm text-muted-foreground mb-1">Welcome to STOA's creator program.</p>
         <p className="text-xs text-muted-foreground">Redirecting to your profile…</p>
       </div>
@@ -152,7 +152,7 @@ export default function BecomeAnalystPage() {
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold">Become an Analyst</h1>
+              <h1 className="text-xl font-extrabold">Become a Researcher</h1>
               <p className="text-xs text-muted-foreground">Set up your public creator profile</p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function BecomeAnalystPage() {
                   value={tagline}
                   onChange={e => setTagline(e.target.value)}
                   maxLength={80}
-                  placeholder="e.g. AI & semiconductor analyst · long-term growth"
+                  placeholder="e.g. AI & semiconductor researcher · long-term growth"
                   className="w-full text-base border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:border-primary"
                   autoFocus
                 />
@@ -195,7 +195,7 @@ export default function BecomeAnalystPage() {
                 <p className="font-semibold text-foreground mb-1 text-xs uppercase tracking-wider">Good examples</p>
                 <ul className="space-y-1 text-xs">
                   <li>• "Tech & megacaps · long-term value, contrarian when needed"</li>
-                  <li>• "Crypto-native, on-chain analyst · ETH, L2s, DeFi"</li>
+                  <li>• "Crypto-native, on-chain researcher · ETH, L2s, DeFi"</li>
                   <li>• "Macro generalist · rates, FX, sector rotation"</li>
                 </ul>
               </div>
@@ -293,7 +293,7 @@ export default function BecomeAnalystPage() {
                 <h2 className="font-bold text-base mb-1">How do you make calls?</h2>
                 <p className="text-xs text-muted-foreground mb-3">
                   Briefly describe your research process — fundamentals, screens, models, signals.
-                  Investors trust analysts who can explain their edge.
+                  Investors trust researchers who can explain their edge.
                 </p>
                 <textarea
                   value={methodology}
@@ -316,7 +316,7 @@ export default function BecomeAnalystPage() {
                   <div>
                     <p className="font-bold text-sm text-amber-900">STOA Creator Code of Conduct</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Verified track records are the core of this platform. By becoming an analyst, you agree to:
+                      Verified track records are the core of this platform. By becoming a researcher, you agree to:
                     </p>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function BecomeAnalystPage() {
             ) : (
               <Button onClick={submit} disabled={!canNext() || submitting} className="gap-1.5">
                 {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                Become an Analyst
+                Become a Researcher
               </Button>
             )}
           </div>
@@ -384,7 +384,7 @@ export default function BecomeAnalystPage() {
               ["💸", "Monetize",            "Set premium reports, charge subscriptions, get tipped via AI credits."],
               ["📬", "Direct messaging",   "Subscribers can DM you. Build a real community."],
               ["🎨", "Customizable page", "Banner themes, pinned reports, social links, layout reorder."],
-              ["🏆", "Leaderboard rewards", "Top analysts earn monthly AI credits and platform recognition."],
+              ["🏆", "Leaderboard rewards", "Top researchers earn monthly AI credits and platform recognition."],
             ].map(([icon, title, desc]) => (
               <div key={title} className="flex items-start gap-2">
                 <span className="text-lg leading-none mt-0.5">{icon}</span>

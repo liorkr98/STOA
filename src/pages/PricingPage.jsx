@@ -9,7 +9,7 @@ const PLANS = [
     badge: null,
     features: [
       "Browse all public reports",
-      "Follow analysts",
+      "Follow researchers",
       "See prediction outcomes",
       "Access the leaderboard",
     ],
@@ -18,23 +18,23 @@ const PLANS = [
     highlight: false,
   },
   {
-    name: "ANALYST SUBSCRIPTIONS",
-    price: "Set by each analyst",
+    name: "RESEARCHER SUBSCRIPTIONS",
+    price: "Set by each researcher",
     badge: "FLEXIBLE",
     sub: "Typically $5 – $99/month",
     features: [
-      "Each analyst sets their own monthly rate",
-      "Full access to that analyst's premium reports",
+      "Each researcher sets their own monthly rate",
+      "Full access to that researcher's premium reports",
       "Locked predictions and price targets",
       "Real-time alerts when they publish",
       "Cancel anytime",
     ],
-    cta: "Browse Analysts",
+    cta: "Browse Researchers",
     dest: "/leaderboard",
     highlight: true,
   },
   {
-    name: "BECOME AN ANALYST",
+    name: "BECOME A RESEARCHER",
     price: "Free to publish",
     badge: null,
     features: [
@@ -57,7 +57,7 @@ export default function PricingPage() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold mb-3 tracking-tight">Transparent Pricing</h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Every analyst sets their own subscription price. Pay only for the research you want.
+          Every researcher sets their own subscription price. Pay only for the research you want.
         </p>
       </div>
 
@@ -110,9 +110,9 @@ export default function PricingPage() {
         <h2 className="text-lg font-bold mb-5">Frequently Asked Questions</h2>
         <div className="grid md:grid-cols-2 gap-6">
           {[
-            { q: "How much does an analyst subscription cost?", a: "Each analyst independently sets their own subscription price. Rates typically range from $5 to $99/month. Browse analyst profiles to see individual pricing." },
-            { q: "Can I cancel anytime?", a: "Yes. Analyst subscriptions can be cancelled at any time. Your access continues until the end of your current billing period." },
-            { q: "What does STOA take as a platform fee?", a: "STOA retains 15% of subscription revenue generated through the platform. Analysts keep 85% of all subscription income." },
+            { q: "How much does a researcher subscription cost?", a: "Each researcher independently sets their own subscription price. Rates typically range from $5 to $99/month. Browse researcher profiles to see individual pricing." },
+            { q: "Can I cancel anytime?", a: "Yes. Researcher subscriptions can be cancelled at any time. Your access continues until the end of your current billing period." },
+            { q: "What does STOA take as a platform fee?", a: "STOA retains 15% of subscription revenue generated through the platform. Researchers keep 85% of all subscription income." },
             { q: "Is financial advice included?", a: "No. STOA is an information and research platform. Nothing on STOA constitutes financial advice. Always do your own research (DYOR)." },
           ].map((item, i) => (
             <div key={i}>

@@ -56,7 +56,7 @@ export default function PerformanceVsMarket({ analyst }) {
           <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(v, name) => [`${v}%`, name === "analyst" ? "Analyst Yield" : "S&P 500"]}
+            formatter={(v, name) => [`${v}%`, name === "analyst" ? "Researcher Yield" : "S&P 500"]}
             contentStyle={{ fontSize: 11, borderRadius: 8 }}
           />
           <Area type="monotone" dataKey="analyst" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#analystGrad)" dot={false} />

@@ -103,7 +103,7 @@ export default function Leaderboard() {
     <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:16 }}>
       <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12 }}>
         <Trophy size={15} color="#d97706" />
-        <span style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>Top Analysts</span>
+        <span style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>Top Researchers</span>
       </div>
 
       {/* Period tabs */}
@@ -135,7 +135,7 @@ export default function Leaderboard() {
           {sorted.slice(0, 8).map((analyst, index) => {
             const rank = index + 1;
             const accPct = analyst.accuracy_score || 0;
-            const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+            const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
             const isFollowing = followedEmails.includes(analyst.email);
             const reward = RANK_REWARDS[rank];
 

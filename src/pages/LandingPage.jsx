@@ -92,7 +92,7 @@ const COMPARISON = [
 
 // ── Top analyst mocks ────────────────────────────────────────────────────────
 const MOCK_ANALYSTS = [
-  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#1e3a6e","#2d5ba3"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Analyst", revenue: "$4,200/mo" },
+  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#1e3a6e","#2d5ba3"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Researcher", revenue: "$4,200/mo" },
   { name: "Sarah Chen", handle: "schen", initials: "SC", grad: ["#1e3a6e","#c99613"], accuracy: 88, calls: 31, subscribers: "3.1K", sector: "Macro / Rates", badge: "Macro Expert", revenue: "$7,800/mo" },
   { name: "Priya Nair", handle: "pnair", initials: "PN", grad: ["#c99613","#a07710"], accuracy: 85, calls: 18, subscribers: "940", sector: "Energy & Commodities", badge: "Rising Star", revenue: "$2,100/mo" },
 ];
@@ -221,7 +221,7 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden md:flex" style={{ gap: 32, alignItems: "center" }}>
-            {[["Platform", "#platform"], ["For Analysts", "#for-analysts"], ["Compare", "#compare"], ["Pricing", "#pricing"]].map(([l, h]) => (
+            {[["Platform", "#platform"], ["For Researchers", "#for-analysts"], ["Compare", "#compare"], ["Pricing", "#pricing"]].map(([l, h]) => (
               <a key={l} href={h} className="nav-link">{l}</a>
             ))}
           </div>
@@ -275,7 +275,7 @@ export default function LandingPage() {
             color: "#f9fafb", lineHeight: 1.08, marginBottom: 28,
             letterSpacing: "-0.04em",
           }}>
-            Where Financial Analysts<br />
+            Where Financial Researchers<br />
             <span style={{ background: "linear-gradient(92deg, #c99613 0%, #f0c040 50%, #c99613 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               Build Their Reputation
             </span>
@@ -290,7 +290,7 @@ export default function LandingPage() {
               {primaryLabel} <ArrowRight size={18} />
             </button>
             <button onClick={user ? enterPlatform : go} className="landing-btn-ghost" style={{ fontSize: 16, padding: "15px 34px" }}>
-              Browse Top Analysts
+              Browse Top Researchers
             </button>
           </div>
 
@@ -299,7 +299,7 @@ export default function LandingPage() {
             {[
               [Lock, "Predictions locked on publish"],
               [Shield, "Track records auto-verified"],
-              [DollarSign, "Analysts keep 85% of revenue"],
+              [DollarSign, "Researchers keep 85% of revenue"],
             ].map(([Icon, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#6b7280" }}>
                 <Icon size={14} color="#4b5563" /> {label}
@@ -335,7 +335,7 @@ export default function LandingPage() {
             { value: 2400, suffix: "+", label: "Reports Published", color: "#3b82f6" },
             { value: 89, suffix: "%", prefix: "↑ ", label: "Avg Winning Accuracy", color: "#22c55e" },
             { value: 140, suffix: "K+", label: "Monthly Readers", color: "#8b5cf6" },
-            { value: 320, suffix: "K", prefix: "$", label: "Paid to Analysts", color: "#f59e0b" },
+            { value: 320, suffix: "K", prefix: "$", label: "Paid to Researchers", color: "#f59e0b" },
           ].map((s, i) => (
             <div key={i} style={{ padding: "0 24px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
               <div style={{ fontSize: "clamp(28px,4vw,42px)", fontWeight: 800, color: s.color, marginBottom: 8, letterSpacing: "-0.03em" }}>
@@ -375,7 +375,7 @@ export default function LandingPage() {
             },
             {
               Icon: PenLine, color: "#8b5cf6", title: "Professional Research Editor",
-              desc: "Metrics blocks, bull/bear thesis cards, live stock chart embeds, columnar layouts. Built for financial analysts — not bloggers.",
+              desc: "Metrics blocks, bull/bear thesis cards, live stock chart embeds, columnar layouts. Built for financial researchers — not bloggers.",
             },
             {
               Icon: Zap, color: "#06b6d4", title: "AI Research Assistant",
@@ -401,12 +401,12 @@ export default function LandingPage() {
       <section style={{ background: "rgba(255,255,255,0.015)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "100px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", color: "#8b5cf6", textTransform: "uppercase", marginBottom: 16 }}>Analyst Spotlight</div>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", color: "#8b5cf6", textTransform: "uppercase", marginBottom: 16 }}>Researcher Spotlight</div>
             <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.03em", marginBottom: 14 }}>
               No followers required.<br />Just results.
             </h2>
             <p style={{ fontSize: 16, color: "#6b7280", maxWidth: 520, margin: "0 auto" }}>
-              On STOA, your accuracy score is your credential. New analysts with a 90% track record outrank veterans with 10,000 followers.
+              On STOA, your accuracy score is your credential. New researchers with a 90% track record outrank veterans with 10,000 followers.
             </p>
           </div>
 
@@ -460,7 +460,7 @@ export default function LandingPage() {
                 }}
                   onMouseEnter={e => { e.currentTarget.style.background = "rgba(59,130,246,0.18)"; e.currentTarget.style.borderColor = "rgba(59,130,246,0.4)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "rgba(59,130,246,0.1)"; e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)"; }}>
-                  Follow Analyst <ChevronRight size={14} />
+                  Follow Researcher <ChevronRight size={14} />
                 </button>
               </div>
             ))}
@@ -480,17 +480,17 @@ export default function LandingPage() {
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", color: "#22c55e", textTransform: "uppercase", marginBottom: 16 }}>For Readers & Investors</div>
             <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: 20 }}>
-              Follow analysts who are actually right.
+              Follow researchers who are actually right.
             </h2>
             <p style={{ fontSize: 16, color: "#6b7280", lineHeight: 1.7, marginBottom: 32 }}>
               Every prediction is locked with a timestamp before the move happens. No retroactive analysis. No cherry-picking. You see the full record — wins, losses, and everything in between.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 36 }}>
               {[
-                [Eye, "See exactly how each analyst has performed across all calls"],
-                [Bell, "Get notified when followed analysts publish new research"],
-                [Star, "Subscribe to premium content from top-performing analysts"],
-                [Globe, "Browse 100+ analysts across tech, macro, energy, crypto"],
+                [Eye, "See exactly how each researcher has performed across all calls"],
+                [Bell, "Get notified when followed researchers publish new research"],
+                [Star, "Subscribe to premium content from top-performing researchers"],
+                [Globe, "Browse 100+ researchers across tech, macro, energy, crypto"],
               ].map(([Icon, text]) => (
                 <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
@@ -501,7 +501,7 @@ export default function LandingPage() {
               ))}
             </div>
             <button onClick={primaryAction} className="landing-btn-primary">
-              Browse Analysts <ArrowRight size={16} />
+              Browse Researchers <ArrowRight size={16} />
             </button>
           </div>
 
@@ -605,18 +605,18 @@ export default function LandingPage() {
             {
               name: "Reader", price: "Free", sub: "Forever",
               color: "#6b7280", highlight: false,
-              features: ["Follow any analyst", "Read all free research", "Prediction feed access", "Leaderboard & rankings", "Market ticker & data"],
+              features: ["Follow any researcher", "Read all free research", "Prediction feed access", "Leaderboard & rankings", "Market ticker & data"],
             },
             {
-              name: "Analyst", price: "Free", sub: "To publish",
+              name: "Researcher", price: "Free", sub: "To publish",
               color: "#3b82f6", highlight: true,
               badge: "Most Popular",
               features: ["Publish unlimited reports", "Lock & track predictions", "Professional editor + AI", "Accuracy score dashboard", "Free subscriber following", "Subscribe button on profile"],
             },
             {
-              name: "Premium Analyst", price: "15%", sub: "Platform fee on revenue",
+              name: "Premium Researcher", price: "15%", sub: "Platform fee on revenue",
               color: "#8b5cf6", highlight: false,
-              features: ["Everything in Analyst", "Paid subscription tiers", "Premium report gating", "Subscriber analytics", "Revenue dashboard & wallet", "Priority support"],
+              features: ["Everything in Researcher", "Paid subscription tiers", "Premium report gating", "Subscriber analytics", "Revenue dashboard & wallet", "Priority support"],
             },
           ].map(plan => (
             <div key={plan.name} style={{
@@ -714,7 +714,7 @@ export default function LandingPage() {
             </button>
           </div>
           <p style={{ marginTop: 24, fontSize: 13, color: "#374151" }}>
-            No credit card required · Free forever for readers & analysts
+            No credit card required · Free forever for readers & researchers
           </p>
         </div>
       </section>
@@ -729,7 +729,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: 18, fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.04em" }}>STOA</span>
               </div>
               <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.65, maxWidth: 280 }}>
-                The research platform where financial analysts build verifiable track records and monetize their expertise.
+                The research platform where financial researchers build verifiable track records and monetize their expertise.
               </p>
               <p style={{ fontSize: 11, color: "#374151", marginTop: 16, lineHeight: 1.6 }}>
                 Not financial advice. All predictions are user-generated content. Past performance does not guarantee future results.
@@ -756,7 +756,7 @@ export default function LandingPage() {
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <span style={{ fontSize: 12, color: "#374151" }}>© 2026 STOA Research. All rights reserved.</span>
-            <span style={{ fontSize: 12, color: "#374151" }}>Made for analysts, by analysts.</span>
+            <span style={{ fontSize: 12, color: "#374151" }}>Made for researchers, by researchers.</span>
           </div>
         </div>
       </footer>

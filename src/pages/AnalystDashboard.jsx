@@ -60,7 +60,7 @@ function DashboardDMs({ subscriptions, currentUser }) {
       <div className="text-center py-10">
         <Lock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
         <p className="text-sm font-medium text-muted-foreground">No subscriptions yet</p>
-        <p className="text-xs text-muted-foreground/60">Subscribe to an analyst to message them.</p>
+        <p className="text-xs text-muted-foreground/60">Subscribe to a researcher to message them.</p>
       </div>
     );
   }
@@ -125,7 +125,7 @@ function DashboardDMs({ subscriptions, currentUser }) {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
             <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Select an analyst to message</p>
+            <p className="text-sm">Select a researcher to message</p>
           </div>
         </div>
       )}
@@ -254,7 +254,7 @@ export default function AnalystDashboard() {
       { label: "500 Followers", icon: Users, earned: has500Followers },
       { label: "First Premium Report", icon: Star, earned: hasFirstPremium },
       { label: "Streak x3", icon: Flame, earned: hasStreak3 },
-      { label: "Top 10 Analyst", icon: Trophy, earned: isTop10 },
+      { label: "Top 10 Researcher", icon: Trophy, earned: isTop10 },
       { label: "1,000 Likes", icon: CheckCircle, earned: false },
       { label: "50 Reports", icon: BookOpen, earned: publishedReports.length >= 50 },
       { label: "90%+ Accuracy", icon: Shield, earned: accuracyScore >= 90 },
@@ -270,9 +270,9 @@ export default function AnalystDashboard() {
   if (!currentUser) return null;
 
   const analyst = {
-    name: currentUser.full_name || currentUser.email?.split("@")[0] || "Analyst",
+    name: currentUser.full_name || currentUser.email?.split("@")[0] || "Researcher",
     avatar: currentUser.picture || null,
-    tagline: currentUser.tagline || "Analyst",
+    tagline: currentUser.tagline || "Researcher",
     reports: publishedReports.length,
     followers: currentUser.followers_count || 0,
   };
@@ -455,14 +455,14 @@ export default function AnalystDashboard() {
           <div className="text-center py-8 border border-dashed border-border rounded-xl">
             <Crown className="w-7 h-7 text-muted-foreground/30 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-1">No active subscriptions</p>
-            <p className="text-xs text-muted-foreground/60">Subscribe to analysts to get premium access and see their reports here.</p>
+            <p className="text-xs text-muted-foreground/60">Subscribe to researchers to get premium access and see their reports here.</p>
           </div>
         ) : (
           <>
             {/* Analyst chips */}
             <div className="flex flex-wrap gap-2 mb-5">
               {mySubscriptions.map(sub => {
-                const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Analyst";
+                const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
                 return (
                   <Link
                     key={sub.id}
@@ -788,7 +788,7 @@ export default function AnalystDashboard() {
 
         {tab === "profile-boost" && (
           <div>
-            <p className="text-sm text-muted-foreground mb-4">Boost your analyst profile to appear higher in the Leaderboard and gain more followers.</p>
+            <p className="text-sm text-muted-foreground mb-4">Boost your researcher profile to appear higher in the Leaderboard and gain more followers.</p>
             {profileBoosted ? (
               <div className="text-center py-6">
                 <p className="font-bold text-base mb-1">Profile Promoted</p>
@@ -799,7 +799,7 @@ export default function AnalystDashboard() {
                 {[
                   { label: "7 Day Boost", price: "$9.99", reach: "~2,000 impressions", Icon: Rocket },
                   { label: "30 Day Boost", price: "$29.99", reach: "~10,000 impressions", Icon: Flame },
-                  { label: "Featured Analyst", price: "$79.99", reach: "Homepage feature for 7 days", Icon: Star },
+                  { label: "Featured Researcher", price: "$79.99", reach: "Homepage feature for 7 days", Icon: Star },
                 ].map(plan => (
                   <button key={plan.label} onClick={() => setProfileBoosted(true)} className="w-full flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 text-left transition-all">
                     <plan.Icon className="w-5 h-5 text-primary flex-shrink-0" />
@@ -844,7 +844,7 @@ export default function AnalystDashboard() {
         <div className="relative z-10 max-w-sm">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/40 mb-3">Grow your influence</p>
           <h3 className="text-2xl font-extrabold text-white leading-tight mb-2 tracking-tight">
-            Level up your<br />analyst profile.
+            Level up your<br />researcher profile.
           </h3>
           <p className="text-sm text-white/50 mb-6 leading-relaxed">
             Boost your reach, attract subscribers and build a verified track record that investors trust.

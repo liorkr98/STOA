@@ -42,11 +42,11 @@ export default function SignIn() {
           Transparent finance.<br />Verified predictions.
         </h2>
         <p className="text-primary-foreground/80 text-sm mb-8">
-          Follow top analysts, track their live predictions, and make smarter investment decisions backed by real data.
+          Follow top researchers, track their live predictions, and make smarter investment decisions backed by real data.
         </p>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { value: "87.5%", label: "Top analyst accuracy" },
+            { value: "87.5%", label: "Top researcher accuracy" },
             { value: "+34.2%", label: "Best yearly yield" },
             { value: "12,400+", label: "Active followers" },
           ].map(s => (

@@ -3,9 +3,9 @@ import { BarChart3, Lock, Users, Sparkles, TrendingUp, Bell } from "lucide-react
 
 const FEATURES = [
   { icon: Lock, title: "Locked Predictions", desc: "All predictions are locked at time of publish. No retroactive changes — ever." },
-  { icon: BarChart3, title: "Verified Accuracy Scores", desc: "Every analyst's accuracy is mathematically calculated and publicly visible." },
-  { icon: Sparkles, title: "AI-Powered Research Tools", desc: "AI assistant, fact checker, and template generator to help analysts write better reports." },
-  { icon: Users, title: "Follow Top Analysts", desc: "Subscribe to analysts, get notified of new reports and prediction outcomes." },
+  { icon: BarChart3, title: "Verified Accuracy Scores", desc: "Every researcher's accuracy is mathematically calculated and publicly visible." },
+  { icon: Sparkles, title: "AI-Powered Research Tools", desc: "AI assistant, fact checker, and template generator to help researchers write better reports." },
+  { icon: Users, title: "Follow Top Researchers", desc: "Subscribe to researchers, get notified of new reports and prediction outcomes." },
   { icon: TrendingUp, title: "Real-Time Stock Data", desc: "Integrated TradingView charts and live stock data for every ticker." },
   { icon: Bell, title: "Smart Notifications", desc: "Get notified when predictions hit or miss, and when new reports are published." },
 ];

@@ -7,7 +7,7 @@ const FOOTER_COLS = [
   {
     label: "For Creators",
     links: [
-      { label: "Become an Analyst", path: "/become-analyst" },
+      { label: "Become a Researcher", path: "/become-analyst" },
       { label: "Start Writing", path: "/editor" },
       { label: "My Public Profile", path: "/analyst" },
       { label: "Creator Dashboard", path: "/dashboard" },
@@ -74,7 +74,7 @@ export default function AppFooter() {
           <div className="col-span-2 md:col-span-1">
             <StoaLogo size={28} textSize="text-base" className="mb-3" />
             <p className="text-xs leading-relaxed mb-3 text-slate-400">
-              The platform for independent financial analysts. Publish research, lock predictions, build a verified track record.
+              The platform for independent financial researchers. Publish research, lock predictions, build a verified track record.
             </p>
             <Link
               to="/editor"

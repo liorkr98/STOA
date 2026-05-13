@@ -232,7 +232,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const navigate = useNavigate();
 
   const authorUser    = userMap[report.created_by] || {};
-  const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
   // Avatar: prefer report field, fallback to current user profile picture
   const authorAvatar  = report.author_avatar || authorUser.picture || authorUser.profile_picture || null;
   const authorEmail   = report.created_by || "";

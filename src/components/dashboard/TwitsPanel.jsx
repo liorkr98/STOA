@@ -25,7 +25,7 @@ export default function TwitsPanel({ currentUser }) {
       const newTwit = await base44.entities.Twit.create({
         content: tweet.trim(),
         author_id: currentUser.id,
-        author_name: currentUser.full_name || currentUser.email?.split("@")[0] || "Analyst",
+        author_name: currentUser.full_name || currentUser.email?.split("@")[0] || "Researcher",
         author_avatar: currentUser.picture || null,
       });
       setTwits(prev => [newTwit, ...prev]);
@@ -38,7 +38,7 @@ export default function TwitsPanel({ currentUser }) {
     }
   };
 
-  const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst";
+  const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher";
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">

@@ -10,7 +10,7 @@ const STEPS = [
     bg: "bg-blue-50",
     title: "Welcome to STOA",
     subtitle: "Your edge in the market",
-    body: "STOA is a platform where professional analysts publish in-depth reports on stocks, ETFs, and markets — with real predictions you can track over time.",
+    body: "STOA is a platform where professional researchers publish in-depth reports on stocks, ETFs, and markets — with real predictions you can track over time.",
     visual: (
       <div className="grid grid-cols-2 gap-2 mt-4">
         {["$NVDA +42%", "$AAPL +18%", "$MSFT +27%", "$TSLA -12%"].map((t, i) => (
@@ -23,15 +23,15 @@ const STEPS = [
     icon: BookOpen,
     color: "text-violet-500",
     bg: "bg-violet-50",
-    title: "Read Analyst Reports",
-    subtitle: "Research by real analysts",
-    body: "Browse the Feed to discover the latest analyst research. Each report includes a full thesis, supporting data, and a verified price prediction — locked at the moment of publishing.",
+    title: "Read Researcher Reports",
+    subtitle: "Research by real researchers",
+    body: "Browse the Feed to discover the latest researcher reports. Each report includes a full thesis, supporting data, and a verified price prediction — locked at the moment of publishing.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">JD</div>
           <div>
-            <div className="text-xs font-semibold">John D. · Tech Analyst</div>
+            <div className="text-xs font-semibold">John D. · Tech Researcher</div>
             <div className="text-[10px] text-muted-foreground">2h ago · 12 min read</div>
           </div>
         </div>
@@ -47,9 +47,9 @@ const STEPS = [
     icon: Users,
     color: "text-amber-500",
     bg: "bg-amber-50",
-    title: "Follow Analysts",
+    title: "Follow Researchers",
     subtitle: "Build your inner circle",
-    body: "Follow the analysts whose views align with yours. Their new reports will appear in your Feed the moment they publish. You can also subscribe for exclusive premium research.",
+    body: "Follow the researchers whose views align with yours. Their new reports will appear in your Feed the moment they publish. You can also subscribe for exclusive premium research.",
     visual: (
       <div className="mt-4 space-y-2">
         {[
@@ -75,8 +75,8 @@ const STEPS = [
     color: "text-green-500",
     bg: "bg-green-50",
     title: "Track Predictions",
-    subtitle: "Hold analysts accountable",
-    body: "Every published prediction is automatically tracked against real market prices. Analysts earn their reputation through verified accuracy — not just good writing.",
+    subtitle: "Hold researchers accountable",
+    body: "Every published prediction is automatically tracked against real market prices. Researchers earn their reputation through verified accuracy — not just good writing.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
         <div className="text-[10px] text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Live prediction tracker</div>
@@ -122,7 +122,7 @@ const STEPS = [
     bg: "bg-primary/10",
     title: "You're all set!",
     subtitle: "Start exploring STOA",
-    body: "Head to the Feed to discover the latest research, or browse the Markets tab to add stocks to your watchlist. Want to share your own insights? Become an analyst anytime.",
+    body: "Head to the Feed to discover the latest research, or browse the Markets tab to add stocks to your watchlist. Want to share your own insights? Become a researcher anytime.",
     cta: true,
   },
 ];

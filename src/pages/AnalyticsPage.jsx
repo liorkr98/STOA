@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
               {[
                 { label: "Ticker",    key: "prediction_ticker",   span: 2 },
                 { label: "Direction", key: "prediction_action",   span: 2 },
-                { label: "Analyst",   key: "author_name",         span: 2 },
+                { label: "Researcher", key: "author_name",         span: 2 },
                 { label: "Lock",      key: "prediction_lock_price", span: 1 },
                 { label: "Target",    key: "prediction_target_price", span: 1 },
                 { label: "Resolved",  key: "prediction_resolved_price", span: 1 },

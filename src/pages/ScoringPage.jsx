@@ -4,11 +4,11 @@ import { setMeta } from "@/lib/seo";
 import { CheckCircle2, XCircle, Clock, TrendingUp, Zap, Minus } from "lucide-react";
 
 const TIERS = [
-  { badge: "⭐", name: "ELITE", color: "#f59e0b", bg: "#fffbeb", border: "#fde68a", range: "80%+", desc: "Top tier analysts with a proven track record. Consistently correct across multiple calls." },
-  { badge: "🔷", name: "EXPERT", color: "#3b82f6", bg: "#eff6ff", border: "#bfdbfe", range: "65–79%", desc: "Above-average analysts who consistently outperform random chance." },
+  { badge: "⭐", name: "ELITE", color: "#f59e0b", bg: "#fffbeb", border: "#fde68a", range: "80%+", desc: "Top tier researchers with a proven track record. Consistently correct across multiple calls." },
+  { badge: "🔷", name: "EXPERT", color: "#3b82f6", bg: "#eff6ff", border: "#bfdbfe", range: "65–79%", desc: "Above-average researchers who consistently outperform random chance." },
   { badge: "💚", name: "STRONG", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", range: "50–64%", desc: "Solid performers who are right more often than not." },
   { badge: "📊", name: "AVERAGE", color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb", range: "35–49%", desc: "Building their track record." },
-  { badge: "🔨", name: "BUILDING", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb", range: "< 35% or < 3 calls", desc: "New or developing analysts establishing their track record." },
+  { badge: "🔨", name: "BUILDING", color: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb", range: "< 35% or < 3 calls", desc: "New or developing researchers establishing their track record." },
 ];
 
 const OUTCOMES = [
@@ -37,7 +37,7 @@ export default function ScoringPage() {
       <div className="text-center mb-14">
         <h1 className="text-4xl font-extrabold mb-4 tracking-tight">Scoring & Calculations</h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-          Every analyst score on STOA is calculated automatically from verified prediction data. No manual input, no cherry-picking — just math.
+          Every researcher score on STOA is calculated automatically from verified prediction data. No manual input, no cherry-picking — just math.
         </p>
       </div>
 
@@ -45,11 +45,11 @@ export default function ScoringPage() {
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
         <h2 className="text-2xl font-bold mb-3">Accuracy Score (Elo-Based)</h2>
         <p className="text-muted-foreground mb-6 leading-relaxed">
-          STOA uses a modified Elo rating system — the same system used to rank chess players — to calculate analyst accuracy. Every prediction outcome updates the analyst's Elo rating dynamically.
+          STOA uses a modified Elo rating system — the same system used to rank chess players — to calculate researcher accuracy. Every prediction outcome updates the researcher's Elo rating dynamically.
         </p>
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           {[
-            { label: "Starting Elo", val: "1,000", desc: "Every new analyst begins here", color: "text-foreground" },
+            { label: "Starting Elo", val: "1,000", desc: "Every new researcher begins here", color: "text-foreground" },
             { label: "Hit / Near Hit", val: "+15–30", desc: "Points gained for correct call", color: "text-gain" },
             { label: "Miss", val: "−10–20", desc: "Points lost for incorrect call", color: "text-loss" },
           ].map((item, i) => (
@@ -110,7 +110,7 @@ export default function ScoringPage() {
 
       {/* Section 4: Tiers */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-6">Analyst Tiers & Badges</h2>
+        <h2 className="text-2xl font-bold mb-6">Researcher Tiers & Badges</h2>
         <div className="space-y-3">
           {TIERS.map((tier, i) => (
             <div key={i} style={{ background: tier.bg, border: `1px solid ${tier.border}`, borderRadius: 12, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }}>
@@ -131,7 +131,7 @@ export default function ScoringPage() {
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
         <h2 className="text-2xl font-bold mb-3">Win Streaks 🔥</h2>
         <p className="text-muted-foreground leading-relaxed">
-          A win streak is the number of <strong>consecutive HIT or NEAR HIT predictions</strong>. Streaks are displayed on analyst profiles and feed cards to show current momentum. Streaks reset on any MISS or PARTIAL outcome.
+          A win streak is the number of <strong>consecutive HIT or NEAR HIT predictions</strong>. Streaks are displayed on researcher profiles and feed cards to show current momentum. Streaks reset on any MISS or PARTIAL outcome.
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export default function ScoringPage() {
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
         <h2 className="text-2xl font-bold mb-3">Leaderboard Ranking</h2>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          Rankings are calculated based on <strong>Accuracy Score (primary)</strong>, then by <strong>Total Resolved Calls (secondary tiebreaker)</strong>. Analysts need at least <strong>3 resolved predictions</strong> to appear in the leaderboard.
+          Rankings are calculated based on <strong>Accuracy Score (primary)</strong>, then by <strong>Total Resolved Calls (secondary tiebreaker)</strong>. Researchers need at least <strong>3 resolved predictions</strong> to appear in the leaderboard.
         </p>
         <Link to="/leaderboard" className="inline-flex items-center gap-2 text-sm text-primary font-semibold hover:underline">
           View Leaderboard →
@@ -151,7 +151,7 @@ export default function ScoringPage() {
         <h2 className="text-2xl font-bold mb-3">Fairness & Transparency</h2>
         <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
           <p>✅ All scores are calculated by algorithm, not manually set by any human.</p>
-          <p>✅ Analysts cannot edit or delete predictions after locking — all calls are immutable.</p>
+          <p>✅ Researchers cannot edit or delete predictions after locking — all calls are immutable.</p>
           <p>✅ All prediction data is publicly auditable in the Analytics section.</p>
           <p>✅ Scores reflect only resolved predictions with actual price data.</p>
         </div>

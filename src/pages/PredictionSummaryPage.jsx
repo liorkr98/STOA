@@ -89,7 +89,7 @@ export default function PredictionSummaryPage() {
   ].filter(d => d.value > 0);
 
   const filtered = predictions.filter(p => filterStatus === "all" || p.outcome?.status === filterStatus);
-  const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst";
+  const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">

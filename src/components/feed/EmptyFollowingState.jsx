@@ -20,11 +20,11 @@ export default function EmptyFollowingState({ onFollow }) {
         border:'1px solid #bfdbfe', borderRadius:12, padding:20, marginBottom:16,
       }}>
         <p style={{ fontSize:14, fontWeight:700, color:'#0f172a', marginBottom:4 }}>🔥 Hot right now</p>
-        <p style={{ fontSize:12, color:'#64748b', marginBottom:16 }}>Follow top analysts to see their reports here</p>
+        <p style={{ fontSize:12, color:'#64748b', marginBottom:16 }}>Follow top researchers to see their reports here</p>
 
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {topAnalysts.map(a => {
-            const name = a.full_name || a.email?.split("@")[0] || "Analyst";
+            const name = a.full_name || a.email?.split("@")[0] || "Researcher";
             return (
               <div key={a.id} style={{
                 display:'flex', alignItems:'center', gap:10,
@@ -65,7 +65,7 @@ export default function EmptyFollowingState({ onFollow }) {
 
         {topAnalysts.length > 0 && (
           <Link to="/leaderboard" style={{ display:'block', marginTop:12, fontSize:12, color:'#2563eb', fontWeight:600, textDecoration:'none' }}>
-            + Discover all analysts →
+            + Discover all researchers →
           </Link>
         )}
       </div>

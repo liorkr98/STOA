@@ -22,7 +22,7 @@ export function TrendingDivider({ report }) {
         <p style={{ fontSize:13, fontWeight:600, color:'#0f172a', lineHeight:1.4, marginBottom:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {report.title}
         </p>
-        <p style={{ fontSize:11, color:'#64748b' }}>{report.likes || 0} likes · {report.author_name || "Analyst"}</p>
+        <p style={{ fontSize:11, color:'#64748b' }}>{report.likes || 0} likes · {report.author_name || "Researcher"}</p>
         <p style={{ fontSize:11, color:'#2563eb', fontWeight:600, marginTop:6 }}>Join the conversation →</p>
       </Link>
     </div>
@@ -31,7 +31,7 @@ export function TrendingDivider({ report }) {
 
 export function AnalystSpotlight({ analyst }) {
   if (!analyst) return null;
-  const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   return (
     <div style={{
       background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
@@ -43,7 +43,7 @@ export function AnalystSpotlight({ analyst }) {
       <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
         <span style={{ fontSize:14 }}>📊</span>
         <span style={{ fontSize:11, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
-          Analyst Spotlight
+          Researcher Spotlight
         </span>
       </div>
       <Link to={`/analyst/${getAnalystSlug(analyst)}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>

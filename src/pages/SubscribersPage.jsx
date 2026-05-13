@@ -23,7 +23,7 @@ function AnalystCard({ entry, type, onUnfollow, onUnsubscribe }) {
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{entry.name || "Analyst"}</p>
+          <p className="font-semibold text-sm truncate">{entry.name || "Researcher"}</p>
           <div className="flex items-center gap-2 mt-0.5">
             {entry.accuracy != null && (
               <span className="flex items-center gap-0.5 text-[11px] text-gain font-semibold">
@@ -111,7 +111,7 @@ export default function SubscribersPage() {
         <Star className="w-5 h-5 text-primary" />
         <div>
           <h1 className="text-xl font-bold">My Connections</h1>
-          <p className="text-sm text-muted-foreground">Manage subscriptions and followed analysts</p>
+          <p className="text-sm text-muted-foreground">Manage subscriptions and followed researchers</p>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export default function SubscribersPage() {
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search analysts..."
+            placeholder="Search researchers..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9"
@@ -176,10 +176,10 @@ export default function SubscribersPage() {
             ? <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
             : <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />}
           <p className="text-sm text-muted-foreground mb-4">
-            {search ? "No analysts match your search" :
-              tab === "subscribers" ? "You haven't subscribed to any analysts yet" : "You're not following any analysts yet"}
+            {search ? "No researchers match your search" :
+              tab === "subscribers" ? "You haven't subscribed to any researchers yet" : "You're not following any researchers yet"}
           </p>
-          <Button variant="outline" size="sm" onClick={() => navigate("/leaderboard")}>Browse Analysts</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/leaderboard")}>Browse Researchers</Button>
         </div>
       ) : (
         <div className="space-y-3">

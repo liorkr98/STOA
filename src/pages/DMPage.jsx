@@ -129,7 +129,7 @@ export default function DMPage() {
     </div>
   );
 
-  const displayName = other.full_name || other.email?.split("@")[0] || "Analyst";
+  const displayName = other.full_name || other.email?.split("@")[0] || "Researcher";
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 flex flex-col" style={{ height: "calc(100vh - 80px)" }}>

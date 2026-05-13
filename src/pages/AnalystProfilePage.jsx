@@ -264,10 +264,10 @@ export default function AnalystProfilePage() {
 
         if (userData) {
           setAnalyst(userData);
-          const displayName = userData.full_name || userData.email?.split("@")[0] || "Analyst";
-          const tagline = userData.tagline || "Verified analyst on STOA";
+          const displayName = userData.full_name || userData.email?.split("@")[0] || "Researcher";
+          const tagline = userData.tagline || "Verified researcher on STOA";
           setMeta({
-            title:       `${displayName} — Analyst Profile`,
+            title:       `${displayName} — Researcher Profile`,
             description: `${tagline}. ${userData.accuracy_score ? `${userData.accuracy_score.toFixed(1)}% prediction accuracy. ` : ""}Follow ${displayName}'s locked predictions on STOA.`,
             image:       userData.picture,
             type:        "profile",
@@ -326,7 +326,7 @@ export default function AnalystProfilePage() {
         await base44.entities.Follow.create({
           follower_email: currentUser.email,
           analyst_email:  analyst.email,
-          analyst_name:   analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+          analyst_name:   analyst.full_name || analyst.email?.split("@")[0] || "Researcher",
           analyst_avatar: analyst.picture || "",
         });
         await base44.entities.User.update(analyst.id, { followers_count: (analyst.followers_count || 0) + 1 });
@@ -345,7 +345,7 @@ export default function AnalystProfilePage() {
     try {
       const result = await subscribeAnalyst({
         analystEmail:    analyst.email,
-        analystName:     analyst.full_name || analyst.email?.split("@")[0] || "Analyst",
+        analystName:     analyst.full_name || analyst.email?.split("@")[0] || "Researcher",
         monthlyPriceUSD: SUBSCRIPTION_PRICE_USD,
       });
       if (!result.ok && result.reason === "insufficient") {
@@ -462,14 +462,14 @@ export default function AnalystProfilePage() {
 
   if (!analyst) return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-      <p className="text-muted-foreground">Analyst not found.</p>
+      <p className="text-muted-foreground">Researcher not found.</p>
       <Button onClick={() => navigate(-1)} variant="outline" className="mt-4 text-sm">Go Back</Button>
     </div>
   );
 
   // ── Computed values ───────────────────────────────────────────────────────
   const isOwnProfile     = currentUser && analyst.id === currentUser.id;
-  const displayName      = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const displayName      = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const resolvedReports  = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
   const hitCount         = resolvedReports.filter(r => r.prediction_outcome === "hit" || r.prediction_outcome === "near").length;
   const scoring          = computeScore(resolvedReports);
@@ -1019,7 +1019,7 @@ export default function AnalystProfilePage() {
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Analyst Score</h3>
+            <h3 className="font-bold text-base mb-1">Researcher Score</h3>
             <p className="text-5xl font-extrabold text-primary mb-1">{scoring.score}</p>
             <p className="text-xs text-muted-foreground mb-5">out of 100 · {scoring.total} resolved predictions</p>
             <div className="space-y-3 mb-5">
@@ -1069,7 +1069,7 @@ export default function AnalystProfilePage() {
         open={showShareModal}
         onClose={() => setShowShareModal(false)}
         title={`${displayName} on STOA`}
-        description={analyst.tagline || "Verified analyst on STOA"}
+        description={analyst.tagline || "Verified researcher on STOA"}
       />
     </div>
   );

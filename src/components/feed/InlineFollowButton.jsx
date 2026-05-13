@@ -19,7 +19,7 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
         await base44.entities.Follow.create({
           follower_email: user.email,
           analyst_email: analystEmail,
-          analyst_name: analystName || analystEmail?.split("@")[0] || "Analyst",
+          analyst_name: analystName || analystEmail?.split("@")[0] || "Researcher",
           analyst_avatar: analystAvatar || "",
         });
         // Notify the analyst of their new follower

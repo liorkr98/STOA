@@ -45,7 +45,7 @@ export default function QuickPostEditor({
         title: title.trim(),
         content_blocks: JSON.stringify(blocks),
         status: "published",
-        author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Analyst",
+        author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
         author_avatar: currentUser?.picture || null,
         ...(quickShowPrediction && quickTicker ? {
           prediction_action:       quickAction,

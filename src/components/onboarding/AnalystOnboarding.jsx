@@ -8,13 +8,13 @@ const STEPS = [
     icon: Sparkles,
     color: "text-violet-500",
     bg: "bg-violet-50",
-    title: "You're now an analyst!",
+    title: "You're now a researcher!",
     subtitle: "Welcome to the creator program",
-    body: "As a STOA analyst, you publish research reports that investors can read, follow, and subscribe to. Your track record is built automatically — every prediction is verified against real prices.",
+    body: "As a STOA researcher, you publish research reports that investors can read, follow, and subscribe to. Your track record is built automatically — every prediction is verified against real prices.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-gradient-to-br from-violet-50 to-blue-50 p-4 text-center">
         <div className="text-4xl mb-1">🏆</div>
-        <div className="text-sm font-bold">Your analyst journey starts today</div>
+        <div className="text-sm font-bold">Your researcher journey starts today</div>
         <div className="text-xs text-muted-foreground mt-1">Publish your first report to get on the leaderboard</div>
       </div>
     ),
@@ -81,7 +81,7 @@ const STEPS = [
     bg: "bg-green-50",
     title: "Build Your Track Record",
     subtitle: "Accuracy earns reputation",
-    body: "Your score is computed from win rate (Wilson-adjusted), profit factor, and alpha vs benchmark. The leaderboard rewards analysts with the most accurate predictions — not just the most popular.",
+    body: "Your score is computed from win rate (Wilson-adjusted), profit factor, and alpha vs benchmark. The leaderboard rewards researchers with the most accurate predictions — not just the most popular.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
         <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-2">Score breakdown</div>
@@ -110,7 +110,7 @@ const STEPS = [
     bg: "bg-rose-50",
     title: "Customise Your Profile",
     subtitle: "Your brand, your page",
-    body: "Your public analyst profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links — it's your creator landing page.",
+    body: "Your public researcher profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links — it's your creator landing page.",
     visual: (
       <div className="mt-4 rounded-xl overflow-hidden border border-border">
         <div className="h-8" style={{ background: "linear-gradient(135deg,#0d1f3c,#1e3a6e)" }} />

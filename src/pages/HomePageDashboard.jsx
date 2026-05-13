@@ -140,7 +140,7 @@ function FollowedReportCard({ report }) {
 
 function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, currentUserEmail }) {
   const navigate = useNavigate();
-  const name = analyst.full_name || analyst.email?.split("@")[0] || "Analyst";
+  const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const acc = analyst.accuracy_score || 0;
   const isFollowing = followedEmails.includes(analyst.email);
   const computed = (() => {
@@ -423,7 +423,7 @@ export default function HomePageDashboard() {
   // Investors see the consumer home; analysts/admins see the creator dashboard
   if (user && !isAnalyst) return <InvestorHome />;
 
-  const displayName = user?.full_name || user?.email?.split("@")[0] || "Analyst";
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "Researcher";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -693,7 +693,7 @@ export default function HomePageDashboard() {
               {/* Subscribed analyst chips */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {mySubscriptions.map(sub => {
-                  const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Analyst";
+                  const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
                   const slug = sub.analyst_email?.split("@")[0];
                   return (
                     <Link
@@ -712,7 +712,7 @@ export default function HomePageDashboard() {
               {subscriptionReports.length === 0 ? (
                 <div className="text-center py-6 border border-dashed border-border rounded-xl">
                   <BookOpen className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">Your subscribed analysts haven't published yet.</p>
+                  <p className="text-xs text-muted-foreground">Your subscribed researchers haven't published yet.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -763,7 +763,7 @@ export default function HomePageDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-sm flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
-                From Analysts You Follow
+                From Researchers You Follow
               </h2>
               <Link to="/feed" className="text-xs text-primary hover:underline flex items-center gap-0.5">
                 Full feed <ArrowRight className="w-3 h-3" />
@@ -773,9 +773,9 @@ export default function HomePageDashboard() {
               <div className="text-center py-8 border border-dashed border-border rounded-xl">
                 <Users className="w-7 h-7 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground mb-1">You're not following anyone yet</p>
-                <p className="text-xs text-muted-foreground/70 mb-3">Follow top analysts to see their latest calls here</p>
+                <p className="text-xs text-muted-foreground/70 mb-3">Follow top researchers to see their latest calls here</p>
                 <Button size="sm" variant="outline" onClick={() => navigate("/leaderboard")} className="text-xs">
-                  Discover Analysts
+                  Discover Researchers
                 </Button>
               </div>
             ) : (
@@ -794,7 +794,7 @@ export default function HomePageDashboard() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-sm flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-500" />
-                Top Analysts
+                Top Researchers
               </h2>
               <Link to="/leaderboard" className="text-xs text-primary hover:underline">See all</Link>
             </div>

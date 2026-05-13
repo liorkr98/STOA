@@ -376,7 +376,7 @@ export default function ReportView() {
     </div>
   );
 
-  const authorName = report.author_name || authorUser?.full_name || report.created_by?.split("@")[0] || "Analyst";
+  const authorName = report.author_name || authorUser?.full_name || report.created_by?.split("@")[0] || "Researcher";
   const authorAvatar = report.author_avatar || authorUser?.profile_picture || authorUser?.picture || null;
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
@@ -521,7 +521,7 @@ export default function ReportView() {
                     { icon: Target, label: "Price target & catalysts" },
                     { icon: ShieldAlert, label: "Key risks breakdown" },
                     { icon: TrendingUp, label: "Technical setup" },
-                    { icon: Lightbulb, label: "Analyst conviction score" },
+                    { icon: Lightbulb, label: "Researcher conviction score" },
                     { icon: Lock, label: "Locked prediction" },
                   ].map(({ icon: Icon, label }) => (
                     <div key={label} className="flex items-center gap-1.5 text-xs text-foreground/80">
@@ -565,7 +565,7 @@ export default function ReportView() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">{authorName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {report.author_accuracy > 0 ? `${report.author_accuracy}% prediction accuracy` : "Verified analyst on STOA"}
+                  {report.author_accuracy > 0 ? `${report.author_accuracy}% prediction accuracy` : "Verified researcher on STOA"}
                 </p>
               </div>
               <Button
