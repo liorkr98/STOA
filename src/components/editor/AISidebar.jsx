@@ -1,9 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Loader2, X, TrendingUp, ChevronDown, GripHorizontal } from "lucide-react";
+import { Sparkles, Loader2, X, TrendingUp, ChevronDown, GripHorizontal, Coins } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { spendAICredits, loadMyWallet } from "@/lib/walletService";
+
+const COST_ELITE   = 5; // credits — full institutional research with live internet
+const COST_GENERIC = 2; // credits — standard AI outline
 
 const SKELETON_TEMPLATE = [
   { type: "heading", content: "Executive Summary" },
@@ -92,6 +96,12 @@ export default function AISidebar({ isOpen, onClose, onGenerate, initialTicker =
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState(initialTicker);
   const [mode, setMode] = useState("elite");
+  const [credits, setCredits] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    loadMyWallet().then(({ wallet }) => setCredits(wallet.ai_credits || 0)).catch(() => setCredits(0));
+  }, [isOpen]);
 
   const isTickerLike = topic.trim().length >= 1 && topic.trim().length <= 6 && /^[A-Z0-9]+$/i.test(topic.trim());
 
@@ -121,10 +131,21 @@ export default function AISidebar({ isOpen, onClose, onGenerate, initialTicker =
   }, [dragging]);
 
   const handleGenerate = async () => {
+    const useElite = mode === "elite";
+    const usesAI = !!topic.trim();
+    const cost = usesAI ? (useElite && isTickerLike ? COST_ELITE : COST_GENERIC) : 0;
+
+    // Credit check before any AI call
+    if (cost > 0) {
+      if (credits != null && credits < cost) {
+        toast.error(`Need ${cost} AI credits. Convert cash → credits in your Wallet.`);
+        return;
+      }
+    }
+
     setGenerating(true);
     try {
-      if (topic.trim()) {
-        const useElite = mode === "elite";
+      if (usesAI) {
         const prompt = useElite && isTickerLike
           ? ELITE_PROMPT(topic.trim().toUpperCase())
           : `You are a professional financial analyst. Write a structured research report outline about: "${topic}".
@@ -148,6 +169,15 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             if (parsed.blocks?.length > 0) blocks = parsed.blocks;
           }
         } catch { /* use fallback */ }
+
+        // Deduct credits after successful AI response
+        if (cost > 0) {
+          const creditRes = await spendAICredits(cost, `AI report generation — ${useElite && isTickerLike ? "Elite" : "Generic"} (${topic.trim().toUpperCase()})`).catch(() => null);
+          const remaining = creditRes?.remaining ?? (credits - cost);
+          setCredits(remaining);
+          if (remaining <= 10 && remaining > 0) toast.warning(`${remaining} AI credits remaining`);
+        }
+
         onGenerate(blocks);
       } else {
         await new Promise((r) => setTimeout(r, 300));
@@ -185,6 +215,13 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
           <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm">AI Research Assistant</span>
+          {credits != null && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+              credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
+            }`}>
+              <Coins className="w-2.5 h-2.5" /> {credits}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-0.5 pointer-events-auto">
           <button
@@ -248,16 +285,30 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             </div>
           )}
 
-          <Button onClick={handleGenerate} disabled={generating} className="w-full">
+          {credits != null && credits <= 0 && topic.trim() && (
+            <div className="mb-2 px-3 py-2 bg-loss/8 border border-loss/20 rounded-lg text-[10px] text-loss flex items-center gap-1.5">
+              <Coins className="w-3 h-3 flex-shrink-0" />
+              No AI credits remaining. Top up in your <a href="/wallet" className="underline ml-0.5">Wallet</a>.
+            </div>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={generating || (topic.trim() ? credits != null && credits <= 0 : false)}
+            className="w-full"
+          >
             {generating
               ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "elite" ? "Researching with AI..." : topic ? "Writing with AI..." : "Loading template..."}</>
               : <><Sparkles className="w-4 h-4 mr-2" />{mode === "elite" && isTickerLike && topic ? `Research ${topic.trim().toUpperCase()}` : topic ? "Generate with AI" : "Use Generic Template"}</>
             }
           </Button>
 
-          {mode === "elite" && (
-            <p className="text-[10px] text-muted-foreground text-center mt-2">
-              Uses Claude Sonnet + live internet data · ~20–40 seconds
+          {topic.trim() && (
+            <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+              <Coins className="w-2.5 h-2.5" />
+              {mode === "elite" && isTickerLike
+                ? `${COST_ELITE} credits · live internet data · ~20–40 sec`
+                : `${COST_GENERIC} credits · AI-generated outline`}
             </p>
           )}
 

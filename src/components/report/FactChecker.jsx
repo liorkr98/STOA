@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Sparkles, CheckCircle2, AlertTriangle, Info, MessageSquareQuote,
   Loader2, X, TrendingUp, ExternalLink, Flag
@@ -6,6 +6,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { spendAICredits, loadMyWallet } from "@/lib/walletService";
+import { Coins } from "lucide-react";
+
+const COST_FACT_CHECK = 3; // credits — Claude classify + Yahoo Finance + SEC EDGAR
 
 const TYPE_CONFIG = {
   Fact: {
@@ -187,6 +191,11 @@ export default function FactChecker({ reportContent, content }) {
   const [phase,   setPhase]   = useState("");
   const [claims,  setClaims]  = useState(null);
   const [error,   setError]   = useState(null);
+  const [credits, setCredits] = useState(null);
+
+  useEffect(() => {
+    loadMyWallet().then(({ wallet }) => setCredits(wallet.ai_credits || 0)).catch(() => setCredits(0));
+  }, []);
 
   const text = (reportContent || content || "").trim();
 
@@ -419,12 +428,26 @@ Report:
 
   const runCheck = async () => {
     if (!text || text.length < 50) { setError("Write more content before fact-checking."); return; }
+
+    // Credit check
+    if (credits != null && credits < COST_FACT_CHECK) {
+      toast.error(`Need ${COST_FACT_CHECK} AI credits to fact-check. Convert cash → credits in your Wallet.`);
+      return;
+    }
+
     setLoading(true);
     setClaims(null);
     setError(null);
     try {
       setPhase("claude");
       const claudeClaims = await runClaudeCheck();
+
+      // Deduct credits right after Claude responds (most expensive step)
+      const creditRes = await spendAICredits(COST_FACT_CHECK, "AI Fact Check (Claude + Yahoo + EDGAR)").catch(() => null);
+      const remaining = creditRes?.remaining ?? (credits != null ? credits - COST_FACT_CHECK : null);
+      setCredits(remaining);
+      if (remaining != null && remaining <= 10 && remaining > 0) toast.warning(`${remaining} AI credits remaining`);
+
       setPhase("yahoo");
       const yahooClaims = await runYahooCheck(claudeClaims);
       setPhase("financials");
@@ -454,15 +477,27 @@ Report:
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Credit badge */}
+          {credits != null && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+              credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
+            }`} title={`${COST_FACT_CHECK} credits per fact-check`}>
+              <Coins className="w-2.5 h-2.5" /> {credits}
+            </span>
+          )}
           {claims && (
             <button onClick={() => setClaims(null)} className="text-muted-foreground hover:text-foreground">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <Button onClick={runCheck} disabled={loading || !text} size="sm" variant="outline" className="text-xs">
+          <Button
+            onClick={runCheck}
+            disabled={loading || !text || (credits != null && credits < COST_FACT_CHECK && !claims)}
+            size="sm" variant="outline" className="text-xs"
+          >
             {loading
               ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{phase === "claude" ? "Claude analyzing..." : phase === "yahoo" ? "Yahoo Finance..." : "SEC EDGAR..."}</>
-              : claims ? "Re-run" : "Check Facts"
+              : claims ? "Re-run" : <><Coins className="w-3 h-3 mr-1" />{COST_FACT_CHECK} · Check Facts</>
             }
           </Button>
 
