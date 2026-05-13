@@ -7,30 +7,36 @@ const WATCHLIST_KEY = "stoa_watchlist";
 
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
-  const r = await base44.functions.invoke("proxyFetch", {
-    url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}&formatted=false`,
-    headers: { "User-Agent": "Mozilla/5.0" },
-  });
-  return (r.data?.quoteResponse?.result || []).map(q => ({
-    symbol: q.symbol,
-    name: q.shortName || q.symbol,
-    price: q.regularMarketPrice,
-    change: q.regularMarketChangePercent,
-  }));
+  const results = await Promise.allSettled(
+    symbols.map(async sym => {
+      const r = await base44.functions.invoke("getStockData", { ticker: sym });
+      const d = r?.data || r;
+      return {
+        symbol: sym,
+        name: d?.companyName || d?.shortName || sym,
+        price: d?.price ?? d?.regularMarketPrice ?? null,
+        change: d?.regularMarketChangePercent ?? d?.changePercent ?? null,
+      };
+    })
+  );
+  return results
+    .filter(r => r.status === "fulfilled" && r.value.price != null)
+    .map(r => r.value);
 }
 
 function WatchlistItem({ entry, live }) {
+  const ticker = entry.ticker || entry.symbol;
   const isUp = (live?.change ?? 0) >= 0;
   return (
     <Link
-      to={`/stock?ticker=${entry.symbol}`}
+      to={`/stock?ticker=${ticker}`}
       className="flex items-center justify-between py-1.5 group hover:bg-secondary/50 rounded px-1 transition-colors"
     >
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-xs font-mono font-bold text-foreground group-hover:text-primary transition-colors">
-          {entry.symbol}
+          {ticker}
         </span>
-        {entry.name && entry.name !== entry.symbol && (
+        {entry.name && entry.name !== ticker && (
           <span className="text-[10px] text-muted-foreground truncate max-w-[70px]">{entry.name}</span>
         )}
       </div>
@@ -72,7 +78,8 @@ export default function MarketsWidget() {
     if (!watchlist.length) { setWatchData([]); return; }
     setWlLoading(true);
     try {
-      const data = await fetchQuotes(watchlist.map(w => w.symbol));
+      const symbols = watchlist.map(w => w.ticker || w.symbol).filter(Boolean);
+      const data = await fetchQuotes(symbols);
       setWatchData(data);
     } catch {}
     finally { setWlLoading(false); }
@@ -162,13 +169,16 @@ export default function MarketsWidget() {
           </div>
 
           <div className="space-y-0.5">
-            {watchlist.map(entry => (
-              <WatchlistItem
-                key={entry.symbol}
-                entry={entry}
-                live={watchData.find(d => d.symbol === entry.symbol)}
-              />
-            ))}
+            {watchlist.map(entry => {
+              const ticker = entry.ticker || entry.symbol;
+              return (
+                <WatchlistItem
+                  key={ticker}
+                  entry={entry}
+                  live={watchData.find(d => d.symbol === ticker)}
+                />
+              );
+            })}
           </div>
         </div>
       ) : (

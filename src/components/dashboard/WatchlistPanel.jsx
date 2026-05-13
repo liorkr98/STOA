@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 
 const STORAGE_KEY = "stoa_watchlist";
 
-// Each entry is { ticker, timeframe }
 const TIMEFRAMES = [
   { value: "1D", label: "1D" },
   { value: "1W", label: "1W" },
@@ -15,44 +14,85 @@ const TIMEFRAMES = [
   { value: "1Y", label: "1Y" },
 ];
 
+// Map timeframe to Yahoo Finance range/interval params
+const TF_PARAMS = {
+  "1D": { range: "1d",  interval: "5m"  },
+  "1W": { range: "5d",  interval: "60m" },
+  "1M": { range: "1mo", interval: "1d"  },
+  "1Y": { range: "1y",  interval: "1wk" },
+};
 
-function loadWatchlist() {
+export function loadWatchlist() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    // Support old format (plain string array)
-    return raw.map(e => typeof e === "string" ? { ticker: e, timeframe: "1D" } : e);
+    return raw.map(e =>
+      typeof e === "string"
+        ? { ticker: e, timeframe: "1D" }
+        : { ticker: e.ticker || e.symbol, timeframe: e.timeframe || "1D" }
+    );
   } catch { return []; }
 }
-function saveWatchlist(entries) {
+
+export function saveWatchlist(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+// Fetch current quote + change for a ticker using the getStockData Base44 function
+async function fetchQuote(ticker, timeframe = "1D") {
+  const result = await base44.functions.invoke("getStockData", { ticker });
+  const d = result?.data || result;
+  const price = d?.price ?? d?.regularMarketPrice ?? null;
+  if (!price) return null;
+
+  let changePercent = d?.regularMarketChangePercent ?? d?.changePercent ?? null;
+
+  // For non-1D timeframes, compute change from chart history via proxyFetch
+  if (timeframe !== "1D") {
+    try {
+      const { range, interval } = TF_PARAMS[timeframe];
+      const chartRes = await base44.functions.invoke("proxyFetch", {
+        url: `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=${range}&interval=${interval}&formatted=false`,
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      const closes = chartRes?.data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean);
+      if (closes?.length >= 2) {
+        changePercent = ((closes[closes.length - 1] - closes[0]) / closes[0]) * 100;
+      }
+    } catch { /* keep daily change as fallback */ }
+  }
+
+  return {
+    price,
+    changePercent,
+    companyName: d?.companyName || d?.shortName || d?.longName || ticker,
+  };
 }
 
 function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
   const ticker = entry?.ticker;
-  const timeframe = entry?.timeframe;
+  const timeframe = entry?.timeframe || "1D";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchPrice = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!ticker) return;
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("getStockChange", { ticker, timeframe });
-      setData(res.data || null);
+      const result = await fetchQuote(ticker, timeframe);
+      setData(result);
     } catch { setData(null); }
     finally { setLoading(false); }
   }, [ticker, timeframe]);
 
-  useEffect(() => { fetchPrice(); }, [fetchPrice]);
+  useEffect(() => { load(); }, [load]);
 
   if (!ticker) return null;
 
-  const relatedReports = ticker ? reports.filter(r => {
+  const relatedReports = reports.filter(r => {
     const tickers = (r.tickers || "").split(",").map(t => t.trim().toUpperCase());
     return tickers.includes(ticker.toUpperCase()) ||
-      (r.title || "").toUpperCase().includes(ticker.toUpperCase()) ||
       (r.prediction_ticker || "").toUpperCase() === ticker.toUpperCase();
-  }) : [];
+  });
 
   const change = data?.changePercent;
   const isUp = change > 0;
@@ -71,18 +111,20 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
       <div className="flex-1 min-w-0">
         {loading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-        ) : data?.price ? (
+        ) : data?.price != null ? (
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">${data.price.toFixed(2)}</span>
-            <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
-              {isUp ? <TrendingUp className="w-3 h-3" /> : isDown ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-              {change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` : "—"}
-            </span>
+            {change != null && (
+              <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-green-600" : isDown ? "text-red-500" : "text-muted-foreground"}`}>
+                {isUp ? <TrendingUp className="w-3 h-3" /> : isDown ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+              </span>
+            )}
           </div>
         ) : (
           <span className="text-xs text-muted-foreground">No data</span>
         )}
-        {data?.companyName && (
+        {data?.companyName && data.companyName !== ticker && (
           <p className="text-[10px] text-muted-foreground truncate">{data.companyName}</p>
         )}
       </div>
@@ -108,18 +150,16 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
       {relatedReports.length > 0 && (
         <div className="flex items-center gap-1 shrink-0">
           <FileText className="w-3 h-3 text-muted-foreground" />
-          <div className="flex gap-1 flex-wrap">
-            {relatedReports.slice(0, 1).map(r => (
-              <Link key={r.id} to={`/report?id=${r.id}`}
-                className="text-[10px] text-primary hover:underline border border-primary/20 bg-primary/5 px-1.5 py-0.5 rounded-full max-w-[80px] truncate block"
-                title={r.title}>
-                {r.title?.slice(0, 14)}{r.title?.length > 14 ? "…" : ""}
-              </Link>
-            ))}
-            {relatedReports.length > 1 && (
-              <span className="text-[10px] text-muted-foreground">+{relatedReports.length - 1}</span>
-            )}
-          </div>
+          {relatedReports.slice(0, 1).map(r => (
+            <Link key={r.id} to={`/report?id=${r.id}`}
+              className="text-[10px] text-primary hover:underline border border-primary/20 bg-primary/5 px-1.5 py-0.5 rounded-full max-w-[80px] truncate block"
+              title={r.title}>
+              {r.title?.slice(0, 14)}{r.title?.length > 14 ? "…" : ""}
+            </Link>
+          ))}
+          {relatedReports.length > 1 && (
+            <span className="text-[10px] text-muted-foreground">+{relatedReports.length - 1}</span>
+          )}
         </div>
       )}
 
@@ -139,7 +179,7 @@ export default function WatchlistPanel({ reports = [] }) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const addTicker = () => {
-    const t = input.trim().toUpperCase().replace(/[^A-Z.]/g, "");
+    const t = input.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
     if (!t || entries.some(e => e.ticker === t)) { setInput(""); return; }
     const next = [...entries, { ticker: t, timeframe: selectedTf }];
     setEntries(next);
@@ -173,7 +213,7 @@ export default function WatchlistPanel({ reports = [] }) {
         </button>
       </div>
 
-      {/* Add ticker + timeframe selection */}
+      {/* Add ticker */}
       <div className="flex gap-2 mb-1">
         <Input
           value={input}
@@ -186,7 +226,7 @@ export default function WatchlistPanel({ reports = [] }) {
           <Plus className="w-3.5 h-3.5" />Add
         </Button>
       </div>
-      {/* Default timeframe for new additions */}
+
       <div className="flex items-center gap-1.5 mb-3">
         <span className="text-[10px] text-muted-foreground">Show growth:</span>
         {TIMEFRAMES.map(tf => (

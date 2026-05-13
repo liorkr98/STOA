@@ -23,6 +23,7 @@ import { CustomBlocksSection } from "@/components/profile/CustomBlocks";
 import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
 import { subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
+import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -991,6 +992,11 @@ export default function AnalystProfilePage() {
                 ))}
               </div>
             </div>
+
+            {/* Watchlist (own profile only) */}
+            {isOwnProfile && (
+              <WatchlistPanel reports={myReports} />
+            )}
 
             {/* Owner links */}
             {isOwnProfile && !isEditMode && (

@@ -6,7 +6,7 @@ import InvestorHome from "@/pages/InvestorHome";
 import {
   PenLine, Star, TrendingUp, TrendingDown, RefreshCw, Trophy,
   ArrowRight, FileText, Clock, Flame, Users, BarChart3,
-  ChevronRight, Loader2, Target, Zap, Plus
+  ChevronRight, Loader2, Target, Zap, Plus, Lock, BookOpen, Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAnalystSlug } from "@/lib/analystSlug";
@@ -17,15 +17,20 @@ const WATCHLIST_KEY = "stoa_watchlist";
 // ── helpers ──────────────────────────────────────────────────────────────────
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
-  const r = await base44.functions.invoke("proxyFetch", {
-    url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}&formatted=false`,
-    headers: { "User-Agent": "Mozilla/5.0" },
-  });
-  return (r.data?.quoteResponse?.result || []).map(q => ({
-    symbol: q.symbol,
-    price: q.regularMarketPrice,
-    change: q.regularMarketChangePercent,
-  }));
+  const results = await Promise.allSettled(
+    symbols.map(async sym => {
+      const r = await base44.functions.invoke("getStockData", { ticker: sym });
+      const d = r?.data || r;
+      return {
+        symbol: sym,
+        price: d?.price ?? d?.regularMarketPrice ?? null,
+        change: d?.regularMarketChangePercent ?? d?.changePercent ?? null,
+      };
+    })
+  );
+  return results
+    .filter(r => r.status === "fulfilled" && r.value.price != null)
+    .map(r => r.value);
 }
 
 function timeAgo(dateStr) {
@@ -47,9 +52,11 @@ function directionColor(d) {
 // ── sub-components ────────────────────────────────────────────────────────────
 function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
-    <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/70 transition-colors cursor-default">
-      <span className={`text-lg font-extrabold leading-none ${color}`}>{value}</span>
-      <span className="text-[10px] text-muted-foreground mt-0.5 font-medium">{label}</span>
+    <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+        <span className={`text-lg font-extrabold leading-tight tabular-nums ${color}`}>{value}</span>
+      </div>
     </div>
   );
   return to ? <Link to={to}>{inner}</Link> : inner;
@@ -234,6 +241,9 @@ export default function HomePageDashboard() {
   const [wlLoading, setWlLoading] = useState(false);
   const [followedReports, setFollowedReports] = useState([]);
   const [myStats, setMyStats] = useState(null);
+  const [purchasedReports, setPurchasedReports] = useState([]);
+  const [mySubscriptions, setMySubscriptions] = useState([]);
+  const [subscriptionReports, setSubscriptionReports] = useState([]);
 
   // right column
   const [topAnalysts, setTopAnalysts] = useState([]);
@@ -280,11 +290,13 @@ export default function HomePageDashboard() {
 
     const load = async () => {
       try {
-        const [myReports, allPub, users, follows] = await Promise.all([
+        const [myReports, allPub, users, follows, walletTxns, subs] = await Promise.all([
           base44.entities.Report.filter({ created_by: email }, "-updated_date", 30).catch(() => []),
           base44.entities.Report.filter({ status: "published" }, "-likes", 100).catch(() => []),
           base44.entities.User.list("-accuracy_score", 15).catch(() => []),
           base44.entities.Follow.filter({ follower_email: email }, "-created_date", 100).catch(() => []),
+          base44.entities.WalletTransaction.filter({ created_by: email, type: "report_unlock" }, "-created_date", 50).catch(() => []),
+          base44.entities.Subscription.filter({ subscriber_email: email, status: "active" }, "-created_date", 20).catch(() => []),
         ]);
 
         // drafts
@@ -316,6 +328,20 @@ export default function HomePageDashboard() {
           .filter(r => fEmails.includes(r.created_by))
           .slice(0, 6);
         setFollowedReports(followedPub);
+
+        // purchased reports (unlocked via wallet)
+        const unlockedIds = new Set((walletTxns || []).map(t => t.related_id).filter(Boolean));
+        const purchased = (allPub || []).filter(r => unlockedIds.has(r.id)).slice(0, 8);
+        setPurchasedReports(purchased);
+
+        // subscription reports
+        setMySubscriptions(subs || []);
+        const subEmails = new Set((subs || []).map(s => s.analyst_email).filter(Boolean));
+        const subReps = (allPub || [])
+          .filter(r => subEmails.has(r.created_by))
+          .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+          .slice(0, 8);
+        setSubscriptionReports(subReps);
 
         // trending predictions = most liked reports with a direction
         const withDir = (allPub || []).filter(r => r.prediction_direction || r.prediction_action);
@@ -349,20 +375,22 @@ export default function HomePageDashboard() {
 
   // Live index prices — SPY, QQQ, DIA, VIX
   useEffect(() => {
-    const INDEX_SYMBOLS = ["SPY", "QQQ", "DIA", "^VIX"];
+    const INDEX_TICKERS = [{ sym: "SPY", label: "SPY" }, { sym: "QQQ", label: "QQQ" }, { sym: "DIA", label: "DIA" }, { sym: "^VIX", label: "VIX" }];
     const fetchIndexes = async () => {
       try {
-        const r = await base44.functions.invoke("proxyFetch", {
-          url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(INDEX_SYMBOLS.join(","))}&formatted=false`,
-          headers: { "User-Agent": "Mozilla/5.0" },
-        });
-        const results = (r.data?.quoteResponse?.result || []).map(q => ({
-          symbol: q.symbol === "^VIX" ? "VIX" : q.symbol,
-          price: q.regularMarketPrice,
-          change: q.regularMarketChangePercent,
-          label: q.symbol === "^VIX" ? "VIX" : q.symbol,
-        }));
-        setIndexQuotes(results);
+        const results = await Promise.allSettled(
+          INDEX_TICKERS.map(async ({ sym, label }) => {
+            const r = await base44.functions.invoke("getStockData", { ticker: sym });
+            const d = r?.data || r;
+            return {
+              symbol: label,
+              label,
+              price: d?.price ?? d?.regularMarketPrice ?? null,
+              change: d?.regularMarketChangePercent ?? d?.changePercent ?? null,
+            };
+          })
+        );
+        setIndexQuotes(results.filter(r => r.status === "fulfilled" && r.value.price != null).map(r => r.value));
       } catch {}
     };
     fetchIndexes();
@@ -409,11 +437,12 @@ export default function HomePageDashboard() {
     <div className="max-w-7xl mx-auto px-4 py-6 pb-16">
 
       {/* ── Welcome header ── */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">
-          {greeting}, {displayName.split(" ")[0]}
+      <div className="mb-7">
+        <span className="eyebrow">Creator Studio</span>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mt-2">
+          {greeting}, <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{displayName.split(" ")[0]}</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Here's your research intelligence overview.</p>
+        <p className="text-sm text-muted-foreground mt-1.5">Here's your research intelligence overview.</p>
       </div>
 
       {/* ── Stat chips ── */}
@@ -436,13 +465,13 @@ export default function HomePageDashboard() {
             />
           )}
           <Link to="/editor">
-            <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer">
-              <PenLine className="w-3.5 h-3.5" />
-              <span className="text-sm font-bold leading-none">Write</span>
+            <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl bg-gradient-to-br from-primary to-primary/85 text-white hover:shadow-glow-navy hover:-translate-y-0.5 transition-all cursor-pointer">
+              <PenLine className="w-4 h-4" />
+              <span className="text-sm font-bold leading-none">Write Report</span>
             </div>
           </Link>
           <Link to="/analyst">
-            <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-secondary transition-colors cursor-pointer">
+            <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
               <span className="text-sm font-semibold leading-none text-foreground">View public profile →</span>
             </div>
           </Link>
@@ -592,6 +621,143 @@ export default function HomePageDashboard() {
             </section>
           )}
 
+          {/* Reports You've Unlocked */}
+          {(purchasedReports.length > 0) && (
+            <section className="bg-card border border-border rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-sm flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  Reports You've Unlocked
+                  <span className="text-xs text-muted-foreground font-normal">({purchasedReports.length})</span>
+                </h2>
+                <Link to="/feed" className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                  Browse more <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {purchasedReports.map(r => {
+                  const dir = r.prediction_direction || r.prediction_action;
+                  const outcome = r.prediction_outcome;
+                  const isHit = outcome === "hit" || outcome === "near";
+                  const isMiss = outcome === "miss";
+                  const isPending = !outcome || outcome === "pending";
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/report?id=${r.id}`)}
+                      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-amber-100 bg-amber-50/30 hover:border-amber-300/60 hover:bg-amber-50/50 transition-all group"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                          {r.title || "Untitled report"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[10px] text-muted-foreground">{r.author_name || r.created_by?.split("@")[0]}</span>
+                          {r.stock_ticker && (
+                            <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                          )}
+                          {dir && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
+                          )}
+                          {!isPending && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                              {(outcome || "").toUpperCase()}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* From Your Subscriptions */}
+          {(mySubscriptions.length > 0) && (
+            <section className="bg-card border border-border rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-sm flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  From Your Subscriptions
+                  <span className="text-xs text-muted-foreground font-normal">({mySubscriptions.length} active)</span>
+                </h2>
+                <Link to="/feed" className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                  Full feed <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+              {/* Subscribed analyst chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {mySubscriptions.map(sub => {
+                  const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Analyst";
+                  const slug = sub.analyst_email?.split("@")[0];
+                  return (
+                    <Link
+                      key={sub.id}
+                      to={`/analyst/${slug}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+                        {name[0].toUpperCase()}
+                      </div>
+                      <span className="text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors truncate max-w-[80px]">{name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              {subscriptionReports.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-border rounded-xl">
+                  <BookOpen className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Your subscribed analysts haven't published yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {subscriptionReports.map(r => {
+                    const dir = r.prediction_direction || r.prediction_action;
+                    const outcome = r.prediction_outcome;
+                    const isHit = outcome === "hit" || outcome === "near";
+                    const isMiss = outcome === "miss";
+                    const isPending = !outcome || outcome === "pending";
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => navigate(`/report?id=${r.id}`)}
+                        className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/30 transition-all group"
+                      >
+                        {dir && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
+                            {dir}
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                            {r.title || "Untitled"}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[10px] text-muted-foreground">{r.author_name || r.created_by?.split("@")[0]}</span>
+                            {r.stock_ticker && (
+                              <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                            )}
+                            {!isPending && (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                                {(outcome || "").toUpperCase()}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
           {/* From analysts you follow */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -672,27 +838,33 @@ export default function HomePageDashboard() {
           </section>
 
           {/* Trending tickers + sectors */}
-          <section className="bg-card border border-border rounded-2xl p-5">
-            <h2 className="font-semibold text-sm flex items-center gap-2 mb-3">
-              <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              Market Activity
-            </h2>
+          <section className="surface p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Market Activity
+              </h2>
+              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> Live
+              </span>
+            </div>
 
             {/* Live index prices */}
             {indexQuotes.length > 0 && (
-              <div className="grid grid-cols-2 gap-1.5 mb-4">
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 {indexQuotes.map(q => {
                   const up = (q.change ?? 0) >= 0;
                   return (
-                    <div key={q.symbol} className="flex items-center justify-between rounded-lg bg-secondary/60 px-2.5 py-1.5">
-                      <span className="text-[11px] font-mono font-bold">{q.label}</span>
-                      <div className="text-right">
-                        <div className="text-[11px] font-semibold tabular-nums">
-                          {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
-                        </div>
-                        <div className={`text-[10px] font-semibold ${up ? "text-green-600" : "text-red-500"}`}>
-                          {up ? "+" : ""}{q.change?.toFixed(2)}%
-                        </div>
+                    <div key={q.symbol} className="group rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md px-3 py-2 transition-all">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-mono font-bold tracking-wide text-muted-foreground">{q.label}</span>
+                        {up ? <TrendingUp className="w-2.5 h-2.5 text-gain" /> : <TrendingDown className="w-2.5 h-2.5 text-loss" />}
+                      </div>
+                      <div className="text-sm font-bold tabular-nums leading-tight">
+                        {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
+                      </div>
+                      <div className={`text-[11px] font-semibold tabular-nums ${up ? "text-gain" : "text-loss"}`}>
+                        {up ? "+" : ""}{q.change?.toFixed(2)}%
                       </div>
                     </div>
                   );
