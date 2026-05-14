@@ -42,7 +42,10 @@ Deno.serve(async (req) => {
 
     let result;
 
-    if (type === 'report') {
+    if (type === 'createReport') {
+      const created = await base44.asServiceRole.entities.Report.create(data);
+      return Response.json({ success: true, data: created });
+    } else if (type === 'report') {
       result = await supabaseInsert('reports', {
         ...data,
         author_id: user.id,
