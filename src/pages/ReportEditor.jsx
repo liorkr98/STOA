@@ -590,7 +590,11 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
           : "Report published!"
         );
-        setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
+        if (created?.id) {
+          setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
+        } else {
+          setTimeout(() => navigate("/dashboard"), 1000);
+        }
       }
     } catch (err) {
       toast.error("Failed to publish: " + (err?.message || "Unknown error"));

@@ -44,10 +44,19 @@ Deno.serve(async (req) => {
 
     if (type === 'createReport') {
       try {
-        const created = await base44.asServiceRole.entities.Report.create({
+        let created = await base44.asServiceRole.entities.Report.create({
           ...data,
           created_by: user.email,
         });
+        // If create() didn't return the id, fetch the report back
+        if (!created?.id) {
+          const reports = await base44.asServiceRole.entities.Report.filter(
+            { created_by: user.email, title: data.title, status: data.status },
+            "-created_date",
+            1
+          );
+          if (reports?.[0]) created = reports[0];
+        }
         return Response.json({ success: true, data: created });
       } catch (createErr: any) {
         return Response.json({ error: `createReport failed: ${createErr?.message || JSON.stringify(createErr)}` }, { status: 200 });

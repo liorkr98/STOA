@@ -346,8 +346,21 @@ export default function ReportView() {
   }, []);
 
   useEffect(() => {
-    if (!reportId) { setError("No report ID specified."); setLoading(false); return; }
-    base44.entities.Report.get(reportId)
+    if (!reportId || reportId === "undefined" || reportId === "null") {
+      setError("No report ID specified.");
+      setLoading(false);
+      return;
+    }
+    const loadReport = async () => {
+      let data = await base44.entities.Report.get(reportId).catch(() => null);
+      // Fallback: try filter if get() is blocked by RLS
+      if (!data) {
+        const results = await base44.entities.Report.filter({ status: "published" }, "-created_date", 200).catch(() => []);
+        data = (results || []).find(r => r.id === reportId) || null;
+      }
+      return data;
+    };
+    loadReport()
       .then(async data => {
         if (!data) { setError("Report not found."); return; }
         setReport(data);
@@ -374,7 +387,7 @@ export default function ReportView() {
       })
       .catch(() => setError("Failed to load report."))
       .finally(() => setLoading(false));
-  }, [reportId]);
+  }, [reportId]);  // eslint-disable-line
 
   // Track view — runs once per session, skips if viewer is the author
   useEffect(() => {
