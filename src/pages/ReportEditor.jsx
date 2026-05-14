@@ -550,31 +550,34 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
       // ── Step 5: Write report record ───────────────────────────────────────
       const isScheduled = !!scheduleTime;
-      const created = await base44.entities.Report.create({
-      title,
-      content_blocks:           JSON.stringify(frozenBlocks),
-      tickers:                  tickers.join(","),
-      excerpt:                  autoExcerpt,
-      fact_check_results:       factCheckJson,
-      industry:                 industry || null,
-      market_cap:               marketCap || null,
-      prediction_action:        predictionData?.action       || null,
-      prediction_ticker:        predictionData?.ticker       || null,
-      prediction_target_price:  predictionData?.targetPrice  || null,
-      prediction_lock_price:    lockPrice,
-      prediction_lock_time:     lockTime,
-      prediction_lock_source:   lockSource,
-      prediction_timeframe:     predictionData?.timeframe    || null,
-      prediction_stop_loss:     predictionData?.stopLoss     || null,
-      prediction_portfolio_pct: predictionData?.portfolioPct || null,
-      is_premium:    isPremium,
-      price:         isPremium ? parseFloat(reportPrice) : null,
-      status:        "published",
-      author_name:   currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
-      author_avatar: currentUser?.picture   || null,
-      author_accuracy: currentUser?.accuracy_score || 0,
-      likes: 0,
-      });
+      const reportPayload = {
+        title,
+        content_blocks:           JSON.stringify(frozenBlocks),
+        tickers:                  tickers.join(","),
+        excerpt:                  autoExcerpt,
+        fact_check_results:       factCheckJson,
+        industry:                 industry || null,
+        market_cap:               marketCap || null,
+        prediction_action:        predictionData?.action       || null,
+        prediction_ticker:        predictionData?.ticker       || null,
+        prediction_target_price:  predictionData?.targetPrice  || null,
+        prediction_lock_price:    lockPrice,
+        prediction_lock_time:     lockTime,
+        prediction_lock_source:   lockSource,
+        prediction_timeframe:     predictionData?.timeframe    || null,
+        prediction_stop_loss:     predictionData?.stopLoss     || null,
+        prediction_portfolio_pct: predictionData?.portfolioPct || null,
+        is_premium:    isPremium,
+        price:         isPremium ? parseFloat(reportPrice) : null,
+        status:        "published",
+        author_name:   currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
+        author_avatar: currentUser?.picture   || null,
+        author_accuracy: currentUser?.accuracy_score || 0,
+        likes: 0,
+      };
+      const createRes = await base44.functions.createReport(reportPayload);
+      if (createRes?.error) throw new Error(createRes.error);
+      const created = createRes?.report;
 
       // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
       await spendAICredits(PUBLISH_COST, `${isScheduled ? "Schedule" : "Publish"}: ${title.slice(0, 50)}`).catch(e =>
