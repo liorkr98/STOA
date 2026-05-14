@@ -43,11 +43,15 @@ Deno.serve(async (req) => {
     let result;
 
     if (type === 'createReport') {
-      const created = await base44.asServiceRole.entities.Report.create({
-        ...data,
-        created_by: user.email,
-      });
-      return Response.json({ success: true, data: created });
+      try {
+        const created = await base44.asServiceRole.entities.Report.create({
+          ...data,
+          created_by: user.email,
+        });
+        return Response.json({ success: true, data: created });
+      } catch (createErr: any) {
+        return Response.json({ error: `createReport failed: ${createErr?.message || JSON.stringify(createErr)}` }, { status: 200 });
+      }
     } else if (type === 'report') {
       result = await supabaseInsert('reports', {
         ...data,
