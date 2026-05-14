@@ -570,7 +570,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       };
-      const createRes = await base44.functions.createReport(reportPayload);
+      const createRes = await base44.functions.invoke("createReport", reportPayload);
       if (createRes?.error) throw new Error(createRes.error);
       const created = createRes?.report;
 
