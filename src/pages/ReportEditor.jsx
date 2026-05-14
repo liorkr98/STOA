@@ -470,6 +470,11 @@ export default function ReportEditor() {
     try {
       const currentUser = await base44.auth.me();
       if (!currentUser) throw new Error("Not logged in.");
+      if (currentUser.role !== "analyst" && currentUser.role !== "admin") {
+        toast.error("Only analysts and admins can publish reports.");
+        setPublishing(false);
+        return;
+      }
 
       // ── Duplicate guard: same author + same title already published ──────
       const existing = await base44.entities.Report.filter({
