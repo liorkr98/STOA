@@ -120,9 +120,18 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "analyst"
-      }
+      "or": [
+        {
+          "user_condition": {
+            "role": "analyst"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "read": {
       "or": [
