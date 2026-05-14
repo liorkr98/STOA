@@ -119,23 +119,8 @@
     "title"
   ],
   "rls": {
-    "read": {
-      "or": [
-        {
-          "data.status": "published"
-        },
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
     "update": {
-      "or": [
+      "$or": [
         {
           "created_by": "{{user.email}}"
         },
@@ -147,7 +132,7 @@
       ]
     },
     "delete": {
-      "or": [
+      "$or": [
         {
           "created_by": "{{user.email}}"
         },
@@ -159,7 +144,7 @@
       ]
     },
     "write": {
-      "or": [
+      "$or": [
         {
           "created_by": "{{user.email}}"
         },
