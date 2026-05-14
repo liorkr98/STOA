@@ -57,7 +57,19 @@ Deno.serve(async (req) => {
           );
           if (reports?.[0]) created = reports[0];
         }
-        return Response.json({ success: true, data: created });
+        // Diagnostic: verify what is actually stored & readable
+        const allForUser = await base44.asServiceRole.entities.Report
+          .filter({ created_by: user.email }, "-created_date", 500)
+          .catch(() => []);
+        const diagnostic = {
+          createdId: created?.id || null,
+          createdBy: created?.created_by || null,
+          status: created?.status || null,
+          requestUserEmail: user.email,
+          totalReportsForUser: allForUser.length,
+          recentTitles: allForUser.slice(0, 5).map((r: any) => ({ id: r.id, title: r.title, status: r.status, created_by: r.created_by })),
+        };
+        return Response.json({ success: true, data: created, diagnostic });
       } catch (createErr: any) {
         return Response.json({ error: `createReport failed: ${createErr?.message || JSON.stringify(createErr)}` }, { status: 200 });
       }

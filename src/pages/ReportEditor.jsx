@@ -573,6 +573,12 @@ Report:"""${fullText.slice(0, 3000)}"""`,
       const createRes = await base44.functions.invoke("saveToSupabase", { type: "createReport", data: reportPayload });
       if (createRes?.error) throw new Error(createRes.error);
       const created = createRes?.data;
+      // TEMP DIAGNOSTIC — surfaces exactly what was stored
+      if (createRes?.diagnostic) {
+        console.log("[PUBLISH DIAGNOSTIC]", createRes.diagnostic);
+        const d = createRes.diagnostic;
+        toast.info(`Stored: id=${d.createdId} · status=${d.status} · owner=${d.createdBy} · total=${d.totalReportsForUser}`, { duration: 12000 });
+      }
 
       // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
       await spendAICredits(PUBLISH_COST, `${isScheduled ? "Schedule" : "Publish"}: ${title.slice(0, 50)}`).catch(e =>
