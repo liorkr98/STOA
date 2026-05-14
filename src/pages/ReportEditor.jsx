@@ -570,9 +570,9 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       };
-      const createRes = await base44.functions.invoke("createReport", reportPayload);
+      const createRes = await base44.functions.invoke("saveToSupabase", { type: "createReport", data: reportPayload });
       if (createRes?.error) throw new Error(createRes.error);
-      const created = createRes?.report;
+      const created = createRes?.data;
 
       // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
       await spendAICredits(PUBLISH_COST, `${isScheduled ? "Schedule" : "Publish"}: ${title.slice(0, 50)}`).catch(e =>
