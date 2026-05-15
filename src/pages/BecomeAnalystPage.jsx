@@ -129,7 +129,7 @@ export default function BecomeAnalystPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero — pt-4 adds room so the sticky nav doesn't clip the top */}
-      <div className="relative overflow-hidden pt-4" style={{ minHeight: 120, background: "linear-gradient(135deg,#0d1f3c 0%,#1e3a6e 100%)" }}>
+      <div className="relative overflow-hidden pt-4" style={{ minHeight: 120, background: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)" }}>
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />

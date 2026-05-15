@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap');
+/* ────────────────────────────────────────────────────────────────────────────
+   Fonts — Lora (display/serif), Manrope (UI/body), Space Grotesk (data/numbers)
+   ──────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Manrope:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,84 +9,123 @@
 
 @layer base {
   :root {
-    --font-sans: 'Inter', sans-serif;
-    --font-serif: 'Source Serif 4', Georgia, serif;
+    --font-sans: 'Manrope', system-ui, sans-serif;          /* body, UI, labels, nav, metadata */
+    --font-serif: 'Lora', Georgia, serif;                    /* analyst names, headlines, display */
+    --font-mono: 'Space Grotesk', ui-monospace, monospace;   /* Elo, stats, numbers, percentages */
 
-    /* Navy & Gold — institutional finance palette matching the STOA logo (#1e3a6e) */
-    --background: 220 30% 98%;           /* #f8f9fc cool white */
-    --foreground: 215 40% 10%;           /* #0e1623 near-black navy */
-    --card: 0 0% 100%;
-    --card-foreground: 215 40% 10%;
+    /* ── Brand palette ────────────────────────────────────────────────────
+       Deepest navy:  #0A1A3F   Primary blue:  #1E3A8A   Lighter blue:  #2E5090
+       Gold:          #D4AF37   Gold light:    #E8CC6E   White:         #FAFAFA
+       Neutrals:      #E8E6E1, #C4C2BD, #8A8884, #5C5B58, #2C2B29
+       Stored as HSL components so existing hsl(var(--token)) callers keep working.
+       ──────────────────────────────────────────────────────────────── */
+    --navy-deepest: 222 73% 14%;        /* #0A1A3F */
+    --blue-primary: 225 64% 33%;        /* #1E3A8A */
+    --blue-lighter: 218 51% 37%;        /* #2E5090 */
+    --gold:         46 65% 52%;         /* #D4AF37 */
+    --gold-light:   45 73% 67%;         /* #E8CC6E */
+    --neutral-100:  40 14% 90%;         /* #E8E6E1 */
+    --neutral-200:  43  6% 75%;         /* #C4C2BD */
+    --neutral-400:  40  3% 53%;         /* #8A8884 */
+    --neutral-600:  45  3% 35%;         /* #5C5B58 */
+    --neutral-900:  40  4% 17%;         /* #2C2B29 */
+
+    /* Market sentiment — Long/Short, Hit/Miss, gain/loss ONLY */
+    --sentiment-positive:       154 77% 24%;   /* #0E6B45 rolex green */
+    --sentiment-positive-light: 151 69% 33%;   /* #1A8C5A */
+    --sentiment-negative:       351 55% 37%;   /* #922B3E velvet red */
+    --sentiment-negative-light: 350 47% 50%;   /* #B8475C */
+
+    /* ── Semantic tokens (light mode) ────────────────────────────────── */
+    --background: 0 0% 98%;                          /* #FAFAFA page */
+    --foreground: var(--neutral-900);                /* near-black warm */
+    --card: 0 0% 100%;                               /* card fill (paired with rgba tint below) */
+    --card-foreground: var(--neutral-900);
     --popover: 0 0% 100%;
-    --popover-foreground: 215 40% 10%;
-    --primary: 215 56% 27%;              /* #1e3a6e — logo navy */
+    --popover-foreground: var(--neutral-900);
+    --primary: var(--blue-primary);                  /* buttons, badges, active, links */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 22% 93%;            /* light blue-gray */
-    --secondary-foreground: 215 40% 10%;
-    --muted: 220 18% 91%;
-    --muted-foreground: 215 14% 48%;
-    --accent: 43 80% 44%;               /* #c99613 — deep gold */
-    --accent-foreground: 215 40% 10%;
-    --destructive: 0 72% 52%;
+    --secondary: var(--neutral-100);
+    --secondary-foreground: var(--neutral-900);
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--neutral-400);
+    --accent: var(--gold);                           /* CTAs, founding badges, premium */
+    --accent-foreground: var(--navy-deepest);
+    --destructive: var(--sentiment-negative);
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 87%;
-    --input: 220 18% 93%;
-    --ring: 215 56% 27%;
-    --chart-1: 215 56% 27%;
-    --chart-2: 0 72% 52%;
-    --chart-3: 43 80% 44%;
-    --chart-4: 152 55% 36%;
-    --chart-5: 280 60% 55%;
-    --radius: 0.75rem;
-    --gain: 152 55% 35%;
-    --loss: 0 72% 52%;
-    --sidebar-background: 220 30% 98%;
-    --sidebar-foreground: 215 40% 10%;
-    --sidebar-primary: 215 56% 27%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 22% 93%;
-    --sidebar-accent-foreground: 215 40% 10%;
-    --sidebar-border: 220 20% 87%;
-    --sidebar-ring: 215 56% 27%;
+    --border: var(--neutral-200);
+    --input: var(--neutral-100);
+    --ring: var(--blue-primary);
+    --chart-1: var(--blue-primary);
+    --chart-2: var(--gold);
+    --chart-3: var(--blue-lighter);
+    --chart-4: var(--sentiment-positive);
+    --chart-5: var(--sentiment-negative);
+    --radius: 10px;                                  /* cards */
+    --radius-tag: 4px;                               /* tags/badges — squared, not pills */
 
-    /* Layered shadows — institutional depth without heaviness */
-    --shadow-xs: 0 1px 2px 0 rgb(15 22 35 / 0.04);
-    --shadow-sm: 0 1px 2px 0 rgb(15 22 35 / 0.04), 0 1px 3px -1px rgb(15 22 35 / 0.06);
-    --shadow-md: 0 4px 12px -2px rgb(15 22 35 / 0.06), 0 2px 4px -2px rgb(15 22 35 / 0.04);
-    --shadow-lg: 0 12px 28px -6px rgb(15 22 35 / 0.10), 0 4px 10px -4px rgb(15 22 35 / 0.06);
-    --shadow-xl: 0 24px 56px -12px rgb(15 22 35 / 0.16), 0 8px 16px -8px rgb(15 22 35 / 0.08);
-    --shadow-glow-gold: 0 0 0 1px hsl(43 80% 44% / 0.12), 0 8px 24px -8px hsl(43 80% 44% / 0.25);
-    --shadow-glow-navy: 0 0 0 1px hsl(215 56% 27% / 0.12), 0 8px 24px -8px hsl(215 56% 27% / 0.25);
+    /* Gain/loss aliased to sentiment palette (used by gain/loss indicators only) */
+    --gain: var(--sentiment-positive);
+    --loss: var(--sentiment-negative);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: var(--neutral-900);
+    --sidebar-primary: var(--blue-primary);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: var(--neutral-100);
+    --sidebar-accent-foreground: var(--neutral-900);
+    --sidebar-border: var(--neutral-200);
+    --sidebar-ring: var(--blue-primary);
+
+    /* Shadows — softer, warmer (uses near-black neutral tone instead of cool slate) */
+    --shadow-xs: 0 1px 2px 0 rgb(12 12 11 / 0.04);
+    --shadow-sm: 0 1px 2px 0 rgb(12 12 11 / 0.04), 0 1px 3px -1px rgb(12 12 11 / 0.05);
+    --shadow-md: 0 4px 12px -2px rgb(12 12 11 / 0.06), 0 2px 4px -2px rgb(12 12 11 / 0.04);
+    --shadow-lg: 0 12px 28px -6px rgb(12 12 11 / 0.10), 0 4px 10px -4px rgb(12 12 11 / 0.06);
+    --shadow-xl: 0 24px 56px -12px rgb(12 12 11 / 0.16), 0 8px 16px -8px rgb(12 12 11 / 0.08);
+    --shadow-glow-gold: 0 0 0 0.5px hsl(var(--gold) / 0.18), 0 8px 24px -8px hsl(var(--gold) / 0.30);
+    --shadow-glow-navy: 0 0 0 0.5px hsl(var(--blue-primary) / 0.18), 0 8px 24px -8px hsl(var(--blue-primary) / 0.30);
+
+    /* Glass card tints — primary-blue at 3% with 5-7% border (light mode) */
+    --glass-bg: hsl(var(--blue-primary) / 0.03);
+    --glass-border: hsl(var(--blue-primary) / 0.06);
+    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.75) 50%, transparent 100%);
   }
 
   .dark {
-    --background: 218 45% 8%;            /* deep navy dark */
-    --foreground: 210 20% 95%;
-    --card: 218 45% 11%;
-    --card-foreground: 210 20% 95%;
-    --popover: 218 45% 11%;
-    --popover-foreground: 210 20% 95%;
-    --primary: 215 65% 52%;              /* lighter navy for dark bg */
+    --background: 216 56% 11%;            /* #0C1829 */
+    --foreground: 0 0% 98%;
+    --card: 216 56% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 216 56% 13%;
+    --popover-foreground: 0 0% 98%;
+    --primary: var(--blue-primary);
     --primary-foreground: 0 0% 100%;
-    --secondary: 218 30% 16%;
-    --secondary-foreground: 210 20% 90%;
-    --muted: 218 30% 14%;
-    --muted-foreground: 215 15% 55%;
-    --accent: 43 85% 52%;               /* gold slightly brighter on dark */
-    --accent-foreground: 218 45% 8%;
-    --destructive: 0 72% 52%;
+    --secondary: 216 40% 18%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 216 40% 16%;
+    --muted-foreground: 0 0% 65%;
+    --accent: var(--gold);                /* accent stays gold */
+    --accent-foreground: var(--navy-deepest);
+    --destructive: var(--sentiment-negative);
     --destructive-foreground: 0 0% 100%;
-    --border: 218 30% 18%;
-    --input: 218 30% 16%;
-    --ring: 215 65% 52%;
-    --sidebar-background: 218 45% 9%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 215 65% 52%;
+    --border: 0 0% 100%;                  /* base; consumed as hsl(var(--border) / 0.08) via glass */
+    --input: 216 40% 18%;
+    --ring: var(--blue-primary);
+
+    --sidebar-background: 216 56% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: var(--blue-primary);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 30% 14%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 218 30% 18%;
-    --sidebar-ring: 215 65% 52%;
+    --sidebar-accent: 216 40% 16%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: var(--blue-primary);
+
+    /* Dark mode glass — white-based rgba */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.70) 50%, transparent 100%);
 
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px -1px rgb(0 0 0 / 0.4);
@@ -99,9 +141,6 @@
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
-    /* Prevent any rogue overflowing element (wide table, off-screen tooltip,
-       absolutely-positioned banner) from showing a horizontal scrollbar on
-       narrow viewports like ≤380px. */
     overflow-x: hidden;
   }
 
@@ -115,19 +154,18 @@
     overflow-x: hidden;
   }
 
-  /* Tabular numerals for any numeric content — prices, percentages, scores */
-  .tabular-nums, [class*="font-mono"], .stat-value {
+  /* Data/numbers — Space Grotesk with tabular figures */
+  .tabular-nums, [class*="font-mono"], .stat-value, .stat-card-value {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
 
-  /* Refined selection colour — gold tint instead of harsh OS blue */
   ::selection {
     background-color: hsl(var(--accent) / 0.25);
     color: hsl(var(--foreground));
   }
 
-  /* Custom scrollbar — thin, on-brand, hidden until hover on body */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
@@ -138,18 +176,19 @@
   }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); background-clip: padding-box; border: 2px solid transparent; }
 
-  /* Stronger focus ring — accessible but elegant */
   :focus-visible {
     outline: 2px solid hsl(var(--ring) / 0.75);
     outline-offset: 3px;
     border-radius: 6px;
   }
 
-  /* Headings: tighter tracking by default — feels editorial */
-  h1, h2, h3, h4 { letter-spacing: -0.015em; }
+  /* Headings use Lora (display serif) */
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.015em;
+  }
   h1 { letter-spacing: -0.025em; }
 
-  /* Accessibility: screen-reader-only utility */
   .sr-only {
     position: absolute;
     width: 1px; height: 1px;
@@ -168,7 +207,6 @@
     white-space: normal;
   }
 
-  /* Accessibility: reduce motion for vestibular / seizure sensitivity */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -178,17 +216,15 @@
     }
   }
 
-  /* Accessibility: high-contrast focus for keyboards */
   @media (forced-colors: active) {
     :focus-visible { outline: 3px solid ButtonText; }
   }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Component utility classes — depth, surfaces, motion
+   Component utility classes — glass surfaces, top-edge highlight, badges
    ──────────────────────────────────────────────────────────────────────── */
 
-/* Layered shadow utilities */
 .shadow-card     { box-shadow: var(--shadow-sm); }
 .shadow-card-md  { box-shadow: var(--shadow-md); }
 .shadow-card-lg  { box-shadow: var(--shadow-lg); }
@@ -196,13 +232,25 @@
 .shadow-glow-gold { box-shadow: var(--shadow-glow-gold); }
 .shadow-glow-navy { box-shadow: var(--shadow-glow-navy); }
 
-/* Editorial surface — what most cards should use */
+/* Glass surface — primary-blue tinted (light) / white tinted (dark), with a
+   subtle top-edge gradient highlight to suggest a beveled rim. */
 .surface {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
+  position: relative;
+  background: var(--glass-bg);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+.surface::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--glass-top-edge);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
 }
 .surface:hover { box-shadow: var(--shadow-md); }
 
@@ -212,26 +260,35 @@
 }
 .surface-interactive:hover {
   box-shadow: var(--shadow-md);
-  border-color: hsl(var(--primary) / 0.25);
+  border-color: hsl(var(--blue-lighter) / 0.30);
   transform: translateY(-1px);
 }
 .surface-interactive:active { transform: translateY(0); }
 
-/* Subtle gradient border on hover — used for premium cards */
 .surface-premium {
   position: relative;
-  background: hsl(var(--card));
-  border-radius: 1rem;
+  background: var(--glass-bg);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  border: 1px solid hsl(var(--border));
+  border: 0.5px solid var(--glass-border);
   transition: all 0.2s ease;
+}
+.surface-premium::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--glass-top-edge);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
 }
 .surface-premium::before {
   content: "";
   position: absolute; inset: -1px;
   border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.35));
+  padding: 0.5px;
+  background: linear-gradient(135deg, hsl(var(--blue-primary) / 0.35), hsl(var(--gold) / 0.35));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
@@ -242,55 +299,85 @@
 .surface-premium:hover::before { opacity: 1; }
 .surface-premium:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 
-/* Stat card — editorial-feel KPI display */
+/* Stat card — KPI surface. Sentiment colors are NOT used here per design rules. */
 .stat-card {
   position: relative;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
+  background: var(--glass-bg);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--radius);
   padding: 1.25rem;
   text-align: left;
   transition: all 0.2s ease;
   overflow: hidden;
   box-shadow: var(--shadow-xs);
 }
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--glass-top-edge);
+  pointer-events: none;
+}
 .stat-card::after {
   content: "";
   position: absolute; top: 0; right: 0; width: 60%; height: 100%;
-  background: radial-gradient(ellipse at top right, hsl(var(--primary) / 0.05), transparent 70%);
+  background: radial-gradient(ellipse at top right, hsl(var(--blue-primary) / 0.05), transparent 70%);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.stat-card:hover { border-color: hsl(var(--primary) / 0.25); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-card:hover { border-color: hsl(var(--blue-primary) / 0.25); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .stat-card:hover::after { opacity: 1; }
-.stat-card-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: hsl(var(--muted-foreground)); }
-.stat-card-value { font-size: 28px; line-height: 1.1; font-weight: 800; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
-.stat-card-sub   { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+.stat-card-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;      /* small-caps tracking */
+  text-transform: uppercase;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+}
+.stat-card-value {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.stat-card-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
 
-/* Hero stat — bigger, more prominent first-among-equals */
-.stat-card-hero { background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.04) 100%); }
+.stat-card-hero { background: linear-gradient(135deg, var(--glass-bg) 0%, hsl(var(--blue-primary) / 0.06) 100%); }
 .stat-card-hero .stat-card-value { font-size: 36px; color: hsl(var(--primary)); }
 
-/* Pill / chip */
+/* Tags/badges — squared 4px, NOT pills.
+   Sentiment variants (pill-gain / pill-loss) are reserved for Long/Short tags,
+   Hit/Partial/Miss badges and gain/loss indicators only. */
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  border-radius: var(--radius-tag);
+  font-family: var(--font-sans);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   background: hsl(var(--secondary));
   color: hsl(var(--secondary-foreground));
-  border: 1px solid hsl(var(--border));
+  border: 0.5px solid hsl(var(--border));
 }
-.pill-primary { background: hsl(var(--primary) / 0.08); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.2); }
-.pill-accent  { background: hsl(var(--accent) / 0.12); color: hsl(43 80% 30%); border-color: hsl(var(--accent) / 0.25); }
-.pill-gain    { background: hsl(var(--gain) / 0.10); color: hsl(var(--gain)); border-color: hsl(var(--gain) / 0.22); }
-.pill-loss    { background: hsl(var(--loss) / 0.10); color: hsl(var(--loss)); border-color: hsl(var(--loss) / 0.22); }
+.pill-primary { background: hsl(var(--blue-primary) / 0.10); color: hsl(var(--blue-primary)); border-color: hsl(var(--blue-primary) / 0.22); }
+.pill-accent  { background: hsl(var(--gold-light) / 0.30); color: hsl(46 65% 32%); border-color: hsl(var(--gold) / 0.28); }
+.dark .pill-accent { color: hsl(var(--gold-light)); background: hsl(var(--gold) / 0.10); border-color: hsl(var(--gold) / 0.28); }
+.pill-gain    { background: hsl(var(--sentiment-positive) / 0.10); color: hsl(var(--sentiment-positive)); border-color: hsl(var(--sentiment-positive) / 0.22); }
+.pill-loss    { background: hsl(var(--sentiment-negative) / 0.10); color: hsl(var(--sentiment-negative)); border-color: hsl(var(--sentiment-negative) / 0.22); }
 
-/* Section heading — small caps eyebrow + title */
+/* Small-caps eyebrow label */
 .eyebrow {
+  font-family: var(--font-sans);
   display: inline-block;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: hsl(var(--muted-foreground));
 }
 
@@ -306,20 +393,19 @@
   border-radius: 6px;
 }
 
-/* Number ticker animation for live prices */
-@keyframes flashGreen { 0% { color: hsl(var(--gain)); } 100% { color: inherit; } }
-@keyframes flashRed   { 0% { color: hsl(var(--loss)); } 100% { color: inherit; } }
+/* Live price tick flash — uses sentiment palette per design rules */
+@keyframes flashGreen { 0% { color: hsl(var(--sentiment-positive)); } 100% { color: inherit; } }
+@keyframes flashRed   { 0% { color: hsl(var(--sentiment-negative)); } 100% { color: inherit; } }
 .flash-up   { animation: flashGreen 1s ease; }
 .flash-down { animation: flashRed 1s ease; }
 
-/* Gradient divider — subtle visual rhythm between sections */
 .divider-gradient {
-  height: 1px;
+  height: 0.5px;
   background: linear-gradient(90deg, transparent, hsl(var(--border)) 20%, hsl(var(--border)) 80%, transparent);
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Landing animations (preserved from original)
+   Landing animations
    ──────────────────────────────────────────────────────────────────────── */
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -340,8 +426,10 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 .font-serif { font-family: var(--font-serif); }
+.font-display { font-family: var(--font-serif); }
+.font-data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-/* Editorial prose for report body — Substack / FT style */
+/* Editorial prose for report body */
 .prose-editorial {
   font-family: var(--font-serif);
   font-size: 1.125rem;
@@ -351,10 +439,10 @@
 }
 
 .prose-editorial p { margin-bottom: 1.35rem; }
-.prose-editorial h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
+.prose-editorial h2 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
 .prose-editorial h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.75rem; font-family: var(--font-serif); letter-spacing: -0.01em; }
 .prose-editorial blockquote {
-  border-left: 3px solid hsl(var(--accent));
+  border-left: 0.5px solid hsl(var(--gold));
   padding: 0.25rem 0 0.25rem 1.25rem;
   font-style: italic;
   color: hsl(var(--muted-foreground));
@@ -363,18 +451,17 @@
 .prose-editorial a { color: hsl(var(--primary)); text-decoration: underline; text-decoration-color: hsl(var(--primary) / 0.3); text-underline-offset: 3px; }
 .prose-editorial a:hover { text-decoration-color: hsl(var(--primary)); }
 
-/* Drop cap for the first paragraph of a report */
+/* Drop cap */
 .prose-editorial.with-drop-cap > p:first-of-type::first-letter {
   font-family: var(--font-serif);
   font-size: 4.2rem;
-  font-weight: 700;
+  font-weight: 600;
   float: left;
   line-height: 0.9;
   padding: 0.3rem 0.6rem 0 0;
   color: hsl(var(--primary));
 }
 
-/* Apply serif to report view reading areas */
 .report-body {
   font-family: var(--font-serif);
   font-size: 1.1rem;
@@ -382,18 +469,16 @@
   letter-spacing: 0.005em;
 }
 
-/* Editor canvas inherits serif for content blocks */
 .editor-serif-content { font-family: var(--font-serif); }
 
-/* Glassmorphism nav background (when used) */
+/* Glassmorphism nav */
 .nav-glass {
   background: hsl(var(--background) / 0.75);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  border-bottom: 0.5px solid hsl(var(--border) / 0.6);
 }
 
-/* Respect reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

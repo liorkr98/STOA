@@ -369,7 +369,7 @@ export default function AnalystDashboard() {
         const totalViews = publishedReports.reduce((s, r) => s + (r.views || 0), 0);
         const topReport  = [...publishedReports].sort((a, b) => (b.likes || 0) - (a.likes || 0))[0];
         return (
-          <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+          <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
             {/* Gold glow */}
             <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.12) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
             <div className="relative z-10">
@@ -837,7 +837,7 @@ export default function AnalystDashboard() {
       </div>
 
       {/* ── Level-Up Promo Card — Figma-inspired navy/gold CTA ── */}
-      <div className="rounded-2xl p-7 relative overflow-hidden mb-4" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1a3060 60%, #1e3a6e 100%)" }}>
+      <div className="rounded-2xl p-7 relative overflow-hidden mb-4" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #2E5090 60%, #1E3A8A 100%)" }}>
         {/* Gold accent glow */}
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>

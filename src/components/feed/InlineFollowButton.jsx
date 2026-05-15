@@ -48,14 +48,16 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
       disabled={loading}
       style={{
         padding: '3px 10px',
-        borderRadius: 6,
+        borderRadius: 4,
         fontSize: 11,
-        fontWeight: 700,
+        fontWeight: 600,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
         cursor: 'pointer',
         transition: 'all 150ms ease',
-        border: following ? '1px solid #16a34a' : '1px solid hsl(215 56% 27%)',
-        background: following ? '#f0fdf4' : 'transparent',
-        color: following ? '#16a34a' : 'hsl(215 56% 27%)',
+        border: following ? '0.5px solid hsl(var(--sentiment-positive))' : '0.5px solid hsl(var(--blue-primary))',
+        background: following ? 'hsl(var(--sentiment-positive) / 0.10)' : 'transparent',
+        color: following ? 'hsl(var(--sentiment-positive))' : 'hsl(var(--blue-primary))',
         opacity: loading ? 0.6 : 1,
         flexShrink: 0,
       }}

@@ -153,7 +153,7 @@ function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
       onClick={onClick}
       className="flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all group"
     >
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #0d1f3c, #1e3a6e)" }}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
         <span className="text-[10px] font-black text-white font-mono">{stock.symbol?.slice(0, 2)}</span>
       </div>
       <div className="flex-1 min-w-0">
@@ -292,7 +292,7 @@ export default function StocksPage() {
     <div className="max-w-7xl mx-auto px-4 py-8 pb-16">
 
       {/* ── Dark navy hero ── */}
-      <div className="rounded-2xl p-7 mb-8 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+      <div className="rounded-2xl p-7 mb-8 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.13) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-4">
@@ -443,7 +443,7 @@ export default function StocksPage() {
                     ? "text-white shadow"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                style={exchange === ex ? { background: "linear-gradient(135deg, #0d1f3c, #1e3a6e)" } : undefined}
+                style={exchange === ex ? { background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" } : undefined}
               >
                 {ex}
               </button>

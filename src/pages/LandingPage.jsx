@@ -63,7 +63,7 @@ function ReportCard({ r }) {
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <div style={{
             width: 24, height: 24, borderRadius: "50%",
-            background: "linear-gradient(135deg, #1e3a6e, #2d5ba3)",
+            background: "linear-gradient(135deg, #1E3A8A, #2E5090)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 9, fontWeight: 800, color: "#fff",
           }}>
@@ -92,9 +92,9 @@ const COMPARISON = [
 
 // ── Top analyst mocks ────────────────────────────────────────────────────────
 const MOCK_ANALYSTS = [
-  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#1e3a6e","#2d5ba3"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Researcher", revenue: "$4,200/mo" },
-  { name: "Sarah Chen", handle: "schen", initials: "SC", grad: ["#1e3a6e","#c99613"], accuracy: 88, calls: 31, subscribers: "3.1K", sector: "Macro / Rates", badge: "Macro Expert", revenue: "$7,800/mo" },
-  { name: "Priya Nair", handle: "pnair", initials: "PN", grad: ["#c99613","#a07710"], accuracy: 85, calls: 18, subscribers: "940", sector: "Energy & Commodities", badge: "Rising Star", revenue: "$2,100/mo" },
+  { name: "James Mercer", handle: "jmercer", initials: "JM", grad: ["#1E3A8A","#2E5090"], accuracy: 91, calls: 24, subscribers: "1.8K", sector: "Technology", badge: "Top Researcher", revenue: "$4,200/mo" },
+  { name: "Sarah Chen", handle: "schen", initials: "SC", grad: ["#1E3A8A","#D4AF37"], accuracy: 88, calls: 31, subscribers: "3.1K", sector: "Macro / Rates", badge: "Macro Expert", revenue: "$7,800/mo" },
+  { name: "Priya Nair", handle: "pnair", initials: "PN", grad: ["#D4AF37","#D4AF37"], accuracy: 85, calls: 18, subscribers: "940", sector: "Energy & Commodities", badge: "Rising Star", revenue: "$2,100/mo" },
 ];
 
 // ── CSS animations (injected once) ──────────────────────────────────────────
@@ -125,12 +125,12 @@ const STYLES = `
   .marquee-wrap:hover .marquee-track-rev { animation-play-state: paused; }
   .landing-btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
-    background: #c99613; color: #fff; font-weight: 700; font-size: 15px;
+    background: #D4AF37; color: #fff; font-weight: 700; font-size: 15px;
     padding: 13px 28px; border-radius: 10px; border: none; cursor: pointer;
     transition: all 0.2s; box-shadow: 0 4px 24px rgba(201,150,19,0.35);
     text-decoration: none;
   }
-  .landing-btn-primary:hover { background: #a07710; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(201,150,19,0.45); }
+  .landing-btn-primary:hover { background: #D4AF37; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(201,150,19,0.45); }
   .landing-btn-ghost {
     display: inline-flex; align-items: center; gap: 8px;
     background: transparent; color: #e2e8f0; font-weight: 600; font-size: 15px;
@@ -202,7 +202,7 @@ export default function LandingPage() {
   const primaryLabel  = user ? "Go to Feed" : "Start Publishing Free";
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#080d1a", color: "#f9fafb", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", background: "#0C1829", color: "#f9fafb", overflowX: "hidden" }}>
       <style>{STYLES}</style>
 
       {/* ── NAVBAR ── */}
@@ -215,9 +215,9 @@ export default function LandingPage() {
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <BarChart2 size={22} color="#c99613" />
+            <BarChart2 size={22} color="#D4AF37" />
             <span style={{ fontSize: 20, fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.04em" }}>STOA</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "#c99613", background: "rgba(201,150,19,0.15)", padding: "2px 7px", borderRadius: 4, letterSpacing: "0.06em", marginLeft: 4 }}>BETA</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#D4AF37", background: "rgba(201,150,19,0.15)", padding: "2px 7px", borderRadius: 4, letterSpacing: "0.06em", marginLeft: 4 }}>BETA</span>
           </div>
 
           <div className="hidden md:flex" style={{ gap: 32, alignItems: "center" }}>
@@ -276,7 +276,7 @@ export default function LandingPage() {
             letterSpacing: "-0.04em",
           }}>
             Where Financial Researchers<br />
-            <span style={{ background: "linear-gradient(92deg, #c99613 0%, #f0c040 50%, #c99613 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <span style={{ background: "linear-gradient(92deg, #D4AF37 0%, #E8CC6E 50%, #D4AF37 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               Build Their Reputation
             </span>
           </h1>
@@ -311,8 +311,8 @@ export default function LandingPage() {
         {/* ── Scrolling report marquee ── */}
         <div style={{ width: "100%", marginTop: 72, paddingBottom: 80, position: "relative", zIndex: 1 }} id="platform">
           {/* Fade edges */}
-          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 160, background: "linear-gradient(to right, #080d1a, transparent)", zIndex: 2, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 160, background: "linear-gradient(to left, #080d1a, transparent)", zIndex: 2, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 160, background: "linear-gradient(to right, #0C1829, transparent)", zIndex: 2, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 160, background: "linear-gradient(to left, #0C1829, transparent)", zIndex: 2, pointerEvents: "none" }} />
 
           <div className="marquee-wrap" style={{ display: "flex", flexDirection: "column", gap: 14, overflow: "hidden" }}>
             <div className="marquee-track">
@@ -510,7 +510,7 @@ export default function LandingPage() {
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 20, padding: 28, position: "relative" }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 16 }}>Locked Prediction — Jan 15, 2025 · 09:32 AM</div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #1e3a6e, #2d5ba3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>JM</div>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #1E3A8A, #2E5090)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>JM</div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>James Mercer</div>
                   <div style={{ fontSize: 11, color: "#6b7280" }}>91% accuracy · 24 calls</div>
@@ -698,7 +698,7 @@ export default function LandingPage() {
         <div style={{ position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
           <h2 style={{ fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 800, color: "#f9fafb", letterSpacing: "-0.04em", marginBottom: 20, lineHeight: 1.1 }}>
             Your track record<br />
-            <span style={{ background: "linear-gradient(92deg, #c99613, #f0c040)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <span style={{ background: "linear-gradient(92deg, #D4AF37, #E8CC6E)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               is the product.
             </span>
           </h2>

@@ -36,8 +36,8 @@ const DEFAULT_CONFIG = {
 
 const BANNER_THEMES = {
   slate:    { label: "Dark",       bg: "linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",              dot: "#334155" },
-  blue:     { label: "Navy",       bg: "linear-gradient(135deg,#0d1f3c 0%,#1e3a6e 100%)",              dot: "#2d5ba3" },
-  navygold: { label: "Navy/Gold",  bg: "linear-gradient(135deg,#0d1f3c 0%,#1e3a6e 60%,#c99613 100%)", dot: "#c99613" },
+  blue:     { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
+  navygold: { label: "Navy/Gold",  bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 60%,#D4AF37 100%)", dot: "#D4AF37" },
   emerald:  { label: "Forest",     bg: "linear-gradient(135deg,#064e3b 0%,#059669 100%)",              dot: "#34d399" },
   purple:   { label: "Royal",      bg: "linear-gradient(135deg,#3b0764 0%,#7c3aed 100%)",              dot: "#a855f7" },
   rose:     { label: "Crimson",    bg: "linear-gradient(135deg,#881337 0%,#e11d48 100%)",              dot: "#fb7185" },

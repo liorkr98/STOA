@@ -29,7 +29,7 @@ export default function StoaLogo({
   useSvg = false,
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const color = light ? "#ffffff" : "#1e3a6e";
+  const color = light ? "#ffffff" : "#1E3A8A";
   const showSvg = useSvg || imgFailed;
 
   return (
