@@ -27,8 +27,8 @@ export default function AnalystFeedCard({ analyst, allReports = [] }) {
       className="block bg-card border border-border rounded-xl p-4 hover:shadow-md hover:border-primary/30 transition-all"
     >
       <div className="flex items-start gap-3 mb-3">
-        {analyst.picture
-          ? <img src={analyst.picture} alt={displayName} className="w-12 h-12 rounded-full object-cover border border-border" />
+        {(analyst.profile_picture_url || analyst.picture)
+          ? <img src={analyst.profile_picture_url || analyst.picture} alt={displayName} className="w-12 h-12 rounded-full object-cover border border-border" />
           : <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary flex-shrink-0">{displayName[0]}</div>
         }
         <div className="flex-1 min-w-0">

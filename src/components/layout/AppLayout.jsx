@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon } from "lucide-react";
+import { BarChart3, Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme } from "@/lib/ThemeContext";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { cn } from "@/lib/utils";
 import AppFooter from "./AppFooter";
 import SearchBar from "./SearchBar";
@@ -71,6 +73,7 @@ export default function AppLayout() {
   const location  = useLocation();
   const navigate  = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [walletBalance, setWalletBalance] = useState(null);
   const [showInvestorOnboarding, setShowInvestorOnboarding] = useState(false);
@@ -190,8 +193,8 @@ export default function AppLayout() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button aria-label="Account menu" className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
-                      {user?.picture
-                        ? <img src={user.picture} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
+                      {avatarUrl(user)
+                        ? <img src={avatarUrl(user)} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
                         : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
                             {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                           </div>
@@ -209,8 +212,8 @@ export default function AppLayout() {
                         isAnalyst ? "hover:bg-secondary cursor-pointer" : "cursor-default"
                       } transition-colors`}
                     >
-                      {user?.picture
-                        ? <img src={user.picture} alt={user.full_name || "User"} className="w-9 h-9 rounded-full object-cover border border-border flex-shrink-0" />
+                      {avatarUrl(user)
+                        ? <img src={avatarUrl(user)} alt={user.full_name || "User"} className="w-9 h-9 rounded-full object-cover border border-border flex-shrink-0" />
                         : <div className="w-9 h-9 rounded-full bg-primary/10 border border-border flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
                             {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                           </div>
@@ -268,6 +271,39 @@ export default function AppLayout() {
                         </DropdownMenuItem>
                       </>
                     )}
+                    <DropdownMenuSeparator />
+                    {/* Theme picker — Light / Dark / Auto. Closing the dropdown
+                        after selection would feel disruptive, so each option is
+                        a non-closing click-stop. */}
+                    <div className="px-2 pt-2 pb-1">
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground px-1 mb-1.5">Appearance</p>
+                      <div className="flex gap-1">
+                        {[
+                          { key: "light", label: "Light", Icon: Sun },
+                          { key: "dark",  label: "Dark",  Icon: Moon },
+                          { key: "auto",  label: "Auto",  Icon: Monitor },
+                        ].map(({ key, label, Icon }) => {
+                          const active = theme === key;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); setTheme(key); }}
+                              className={cn(
+                                "flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md text-[10px] font-semibold transition-colors border",
+                                active
+                                  ? "border-accent/40 bg-accent/10 text-accent-foreground"
+                                  : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              )}
+                              style={active ? { color: "hsl(46 65% 32%)" } : undefined}
+                              aria-pressed={active}
+                            >
+                              <Icon className="w-3.5 h-3.5" /> {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => logout(true)} className="text-loss focus:text-loss">
                       <LogOut className="w-4 h-4 mr-2" /> Log Out

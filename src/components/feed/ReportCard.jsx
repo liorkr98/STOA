@@ -8,6 +8,7 @@ import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
 import { isExtendedHours } from "@/lib/marketStatus";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { isReportLiked, setReportLiked } from "@/lib/likeUtils";
 import { isReportSaved, setReportSaved } from "@/lib/bookmarkUtils";
 import TickerTag from "./TickerTag";
@@ -251,8 +252,8 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
 
   const authorUser    = userMap[report.created_by] || {};
   const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
-  // Avatar: prefer report field, fallback to current user profile picture
-  const authorAvatar  = report.author_avatar || authorUser.picture || authorUser.profile_picture || null;
+  // Avatar: prefer report-baked field, fallback to user's uploaded/auth picture
+  const authorAvatar  = report.author_avatar || avatarUrl(authorUser);
   const authorEmail   = report.created_by || "";
   const isPremium     = report.is_premium || false;
   const isLocked      = isPremium && !isSubscribed;

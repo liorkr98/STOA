@@ -5,7 +5,7 @@ import {
   ArrowLeft, Heart, Lock, Loader2, Sparkles,
   CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X,
   Eye, BarChart2, Target, ShieldAlert, TrendingUp, Lightbulb, ChevronRight,
-  Flag, ExternalLink, RefreshCw
+  Flag, ExternalLink, RefreshCw, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 import useGoBack from "@/hooks/useGoBack";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 // ─── Claim type config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -335,6 +336,8 @@ export default function ReportView() {
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [showSubDialog,    setShowSubDialog]    = useState(false);
   const [unlockedNow, setUnlockedNow] = useState(false); // optimistic reveal after purchase
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting,         setDeleting]         = useState(false);
   // Like helpers (imported inline to avoid circular deps)
   const isLikedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
   const checkLiked = (id) => localStorage.getItem(isLikedKey(id)) === '1';
@@ -478,12 +481,46 @@ export default function ReportView() {
   );
 
   const authorName = report.author_name || authorUser?.full_name || report.created_by?.split("@")[0] || "Researcher";
-  const authorAvatar = report.author_avatar || authorUser?.profile_picture || authorUser?.picture || null;
+  const authorAvatar = report.author_avatar || avatarUrl(authorUser);
   const isPremium = report.is_premium || false;
   const publishedDate = report.created_date;
 
   const isAuthor = currentUser && report.created_by === currentUser.email;
+  const isAdmin  = currentUser?.role === "admin";
   const canSeeTarget = !isPremium || isPaid || isAuthor || unlockedNow;
+  // Locked prediction = a prediction was logged to the analyst's track record.
+  // We detect this by the presence of a lock_time + lock_price.
+  const hasLockedPrediction = !!(report.prediction_lock_time && report.prediction_lock_price);
+
+  async function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      // Admins: hard-delete unconditionally.
+      // Authors (non-admin): hard-delete IF no locked prediction. Otherwise
+      // blank the content (soft delete) so the prediction row stays in their
+      // track record. This is enforced client-side; the RLS already allows
+      // deletes from both creator and admin.
+      if (isAdmin || !hasLockedPrediction) {
+        await base44.entities.Report.delete(report.id);
+        toast.success("Report deleted");
+      } else {
+        await base44.entities.Report.update(report.id, {
+          is_content_deleted: true,
+          content_blocks: "[]",
+          excerpt: "",
+          title: report.title ? `${report.title} (deleted)` : "Deleted report",
+        });
+        toast.success("Report content removed. Your prediction stays in your track record.");
+      }
+      navigate(isAdmin ? "/feed" : "/analyst", { replace: true });
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete report");
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  }
 
   const prediction = report.prediction_action ? {
     action: report.prediction_action,
@@ -565,8 +602,58 @@ export default function ReportView() {
           {(isAuthor || (!isPremium)) && (
             <ExportPDFButton report={report} blocks={blocks} />
           )}
+          {(isAuthor || isAdmin) && (
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              title={isAdmin && !isAuthor ? "Delete (admin)" : "Delete report"}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-loss transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
+
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+             onClick={() => !deleting && setShowDeleteDialog(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+               className="surface max-w-md w-full p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-loss" />
+              <h3 className="text-lg font-bold">Delete this report?</h3>
+            </div>
+            {/* Three explanations: admin override, author with lock, author without lock. */}
+            {isAdmin && !isAuthor ? (
+              <p className="text-sm text-muted-foreground mb-5">
+                You're deleting this as an admin. The report, its content, and any
+                prediction block will be permanently removed. This cannot be undone.
+              </p>
+            ) : hasLockedPrediction ? (
+              <p className="text-sm text-muted-foreground mb-5">
+                This report contains a <strong>locked prediction</strong> that's already in your track record.
+                Your prediction will <strong>stay</strong> in your track record — only the report
+                content will be removed. The report will show as "deleted" to readers.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-5">
+                This report has no locked prediction yet, so it will be permanently
+                deleted. This cannot be undone.
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" disabled={deleting}
+                      onClick={() => setShowDeleteDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleDelete} disabled={deleting}
+                      className="bg-loss text-white hover:bg-loss/90">
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {prediction && <PredictionBadge prediction={prediction} currentPrice={livePrice} />}
 
@@ -578,7 +665,15 @@ export default function ReportView() {
       )}
 
       <div className="mb-8">
-        {(!isPremium || isPaid || isAuthor || unlockedNow) ? (
+        {report.is_content_deleted ? (
+          <div className="surface p-6 text-center">
+            <Trash2 className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              The author has deleted this report's content. The locked prediction
+              remains in their track record below.
+            </p>
+          </div>
+        ) : (!isPremium || isPaid || isAuthor || unlockedNow) ? (
           <BlockRenderer blocks={blocks} />
         ) : (
           <>
