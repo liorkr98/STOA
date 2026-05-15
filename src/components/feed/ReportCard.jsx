@@ -15,9 +15,24 @@ import ShareMenu from "./ShareMenu";
 import { getAnalystSlug } from "@/lib/analystSlug";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+// Parse a date string as UTC even when the server omits the trailing "Z".
+// Without this, "2026-05-15 13:00:00" gets parsed as local time, producing
+// a timezone-sized offset between "now" and "just-published" timestamps
+// (e.g. a post made seconds ago can show as "3h ago" for users east of UTC).
+function parseUtcDate(s) {
+  if (!s) return null;
+  // ISO with explicit zone (Z or ±HH:MM) → safe to parse as-is
+  if (/Z|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
+  // SQL-style "YYYY-MM-DD HH:MM:SS[.ms]" → coerce to ISO + Z
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) return new Date(s.replace(" ", "T") + "Z");
+  return new Date(s);
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const parsed = parseUtcDate(dateStr);
+  if (!parsed) return "";
+  const diff = Math.max(0, Date.now() - parsed.getTime());
   const m = Math.floor(diff / 60000);
   if (m < 1) return "just now";
   if (m < 60) return `${m}m ago`;
@@ -130,12 +145,15 @@ function PnLBadge({ action, lockPrice, targetPrice }) {
   const isPos = parseFloat(pnl) >= 0;
   const extHours = isExtendedHours();
   return (
-    <span style={{
-      fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6,
-      background: isPos ? '#f0fdf4' : '#fef2f2',
-      color: isPos ? '#16a34a' : '#dc2626',
-      border: `1px solid ${isPos ? '#bbf7d0' : '#fecaca'}`,
-    }}>
+    <span
+      title={extHours ? "Posted during extended-hours trading (pre/post-market). Lock price may move at the open." : undefined}
+      style={{
+        fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6,
+        background: isPos ? '#f0fdf4' : '#fef2f2',
+        color: isPos ? '#16a34a' : '#dc2626',
+        border: `1px solid ${isPos ? '#bbf7d0' : '#fecaca'}`,
+      }}
+    >
       {isPos ? '+' : '-'}{Math.abs(pnl)}% target{extHours ? ' (ext)' : ''}
     </span>
   );

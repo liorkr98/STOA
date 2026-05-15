@@ -178,9 +178,27 @@ export default function ReportEditor() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  const [drafts, setDrafts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("stoa_drafts") || "[]"); } catch { return []; }
-  });
+  // Drafts come from the Report entity (status='draft', created by the current user)
+  // so the editor's badge count matches the dashboard's "My Drafts" panel.
+  // The previous localStorage-only list drifted from the entity-backed dashboard view,
+  // which is why the editor could show "Drafts 4" while the dashboard said "No drafts yet".
+  const [drafts, setDrafts] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await base44.auth.me();
+        if (!me?.email) return;
+        const rows = await base44.entities.Report.filter(
+          { created_by: me.email, status: "draft" },
+          "-updated_date",
+          50
+        ).catch(() => []);
+        if (!cancelled) setDrafts(rows || []);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const wordCount = useMemo(() =>
     blocks
@@ -354,38 +372,66 @@ export default function ReportEditor() {
   };
 
   // ── Drafts ────────────────────────────────────────────────────────────────
-  const persistDraft = (silent = false) => {
-    const cleanBlocks = sanitizeBlocks(blocks);
-    const draft = {
-      id: Date.now(), title: title || "Untitled Draft",
-      blocks: cleanBlocks, predictionData: predictionData || null,
-      excerpt, industry, marketCap, coverImage, tags,
-      savedAt: new Date().toISOString(),
-    };
-    const updated = [draft, ...drafts.slice(0, 9)];
-    setDrafts(updated);
-    localStorage.setItem("stoa_drafts", JSON.stringify(updated));
-    setLastSaved(Date.now());
-    if (!silent) toast.success("Draft saved!");
+  // Drafts are persisted as Report entities with status='draft'. This is the
+  // same source the dashboard reads from, so both views always agree.
+  const persistDraft = async (silent = false) => {
+    try {
+      const me = await base44.auth.me();
+      if (!me?.email) { if (!silent) toast.error("You must be logged in to save drafts."); return; }
+      const cleanBlocks = sanitizeBlocks(blocks);
+      const payload = {
+        title:            title || "Untitled Draft",
+        content_blocks:   JSON.stringify(cleanBlocks),
+        excerpt:          excerpt || "",
+        industry:         industry || "",
+        market_cap:       marketCap || "",
+        tickers:          (tags || []).join(","),
+        status:           "draft",
+        prediction_action:        predictionData?.action       || null,
+        prediction_ticker:        predictionData?.ticker       || null,
+        prediction_target_price:  predictionData?.targetPrice  ?? null,
+        prediction_timeframe:     predictionData?.timeframe    || null,
+        prediction_stop_loss:     predictionData?.stopLoss     ?? null,
+        prediction_portfolio_pct: predictionData?.portfolioPct ?? null,
+      };
+      const created = await base44.entities.Report.create(payload);
+      setDrafts(prev => [created, ...prev]);
+      setLastSaved(Date.now());
+      if (!silent) toast.success("Draft saved!");
+    } catch (err) {
+      if (!silent) toast.error("Could not save draft.");
+    }
   };
 
   const loadDraft = (draft) => {
     setTitle(draft.title || "");
-    setBlocks(sanitizeBlocks(draft.blocks));
-    setPredictionData(draft.predictionData || null);
+    let parsed = [];
+    try { parsed = draft.content_blocks ? JSON.parse(draft.content_blocks) : []; } catch {}
+    setBlocks(sanitizeBlocks(parsed));
+    setPredictionData(draft.prediction_action ? {
+      action:       draft.prediction_action,
+      ticker:       draft.prediction_ticker || "",
+      targetPrice:  draft.prediction_target_price,
+      timeframe:    draft.prediction_timeframe || "",
+      stopLoss:     draft.prediction_stop_loss,
+      portfolioPct: draft.prediction_portfolio_pct,
+    } : null);
     setExcerpt(draft.excerpt || "");
     setIndustry(draft.industry || "");
-    setMarketCap(draft.marketCap || "");
-    setCoverImage(draft.coverImage || "");
-    setTags(draft.tags || []);
+    setMarketCap(draft.market_cap || "");
+    setCoverImage("");
+    setTags((draft.tickers || "").split(",").map(t => t.trim()).filter(Boolean));
     setShowDrafts(false);
     toast.success("Draft loaded!");
   };
 
-  const deleteDraft = (id) => {
-    const updated = drafts.filter(d => d.id !== id);
-    setDrafts(updated);
-    localStorage.setItem("stoa_drafts", JSON.stringify(updated));
+  const deleteDraft = async (id) => {
+    try {
+      await base44.entities.Report.delete(id);
+      setDrafts(prev => prev.filter(d => d.id !== id));
+    } catch {
+      toast.error("Could not delete draft.");
+    }
   };
 
   // ── AI / Template generation ─────────────────────────────────────────────
@@ -760,7 +806,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                         <div key={d.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-secondary rounded-md mx-1">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium truncate">{d.title}</p>
-                            <p className="text-[10px] text-muted-foreground">{new Date(d.savedAt).toLocaleString()}</p>
+                            <p className="text-[10px] text-muted-foreground">{new Date(d.updated_date || d.created_date).toLocaleString()}</p>
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => loadDraft(d)} className="text-xs h-6 px-2">Load</Button>
                           <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>

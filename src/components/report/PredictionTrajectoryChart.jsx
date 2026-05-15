@@ -258,7 +258,7 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Lock Price</p>
           <p className="font-mono font-bold">${lockPrice.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground">{format(new Date(lockTime), "MMM d, HH:mm 'UTC'")}</p>
+          <p className="text-[10px] text-muted-foreground">{format(new Date(lockTime), "MMM d, h:mm a")}</p>
         </div>
         {targetPrice && (
           <div>

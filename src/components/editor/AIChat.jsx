@@ -531,7 +531,7 @@ Analyst:`;
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium"
+        className="hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium"
       >
         <Sparkles className="w-4 h-4" />
         AI Research Assistant

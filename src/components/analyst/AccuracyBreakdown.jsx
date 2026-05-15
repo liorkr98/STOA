@@ -34,11 +34,15 @@ export default function AccuracyBreakdown({ analystUser }) {
     catch { return {}; }
   })();
 
-  const score     = analystUser?.accuracy_score || 0;
-  const rating    = analystUser?.accuracy_rating || 1000;
-  const tier      = analystUser?.accuracy_tier || "Building";
-  const hitRate   = analystUser?.hit_rate || 0;
   const totalCalls = analystUser?.total_calls || 0;
+  const hasCalls   = totalCalls > 0;
+  const score     = analystUser?.accuracy_score || 0;
+  // When no calls have resolved, force the rating to the floor (600 / Building)
+  // so the progress bar starts at the left rather than visually inflating past
+  // "Average" toward "Strong" because of a default 1000 seed.
+  const rating    = hasCalls ? (analystUser?.accuracy_rating || 1000) : 600;
+  const tier      = hasCalls ? (analystUser?.accuracy_tier || "Building") : "Building";
+  const hitRate   = hasCalls ? (analystUser?.hit_rate || 0) : null;
   const yield_    = analystUser?.yearly_yield;
 
   const tierConfig = {
@@ -66,7 +70,7 @@ export default function AccuracyBreakdown({ analystUser }) {
         {[
           { label: "Accuracy Score", value: `${score}`, sub: "/ 100", color: score >= 75 ? "text-gain" : score >= 50 ? "text-primary" : "text-muted-foreground" },
           { label: "Elo Rating",     value: rating,      sub: "/ 1400", color: "text-foreground" },
-          { label: "Hit Rate",       value: `${hitRate}%`, sub: "of calls",  color: hitRate >= 65 ? "text-gain" : hitRate >= 45 ? "text-amber-500" : "text-loss" },
+          { label: "Hit Rate",       value: hitRate == null ? "—" : `${hitRate}%`, sub: "of calls",  color: hitRate == null ? "text-muted-foreground" : hitRate >= 65 ? "text-gain" : hitRate >= 45 ? "text-amber-500" : "text-loss" },
           { label: "Total Calls",    value: totalCalls,   sub: "resolved",  color: "text-foreground" },
         ].map(kpi => (
           <div key={kpi.label} className="bg-secondary rounded-xl p-3 text-center">

@@ -19,4 +19,4 @@ Disallow: /saved
 Disallow: /admin/
 
 # Sitemap location
-Sitemap: https://stakify-f5b3c3a0.base44.app/sitemap.xml
+Sitemap: https://stoamarket.ai/sitemap.xml

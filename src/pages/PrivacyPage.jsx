@@ -31,7 +31,7 @@ export default function PrivacyPage() {
   const [active, setActive] = useState("intro");
 
   useEffect(() => {
-    setMeta({ title: "Privacy Policy — STOA", description: "How STOA collects, uses, and protects your personal information." });
+    setMeta({ title: "Privacy Policy", description: "How STOA collects, uses, and protects your personal information." });
   }, []);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
         {/* Content */}
         <main className="flex-1 min-w-0 bg-card border border-border rounded-2xl p-8">
           <SectionBlock id="intro" title="1. Introduction">
-            <p>STOA ("we," "us," or "our") operates the financial research platform accessible at stoamarket.ai and stakify-f5b3c3a0.base44.app. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you use our platform.</p>
+            <p>STOA ("we," "us," or "our") operates the financial research platform accessible at stoamarket.ai. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you use our platform.</p>
             <p>By using STOA, you consent to the practices described in this policy.</p>
           </SectionBlock>
 

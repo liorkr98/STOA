@@ -31,7 +31,20 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
   const [priceError,    setPriceError]    = useState(null);
   const [companyName,   setCompanyName]   = useState("");
 
-  // Push form state up on every change so the parent can save drafts + publish
+  // Direction-vs-target sanity check. Long needs target > entry, Short needs target < entry.
+  // Without this guard a Long AAPL @ $298 with $250 target would pass validation and
+  // silently corrupt the scoring engine.
+  const targetInvalid = (() => {
+    if (!targetPrice || !livePrice || action === "Hold" || !action) return false;
+    const t = parseFloat(targetPrice);
+    if (action === "Long"  && t <= livePrice) return "Target must be above current price for a Long prediction.";
+    if (action === "Short" && t >= livePrice) return "Target must be below current price for a Short prediction.";
+    return false;
+  })();
+
+  // Push form state up on every change so the parent can save drafts + publish.
+  // We emit targetPrice as null when invalid so the parent's required-field check
+  // blocks publish until it's corrected.
   useEffect(() => {
     if (!emit) return;
     const hasAnything = action || ticker || targetPrice || timeframe;
@@ -39,14 +52,14 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
     emit({
       action,
       ticker:       ticker.trim().toUpperCase(),
-      targetPrice:  targetPrice ? parseFloat(targetPrice) : null,
+      targetPrice:  targetPrice && !targetInvalid ? parseFloat(targetPrice) : null,
       timeframe,
       stopLoss:     stopLoss ? parseFloat(stopLoss) : null,
       portfolioPct: portfolioPct ? parseFloat(portfolioPct) : null,
       exitNote:     exitNote || null,
       companyName,
     });
-  }, [action, ticker, targetPrice, timeframe, stopLoss, portfolioPct, exitNote, companyName, emit]);
+  }, [action, ticker, targetPrice, timeframe, stopLoss, portfolioPct, exitNote, companyName, emit, targetInvalid]);
 
   const fetchLivePrice = async (sym) => {
     const t = (sym || ticker).trim().toUpperCase();
@@ -148,7 +161,18 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Target Price *</label>
-            <Input value={targetPrice} onChange={e => setTargetPrice(e.target.value)} placeholder="$0.00" className="h-9 font-mono" type="number" min="0" step="0.01" />
+            <Input
+              value={targetPrice}
+              onChange={e => setTargetPrice(e.target.value)}
+              placeholder="$0.00"
+              className={`h-9 font-mono ${targetInvalid ? "border-loss" : ""}`}
+              type="number" min="0" step="0.01"
+            />
+            {targetInvalid && (
+              <p className="text-[10px] text-loss mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> {targetInvalid}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Stop Loss <span className="font-normal opacity-60">(optional)</span></label>

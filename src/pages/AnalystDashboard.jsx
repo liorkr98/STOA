@@ -329,7 +329,7 @@ export default function AnalystDashboard() {
             <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
           </div>
           <p className="stat-card-value">{scoring.total > 0 ? accuracyScore : "—"}</p>
-          <p className="stat-card-sub">{scoring.total > 0 ? `${scoring.hits}W · ${scoring.misses}L · ${scoring.total} resolved` : `${predictions.length} predictions · none resolved yet`}</p>
+          <p className="stat-card-sub">{scoring.total > 0 ? `${scoring.hits}W · ${scoring.misses}L · ${scoring.total} resolved` : `${predictions.length} prediction${predictions.length === 1 ? "" : "s"} · none resolved yet`}</p>
         </button>
 
         {/* AI Credits */}
@@ -349,7 +349,7 @@ export default function AnalystDashboard() {
             <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
           </div>
           <p className={`stat-card-value ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
-          <p className="stat-card-sub">{computedYield != null ? `${resolvedCount} resolved predictions` : "No resolved predictions yet"}</p>
+          <p className="stat-card-sub">{computedYield != null ? `${resolvedCount} resolved prediction${resolvedCount === 1 ? "" : "s"}` : "No resolved predictions yet"}</p>
         </button>
 
         {/* Followers */}

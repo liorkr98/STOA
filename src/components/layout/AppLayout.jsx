@@ -14,6 +14,44 @@ import AIChat from "@/components/editor/AIChat";
 import InvestorOnboarding, { shouldShowInvestorOnboarding, markInvestorOnboardingDone } from "@/components/onboarding/InvestorOnboarding";
 import AnalystOnboarding, { shouldShowAnalystOnboarding, markAnalystOnboardingDone } from "@/components/onboarding/AnalystOnboarding";
 
+// Map every top-level route to a human-readable tab title.
+// Pages that call setMeta() themselves (ReportView, AnalystProfilePage, etc.)
+// override this on mount — that's intentional, since they have richer data.
+// Anything not in this map falls back to the default "STOA — Verified..." title.
+const ROUTE_TITLES = {
+  "/":                 "STOA — Verified Financial Research",
+  "/feed":             "Research Feed | STOA",
+  "/stocks":           "Markets | STOA",
+  "/leaderboard":      "Leaderboard | STOA",
+  "/editor":           "New Report | STOA",
+  "/wallet":           "Wallet | STOA",
+  "/dashboard":        "Creator Studio | STOA",
+  "/analytics":        "Analytics | STOA",
+  "/predictions":      "My Predictions | STOA",
+  "/pricing":          "Pricing | STOA",
+  "/about":            "About | STOA",
+  "/newsroom":         "Newsroom | STOA",
+  "/how-it-works":     "How It Works | STOA",
+  "/cookies":          "Cookie Policy | STOA",
+  "/accessibility":    "Accessibility | STOA",
+  "/features":         "Features | STOA",
+  "/calculations":     "Calculations | STOA",
+  "/scoring":          "Scoring & Calculations | STOA",
+  "/terms":            "Terms & Conditions | STOA",
+  "/privacy":          "Privacy Policy | STOA",
+  "/subscribers":      "Subscribers | STOA",
+  "/saved":            "Saved Reports | STOA",
+  "/inbox":            "Inbox | STOA",
+  "/dm":               "Messages | STOA",
+  "/branding":         "Branding | STOA",
+  "/become-analyst":   "Become a Researcher | STOA",
+  "/edit-profile":     "Edit Profile | STOA",
+  "/admin/users":      "Admin · Users | STOA",
+  "/creator-analytics":"Creator Analytics | STOA",
+  "/analytics/creator":"Creator Analytics | STOA",
+  "/pay":              "Payment | STOA",
+};
+
 // Nav for analysts (creators) — full toolset including Write
 const NAV_ANALYST = [
   { path: "/",       label: "Home",    icon: Home },
@@ -39,6 +77,14 @@ export default function AppLayout() {
   const [showAnalystOnboarding, setShowAnalystOnboarding] = useState(false);
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
   const NAV_ITEMS = isAuthenticated && isAnalyst ? NAV_ANALYST : NAV_INVESTOR;
+
+  // Keep document.title in sync with the current route on every SPA navigation.
+  // Page components that call setMeta() in their own useEffect override this —
+  // since they mount after the layout effect runs, the more-specific title wins.
+  useEffect(() => {
+    const title = ROUTE_TITLES[location.pathname];
+    if (title) document.title = title;
+  }, [location.pathname]);
 
   // Show onboarding for new users — check once user is loaded
   useEffect(() => {

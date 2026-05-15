@@ -476,7 +476,14 @@ export default function AnalystProfilePage() {
   const tier             = computeAnalystTier(analyst, myReports);
   const achievements     = computeAchievements(analyst, myReports);
   const publishedReports = myReports.filter(r => r.status === "published");
-  const activePredictions = myReports.filter(r => !r.prediction_outcome || r.prediction_outcome === "pending");
+  // An "active call" = a published report with a locked prediction that hasn't been resolved yet.
+  // Filtering only on prediction_outcome counted every report (incl. ones with no
+  // prediction attached) and inflated the header count above what /predictions,
+  // /analytics, and the dashboard show. Those all gate on prediction_action.
+  const activePredictions = publishedReports.filter(r =>
+    r.prediction_action &&
+    (!r.prediction_outcome || r.prediction_outcome === "pending")
+  );
 
   const BUCKET_LABELS = { INTRADAY: "Intraday", SHORT: "Short-Term", MEDIUM: "Medium-Term", LONG: "Long-Term" };
   const bucketStats = { INTRADAY: { total: 0, hits: 0 }, SHORT: { total: 0, hits: 0 }, MEDIUM: { total: 0, hits: 0 }, LONG: { total: 0, hits: 0 } };
@@ -870,7 +877,7 @@ export default function AnalystProfilePage() {
               </div>
             </div>
             <AccuracyBreakdown analystUser={analyst} />
-            <PerformanceVsMarket analyst={analyst} />
+            <PerformanceVsMarket resolvedReports={resolvedReports} />
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="text-sm font-semibold mb-1">All Predictions</h3>
               <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved · {activePredictions.length} active</p>
