@@ -1,4 +1,4 @@
-const DEFAULT_IMAGE = "https://stakify-f5b3c3a0.base44.app/og-image.png";
+const DEFAULT_IMAGE = "https://stoamarket.ai/og-image.png";
 const DEFAULT_DESC = "Follow verified analysts, track real predictions, and make smarter investment decisions backed by transparent data.";
 
 export function setMeta({ title, description, image, url, type = "website" } = {}) {

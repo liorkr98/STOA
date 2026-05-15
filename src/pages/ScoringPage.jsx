@@ -21,7 +21,7 @@ const OUTCOMES = [
 
 export default function ScoringPage() {
   useEffect(() => {
-    setMeta({ title: "Scoring & Calculations — STOA", description: "How STOA calculates analyst accuracy scores, yields, badges, and leaderboard rankings." });
+    setMeta({ title: "Scoring & Calculations", description: "How STOA calculates analyst accuracy scores, yields, badges, and leaderboard rankings." });
   }, []);
 
   return (

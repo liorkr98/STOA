@@ -81,7 +81,8 @@ function ClaimCard({ claim }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
-            {claim.confidence && (
+            {/* See ReportView.ClaimCard: "Unverified — high confidence" is self-contradictory. */}
+            {claim.confidence && claim.type !== "Unverified" && (
               <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${
                 claim.confidence === "high"   ? "bg-gain/10 text-gain"
                 : claim.confidence === "medium" ? "bg-amber-50 text-amber-700"

@@ -71,7 +71,9 @@ function ClaimWithNotes({ claim }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
-            {claim.confidence && (
+            {/* "Unverified — high confidence" is self-contradictory: by definition we
+                couldn't verify the claim. Suppress the confidence chip for that case. */}
+            {claim.confidence && claim.type !== "Unverified" && (
               <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${
                 claim.confidence === "high" ? "bg-gain/10 text-gain" :
                 claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
@@ -440,12 +442,12 @@ export default function ReportView() {
       "publisher": {
         "@type": "Organization",
         "name": "STOA",
-        "url": "https://stakify-f5b3c3a0.base44.app",
-        "logo": { "@type": "ImageObject", "url": "https://stakify-f5b3c3a0.base44.app/og-image.png" },
+        "url": "https://stoamarket.ai",
+        "logo": { "@type": "ImageObject", "url": "https://stoamarket.ai/og-image.png" },
       },
       "description":      report.excerpt,
       "keywords":         (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean),
-      "image":            report.author_avatar || "https://stakify-f5b3c3a0.base44.app/og-image.png",
+      "image":            report.author_avatar || "https://stoamarket.ai/og-image.png",
       "mainEntityOfPage": window.location.href,
       "about":            (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean).map(ticker => ({
         "@type":       "Corporation",

@@ -33,10 +33,22 @@ async function fetchQuotes(symbols) {
     .map(r => r.value);
 }
 
+// Parse SQL-style timestamps as UTC (otherwise an east-of-UTC client sees
+// "just published" posts as several hours old). See ReportCard.timeAgo for context.
+function parseUtcDate(s) {
+  if (!s) return null;
+  if (/Z|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) return new Date(s.replace(" ", "T") + "Z");
+  return new Date(s);
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const parsed = parseUtcDate(dateStr);
+  if (!parsed) return "";
+  const diff = Math.max(0, Date.now() - parsed.getTime());
   const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;

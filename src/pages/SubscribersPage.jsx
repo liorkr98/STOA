@@ -177,7 +177,9 @@ export default function SubscribersPage() {
             : <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />}
           <p className="text-sm text-muted-foreground mb-4">
             {search ? "No researchers match your search" :
-              tab === "subscribers" ? "You haven't subscribed to any researchers yet" : "You're not following any researchers yet"}
+              tab === "subscribers"
+                ? "No subscribers yet. Share your research to grow your audience."
+                : "You haven't subscribed to any researchers yet. Browse the feed to find analysts."}
           </p>
           <Button variant="outline" size="sm" onClick={() => navigate("/leaderboard")}>Browse Researchers</Button>
         </div>

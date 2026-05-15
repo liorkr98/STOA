@@ -85,7 +85,7 @@ const PLATFORMS = [
   },
 ];
 
-const PROD_ORIGIN = "https://stakify-f5b3c3a0.base44.app";
+const PROD_ORIGIN = "https://stoamarket.ai";
 
 export default function ShareMenu({ title, reportId }) {
   const reportUrl = `${PROD_ORIGIN}/report?id=${reportId}`;

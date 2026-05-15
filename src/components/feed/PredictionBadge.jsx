@@ -111,7 +111,7 @@ export default function PredictionBadge({ prediction, currentPrice }) {
 
       {prediction.lockTime && (
         <p className="text-[10px] text-muted-foreground mt-2">
-          Locked · {format(new Date(prediction.lockTime), "MMM d, yyyy HH:mm")}
+          Locked · {format(new Date(prediction.lockTime), "MMM d, yyyy · h:mm a")}
         </p>
       )}
     </div>

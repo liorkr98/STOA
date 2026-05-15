@@ -33,7 +33,7 @@ export default function TermsPage() {
   const [active, setActive] = useState("acceptance");
 
   useEffect(() => {
-    setMeta({ title: "Terms & Conditions — STOA", description: "STOA platform terms of service, user agreements, and legal policies." });
+    setMeta({ title: "Terms & Conditions", description: "STOA platform terms of service, user agreements, and legal policies." });
   }, []);
 
   useEffect(() => {

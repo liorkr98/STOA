@@ -30,7 +30,7 @@ const FEED_TABS = [
 
 const PAGE_SIZE = 10;
 
-function FeaturedHero({ report, userMap }) {
+function FeaturedHero({ report, userMap, hasEngagement }) {
   if (!report) return null;
   const authorUser = userMap[report.created_by] || {};
   const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
@@ -47,7 +47,7 @@ function FeaturedHero({ report, userMap }) {
         </span>
         <div className="flex-1 h-px bg-border" />
         <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-          Top Rated This Week
+          {hasEngagement ? "Top Rated This Week" : "Latest"}
         </span>
       </div>
       <h2 className="text-xl font-bold leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif">
@@ -248,13 +248,23 @@ export default function HomeFeed() {
 
   const visibleReports = filtered.slice(0, page * PAGE_SIZE);
 
-  // Top weekly report for divider card
+  // Top weekly report for divider card.
+  // Ranked by combined engagement (likes + views + comment_count) so a brand-new
+  // post with 0 engagement doesn't outrank an actually-popular one.
   const topWeeklyReport = useMemo(() => {
     const oneWeekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    const engagement = r => (r.likes || 0) + (r.views || 0) + (r.comment_count || 0);
     return reports
       .filter(r => new Date(r.created_date).getTime() > oneWeekAgo)
-      .sort((a, b) => (b.likes || 0) - (a.likes || 0))[0] || null;
+      .sort((a, b) => engagement(b) - engagement(a))[0] || null;
   }, [reports]);
+
+  // Whether the top report has any meaningful engagement at all.
+  // Used to swap the "Top Rated This Week" label for "Latest" when the feed is dead.
+  const topWeeklyHasEngagement = useMemo(() => {
+    if (!topWeeklyReport) return false;
+    return (topWeeklyReport.likes || 0) + (topWeeklyReport.views || 0) + (topWeeklyReport.comment_count || 0) > 0;
+  }, [topWeeklyReport]);
 
   // Build feed items with dividers every 5
   const feedItems = useMemo(() => {
@@ -296,7 +306,7 @@ export default function HomeFeed() {
         <div className="flex-1 min-w-0">
           {/* Featured hero — top-rated report this week */}
           {!loading && topWeeklyReport && activeTab === "trending" && (
-            <FeaturedHero report={topWeeklyReport} userMap={userMap} />
+            <FeaturedHero report={topWeeklyReport} userMap={userMap} hasEngagement={topWeeklyHasEngagement} />
           )}
 
           {/* Page title + FOMO counter */}

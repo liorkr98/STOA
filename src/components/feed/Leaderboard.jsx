@@ -41,13 +41,26 @@ export default function Leaderboard() {
 
   useEffect(() => {
     Promise.all([
-      base44.entities.User.list("-accuracy_score", 20),
-      base44.entities.Report.filter({ status: "published" }, "-created_date", 200),
+      base44.entities.User.list("-accuracy_score", 50),
+      base44.entities.Report.filter({ status: "published" }, "-created_date", 500),
     ]).then(([users, reports]) => {
-      setAnalysts((users || []).filter(u => u.accuracy_score > 0));
+      setAnalysts(users || []);
       setAllReports(reports || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  // Only show researchers with at least 3 resolved predictions — same gate as /leaderboard.
+  const MIN_RESOLVED = 3;
+  const qualifiedAnalysts = React.useMemo(() => {
+    const resolvedCount = {};
+    for (const r of allReports) {
+      if (!r.created_by) continue;
+      if (r.prediction_outcome && r.prediction_outcome !== "pending") {
+        resolvedCount[r.created_by] = (resolvedCount[r.created_by] || 0) + 1;
+      }
+    }
+    return analysts.filter(a => (resolvedCount[a.email] || 0) >= MIN_RESOLVED);
+  }, [analysts, allReports]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -59,14 +72,14 @@ export default function Leaderboard() {
   // Compute new scores from reports for each analyst
   const analystScores = React.useMemo(() => {
     const map = {};
-    analysts.forEach(a => {
+    qualifiedAnalysts.forEach(a => {
       const mine = allReports.filter(r => r.created_by === a.email);
       map[a.email] = computeScore(mine);
     });
     return map;
-  }, [analysts, allReports]);
+  }, [qualifiedAnalysts, allReports]);
 
-  const sorted = [...analysts].sort((a, b) => {
+  const sorted = [...qualifiedAnalysts].sort((a, b) => {
     const sa = analystScores[a.email] || {};
     const sb = analystScores[b.email] || {};
     if (period === "This Week")  return (sb.total || 0) - (sa.total || 0);
@@ -127,7 +140,7 @@ export default function Leaderboard() {
         </div>
       ) : sorted.length === 0 ? (
         <div style={{ textAlign:'center', padding:'16px 0' }}>
-          <p style={{ fontSize:12, color:'#94a3b8', marginBottom:6 }}>Be the first on the leaderboard</p>
+          <p style={{ fontSize:12, color:'#94a3b8', marginBottom:6 }}>Leaderboard populates as researchers resolve predictions.</p>
           <Link to="/editor" style={{ fontSize:12, color:'#2563eb', fontWeight:600 }}>Start Writing →</Link>
         </div>
       ) : (
