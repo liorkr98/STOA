@@ -12,6 +12,7 @@ import StockChart from "@/components/stock/StockChart";
 import AnalystConsensus from "@/components/stock/AnalystConsensus";
 import FinancialsTab from "@/components/stock/FinancialsTab";
 import EarningsSentimentTab from "@/components/stock/EarningsSentimentTab";
+import useGoBack from "@/hooks/useGoBack";
 
 const TABS = [
   { id: "chart",     label: "Chart" },
@@ -23,6 +24,7 @@ const TABS = [
 
 export default function StockPage() {
   const navigate    = useNavigate();
+  const goBack      = useGoBack("/stocks");
   const urlParams   = new URLSearchParams(window.location.search);
   const ticker      = urlParams.get("ticker")?.toUpperCase() || "NVDA";
 
@@ -67,7 +69,7 @@ export default function StockPage() {
   }, [ticker]);
 
   if (loading) return <LoadingScreen ticker={ticker} />;
-  if (error)   return <ErrorScreen message={error} onBack={() => navigate(-1)} />;
+  if (error)   return <ErrorScreen message={error} onBack={goBack} />;
   if (!quote)  return null;
 
   const isUp = (quote.change ?? 0) >= 0;
@@ -78,7 +80,7 @@ export default function StockPage() {
       {/* ── Top bar ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back

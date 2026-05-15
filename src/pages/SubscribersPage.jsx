@@ -5,6 +5,7 @@ import { Users, Star, MessageCircle, ArrowLeft, Search, BadgeCheck, TrendingUp }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
+import useGoBack from "@/hooks/useGoBack";
 
 const TABS = [
   { key: "subscribers", label: "Subscribers", icon: Star },
@@ -62,6 +63,7 @@ function AnalystCard({ entry, type, onUnfollow, onUnsubscribe }) {
 export default function SubscribersPage() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const goBack   = useGoBack("/");
   const [tab, setTab] = useState("subscribers");
   const [search, setSearch] = useState("");
   const [subscribers, setSubscribers] = useState([]);
@@ -103,7 +105,7 @@ export default function SubscribersPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+      <button onClick={goBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 

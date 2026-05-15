@@ -4,6 +4,7 @@ import { ArrowLeft, Shield, Loader2, CheckCircle2, Wallet, Info } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { depositToWallet, MIN_DEPOSIT_USD } from "@/lib/walletService";
+import useGoBack from "@/hooks/useGoBack";
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
 
@@ -72,6 +73,7 @@ function SuccessScreen({ amount }) {
 
 export default function PaymentPage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/wallet");
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get("mode");
   const presetAmount = parseFloat(urlParams.get("amount") || "0");
@@ -101,7 +103,7 @@ export default function PaymentPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+      <button onClick={goBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 

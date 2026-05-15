@@ -1,22 +1,80 @@
-import React, { useState } from "react";
+import React from "react";
 
-const LOGO_URL = "https://media.base44.com/images/public/69f7681ad5920983f5b3c3a0/b45d30844_WhatsAppImage2026-05-03at2027161.jpeg";
+// Candle Colonnade mark — three pillars + two beams (Greek stoa structure),
+// with hairline "ghost wicks" above each pillar (candlestick-chart wicks at
+// 30% opacity — only finance people notice). Pure SVG so it scales, recolors
+// with theme, and blends into the surrounding nav instead of looking pasted.
+function LogoMark({ size, color, wickColor }) {
+  // Geometry (viewBox 64×64) — beams 56 wide, three pillars centered.
+  // Wicks extend above beams; offsets are picked so the lines land on
+  // the column centerlines.
+  const BEAM_TOP_Y    = 14;
+  const BEAM_BOTTOM_Y = 49;
+  const PILLAR_TOP    = BEAM_TOP_Y + 3;
+  const PILLAR_BOTTOM = BEAM_BOTTOM_Y - 0;
+  const PILLAR_W      = 6;
+  // Centerlines: 16, 32, 48
+  const CENTERS = [16, 32, 48];
 
-function LogoSVG({ size, color }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <rect x="2" y="26" width="28" height="3" rx="1" fill={color} />
-      <rect x="2" y="3" width="28" height="3" rx="1" fill={color} />
-      <rect x="5.5" y="3" width="2" height="4" rx="0.5" fill={color} />
-      <rect x="3" y="7" width="7" height="14" rx="1" fill={color} />
-      <rect x="5.5" y="21" width="2" height="5" rx="0.5" fill={color} />
-      <rect x="14.5" y="3" width="2" height="6" rx="0.5" fill={color} />
-      <rect x="12" y="9" width="7" height="10" rx="1" fill={color} />
-      <rect x="14.5" y="19" width="2" height="7" rx="0.5" fill={color} />
-      <rect x="24.5" y="3" width="2" height="5" rx="0.5" fill={color} />
-      <rect x="22" y="8" width="7" height="13" rx="1" fill={color} />
-      <rect x="24.5" y="21" width="2" height="5" rx="0.5" fill={color} />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="STOA"
+    >
+      {/* Ghost wicks (candlestick wicks above each pillar) */}
+      <g stroke={wickColor} strokeWidth="0.5" opacity="0.3" strokeLinecap="round">
+        {CENTERS.map((cx, i) => (
+          <line key={i} x1={cx} y1="2" x2={cx} y2={BEAM_TOP_Y - 0.5} />
+        ))}
+      </g>
+
+      {/* Top beam */}
+      <rect x="4" y={BEAM_TOP_Y} width="56" height="3" rx="0.5" fill={color} />
+
+      {/* Three pillars */}
+      {CENTERS.map((cx, i) => (
+        <rect
+          key={i}
+          x={cx - PILLAR_W / 2}
+          y={PILLAR_TOP}
+          width={PILLAR_W}
+          height={PILLAR_BOTTOM - PILLAR_TOP}
+          rx="0.5"
+          fill={color}
+        />
+      ))}
+
+      {/* Bottom beam */}
+      <rect x="4" y={BEAM_BOTTOM_Y} width="56" height="3" rx="0.5" fill={color} />
     </svg>
+  );
+}
+
+// Wordmark — "S T O A" in spaced classical serif (Lora).
+function Wordmark({ size, color }) {
+  return (
+    <span
+      className="font-serif"
+      style={{
+        color,
+        fontFamily: 'Lora, Georgia, serif',
+        fontWeight: 600,
+        fontSize: size,
+        letterSpacing: '0.32em',
+        lineHeight: 1,
+        // Lora's natural baseline sits a hair low next to a geometric mark;
+        // nudge it up so the cap-height aligns with the beams.
+        transform: 'translateY(-1px)',
+        display: 'inline-block',
+      }}
+    >
+      S T O A
+    </span>
   );
 }
 
@@ -25,37 +83,28 @@ export default function StoaLogo({
   size = 28,
   textSize = "text-xl",
   showText = true,
-  light = false,
-  useSvg = false,
+  light = false,        // force dark-bg colors (for places that aren't in .dark scope, e.g. dark footer in light mode)
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const color = light ? "#ffffff" : "#1E3A8A";
-  const showSvg = useSvg || imgFailed;
+  // Brand spec: #1B3A6B on light backgrounds, #C8D8F0 on dark.
+  const color     = light ? "#C8D8F0" : "#1B3A6B";
+  const wickColor = color;
+
+  // Map Tailwind textSize → numeric font px for the inline wordmark style.
+  const TEXT_PX = {
+    "text-xs":   12,
+    "text-sm":   13,
+    "text-base": 15,
+    "text-lg":   17,
+    "text-xl":   19,
+    "text-2xl":  22,
+    "text-3xl":  28,
+  };
+  const fontPx = TEXT_PX[textSize] ?? 16;
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      {showSvg ? (
-        <LogoSVG size={size} color={color} />
-      ) : (
-        <img
-          src={LOGO_URL}
-          alt="STOA Logo"
-          width={size}
-          height={size}
-          onError={() => setImgFailed(true)}
-          style={{
-            width: size,
-            height: size,
-            objectFit: "contain",
-            filter: light ? "brightness(0) invert(1)" : "none",
-          }}
-        />
-      )}
-      {showText && (
-        <span className={`font-bold tracking-wide ${textSize}`} style={{ color }}>
-          STOA
-        </span>
-      )}
+    <div className={`inline-flex items-center gap-2 ${className}`}>
+      <LogoMark size={size} color={color} wickColor={wickColor} />
+      {showText && <Wordmark size={fontPx} color={color} />}
     </div>
   );
 }

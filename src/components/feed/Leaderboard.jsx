@@ -174,8 +174,8 @@ export default function Leaderboard() {
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:12, fontWeight:700, color:'#2563eb',
                 }}>
-                  {analyst.picture
-                    ? <img src={analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  {(analyst.profile_picture_url || analyst.picture)
+                    ? <img src={analyst.profile_picture_url || analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     : analyst.avatar
                       ? <img src={analyst.avatar} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                       : name[0]}

@@ -5,7 +5,7 @@ import {
   ArrowLeft, UserPlus, FileText, Users, TrendingUp,
   Loader2, CheckCircle2, Share2, ChevronRight, Award, Lock,
   Pencil, Eye, EyeOff, GripVertical, Globe, Twitter, Linkedin,
-  MessageSquare, Save, X, Plus, Pin, Check,
+  MessageSquare, Save, X, Plus, Pin, Check, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -24,6 +24,7 @@ import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
 import { subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
+import useGoBack from "@/hooks/useGoBack";
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -101,6 +102,76 @@ function PredictionRow({ report }) {
   );
 }
 
+// Avatar upload — appears as a camera badge over the avatar in edit mode.
+// Crops to a centered square client-side before upload so the result is
+// always 1:1 regardless of source aspect ratio.
+function AvatarUploader({ onUploaded }) {
+  const [busy, setBusy] = React.useState(false);
+  const inputRef = React.useRef(null);
+
+  async function cropToSquare(file, size = 512) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const min = Math.min(img.width, img.height);
+        const sx  = (img.width  - min) / 2;
+        const sy  = (img.height - min) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        canvas.toBlob(blob => {
+          if (!blob) return reject(new Error("Crop failed"));
+          resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.88);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function handlePick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image must be under 8 MB");
+      return;
+    }
+    setBusy(true);
+    try {
+      const cropped = await cropToSquare(file);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: cropped });
+      await base44.entities.User.updateMyUserData({ profile_picture_url: file_url });
+      onUploaded(file_url);
+      toast.success("Profile picture updated");
+    } catch (err) {
+      toast.error(err?.message || "Upload failed");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        title="Change profile picture"
+        className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white border-2 border-background flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-60"
+      >
+        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handlePick} />
+    </>
+  );
+}
+
 function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
   const directionColor = report.prediction_direction === "LONG"
     ? "text-green-600 bg-green-50 border-green-200"
@@ -110,11 +181,13 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
 
   return (
     <div className="relative group">
-      <Link to={`/report/${report.id}`} className="block">
-        <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-amber-300 ring-1 ring-amber-200" : "border-border"}`}>
+      <Link to={`/report?id=${report.id}`} className="block">
+        <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-[#D4AF37]/50" : "border-border"}`}
+             style={isPinned ? { boxShadow: "0 0 0 0.5px rgba(212,175,55,0.25)" } : undefined}>
           {isPinned && (
-            <span className="absolute -top-2 left-3 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">
-              📌 Pinned
+            <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider"
+                  style={{ color: "#B8932E" }}>
+              <Pin className="w-2.5 h-2.5" /> Pinned
             </span>
           )}
           <div className="flex items-start justify-between gap-2 mb-2">
@@ -141,14 +214,15 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
       {isEditMode && (
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onTogglePin(report.id); }}
-          className={`absolute top-2 right-2 p-1.5 rounded-lg text-xs font-bold transition-all ${
+          className={`absolute top-2 left-2 p-1.5 rounded-lg transition-all ${
             isPinned
-              ? "bg-amber-100 text-amber-700 border border-amber-300"
-              : "bg-card border border-border text-muted-foreground hover:text-amber-600 hover:border-amber-300 opacity-0 group-hover:opacity-100"
+              ? "bg-[#D4AF37]/15 border border-[#D4AF37]/40"
+              : "bg-card border border-border text-muted-foreground hover:text-[#B8932E] hover:border-[#D4AF37]/40 opacity-0 group-hover:opacity-100"
           }`}
+          style={isPinned ? { color: "#B8932E" } : undefined}
           title={isPinned ? "Unpin" : "Pin to top"}
         >
-          📌
+          <Pin className="w-3 h-3" />
         </button>
       )}
     </div>
@@ -216,6 +290,7 @@ function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditM
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/");
   const { username } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -432,13 +507,19 @@ export default function AnalystProfilePage() {
         : [...c.hidden_stats, key],
     }));
 
+  const MAX_PINNED = 3;
   const togglePinReport = id =>
-    setEditConfig(c => ({
-      ...c,
-      pinned_reports: c.pinned_reports.includes(id)
-        ? c.pinned_reports.filter(x => x !== id)
-        : [...c.pinned_reports, id],
-    }));
+    setEditConfig(c => {
+      const already = c.pinned_reports.includes(id);
+      if (already) {
+        return { ...c, pinned_reports: c.pinned_reports.filter(x => x !== id) };
+      }
+      if (c.pinned_reports.length >= MAX_PINNED) {
+        toast.error(`You can pin at most ${MAX_PINNED} reports. Unpin one first.`);
+        return c;
+      }
+      return { ...c, pinned_reports: [...c.pinned_reports, id] };
+    });
 
   // Drag-to-reorder sections
   const handleDragStart = (e, idx) => { dragIdx.current = idx; e.dataTransfer.effectAllowed = "move"; };
@@ -463,7 +544,7 @@ export default function AnalystProfilePage() {
   if (!analyst) return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-center">
       <p className="text-muted-foreground">Researcher not found.</p>
-      <Button onClick={() => navigate(-1)} variant="outline" className="mt-4 text-sm">Go Back</Button>
+      <Button onClick={goBack} variant="outline" className="mt-4 text-sm">Go Back</Button>
     </div>
   );
 
@@ -549,7 +630,7 @@ export default function AnalystProfilePage() {
         }} />
         <div className="max-w-4xl mx-auto px-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
           >
             <ArrowLeft className="w-4 h-4" /> Back
@@ -584,14 +665,23 @@ export default function AnalystProfilePage() {
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <div className="flex items-end gap-4 mb-5">
 
-              {/* Avatar */}
-              <div className="shrink-0 -mt-10 ring-4 ring-background rounded-full">
-                {analyst.picture
-                  ? <img src={analyst.picture} alt={displayName} className="w-20 h-20 rounded-full object-cover border border-border" />
-                  : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-bold text-primary">
-                      {displayName?.[0] || "A"}
-                    </div>
-                }
+              {/* Avatar — uploaded profile_picture_url overrides auth-provider picture */}
+              <div className="shrink-0 -mt-10 ring-4 ring-background rounded-full relative">
+                {(() => {
+                  const src = analyst.profile_picture_url || analyst.picture;
+                  return src
+                    ? <img src={src} alt={displayName} className="w-20 h-20 rounded-full object-cover border border-border" />
+                    : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-bold text-primary">
+                        {displayName?.[0] || "A"}
+                      </div>;
+                })()}
+                {isEditMode && (
+                  <AvatarUploader
+                    onUploaded={(url) => {
+                      setAnalyst(a => ({ ...a, profile_picture_url: url }));
+                    }}
+                  />
+                )}
               </div>
 
               {/* Name + tier + tagline */}
