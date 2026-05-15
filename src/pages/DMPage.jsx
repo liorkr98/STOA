@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 import { getAnalystSlug } from "@/lib/analystSlug";
+import useGoBack from "@/hooks/useGoBack";
 
 function makeConvId(a, b) {
   return [a, b].sort().join("|");
@@ -13,6 +14,7 @@ function makeConvId(a, b) {
 
 export default function DMPage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/inbox");
   const urlParams = new URLSearchParams(window.location.search);
   const withEmail  = urlParams.get("with");
   const analystId  = urlParams.get("analyst"); // legacy param
@@ -136,7 +138,7 @@ export default function DMPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back

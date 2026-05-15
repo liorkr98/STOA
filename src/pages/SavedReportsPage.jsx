@@ -5,9 +5,11 @@ import { ArrowLeft, Bookmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import ReportCard from "@/components/feed/ReportCard";
+import useGoBack from "@/hooks/useGoBack";
 
 export default function SavedReportsPage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/");
   const { user, isAuthenticated } = useAuth();
   const [saved, setSaved] = useState([]);
   const [reports, setReports] = useState([]);
@@ -45,7 +47,7 @@ export default function SavedReportsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+      <button onClick={goBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 

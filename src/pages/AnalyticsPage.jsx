@@ -15,6 +15,7 @@ import { format, differenceInDays, parseISO } from "date-fns";
 import { computeAnalystStats, fmtYield, fmtHitRate } from "@/lib/analystStats";
 import { computeAnalystTier } from "@/lib/analystTier";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
+import useGoBack from "@/hooks/useGoBack";
 
 const ACTION_COLORS = { Long: "#22c55e", Short: "#ef4444", Hold: "#f59e0b" };
 const OUTCOME_COLORS = { hit: "#22c55e", near: "#3b82f6", partial: "#f59e0b", miss: "#ef4444", pending: "#94a3b8" };
@@ -81,6 +82,7 @@ const SORT_OPTIONS = [
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/");
   const [reports, setReports] = useState([]);
   const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +213,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors">
+          <button onClick={goBack} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
           <h1 className="text-2xl font-bold">Prediction Analytics</h1>

@@ -1,7 +1,7 @@
 /* ────────────────────────────────────────────────────────────────────────────
    Fonts — Lora (display/serif), Manrope (UI/body), Space Grotesk (data/numbers)
    ──────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Manrope:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -86,10 +86,11 @@
     --shadow-glow-gold: 0 0 0 0.5px hsl(var(--gold) / 0.18), 0 8px 24px -8px hsl(var(--gold) / 0.30);
     --shadow-glow-navy: 0 0 0 0.5px hsl(var(--blue-primary) / 0.18), 0 8px 24px -8px hsl(var(--blue-primary) / 0.30);
 
-    /* Glass card tints — primary-blue at 3% with 5-7% border (light mode) */
-    --glass-bg: hsl(var(--blue-primary) / 0.03);
-    --glass-border: hsl(var(--blue-primary) / 0.06);
+    /* Glass card tints — Liquid Glass spec (light mode) */
+    --glass-bg: rgba(30, 58, 138, 0.03);
+    --glass-border: rgba(30, 58, 138, 0.07);
     --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.75) 50%, transparent 100%);
+    --glass-blur: 20px;
   }
 
   .dark {
@@ -104,7 +105,7 @@
     --secondary: 216 40% 18%;
     --secondary-foreground: 0 0% 95%;
     --muted: 216 40% 16%;
-    --muted-foreground: 0 0% 65%;
+    --muted-foreground: 0 0% 78%;         /* bumped for dark-on-dark legibility */
     --accent: var(--gold);                /* accent stays gold */
     --accent-foreground: var(--navy-deepest);
     --destructive: var(--sentiment-negative);
@@ -122,10 +123,11 @@
     --sidebar-border: 0 0% 100%;
     --sidebar-ring: var(--blue-primary);
 
-    /* Dark mode glass — white-based rgba */
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.70) 50%, transparent 100%);
+    /* Dark mode glass — Liquid Glass spec */
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    --glass-blur: 20px;
 
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px -1px rgb(0 0 0 / 0.4);
@@ -182,12 +184,17 @@
     border-radius: 6px;
   }
 
-  /* Headings use Lora (display serif) */
+  /* Headings use Lora (display serif). Weights bumped one level for confidence. */
   h1, h2, h3, h4 {
     font-family: var(--font-serif);
+    font-weight: 600;
     letter-spacing: -0.015em;
   }
-  h1 { letter-spacing: -0.025em; }
+  h1 { font-weight: 700; letter-spacing: -0.025em; }
+  h2 { font-weight: 600; }
+  .font-serif, .font-display {
+    font-weight: 500;       /* default Lora paragraph weight, up from 400 */
+  }
 
   .sr-only {
     position: absolute;
@@ -237,6 +244,8 @@
 .surface {
   position: relative;
   background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 0.5px solid var(--glass-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -246,7 +255,7 @@
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 0.5px;
+  height: 1px;
   background: var(--glass-top-edge);
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
@@ -432,6 +441,7 @@
 /* Editorial prose for report body */
 .prose-editorial {
   font-family: var(--font-serif);
+  font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.85;
   color: hsl(var(--foreground));
@@ -439,8 +449,8 @@
 }
 
 .prose-editorial p { margin-bottom: 1.35rem; }
-.prose-editorial h2 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
-.prose-editorial h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.75rem; font-family: var(--font-serif); letter-spacing: -0.01em; }
+.prose-editorial h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
+.prose-editorial h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; margin-top: 1.75rem; font-family: var(--font-serif); letter-spacing: -0.01em; }
 .prose-editorial blockquote {
   border-left: 0.5px solid hsl(var(--gold));
   padding: 0.25rem 0 0.25rem 1.25rem;
@@ -478,6 +488,104 @@
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 0.5px solid hsl(var(--border) / 0.6);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Gold CTA buttons — Liquid Glass spec. Used for primary CTAs, founding
+   actions, premium signals. Designed to read on dark surfaces.
+   ──────────────────────────────────────────────────────────────────────── */
+.cta-gold {
+  position: relative;
+  background: rgba(212, 175, 55, 0.15);
+  border: 0.5px solid rgba(212, 175, 55, 0.3);
+  color: hsl(46 65% 32%);                 /* gold-on-light text */
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+.cta-gold::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 50%, transparent 100%);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
+}
+.cta-gold:hover {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: rgba(212, 175, 55, 0.45);
+  transform: translateY(-1px);
+}
+.cta-gold:active { transform: translateY(0); }
+.dark .cta-gold { color: hsl(var(--gold-light)); }
+
+/* Founding-member / premium badge — gold pill, squared corners */
+.badge-founding {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-tag);
+  font-family: var(--font-sans);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(212, 175, 55, 0.15);
+  color: hsl(46 65% 32%);
+  border: 0.5px solid rgba(212, 175, 55, 0.35);
+}
+.dark .badge-founding { color: hsl(var(--gold-light)); }
+
+/* Gold divider for use on dark surfaces */
+.divider-gold {
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.35) 20%, hsl(var(--gold) / 0.35) 80%, transparent);
+}
+
+/* Ambient glow — positioned blur circles to suggest layered depth behind
+   key sections. Wrap a section with .ambient-section to drop two soft
+   pools of color (navy + a subtle gold). Pointer-events disabled. */
+.ambient-section { position: relative; overflow: hidden; isolation: isolate; }
+.ambient-section::before,
+.ambient-section::after {
+  content: "";
+  position: absolute;
+  width: 480px; height: 480px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: -1;
+}
+.ambient-section::before {
+  background: #1E3A8A;
+  top: -120px; left: -120px;
+}
+.ambient-section::after {
+  background: #D4AF37;
+  bottom: -160px; right: -120px;
+  opacity: 0.07;             /* gold deliberately fainter than navy */
+}
+
+/* Dark-mode contrast helpers ── use these where a dark text/icon
+   would otherwise sit on a dark surface. Default to gold. */
+.dark .on-dark-readable        { color: hsl(var(--gold-light)); }
+.dark .on-dark-readable-muted  { color: hsl(0 0% 80%); }
+
+/* In dark mode, swap text-primary (navy) — invisible on navy surfaces —
+   to gold so it actually reads. Applied as a safety net to common
+   blue-link patterns. */
+.dark .text-primary  { color: hsl(var(--gold-light)); }
+.dark .hover\:text-primary:hover { color: hsl(var(--gold-light)); }
+.dark .group:hover .group-hover\:text-primary { color: hsl(var(--gold-light)); }
+.dark .border-primary\/30 { border-color: hsl(var(--gold) / 0.30); }
+.dark .hover\:border-primary\/30:hover { border-color: hsl(var(--gold) / 0.35); }
+
+/* The bottom-of-feed "you've reached the end" / end-of-list states often
+   render as dark muted-foreground on dark — force gold-light there. */
+.dark .end-of-feed,
+.dark .feed-cta-dark { color: hsl(var(--gold-light)); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

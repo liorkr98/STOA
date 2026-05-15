@@ -21,6 +21,7 @@ import { buyReport, subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
+import useGoBack from "@/hooks/useGoBack";
 
 // ─── Claim type config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -320,6 +321,7 @@ function BlockRenderer({ blocks }) {
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function ReportView() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/feed");
   const urlParams = new URLSearchParams(window.location.search);
   const reportId = urlParams.get("id");
   const isPaid = urlParams.get("paid") === "true";
@@ -471,7 +473,7 @@ export default function ReportView() {
   if (error || !report) return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-center">
       <p className="text-muted-foreground mb-4">{error || "Report not found."}</p>
-      <button onClick={() => navigate(-1)} className="text-primary hover:underline text-sm">Go Back</button>
+      <button onClick={goBack} className="text-primary hover:underline text-sm">Go Back</button>
     </div>
   );
 
@@ -501,7 +503,7 @@ export default function ReportView() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+      <button onClick={goBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 

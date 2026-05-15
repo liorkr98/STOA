@@ -24,6 +24,7 @@ import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
 import { subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
+import useGoBack from "@/hooks/useGoBack";
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
@@ -110,7 +111,7 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
 
   return (
     <div className="relative group">
-      <Link to={`/report/${report.id}`} className="block">
+      <Link to={`/report?id=${report.id}`} className="block">
         <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-amber-300 ring-1 ring-amber-200" : "border-border"}`}>
           {isPinned && (
             <span className="absolute -top-2 left-3 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">
@@ -216,6 +217,7 @@ function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditM
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
+  const goBack   = useGoBack("/");
   const { username } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -463,7 +465,7 @@ export default function AnalystProfilePage() {
   if (!analyst) return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-center">
       <p className="text-muted-foreground">Researcher not found.</p>
-      <Button onClick={() => navigate(-1)} variant="outline" className="mt-4 text-sm">Go Back</Button>
+      <Button onClick={goBack} variant="outline" className="mt-4 text-sm">Go Back</Button>
     </div>
   );
 
@@ -549,7 +551,7 @@ export default function AnalystProfilePage() {
         }} />
         <div className="max-w-4xl mx-auto px-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
           >
             <ArrowLeft className="w-4 h-4" /> Back
