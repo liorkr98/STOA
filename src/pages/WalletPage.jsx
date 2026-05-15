@@ -104,7 +104,7 @@ export default function WalletPage() {
       {/* ── Header ── */}
       <div className="surface-premium p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-card-md" style={{ background: "linear-gradient(135deg, #0d1f3c, #1e3a6e)" }}>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-card-md" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
             <Wallet className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -124,7 +124,7 @@ export default function WalletPage() {
                 ? "text-white shadow-md"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            style={tab === key ? { background: "linear-gradient(135deg, #0d1f3c, #1e3a6e)" } : undefined}
+            style={tab === key ? { background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" } : undefined}
           >
             <span>{emoji}</span> {label}
           </button>
@@ -135,7 +135,7 @@ export default function WalletPage() {
       {tab === "cash" && (
         <>
           {/* Balance card — dark navy with gold amount */}
-          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
             <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.15) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
             <div className="relative z-10">
               <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/40 mb-2">Wallet Balance</p>
@@ -154,7 +154,7 @@ export default function WalletPage() {
                   onClick={() => setShowWithdraw(true)}
                   disabled={!wallet?.balance}
                   className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent)/0.8))", color: "#0d1f3c" }}
+                  style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent)/0.8))", color: "#0A1A3F" }}
                 >
                   <ArrowUpRight className="w-4 h-4" /> Withdraw
                 </button>
@@ -191,7 +191,7 @@ export default function WalletPage() {
       {tab === "credits" && (
         <>
           {/* Credits balance card — navy with gold lightning */}
-          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1a3060 60%, #1e3a6e 100%)" }}>
+          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #2E5090 60%, #1E3A8A 100%)" }}>
             <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.2) 0%, transparent 65%)", transform: "translate(25%, 30%)" }} />
             <div className="absolute top-5 right-6 text-4xl select-none">⚡</div>
             <div className="relative z-10">
@@ -268,7 +268,7 @@ export default function WalletPage() {
           </div>
 
           {/* What credits unlock */}
-          <div className="rounded-2xl p-5 mb-4 border" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)", borderColor: "hsl(var(--accent)/0.2)" }}>
+          <div className="rounded-2xl p-5 mb-4 border" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)", borderColor: "hsl(var(--accent)/0.2)" }}>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">What credits unlock</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -297,7 +297,7 @@ export default function WalletPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowWithdraw(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0d1f3c, #1e3a6e)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
                 <ArrowUpRight className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -349,7 +349,7 @@ function TransactionList({ transactions, emptyMsg = "No transactions yet." }) {
   }
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-border flex items-center gap-2" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+      <div className="px-5 py-4 border-b border-border flex items-center gap-2" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
         <Clock className="w-4 h-4 text-white/60" />
         <h2 className="font-semibold text-sm text-white">Transaction History</h2>
         <span className="ml-auto text-[10px] font-bold text-white/40">{transactions.length} records</span>

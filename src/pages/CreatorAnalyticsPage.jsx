@@ -317,7 +317,7 @@ export default function CreatorAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
 
         {/* Highlight card — dark navy (Figma) */}
-        <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+        <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
           <div className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
           <div className="relative z-10">
             <div className="flex items-center gap-1.5 mb-3">

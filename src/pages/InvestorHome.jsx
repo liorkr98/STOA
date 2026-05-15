@@ -406,7 +406,7 @@ export default function InvestorHome() {
 
       {/* ── Market Pulse — dark navy hero (Figma-inspired) ── */}
       {indexQuotes.length > 0 && (
-        <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
+        <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
           <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.12) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-5">
@@ -706,7 +706,7 @@ export default function InvestorHome() {
       </div>
 
       {/* ── Become an Analyst CTA — Figma navy/gold ── */}
-      <div className="rounded-2xl p-7 relative overflow-hidden mt-7" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1a3060 60%, #1e3a6e 100%)" }}>
+      <div className="rounded-2xl p-7 relative overflow-hidden mt-7" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #2E5090 60%, #1E3A8A 100%)" }}>
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
@@ -717,7 +717,7 @@ export default function InvestorHome() {
           </p>
           <div className="flex gap-3">
             <Link to="/become-analyst">
-              <button className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))", color: "#0d1f3c" }}>
+              <button className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))", color: "#0A1A3F" }}>
                 Get Started Free
               </button>
             </Link>

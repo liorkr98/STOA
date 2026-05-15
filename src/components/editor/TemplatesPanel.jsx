@@ -5,7 +5,7 @@ import { X, Search, TrendingUp, BarChart3, Zap, Shield, Globe,
 
 // ── Category colors ──────────────────────────────────────────
 const CATS = {
-  "Deep Dive":    { color: "#1e3a6e", bg: "#e8f0fe" },
+  "Deep Dive":    { color: "#1E3A8A", bg: "#e8f0fe" },
   "Quick Take":   { color: "#b45309", bg: "#fef3c7" },
   "Technical":    { color: "#065f46", bg: "#d1fae5" },
   "Macro":        { color: "#6d28d9", bg: "#ede9fe" },

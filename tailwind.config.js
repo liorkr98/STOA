@@ -5,13 +5,32 @@ module.exports = {
   theme: {
   	extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', 'Inter', 'sans-serif'],
-        serif: ['var(--font-serif)', 'Source Serif 4', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'Manrope', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Lora', 'Georgia', 'serif'],
+        display: ['var(--font-serif)', 'Lora', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'Space Grotesk', 'ui-monospace', 'monospace'],
+        data: ['var(--font-mono)', 'Space Grotesk', 'ui-monospace', 'monospace'],
       },
   		borderRadius: {
+  			/* Tailwind defaults are overridden so existing rounded-xl/2xl/lg on
+  			   cards across the codebase collapse to the new 10px card radius
+  			   without touching every callsite. Tags/badges should switch from
+  			   `rounded-full` to `rounded-tag` (4px). */
+  			DEFAULT: 'var(--radius)',
+  			sm: '6px',
+  			md: '8px',
   			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			xl: 'var(--radius)',
+  			'2xl': 'var(--radius)',
+  			'3xl': '14px',
+  			tag: 'var(--radius-tag)'
+  		},
+  		borderWidth: {
+  			DEFAULT: '0.5px',
+  			'0': '0',
+  			'0.5': '0.5px',
+  			'1': '1px',
+  			'2': '2px',
   		},
   		colors: {
   			background: 'hsl(var(--background))',
