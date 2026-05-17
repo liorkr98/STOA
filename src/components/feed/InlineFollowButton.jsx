@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -6,6 +6,29 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
   const { user, isAuthenticated } = useAuth();
   const [following, setFollowing] = useState(initFollowing || false);
   const [loading, setLoading] = useState(false);
+
+  // Keep local state in sync when the parent's `isFollowing` prop changes
+  // (e.g. after the parent's followedEmails list re-fetches). Without this
+  // useEffect, useState's initial value sticks forever and the button
+  // appeared to "reset to Follow" after navigation/re-render — even though
+  // the user was already following.
+  useEffect(() => {
+    if (typeof initFollowing === "boolean") setFollowing(initFollowing);
+  }, [initFollowing, analystEmail]);
+
+  // Defensive: if the parent didn't pass a definitive `initFollowing`, ask
+  // the server directly on mount. This is what makes the button correct on
+  // a hard refresh of a page that lists many analysts.
+  useEffect(() => {
+    if (!isAuthenticated || !user?.email || !analystEmail) return;
+    if (typeof initFollowing === "boolean") return; // parent told us
+    let cancelled = false;
+    base44.entities.Follow
+      .filter({ follower_email: user.email, analyst_email: analystEmail })
+      .then(rows => { if (!cancelled) setFollowing((rows || []).length > 0); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.email, analystEmail, initFollowing]);
 
   if (!isAuthenticated || !user || user.email === analystEmail) return null;
 

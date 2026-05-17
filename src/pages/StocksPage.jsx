@@ -71,6 +71,8 @@ async function fetchQuotes(symbols) {
         name:    d?.companyName || d?.shortName || sym,
         price:   d?.price ?? d?.regularMarketPrice ?? null,
         change:  d?.regularMarketChangePercent ?? d?.changePercent ?? null,
+        volume:  d?.regularMarketVolume ?? d?.volume ?? null,
+        mktCap:  d?.marketCap ?? d?.mktCap ?? null,
       };
     })
   );
@@ -124,7 +126,10 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
           </div>
         )}
         {fmtCap(stock.mktCap) && (
-          <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">{fmtCap(stock.mktCap)}</p>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Mkt Cap</span>
+            <span className="text-xs font-bold text-foreground tabular-nums">{fmtCap(stock.mktCap)}</span>
+          </div>
         )}
       </div>
       {/* Star button */}
@@ -165,6 +170,11 @@ function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
       {hasPrice ? (
         <>
           <span className="text-sm font-bold tabular-nums">${Number(stock.price).toFixed(2)}</span>
+          {fmtCap(stock.mktCap) && (
+            <span className="hidden md:inline text-[11px] font-semibold text-muted-foreground tabular-nums" title="Market capitalization">
+              {fmtCap(stock.mktCap)}
+            </span>
+          )}
           <span className={`text-xs font-bold w-16 text-right flex items-center justify-end gap-0.5 px-2 py-0.5 rounded-full ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%

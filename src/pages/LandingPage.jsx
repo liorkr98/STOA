@@ -193,6 +193,24 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Defensive: force the landing page to load at the top, regardless of
+  // any browser scroll restoration, anchor hash in the URL, or stale
+  // scroll position from a previous navigation. The page was previously
+  // appearing to "auto-jump to login" because the browser was restoring
+  // scroll to a CTA further down the page after we redirected back from
+  // the login flow.
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    // Strip any login/auth-related anchor that may have been pinned by
+    // the previous redirect so it doesn't pull us back down.
+    if (window.location.hash && /login|signin|auth/i.test(window.location.hash)) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" in window ? "instant" : "auto" });
+  }, []);
+
   const enterPlatform = () => {
     localStorage.setItem("stoa_last_landing_visit", Date.now().toString());
     navigate("/feed");

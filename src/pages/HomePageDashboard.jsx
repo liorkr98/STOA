@@ -801,6 +801,32 @@ export default function HomePageDashboard() {
         {/* ═══ RIGHT COLUMN ═══ */}
         <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
 
+          {/* Quick Access — pinned to the top of the right column so it
+              actually lives up to its name. (Previously buried at the
+              bottom of the page below several large sections.) */}
+          <section className="bg-card border border-border rounded-2xl p-5">
+            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
+            <div className="space-y-1">
+              {[
+                { icon: BarChart3, label: "My Dashboard", to: "/dashboard" },
+                { icon: Target, label: "My Predictions", to: "/predictions" },
+                { icon: Users, label: "My Subscribers", to: "/subscribers" },
+                { icon: Zap, label: "AI Credits & Wallet", to: "/wallet" },
+                { icon: TrendingUp, label: "Full Research Feed", to: "/feed" },
+              ].map(({ icon: Icon, label, to }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
+                  {label}
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))}
+            </div>
+          </section>
+
           {/* Top Analysts */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
@@ -924,29 +950,6 @@ export default function HomePageDashboard() {
             )}
           </section>
 
-          {/* Quick nav */}
-          <section className="bg-card border border-border rounded-2xl p-5">
-            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
-            <div className="space-y-1">
-              {[
-                { icon: BarChart3, label: "My Dashboard", to: "/dashboard" },
-                { icon: Target, label: "My Predictions", to: "/predictions" },
-                { icon: Users, label: "My Subscribers", to: "/subscribers" },
-                { icon: Zap, label: "AI Credits & Wallet", to: "/wallet" },
-                { icon: TrendingUp, label: "Full Research Feed", to: "/feed" },
-              ].map(({ icon: Icon, label, to }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
-                  {label}
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-            </div>
-          </section>
         </div>
       </div>
     </div>

@@ -331,8 +331,23 @@ export default function AnalystProfilePage() {
         const allUsers = await base44.entities.User.list("-created_date", 200).catch(() => []);
 
         if (username) {
-          userData = allUsers.find(u => getAnalystSlug(u) === username) || null;
+          const target = username.toLowerCase();
+          userData = allUsers.find(u => getAnalystSlug(u) === target) || null;
           if (!userData) userData = allUsers.find(u => u.id === username || u.email === username) || null;
+          // Last-resort fallback: match by email-prefix (case-insensitive).
+          // ReportCard now routes here when no full_name is available, so the
+          // username param may be the email's local-part rather than a slug.
+          if (!userData) {
+            userData = allUsers.find(u =>
+              (u.email || "").toLowerCase().split("@")[0] === target
+            ) || null;
+          }
+          // If we STILL didn't resolve anyone, fall back to a stub object so
+          // we render an "unknown analyst" page rather than silently
+          // defaulting to the current user (which was the original bug).
+          if (!userData) {
+            userData = { full_name: "Unknown Researcher", email: "", _notFound: true };
+          }
         } else if (me) {
           userData = me;
         }

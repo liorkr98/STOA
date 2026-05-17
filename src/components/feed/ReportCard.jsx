@@ -179,19 +179,43 @@ function QuickPoll({ reportId }) {
       .catch(() => setVotes([]));
   }, [reportId, isAuthenticated, user?.email]);
 
+  // Voting allows changing your answer — tap a different option to switch.
+  // If a Vote record already exists for this user we UPDATE it; otherwise
+  // CREATE. Optimistic UI applies the new state immediately and rolls back
+  // on failure. Tapping the option you already picked is a no-op.
   const handleVote = async (e, direction) => {
     e.stopPropagation();
-    if (!isAuthenticated || !user || myVote || submitting) return;
+    if (!isAuthenticated || !user || submitting) return;
+    if (myVote === direction) return;
+
     setSubmitting(true);
-    const optimistic = { id: 'tmp_' + direction, report_id: reportId, voter_email: user.email, vote: direction };
-    setVotes(prev => [...(prev || []), optimistic]);
+    const prevVotes = votes;
+    const prevMyVote = myVote;
+
+    // Optimistic: swap or insert
     setMyVote(direction);
+    setVotes(prev => {
+      const list = prev || [];
+      const mine = list.find(v => v.voter_email === user.email);
+      if (mine) {
+        return list.map(v => v.voter_email === user.email ? { ...v, vote: direction } : v);
+      }
+      return [...list, { id: "tmp_" + direction, report_id: reportId, voter_email: user.email, vote: direction }];
+    });
+
     try {
-      const created = await base44.entities.Vote.create({ report_id: reportId, voter_email: user.email, vote: direction });
-      setVotes(prev => prev.map(v => v.id === optimistic.id ? created : v));
+      const existing = (prevVotes || []).find(v => v.voter_email === user.email && !String(v.id).startsWith("tmp_"));
+      if (existing) {
+        const updated = await base44.entities.Vote.update(existing.id, { vote: direction });
+        setVotes(prev => prev.map(v => v.id === existing.id ? (updated || { ...v, vote: direction }) : v));
+      } else {
+        const created = await base44.entities.Vote.create({ report_id: reportId, voter_email: user.email, vote: direction });
+        setVotes(prev => prev.map(v => String(v.id).startsWith("tmp_") ? created : v));
+      }
     } catch {
-      setVotes(prev => prev.filter(v => v.id !== optimistic.id));
-      setMyVote(null);
+      // Roll back to pre-tap state
+      setVotes(prevVotes);
+      setMyVote(prevMyVote);
     } finally {
       setSubmitting(false);
     }
@@ -224,16 +248,36 @@ function QuickPoll({ reportId }) {
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-          {opts.map(o => (
-            <div key={o.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{ fontSize:10, width:64, color:'#64748b', flexShrink:0 }}>{o.label}</span>
-              <div style={{ flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden' }}>
-                <div style={{ height:'100%', borderRadius:3, width:`${pct(o.id)}%`, background: myVote === o.id ? '#2563eb' : '#94a3b8', transition:'width 400ms ease' }} />
-              </div>
-              <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: myVote === o.id ? '#2563eb' : '#64748b' }}>{pct(o.id)}%</span>
-            </div>
-          ))}
-          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>{total} vote{total !== 1 ? 's' : ''}</p>
+          {opts.map(o => {
+            const isMine = myVote === o.id;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={e => handleVote(e, o.id)}
+                disabled={submitting || !isAuthenticated}
+                title={isMine ? "Your current pick" : "Tap to change your vote"}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'transparent', border: 'none', padding: '2px 0',
+                  cursor: isMine || submitting ? 'default' : 'pointer',
+                  opacity: submitting ? 0.6 : 1,
+                  textAlign: 'left', width: '100%',
+                }}
+              >
+                <span style={{ fontSize:10, width:64, color: isMine ? '#2563eb' : '#64748b', fontWeight: isMine ? 700 : 500, flexShrink:0 }}>
+                  {isMine ? '✓ ' : ''}{o.label}
+                </span>
+                <div style={{ flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden' }}>
+                  <div style={{ height:'100%', borderRadius:3, width:`${pct(o.id)}%`, background: isMine ? '#2563eb' : '#94a3b8', transition:'width 400ms ease' }} />
+                </div>
+                <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: isMine ? '#2563eb' : '#64748b' }}>{pct(o.id)}%</span>
+              </button>
+            );
+          })}
+          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>
+            {total} vote{total !== 1 ? 's' : ''} · tap another option to change your vote
+          </p>
         </div>
       )}
     </div>
@@ -333,7 +377,15 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
     } catch {}
   };
 
-  const slug = getAnalystSlug({ full_name: authorName, email: authorEmail });
+  // Use the actual user record's full_name (looked up via userMap by email)
+  // — NOT report.author_name. report.author_name falls back to "Researcher"
+  // for old/un-baked reports, which collapsed many authors into the same
+  // "researcher" slug and sent every click to whichever user resolved first
+  // (often the current user's own profile). Falling back to the email
+  // prefix keeps the slug unique per author.
+  const slug =
+    getAnalystSlug({ ...(authorUser || {}), email: authorEmail }) ||
+    (authorEmail || "").split("@")[0].toLowerCase();
 
   return (
     <>
