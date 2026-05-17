@@ -1,31 +1,61 @@
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { Compass, ArrowRight, Home, BarChart3, FileText, Trophy } from "lucide-react";
+import StoaLogo from "@/components/StoaLogo";
 
+// Proper 404 page — theme-aware (works in light + dark), branded, and
+// gives the user real paths back into the app instead of one button.
+// Wrapped in the AppLayout via Routes config, so the global nav/footer
+// render automatically.
 export default function PageNotFound() {
-    return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-            <div className="max-w-md w-full">
-                <div className="text-center space-y-6">
-                    <div className="space-y-2">
-                        <h1 className="text-7xl font-light text-slate-300">404</h1>
-                        <div className="h-0.5 w-16 bg-slate-200 mx-auto"></div>
-                    </div>
+  const links = [
+    { to: "/",          label: "Home",        icon: Home },
+    { to: "/feed",      label: "Research Feed", icon: FileText },
+    { to: "/stocks",    label: "Markets",     icon: BarChart3 },
+    { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  ];
 
-                    <div className="space-y-3">
-                        <h2 className="text-2xl font-medium text-slate-800">
-                            Page not found.
-                        </h2>
-                    </div>
-
-                    <div className="pt-6">
-                        <Link
-                            to="/feed"
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-                        >
-                            Go to Feed
-                        </Link>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="min-h-screen flex items-start justify-center px-6 py-20 bg-background">
+      <div className="max-w-md w-full text-center">
+        <div className="flex justify-center mb-8">
+          <StoaLogo size={48} textSize="text-2xl" />
         </div>
-    );
+
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-muted-foreground text-xs font-semibold mb-6">
+          <Compass className="w-3.5 h-3.5" /> 404 · Page not found
+        </div>
+
+        <h1 className="text-3xl font-bold text-foreground mb-3" style={{ fontFamily: "Lora, Georgia, serif" }}>
+          We couldn't find that page.
+        </h1>
+        <p className="text-sm text-muted-foreground mb-10 leading-relaxed">
+          The link may be broken, the page may have moved, or it might never
+          have existed. Here are some good places to start:
+        </p>
+
+        <div className="grid grid-cols-2 gap-2 mb-8">
+          {links.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all text-left group"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                {label}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Still lost?{" "}
+          <a href="mailto:support@stoamarket.ai" className="text-primary hover:underline">
+            support@stoamarket.ai
+          </a>
+        </p>
+      </div>
+    </div>
+  );
 }

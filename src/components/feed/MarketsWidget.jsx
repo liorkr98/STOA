@@ -37,7 +37,12 @@ function WatchlistItem({ entry, live }) {
           {ticker}
         </span>
         {entry.name && entry.name !== ticker && (
-          <span className="text-[10px] text-muted-foreground truncate max-w-[70px]">{entry.name}</span>
+          <span
+            className="text-[10px] text-muted-foreground truncate max-w-[110px] whitespace-nowrap"
+            title={entry.name}
+          >
+            {entry.name}
+          </span>
         )}
       </div>
       {live?.price != null ? (

@@ -527,11 +527,30 @@ Analyst:`;
   };
 
   // ── Collapsed button ────────────────────────────────────────────────────
+  // Hide the fab when the page footer is in view so it doesn't cover footer
+  // links like Privacy/Cookies/Accessibility. AppFooter is wrapped in a
+  // <footer> element — we observe it and toggle visibility.
+  const [hidByFooter, setHidByFooter] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setHidByFooter(entry.isIntersecting),
+      { rootMargin: "0px 0px -40px 0px", threshold: 0 }
+    );
+    obs.observe(footer);
+    return () => obs.disconnect();
+  }, [open]);
+
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium"
+        className={`hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium ${
+          hidByFooter ? "opacity-0 pointer-events-none translate-y-2" : "opacity-100"
+        }`}
+        aria-hidden={hidByFooter}
       >
         <Sparkles className="w-4 h-4" />
         AI Research Assistant

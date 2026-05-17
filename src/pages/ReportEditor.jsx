@@ -126,6 +126,8 @@ function buildRows(blocks) {
 export default function ReportEditor() {
   const navigate = useNavigate();
   const urlTicker = new URLSearchParams(window.location.search).get("ticker")?.toUpperCase() || "";
+  // /drafts redirects to /editor?drafts=1 — open the drafts panel on mount.
+  const urlOpenDrafts = new URLSearchParams(window.location.search).get("drafts") === "1";
 
   // Mode
   const [editorMode, setEditorMode] = useState("deep"); // "deep" | "quick"
@@ -166,7 +168,7 @@ export default function ReportEditor() {
   // UI state
   const [showPrediction, setShowPrediction] = useState(false);
   const [showAI,         setShowAI]         = useState(() => !!urlTicker);
-  const [showDrafts,     setShowDrafts]     = useState(false);
+  const [showDrafts,     setShowDrafts]     = useState(urlOpenDrafts);
   const [showTemplates,  setShowTemplates]  = useState(false);
   const [activePanel,    setActivePanel]    = useState("write");
   const [publishing,     setPublishing]     = useState(false);
@@ -369,9 +371,23 @@ export default function ReportEditor() {
     setBlocks(prev => { const next = [...prev, nb]; pushHistory(next); return next; });
   }, [pushHistory]);
 
+  // Idempotent: if a disclaimer block already exists in the content, don't
+  // append another one. Multiple clicks were stacking the same paragraph.
   const addDYOR = useCallback(() => {
-    setBlocks(prev => { const next = [...prev, makeBlock("text", DYOR_TEXT)]; pushHistory(next); return next; });
-    toast.success("DYOR disclaimer added");
+    setBlocks(prev => {
+      const alreadyHas = prev.some(b =>
+        typeof b.content === "string" &&
+        /\bDisclaimer:|\bDYOR\b/i.test(b.content)
+      );
+      if (alreadyHas) {
+        toast.info("DYOR disclaimer is already in the report");
+        return prev;
+      }
+      const next = [...prev, makeBlock("text", DYOR_TEXT)];
+      pushHistory(next);
+      toast.success("DYOR disclaimer added");
+      return next;
+    });
   }, [pushHistory]);
 
   // ── Tags ─────────────────────────────────────────────────────────────────

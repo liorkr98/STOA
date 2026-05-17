@@ -408,7 +408,30 @@ export default function AnalystProfilePage() {
             base44.entities.Report.filter({ created_by: userData.email }, "-created_date", 50).catch(() => []),
             base44.entities.Twit.filter({ author_id: userData.id }, "-created_date", 5).catch(() => []),
           ]);
-          setMyReports(reports || []);
+          // Fallback: if the created_by filter returned nothing but the
+          // analyst clearly has published reports in the feed (common when
+          // RLS blocks the filter for non-owners, or when reports were
+          // baked with a different email than the User record), pull the
+          // full published list and match by author_name. This is what
+          // fixes "0 reports" on a profile whose reports show up in /feed.
+          let myReports = reports || [];
+          if (myReports.length === 0 && userData.email) {
+            try {
+              const all = await base44.entities.Report.filter(
+                { status: "published" },
+                "-created_date",
+                200
+              ).catch(() => []);
+              myReports = (all || []).filter(r => {
+                const byEmail = r.created_by && r.created_by.toLowerCase() === userData.email.toLowerCase();
+                const byName  = userData.full_name &&
+                  r.author_name &&
+                  r.author_name.trim().toLowerCase() === userData.full_name.trim().toLowerCase();
+                return byEmail || byName;
+              });
+            } catch {}
+          }
+          setMyReports(myReports);
           setTwits(twitData || []);
         }
       } finally {

@@ -30,12 +30,12 @@ export const MOCK_ANALYSTS = [
 function getMergedAnalyst(analyst) {
   if (analyst.id !== "a1" || typeof window === "undefined") return analyst;
   try {
-    const saved = JSON.parse(localStorage.getItem("stakify_profile")) || {};
+    const saved = JSON.parse(localStorage.getItem("stoa_profile")) || {};
     return { ...analyst, ...saved };
   } catch { return analyst; }
 }
 
-const PUBLISHED_KEY = "stakify_published_reports";
+const PUBLISHED_KEY = "stoa_published_reports";
 
 export function getPublishedReports() {
   if (typeof window === "undefined") return [];

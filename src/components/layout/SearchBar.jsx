@@ -55,7 +55,11 @@ export default function SearchBar() {
   const go = (path) => { navigate(path); setQuery(""); setOpen(false); };
 
   return (
-    <div ref={ref} className="relative w-full">
+    // Explicit z-index above any page-level content. Stock cards on /stocks
+    // use a hover transform that creates a new stacking context — without an
+    // explicit z here, those cards could pop above the search input and
+    // catch clicks meant for the search bar.
+    <div ref={ref} className="relative w-full z-50">
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
       <input
         value={query}

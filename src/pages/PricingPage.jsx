@@ -40,7 +40,7 @@ const PLANS = [
     features: [
       "Publish unlimited free reports",
       "Charge subscribers your chosen rate",
-      "STOA keeps 15% of subscription revenue",
+      "STOA keeps 10% of subscription revenue",
       "Full analytics dashboard & wallet",
     ],
     cta: "Start Writing",
@@ -112,7 +112,7 @@ export default function PricingPage() {
           {[
             { q: "How much does a researcher subscription cost?", a: "Each researcher independently sets their own subscription price. Rates typically range from $5 to $99/month. Browse researcher profiles to see individual pricing." },
             { q: "Can I cancel anytime?", a: "Yes. Researcher subscriptions can be cancelled at any time. Your access continues until the end of your current billing period." },
-            { q: "What does STOA take as a platform fee?", a: "STOA retains 15% of subscription revenue generated through the platform. Researchers keep 85% of all subscription income." },
+            { q: "What does STOA take as a platform fee?", a: "STOA retains 10% of subscription revenue generated through the platform. Researchers keep 90% of all subscription income." },
             { q: "Is financial advice included?", a: "No. STOA is an information and research platform. Nothing on STOA constitutes financial advice. Always do your own research (DYOR)." },
           ].map((item, i) => (
             <div key={i}>

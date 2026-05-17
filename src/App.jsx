@@ -163,10 +163,19 @@ const AuthenticatedApp = () => {
         <Route path="/creator-analytics" element={isAuthenticated ? <CreatorAnalyticsPage /> : <SignIn />} />
         <Route path="/saved" element={isAuthenticated ? <SavedReportsPage /> : <SignIn />} />
         <Route path="/stocks" element={<StocksPage />} />
+        {/* /markets is the natural URL — redirect to canonical /stocks */}
+        <Route path="/markets" element={<Navigate to="/stocks" replace />} />
         <Route path="/pay" element={<PaymentPage />} />
+        {/* /drafts opens the editor with the drafts panel pre-open
+            (handled by the ?drafts=1 query inside ReportEditor) */}
+        <Route path="/drafts" element={<Navigate to="/editor?drafts=1" replace />} />
+        {/* /become-researcher is what the footer link previously aimed at —
+            map it to the same onboarding page as /become-analyst */}
+        <Route path="/become-researcher" element={isAuthenticated ? <BecomeAnalystPage /> : <SignIn />} />
+        {/* Catch-all is INSIDE the AppLayout route so the 404 page inherits
+            the global nav and footer — fixes the previous bare 404 screen. */}
+        <Route path="*" element={<PageNotFound />} />
       </Route>
-
-      <Route path="*" element={<PageNotFound />} />
     </Routes>
     </Suspense>
   );

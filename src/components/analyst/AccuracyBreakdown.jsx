@@ -37,10 +37,11 @@ export default function AccuracyBreakdown({ analystUser }) {
   const totalCalls = analystUser?.total_calls || 0;
   const hasCalls   = totalCalls > 0;
   const score     = analystUser?.accuracy_score || 0;
-  // When no calls have resolved, force the rating to the floor (600 / Building)
-  // so the progress bar starts at the left rather than visually inflating past
-  // "Average" toward "Strong" because of a default 1000 seed.
-  const rating    = hasCalls ? (analystUser?.accuracy_rating || 1000) : 600;
+  // Starting Elo per PRD: 1,000. Every new researcher begins here — matches
+  // what /scoring advertises ("Starting Elo = 1,000"). Previously this
+  // floored at 600 for analysts with no resolved calls, contradicting the
+  // PRD and the scoring-page copy.
+  const rating    = hasCalls ? (analystUser?.accuracy_rating || 1000) : 1000;
   const tier      = hasCalls ? (analystUser?.accuracy_tier || "Building") : "Building";
   const hitRate   = hasCalls ? (analystUser?.hit_rate || 0) : null;
   const yield_    = analystUser?.yearly_yield;

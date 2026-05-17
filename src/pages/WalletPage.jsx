@@ -229,7 +229,14 @@ export default function WalletPage() {
                   className="w-full border border-input rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold outline-none focus:border-primary bg-card"
                 />
               </div>
-              <Button onClick={handleConvert} disabled={converting || !parseFloat(convertAmount)}>
+              <Button
+                onClick={handleConvert}
+                disabled={
+                  converting ||
+                  !parseFloat(convertAmount) ||
+                  parseFloat(convertAmount) > (wallet?.balance || 0)
+                }
+              >
                 {converting ? <Loader2 className="w-4 h-4 animate-spin" /> : `Get ${parseFloat(convertAmount || 0) * AI_CREDITS_PER_DOLLAR} cr.`}
               </Button>
             </div>

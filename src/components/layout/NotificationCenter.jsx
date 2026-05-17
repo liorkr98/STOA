@@ -63,6 +63,21 @@ export default function NotificationCenter() {
     if (n.link) navigate(n.link);
   };
 
+  // Per-item dismiss + Clear All. Previously notifications just accumulated
+  // with no way to manage them.
+  const dismissOne = async (e, id) => {
+    e.stopPropagation();
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    try { await base44.entities.Notification.delete(id); } catch {}
+  };
+  const clearAll = async () => {
+    const all = notifications;
+    setNotifications([]);
+    try {
+      await Promise.allSettled(all.map(n => base44.entities.Notification.delete(n.id)));
+    } catch {}
+  };
+
   if (!currentUser) return null;
 
   return (
@@ -83,14 +98,19 @@ export default function NotificationCenter() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
               <span className="font-semibold text-sm">Notifications</span>
-              {unread > 0 && (
-                <button onClick={markAllRead} className="text-xs text-primary hover:underline">Mark all read</button>
-              )}
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground ml-2">
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 ml-auto">
+                {unread > 0 && (
+                  <button onClick={markAllRead} className="text-xs text-primary hover:underline">Mark all read</button>
+                )}
+                {notifications.length > 0 && (
+                  <button onClick={clearAll} className="text-xs text-muted-foreground hover:text-loss transition-colors">Clear all</button>
+                )}
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div className="max-h-80 overflow-y-auto">
               {loading ? (
@@ -107,23 +127,36 @@ export default function NotificationCenter() {
                     ? formatDistanceToNow(new Date(n.created_date), { addSuffix: true })
                     : "";
                   return (
-                    <button
+                    <div
                       key={n.id}
-                      onClick={() => handleClick(n)}
-                      className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left border-b border-border/50 last:border-0 ${!n.read ? "bg-primary/5" : ""}`}
+                      className={`group relative flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors border-b border-border/50 last:border-0 ${!n.read ? "bg-primary/5" : ""}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                        <Icon className={`w-4 h-4 ${cfg.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                          {n.title}
-                          {!n.read && <span className="w-1.5 h-1.5 bg-primary rounded-full inline-block" />}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{n.body}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo}</p>
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => handleClick(n)}
+                        className="flex-1 flex items-start gap-3 text-left min-w-0"
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                          <Icon className={`w-4 h-4 ${cfg.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                            {n.title}
+                            {!n.read && <span className="w-1.5 h-1.5 bg-primary rounded-full inline-block" />}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{n.body}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo}</p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => dismissOne(e, n.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-loss p-1 -mr-1 shrink-0"
+                        title="Dismiss notification"
+                        aria-label="Dismiss notification"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   );
                 })
               )}

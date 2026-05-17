@@ -21,7 +21,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
   const [projSlider, setProjSlider] = useState(defaultSlider);
   const projPrice = activeSubs.length > 0 ? (mrr / activeSubs.length) : 29;
   const projMRR = projSlider * projPrice;
-  const projNet = projMRR * 0.85;
+  const projNet = projMRR * 0.90;
   const projARR = projNet * 12;
 
   // Average subscription age
@@ -118,7 +118,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
               <p className="text-lg font-bold text-primary">${projMRR.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Net MRR (85%)</p>
+              <p className="text-xs text-muted-foreground mb-1">Net MRR (90%)</p>
               <p className="text-lg font-bold text-green-600">${projNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
@@ -126,7 +126,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
               <p className="text-lg font-bold text-blue-600">${projARR.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">STOA takes a 15% platform fee. Net figures reflect your take-home.</p>
+          <p className="text-[10px] text-muted-foreground">STOA takes a 10% platform fee. Net figures reflect your take-home.</p>
         </div>
       </div>
 

@@ -88,7 +88,7 @@ const COMPARISON = [
   { feature: "Accuracy score dashboard", stoa: true, substack: false, seekingAlpha: true },
   { feature: "Professional financial editor", stoa: true, substack: false, seekingAlpha: false },
   { feature: "AI research assistant", stoa: true, substack: false, seekingAlpha: false },
-  { feature: "Keep 85%+ of revenue", stoa: true, substack: true, seekingAlpha: false },
+  { feature: "Keep 90%+ of revenue", stoa: true, substack: true, seekingAlpha: false },
   { feature: "Stock chart embeds", stoa: true, substack: false, seekingAlpha: false },
   { feature: "Metrics & thesis blocks", stoa: true, substack: false, seekingAlpha: false },
   { feature: "No follower count required", stoa: true, substack: false, seekingAlpha: false },
@@ -329,7 +329,7 @@ export default function LandingPage() {
             {[
               [Lock, "Predictions locked on publish"],
               [Shield, "Track records auto-verified"],
-              [DollarSign, "Researchers keep 85% of revenue"],
+              [DollarSign, "Researchers keep 90% of revenue"],
             ].map(([Icon, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#6b7280" }}>
                 <Icon size={14} color="#4b5563" /> {label}
@@ -400,8 +400,8 @@ export default function LandingPage() {
               desc: "Your accuracy score updates automatically as predictions resolve. No self-reporting. Readers see exactly how you've performed across every call.",
             },
             {
-              Icon: DollarSign, color: "#f59e0b", title: "Keep 85% of Revenue",
-              desc: "Set your own subscription price. Set premium reports. We take 15% — Seeking Alpha takes 50%+. Your audience, your pricing, your income.",
+              Icon: DollarSign, color: "#f59e0b", title: "Keep 90% of Revenue",
+              desc: "Set your own subscription price. Set premium reports. We take 10% — Seeking Alpha takes 50%+. Your audience, your pricing, your income.",
             },
             {
               Icon: PenLine, color: "#8b5cf6", title: "Professional Research Editor",
@@ -644,7 +644,7 @@ export default function LandingPage() {
               features: ["Publish unlimited reports", "Lock & track predictions", "Professional editor + AI", "Accuracy score dashboard", "Free subscriber following", "Subscribe button on profile"],
             },
             {
-              name: "Premium Researcher", price: "15%", sub: "Platform fee on revenue",
+              name: "Premium Researcher", price: "10%", sub: "Platform fee on revenue",
               color: "#8b5cf6", highlight: false,
               features: ["Everything in Researcher", "Paid subscription tiers", "Premium report gating", "Subscriber analytics", "Revenue dashboard & wallet", "Priority support"],
             },
@@ -701,7 +701,7 @@ export default function LandingPage() {
             {[
               { step: "01", Icon: PenLine, color: "#3b82f6", title: "Write & Publish", desc: "Use the professional editor to craft your research. Add stock charts, metrics blocks, and a bull/bear thesis with our dedicated finance blocks." },
               { step: "02", Icon: Lock, color: "#8b5cf6", title: "Lock Your Prediction", desc: "Attach a price target before you publish. It's timestamped, immutable, and tracked by the platform — no editing after the fact." },
-              { step: "03", Icon: DollarSign, color: "#22c55e", title: "Build & Monetize", desc: "As your accuracy score climbs, subscribers follow. Set subscription tiers, gate premium reports, and keep 85% of everything you earn." },
+              { step: "03", Icon: DollarSign, color: "#22c55e", title: "Build & Monetize", desc: "As your accuracy score climbs, subscribers follow. Set subscription tiers, gate premium reports, and keep 90% of everything you earn." },
             ].map(({ step, Icon, color, title, desc }) => (
               <div key={step} style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
                 <div style={{
