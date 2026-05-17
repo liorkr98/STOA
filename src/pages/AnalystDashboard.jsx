@@ -14,6 +14,7 @@ import { loadMyWallet } from "@/lib/walletService";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
 import { computeAnalystTier } from "@/lib/analystTier";
 import { analystHref } from "@/lib/analystSlug";
+import { avatarUrl } from "@/lib/avatarUrl";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 
@@ -272,7 +273,7 @@ export default function AnalystDashboard() {
 
   const analyst = {
     name: currentUser.full_name || currentUser.email?.split("@")[0] || "Researcher",
-    avatar: currentUser.picture || null,
+    avatar: avatarUrl(currentUser) || null,
     tagline: currentUser.tagline || "Researcher",
     reports: publishedReports.length,
     followers: currentUser.followers_count || 0,

@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 export default function QuickPostEditor({
   quickImage, setQuickImage,
@@ -46,7 +47,7 @@ export default function QuickPostEditor({
         content_blocks: JSON.stringify(blocks),
         status: "published",
         author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
-        author_avatar: currentUser?.picture || null,
+        author_avatar: avatarUrl(currentUser) || null,
         ...(quickShowPrediction && quickTicker ? {
           prediction_action:       quickAction,
           prediction_ticker:       quickTicker,

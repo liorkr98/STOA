@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 const REACTIONS = [
   { emoji: "🔥", label: "Fire" },
@@ -95,7 +96,7 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
         report_id: reportId,
         content: newComment.trim(),
         author_name: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Anonymous",
-        author_avatar: currentUser?.picture || null,
+        author_avatar: avatarUrl(currentUser) || null,
         likes: 0,
       });
       setComments(prev => [comment, ...prev]);
@@ -116,7 +117,10 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
   };
 
   const displayName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "You";
-  const displayAvatar = currentUser?.picture;
+  // Prefer uploaded profile picture (profile_picture_url) over auth-provider
+  // default (.picture). Previously only .picture was read, so users who'd
+  // uploaded a custom PFP saw the initial-letter fallback in comments.
+  const displayAvatar = avatarUrl(currentUser);
 
   return (
     <div id="comments" className="mt-8">

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
@@ -330,8 +331,8 @@ export default function InvestorHome() {
         <div className="flex items-start gap-5 flex-wrap">
           {/* Avatar */}
           <div className="relative">
-            {user?.picture
-              ? <img src={user.picture} alt={displayName} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
+            {avatarUrl(user)
+              ? <img src={avatarUrl(user)} alt={displayName} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
               : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-bold text-white">
                   {displayName[0].toUpperCase()}
                 </div>

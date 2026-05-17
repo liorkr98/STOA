@@ -4,6 +4,7 @@ import { Target, TrendingUp, CheckCircle2, XCircle, Clock, Loader2, RefreshCw } 
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { addMonths, differenceInDays, format } from "date-fns";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 const STATUS_CONFIG = {
   hit:     { label: "Exact Hit",    color: "text-gain",             bg: "bg-gain/10 border-gain/30",       icon: CheckCircle2 },
@@ -95,8 +96,8 @@ export default function PredictionSummaryPage() {
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          {currentUser?.picture
-            ? <img src={currentUser.picture} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+          {avatarUrl(currentUser)
+            ? <img src={avatarUrl(currentUser)} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
             : <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-base font-bold text-primary">{displayName?.[0]}</div>
           }
           <div>

@@ -699,7 +699,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         price:         isPremium ? parseFloat(reportPrice) : null,
         status:        "published",
         author_name:   currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
-        author_avatar: currentUser?.picture   || null,
+        author_avatar: avatarUrl(currentUser) || null,
         author_accuracy: currentUser?.accuracy_score || 0,
         likes: 0,
       };

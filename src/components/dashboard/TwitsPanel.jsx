@@ -3,6 +3,7 @@ import { Send, MessageCircle, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { toast } from "sonner";
 
 export default function TwitsPanel({ currentUser }) {
@@ -26,7 +27,7 @@ export default function TwitsPanel({ currentUser }) {
         content: tweet.trim(),
         author_id: currentUser.id,
         author_name: currentUser.full_name || currentUser.email?.split("@")[0] || "Researcher",
-        author_avatar: currentUser.picture || null,
+        author_avatar: avatarUrl(currentUser) || null,
       });
       setTwits(prev => [newTwit, ...prev]);
       setTweet("");
@@ -47,8 +48,8 @@ export default function TwitsPanel({ currentUser }) {
         <h3 className="font-semibold text-sm">Quick Twits</h3>
       </div>
       <div className="flex gap-2 mb-3">
-        {currentUser?.picture
-          ? <img src={currentUser.picture} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
+        {avatarUrl(currentUser)
+          ? <img src={avatarUrl(currentUser)} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
           : <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName?.[0] || "A"}</div>
         }
         <div className="flex-1">
@@ -75,8 +76,8 @@ export default function TwitsPanel({ currentUser }) {
         ) : (
           twits.map(t => (
             <div key={t.id} className="flex gap-2">
-              {currentUser?.picture
-                ? <img src={currentUser.picture} alt="" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
+              {avatarUrl(currentUser)
+                ? <img src={avatarUrl(currentUser)} alt="" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
                 : <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">{displayName?.[0]}</div>
               }
               <div>
