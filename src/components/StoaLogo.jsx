@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 // Candle Colonnade mark — three pillars + two beams (Greek stoa structure),
 // reinterpreted as candlestick bodies with wicks ABOVE and BELOW each pillar.
@@ -98,15 +98,39 @@ function Wordmark({ size, color }) {
   );
 }
 
+// Watch the documentElement for the .dark class so the logo recolors as soon
+// as the theme flips, without each consumer having to pass a `light` prop.
+function useIsDark() {
+  const [isDark, setIsDark] = useState(
+    typeof document !== "undefined" &&
+      document.documentElement.classList.contains("dark")
+  );
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const update = () => setIsDark(root.classList.contains("dark"));
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return isDark;
+}
+
 export default function StoaLogo({
   className = "",
   size = 28,
   textSize = "text-xl",
   showText = true,
-  light = false,        // force dark-bg colors (for places that aren't in .dark scope, e.g. dark footer in light mode)
+  light = false,        // force the dark-bg color (use for places not in .dark scope)
 }) {
-  // Brand spec: #1B3A6B on light backgrounds, #C8D8F0 on dark.
-  const color     = light ? "#C8D8F0" : "#1B3A6B";
+  // Brand spec: navy on light surfaces, pale blue on dark surfaces.
+  // Now follows the theme automatically so the header logo isn't navy-on-navy
+  // in dark mode (which made it nearly invisible). Consumers can still
+  // force the light variant with `light` for headers that sit on a dark
+  // hero in light mode.
+  const isDark    = useIsDark();
+  const color     = (light || isDark) ? "#C8D8F0" : "#1B3A6B";
   const wickColor = color;
 
   // Map Tailwind textSize → numeric font px for the inline wordmark style.

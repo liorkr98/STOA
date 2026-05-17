@@ -108,18 +108,24 @@
          • Brighter muted-foreground (~72%) for secondary text legibility.
        Reference: Claude's dark mode, GitHub dark, Linear — all use
        low-saturation neutral darks with strong surface elevation contrast. */
-    --background: 216 22% 9%;             /* #0E141C — deep neutral navy-charcoal */
-    --foreground: 220 14% 94%;            /* warm off-white, easier on the eyes than pure white */
-    --card: 216 20% 15%;                  /* #1E2733 — clearly elevated from bg */
-    --card-foreground: 220 14% 94%;
-    --popover: 216 22% 13%;
-    --popover-foreground: 220 14% 94%;
+    /* Contrast pass — the first refresh was still too punchy:
+       background was very dark (#0E141C) against very bright text (#F1F3F6),
+       which read as eye-straining on long sessions. Lifted background
+       ~4 lightness points and softened foreground ~6 points so the page
+       feels closer to a sheet of dark paper than a black screen with
+       glowing text. */
+    --background: 216 18% 13%;            /* #1A2230 — softer than before */
+    --foreground: 220 11% 88%;            /* gentler off-white */
+    --card: 216 16% 19%;                  /* still clearly elevated above bg */
+    --card-foreground: 220 11% 88%;
+    --popover: 216 16% 17%;
+    --popover-foreground: 220 11% 88%;
     --primary: var(--blue-primary);
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 16% 20%;             /* visible chip / tag surface */
-    --secondary-foreground: 220 10% 92%;
-    --muted: 216 16% 18%;
-    --muted-foreground: 218 10% 72%;      /* lifted for legibility against card */
+    --secondary: 216 14% 23%;             /* chip / tag surface, visible against card */
+    --secondary-foreground: 220 9% 86%;
+    --muted: 216 14% 21%;
+    --muted-foreground: 218 9% 67%;       /* secondary text — readable, not bright */
     --accent: var(--gold);                /* accent stays gold */
     --accent-foreground: var(--navy-deepest);
     --destructive: var(--sentiment-negative);

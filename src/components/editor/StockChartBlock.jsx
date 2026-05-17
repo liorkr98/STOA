@@ -224,6 +224,47 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         });
       }
 
+      // Sanity check: TradingView's *public embed* widget runs inside a
+      // cross-origin iframe, which means:
+      //   - takeClientScreenshot is only present on the paid Charting
+      //     Library, so the primary path silently falls through to
+      //     html2canvas.
+      //   - html2canvas can't read pixels out of a cross-origin iframe,
+      //     so it captures just the white wrapper background.
+      // Sample a sparse grid of pixels — if almost all are the chart's
+      // own background color, fail loudly with a useful message instead
+      // of uploading a blank PNG.
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      if (w >= 20 && h >= 20) {
+        const samples = 24;
+        const bgIsDark = chartTheme === "dark";
+        let blankCount = 0;
+        for (let i = 0; i < samples; i++) {
+          for (let j = 0; j < samples; j++) {
+            const px = ctx.getImageData(
+              Math.floor((i + 0.5) * w / samples),
+              Math.floor((j + 0.5) * h / samples),
+              1, 1
+            ).data;
+            const [r, g, b] = px;
+            // "Blank" = solid white (light theme) or solid TV-dark (dark theme),
+            // tolerant to a few rgb points of compression noise.
+            const isBlank = bgIsDark
+              ? (r < 30 && g < 30 && b < 40)
+              : (r > 245 && g > 245 && b > 245);
+            if (isBlank) blankCount++;
+          }
+        }
+        const blankRatio = blankCount / (samples * samples);
+        if (blankRatio > 0.94) {
+          throw new Error(
+            "TradingView's embed widget can't be screenshotted from the page (cross-origin iframe). " +
+            "Workaround: take a manual screenshot of the chart (Cmd+Shift+4 on Mac / Win+Shift+S on Windows) and add it as an Image block."
+          );
+        }
+      }
+
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(b => b ? resolve(b) : reject(new Error("Canvas to blob failed")), "image/png", 0.92);
       });

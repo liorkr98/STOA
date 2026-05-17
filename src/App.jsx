@@ -84,10 +84,17 @@ function RootRoute() {
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
   const isLoading = isLoadingPublicSettings || isLoadingAuth;
-  const isRoot = window.location.pathname === "/";
+  const path      = window.location.pathname;
+  const isRoot    = path === "/";
+  // /signin must render the in-app SignIn page even for unauthenticated
+  // users — otherwise the auth_required branch below shunts them through
+  // navigateToLogin() (the host-page redirect that 403'd), which is why
+  // the landing page's "Log In" button appeared to do nothing.
+  const isSignIn  = path === "/signin";
 
   if (isLoading) {
     if (isRoot) return <LandingPage />;
+    if (isSignIn) return <SignIn />;
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
@@ -98,7 +105,8 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     else if (authError.type === 'auth_required') {
-      if (isRoot) return <LandingPage />;
+      if (isRoot)   return <LandingPage />;
+      if (isSignIn) return <SignIn />;
       navigateToLogin();
       return null;
     }
