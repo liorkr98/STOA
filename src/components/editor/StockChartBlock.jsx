@@ -178,15 +178,32 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       let canvas = null;
 
       // ── Primary: TradingView widget screenshot (includes annotations) ──
+      // takeClientScreenshot returns different shapes depending on the
+      // widget build: sometimes a Canvas, sometimes a string URL, sometimes
+      // a Promise of either. Normalize all of those into a Canvas.
       const widget = widgetRef.current;
       if (widget && typeof widget.onChartReady === "function") {
         try {
           await new Promise((resolve) => widget.onChartReady(resolve));
           const chartApi = typeof widget.activeChart === "function" ? widget.activeChart() : null;
+          let raw = null;
           if (chartApi && typeof chartApi.takeClientScreenshot === "function") {
-            canvas = await chartApi.takeClientScreenshot();
+            raw = await chartApi.takeClientScreenshot();
           } else if (typeof widget.takeClientScreenshot === "function") {
-            canvas = await widget.takeClientScreenshot();
+            raw = await widget.takeClientScreenshot();
+          }
+          if (raw instanceof HTMLCanvasElement) {
+            canvas = raw;
+          } else if (typeof raw === "string" && raw.startsWith("blob:") || (typeof raw === "string" && raw.startsWith("data:image"))) {
+            // Convert returned URL into a canvas so the rest of the flow
+            // (toBlob → File → UploadFile) stays uniform.
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = raw; });
+            const c = document.createElement("canvas");
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext("2d").drawImage(img, 0, 0);
+            canvas = c;
           }
         } catch (e) {
           console.warn("TradingView screenshot failed, falling back to html2canvas:", e);
@@ -210,8 +227,14 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(b => b ? resolve(b) : reject(new Error("Canvas to blob failed")), "image/png", 0.92);
       });
+      if (!blob || blob.size === 0) throw new Error("Captured image is empty");
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+      // Wrap as a File — Base44's UploadFile sees a raw Blob as an empty
+      // object when it serializes the payload (because Blob has no
+      // enumerable properties), producing the "field is an empty object"
+      // error. File extends Blob and serializes correctly.
+      const fileObj = new File([blob], `${ticker}-${interval}-${Date.now()}.png`, { type: "image/png" });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileObj });
 
       const patch = {
         snapshot_url: file_url,

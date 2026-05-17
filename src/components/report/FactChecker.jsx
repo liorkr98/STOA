@@ -101,7 +101,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
     // entity write fails (e.g. permissions), we still want the email to land.
     try {
       await base44.entities.Notification.create({
-        user_email: "barams2023@gmail.com",
+        user_email: "support@stoamarket.ai",
         type:       "ai_review",
         title:      `AI fact-check flagged — ${ctx.claim.type}`,
         body:       `"${ctx.claim.text.slice(0, 140)}${ctx.claim.text.length > 140 ? "…" : ""}"`,
@@ -114,7 +114,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
 
     try {
       await base44.integrations.Core.SendEmail({
-        to: "barams2023@gmail.com",
+        to: "support@stoamarket.ai",
         subject: `AI Fact Check Flagged — ${claim.type} — ${ctx.reportTitle || "(pre-publish)"}`,
         body,
       });

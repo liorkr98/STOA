@@ -9,7 +9,11 @@ import {
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 
-const go = () => base44.auth.redirectToLogin("/");
+// Use the in-app /signin route instead of base44.auth.redirectToLogin()
+// — the latter was sending users to a host page that returned 403 instead
+// of the SPA's own SignIn screen. The hook is set inside the component
+// because react-router's navigate is component-scoped.
+const SIGNIN_PATH = "/signin";
 
 // ── Mock report cards for the marquee ───────────────────────────────────────
 const MOCK_REPORTS = [
@@ -214,6 +218,14 @@ export default function LandingPage() {
   const enterPlatform = () => {
     localStorage.setItem("stoa_last_landing_visit", Date.now().toString());
     navigate("/feed");
+  };
+
+  // In-app sign-in navigation (replaces the old base44 redirect-to-login
+  // that 403'd). Logs the visit timestamp so the redirect-back lands users
+  // at the feed instead of bouncing them through the landing page again.
+  const go = () => {
+    localStorage.setItem("stoa_last_landing_visit", Date.now().toString());
+    navigate(SIGNIN_PATH);
   };
 
   const primaryAction = user ? enterPlatform : go;
