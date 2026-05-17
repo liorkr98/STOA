@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
@@ -84,12 +84,18 @@ function RootRoute() {
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isAuthenticated } = useAuth();
   const isLoading = isLoadingPublicSettings || isLoadingAuth;
-  const path      = window.location.pathname;
+  // useLocation() subscribes this component to router state, so when
+  // LandingPage calls navigate("/signin") this re-renders and the new path
+  // wins the isSignIn check below. Previously we read window.location
+  // .pathname directly — that doesn't trigger a re-render, so the if-block
+  // kept returning <LandingPage /> even after the URL had changed, which
+  // is why clicking "Log In" appeared to do nothing.
+  const location  = useLocation();
+  const path      = location.pathname;
   const isRoot    = path === "/";
   // /signin must render the in-app SignIn page even for unauthenticated
   // users — otherwise the auth_required branch below shunts them through
-  // navigateToLogin() (the host-page redirect that 403'd), which is why
-  // the landing page's "Log In" button appeared to do nothing.
+  // navigateToLogin() (the host-page redirect that 403'd).
   const isSignIn  = path === "/signin";
 
   if (isLoading) {
