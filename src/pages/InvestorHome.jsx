@@ -617,7 +617,7 @@ export default function InvestorHome() {
                 { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
                 { icon: Flame, label: "Research Feed", to: "/feed" },
                 { icon: Zap, label: "Wallet & Credits", to: "/wallet" },
-                { icon: Bell, label: "Notifications", to: "/notifications" },
+                { icon: Bell, label: "Inbox & Notifications", to: "/inbox" },
               ].map(({ icon: Icon, label, to }) => (
                 <Link
                   key={to}
