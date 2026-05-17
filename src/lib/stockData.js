@@ -40,6 +40,10 @@ export async function fetchFundamentals(ticker) {
   const fd = d.financialData || {};
   const ap = d.assetProfile || {};
   return {
+    // Yahoo's chart endpoint (used by fetchQuote) does NOT return
+    // marketCap — only the quoteSummary endpoint does. We pull it through
+    // fundamentals so the detail page actually has a value to show.
+    marketCap:      sd?.marketCap?.raw ?? ks?.marketCap?.raw,
     pe:             sd?.trailingPE?.raw,
     forwardPE:      sd?.forwardPE?.raw,
     eps:            ks?.trailingEps?.raw,

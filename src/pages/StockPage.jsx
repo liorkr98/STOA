@@ -177,7 +177,7 @@ export default function StockPage() {
         {/* Key stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 pt-4 border-t border-border">
           {[
-            { label: "Market Cap",  value: fmtCap(quote.marketCap) },
+            { label: "Market Cap",  value: fmtCap(fundamentals?.marketCap ?? quote.marketCap) },
             { label: "P/E (TTM)",   value: fmtNum(fundamentals?.pe) },
             { label: "EPS (TTM)",   value: fundamentals?.eps ? `$${fmtNum(fundamentals.eps)}` : "—" },
             { label: "Fwd P/E",     value: fmtNum(fundamentals?.forwardPE) },
