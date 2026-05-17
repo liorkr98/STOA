@@ -62,17 +62,28 @@ async function fetchIndexes() {
 
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
+  // Hit Yahoo's chart endpoint directly (via proxyFetch) — same source the
+  // ticker detail page uses (lib/stockData.fetchQuote). Previously the
+  // watchlist went through the cached getStockData backend function while
+  // the detail page hit Yahoo fresh, which is why the same ticker could
+  // show -26.49% in the watchlist and -12.20% on its detail page.
   const results = await Promise.allSettled(
     symbols.map(async sym => {
-      const r = await base44.functions.invoke("getStockData", { ticker: sym });
-      const d = r?.data || r;
+      const r = await base44.functions.invoke("proxyFetch", {
+        url: `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`,
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      const meta = r?.data?.chart?.result?.[0]?.meta || {};
+      const price = meta.regularMarketPrice;
+      const prev  = meta.chartPreviousClose;
+      const changePct = (price != null && prev) ? ((price - prev) / prev) * 100 : null;
       return {
-        symbol:  sym,
-        name:    d?.companyName || d?.shortName || sym,
-        price:   d?.price ?? d?.regularMarketPrice ?? null,
-        change:  d?.regularMarketChangePercent ?? d?.changePercent ?? null,
-        volume:  d?.regularMarketVolume ?? d?.volume ?? null,
-        mktCap:  d?.marketCap ?? d?.mktCap ?? null,
+        symbol: sym,
+        name:   meta.longName || meta.shortName || sym,
+        price,
+        change: changePct,
+        volume: meta.regularMarketVolume,
+        mktCap: meta.marketCap, // chart endpoint doesn't expose this; null is ok
       };
     })
   );

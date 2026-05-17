@@ -47,12 +47,30 @@ export default function BecomeAnalystPage() {
     }
   }, [user]);
 
-  // Already an analyst? bounce to profile
-  useEffect(() => {
-    if (user && (user.role === "analyst" || user.role === "admin")) {
-      navigate("/analyst", { replace: true });
-    }
-  }, [user, navigate]);
+  // Existing researchers don't need to see the onboarding form again. Show
+  // an already-onboarded card instead of silently redirecting to their
+  // profile (which made the footer "Become a Researcher" link look like
+  // it was broken — it routed admins straight back to their own profile).
+  const isAlreadyAnalyst = user && (user.role === "analyst" || user.role === "admin");
+
+  if (isAlreadyAnalyst) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-16 text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gain/10 flex items-center justify-center">
+          <CheckCircle2 className="w-7 h-7 text-gain" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-2">You're already a researcher</h1>
+        <p className="text-sm text-muted-foreground mb-6">
+          Your account has researcher access. Open your public profile to publish
+          a report or update your bio.
+        </p>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={() => navigate("/analyst")}>View My Profile</Button>
+          <Button variant="outline" onClick={() => navigate("/editor")}>Write a Report</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

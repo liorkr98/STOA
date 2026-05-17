@@ -69,7 +69,7 @@ export default function StockPage() {
 
   useEffect(() => {
     setMeta({
-      title: `${ticker} Stock — Chart, News & Analysis | STOA`,
+      title: `${ticker} Stock — Chart, News & Analysis`,
       description: `Live chart, financials, news and analyst research for ${ticker} on STOA.`,
     });
   }, [ticker]);
@@ -102,7 +102,15 @@ export default function StockPage() {
   if (error)   return <ErrorScreen message={error} onBack={goBack} />;
   if (!quote)  return null;
 
-  const isUp = (quote.change ?? 0) >= 0;
+  // Treat changes that round to exactly 0.00% as neutral — gray, no arrow,
+  // no "+". The previous `>= 0` lumped 0.00 in with positives, which painted
+  // flat tickers (like APLS with "+0.00%") as green.
+  const changePctNum = Number(quote.changePct);
+  const changeAbs    = Math.abs(changePctNum);
+  const isFlat       = !isFinite(changePctNum) || changeAbs < 0.005;
+  const isUp         = !isFlat && changePctNum > 0;
+  const isDown       = !isFlat && changePctNum < 0;
+  const directionColor = isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground";
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -164,8 +172,8 @@ export default function StockPage() {
           {/* Right: price */}
           <div className="text-right">
             <div className="text-3xl font-bold">${fmtNum(quote.price)}</div>
-            <div className={`flex items-center justify-end gap-1 text-sm font-semibold mt-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
-              {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+            <div className={`flex items-center justify-end gap-1 text-sm font-semibold mt-0.5 ${directionColor}`}>
+              {isUp ? <TrendingUp className="w-4 h-4" /> : isDown ? <TrendingDown className="w-4 h-4" /> : null}
               {isUp ? "+" : ""}{fmtNum(quote.change)} ({isUp ? "+" : ""}{fmtNum(quote.changePct)}%)
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">

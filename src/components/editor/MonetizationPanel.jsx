@@ -37,7 +37,7 @@ export default function MonetizationPanel({ isPremium, price, onIsPremiumChange,
             <Input value={price} onChange={e => onPriceChange(e.target.value)} className="pl-6 h-9" placeholder="4.99" type="number" min="0.99" step="0.50" />
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            You keep ${(parseFloat(price || 0) * 0.85).toFixed(2)} after 15% platform fee
+            You keep ${(parseFloat(price || 0) * 0.90).toFixed(2)} after 10% platform fee
           </p>
         </div>
       )}

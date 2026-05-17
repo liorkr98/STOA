@@ -16,7 +16,26 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
   }, [ticker]);
 
   const history  = earnings?.history || [];
-  const beats    = history.filter(q => (q.surprisePercent?.raw || 0) > 0).length;
+  // Compute surprise % ourselves rather than trusting Yahoo's
+  // surprisePercent.raw — that field is a decimal (0.08 = 8%) in this feed
+  // version and was rendering as "0.1%" because we displayed it as-is.
+  // Per audit spec: surprise % = (Actual - Estimate) / |Estimate| × 100.
+  const computeSurprise = (q) => {
+    const actual = q?.epsActual?.raw;
+    const est    = q?.epsEstimate?.raw;
+    if (typeof actual !== "number" || typeof est !== "number" || est === 0) return null;
+    return ((actual - est) / Math.abs(est)) * 100;
+  };
+  // Friendly quarter label. Yahoo's `period` is "-4q" / "-3q" — useless.
+  // Use the quarter timestamp to produce "Q3 2024" instead.
+  const quarterLabel = (q) => {
+    const ts = q?.quarter?.raw;
+    if (!ts) return q?.period || "—";
+    const d = new Date(ts * 1000);
+    const qNum = Math.floor(d.getUTCMonth() / 3) + 1;
+    return `Q${qNum} ${d.getUTCFullYear()}`;
+  };
+  const beats    = history.filter(q => (computeSurprise(q) ?? 0) > 0).length;
   const total    = history.length || 1;
   const beatRate = Math.round((beats / total) * 100);
 
@@ -62,20 +81,28 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
               </thead>
               <tbody>
                 {history.slice(0, 8).map((q, i) => {
-                  const surp = q.surprisePercent?.raw || 0;
-                  const color = surp > 0 ? "text-gain" : "text-loss";
+                  const surp  = computeSurprise(q);
+                  const diff  = q.epsDifference?.raw;
+                  const isPos = surp != null && surp > 0;
+                  const color = isPos ? "text-gain" : (surp != null ? "text-loss" : "text-muted-foreground");
+                  // Sign-before-currency: -$0.52, not $-0.52
+                  const fmtSigned = (n) => n == null ? "—" : `${n < 0 ? "-" : ""}$${Math.abs(n).toFixed(2)}`;
                   return (
                     <tr key={i} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
-                      <td className="px-5 py-2.5 font-medium text-xs">{q.period}</td>
-                      <td className="px-5 py-2.5 text-xs">${q.epsEstimate?.raw?.toFixed(2) || "—"}</td>
-                      <td className="px-5 py-2.5 font-semibold text-xs">${q.epsActual?.raw?.toFixed(2) || "—"}</td>
+                      <td className="px-5 py-2.5 font-medium text-xs">{quarterLabel(q)}</td>
+                      <td className="px-5 py-2.5 text-xs">{fmtSigned(q.epsEstimate?.raw)}</td>
+                      <td className="px-5 py-2.5 font-semibold text-xs">{fmtSigned(q.epsActual?.raw)}</td>
                       <td className={`px-5 py-2.5 text-xs ${color}`}>
-                        {surp > 0 ? "+" : ""}{q.epsDifference?.raw?.toFixed(2) || "—"}
+                        {diff == null ? "—" : `${diff >= 0 ? "+" : ""}${fmtSigned(diff)}`}
                       </td>
                       <td className="px-5 py-2.5 text-xs">
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${surp > 0 ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-                          {surp > 0 ? "+" : ""}{surp.toFixed(1)}%
-                        </span>
+                        {surp == null ? (
+                          <span className="px-2 py-0.5 rounded text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${isPos ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                            {isPos ? "+" : ""}{surp.toFixed(2)}%
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

@@ -105,7 +105,7 @@ export default function EditorSettingsPanel({
               <Input value={reportPrice} onChange={e => setReportPrice(e.target.value)} className="pl-6 h-9 text-sm" placeholder="4.99" type="number" min="0.99" step="0.50" />
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">
-              You keep ${(parseFloat(reportPrice || 0) * 0.85).toFixed(2)} after 15% fee
+              You keep ${(parseFloat(reportPrice || 0) * 0.90).toFixed(2)} after 10% fee
             </p>
           </div>
         )}

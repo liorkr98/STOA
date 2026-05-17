@@ -69,23 +69,42 @@ export default function SubscribersPage() {
   const [subscribers, setSubscribers] = useState([]);
   const [following, setFollowing] = useState([]);
 
+  // Source of truth: server entities. The previous localStorage-only read
+  // disagreed with the feed sidebar (which queries the Follow entity), so
+  // /subscribers showed Following=0 while the sidebar said Following=2.
+  // Subscriptions: same fix using the Subscription entity.
   useEffect(() => {
-    const subs = JSON.parse(localStorage.getItem("stoa_subscriptions") || "[]");
-    const fols = JSON.parse(localStorage.getItem("stoa_following") || "[]");
-    setSubscribers(subs);
-    setFollowing(fols);
-  }, []);
+    if (!isAuthenticated || !user?.email) return;
+    (async () => {
+      try {
+        const [follows, subs] = await Promise.all([
+          base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100).catch(() => []),
+          base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100).catch(() => []),
+        ]);
+        setFollowing((follows || []).map(f => ({
+          id: f.id,
+          email: f.analyst_email,
+          name: f.analyst_name || (f.analyst_email || "").split("@")[0] || "Researcher",
+          avatar: f.analyst_avatar,
+        })));
+        setSubscribers((subs || []).map(s => ({
+          id: s.id,
+          email: s.analyst_email,
+          name: s.analyst_name || (s.analyst_email || "").split("@")[0] || "Researcher",
+          avatar: s.analyst_avatar,
+        })));
+      } catch {}
+    })();
+  }, [isAuthenticated, user?.email]);
 
-  const handleUnfollow = (id) => {
-    const updated = following.filter(a => a.id !== id);
-    localStorage.setItem("stoa_following", JSON.stringify(updated));
-    setFollowing(updated);
+  const handleUnfollow = async (id) => {
+    setFollowing(prev => prev.filter(a => a.id !== id));
+    try { await base44.entities.Follow.delete(id); } catch {}
   };
 
-  const handleUnsubscribe = (id) => {
-    const updated = subscribers.filter(a => a.id !== id);
-    localStorage.setItem("stoa_subscriptions", JSON.stringify(updated));
-    setSubscribers(updated);
+  const handleUnsubscribe = async (id) => {
+    setSubscribers(prev => prev.filter(a => a.id !== id));
+    try { await base44.entities.Subscription.update(id, { status: "cancelled" }); } catch {}
   };
 
   const activeList = tab === "subscribers" ? subscribers : following;

@@ -2,7 +2,12 @@ const DEFAULT_IMAGE = "https://stoamarket.ai/og-image.png";
 const DEFAULT_DESC = "Follow verified analysts, track real predictions, and make smarter investment decisions backed by transparent data.";
 
 export function setMeta({ title, description, image, url, type = "website" } = {}) {
-  const fullTitle = title ? `${title} | STOA` : "STOA — Verified Financial Research";
+  // Defensive: callers sometimes pre-bake "| STOA" into the title (and
+  // AppLayout's ROUTE_TITLES does the same), which produced "X | STOA | STOA"
+  // on pages like the stock detail view. Strip any trailing brand suffix
+  // before re-adding it so the result always has exactly one.
+  const cleanTitle = title ? title.replace(/\s*\|\s*STOA\s*$/i, "").trim() : "";
+  const fullTitle = cleanTitle ? `${cleanTitle} | STOA` : "STOA — Verified Financial Research";
   const desc = description || DEFAULT_DESC;
   const img = image || DEFAULT_IMAGE;
   const canonical = url || window.location.href;

@@ -401,7 +401,7 @@ Report:
 
   // ── EDGAR helpers ──────────────────────────────────────────────────────────
   // SEC requires User-Agent: "<company> <email>" on every request.
-  const EDGAR_HEADERS = { "User-Agent": "Stakify admin@stakify.com", "Accept-Encoding": "gzip, deflate" };
+  const EDGAR_HEADERS = { "User-Agent": "STOA admin@stoamarket.ai", "Accept-Encoding": "gzip, deflate" };
 
   // Resolve ticker → zero-padded 10-digit CIK via the EDGAR company_tickers file.
   const resolveCIK = async (ticker) => {

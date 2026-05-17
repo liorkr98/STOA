@@ -72,11 +72,28 @@ export async function fetchFundamentals(ticker) {
 }
 
 // ── NEWS ─────────────────────────────────────────────────────
+// Yahoo's /search endpoint returns news that *mentions* the query in a
+// loose match, so a query for "NVDA" came back with stories about Palantir,
+// Snapchat, etc. that simply referenced NVIDIA in passing.
+// Filter the result to entries that actually carry the ticker in their
+// `relatedTickers` array (Yahoo's authoritative tag) — falling back to
+// looking for the symbol in the title/summary if that field is missing.
 export async function fetchNews(ticker) {
   const data = await yf(
-    `https://query1.finance.yahoo.com/v1/finance/search?q=${ticker}&quotesCount=0&newsCount=10`
+    `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&quotesCount=0&newsCount=30`
   );
-  return data?.news || [];
+  const raw = data?.news || [];
+  const sym = ticker.toUpperCase();
+  const symRe = new RegExp(`\\b${sym}\\b`, "i");
+  const filtered = raw.filter(n => {
+    const related = (n.relatedTickers || []).map(t => String(t).toUpperCase());
+    if (related.includes(sym)) return true;
+    // Fallback: textual mention. Strict on title (must contain ticker as a
+    // whole word) so we don't get generic market roundups.
+    if (n.title && symRe.test(n.title)) return true;
+    return false;
+  });
+  return (filtered.length ? filtered : raw).slice(0, 10);
 }
 
 // ── EARNINGS ─────────────────────────────────────────────────
@@ -142,12 +159,33 @@ export function fmtVol(v) {
   return v.toLocaleString();
 }
 
+// Formats a Yahoo financial field. Yahoo wraps numbers as
+// { raw, fmt, longFmt } but some fields land as bare numbers, others as
+// empty objects, and others (like EBITDA on companies that don't report
+// it) come back as null. Previously the "object but no .raw" case fell
+// through and rendered "$[object Object]" — now we guard explicitly and
+// emit "—" for any unrecognised shape.
+//
+// Sign-before-currency rule: "-$12.34B" (not "$-12.34B").
 export function fmtFin(v) {
   if (v == null) return "—";
-  const n = v?.raw ?? v;
-  if (n == null) return "—";
-  if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-  if (Math.abs(n) >= 1e9)  return `$${(n / 1e9).toFixed(2)}B`;
-  if (Math.abs(n) >= 1e6)  return `$${(n / 1e6).toFixed(2)}M`;
-  return `$${n.toLocaleString()}`;
+  const raw = typeof v === "object" ? v.raw : v;
+  if (typeof raw !== "number" || !isFinite(raw)) return "—";
+  const sign = raw < 0 ? "-" : "";
+  const abs = Math.abs(raw);
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9)  return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6)  return `${sign}$${(abs / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3)  return `${sign}$${(abs / 1e3).toFixed(1)}K`;
+  return `${sign}$${abs.toLocaleString()}`;
+}
+
+// Like fmtFin but for raw per-share numbers (EPS) — no $-scaling to billions.
+// Sign before currency: "-$0.52", never "$-0.52".
+export function fmtPerShare(v) {
+  if (v == null) return "—";
+  const raw = typeof v === "object" ? v.raw : v;
+  if (typeof raw !== "number" || !isFinite(raw)) return "—";
+  const sign = raw < 0 ? "-" : "";
+  return `${sign}$${Math.abs(raw).toFixed(2)}`;
 }

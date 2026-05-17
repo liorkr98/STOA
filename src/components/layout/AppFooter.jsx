@@ -46,7 +46,7 @@ const CREATOR_STATS = [
   { icon: TrendingUp, label: "Verified Track Records" },
   { icon: PenLine, label: "Professional Editor" },
   { icon: BarChart3, label: "AI Research Assistant" },
-  { icon: Shield, label: "Keep 85% Revenue" },
+  { icon: Shield, label: "Keep 90% Revenue" },
 ];
 
 export default function AppFooter() {

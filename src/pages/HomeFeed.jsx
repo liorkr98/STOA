@@ -384,11 +384,28 @@ export default function HomeFeed() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <FeedSkeletonCard key={i} />)
             ) : activeTab === "analysts" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {topAnalysts.map(analyst => (
-                  <AnalystFeedCard key={analyst.id} analyst={analyst} allReports={reports} />
-                ))}
-              </div>
+              topAnalysts.length === 0 ? (
+                // Previously this rendered an empty grid with no message —
+                // looked like the tab was broken. Show a friendly empty
+                // state and a CTA to the leaderboard so users have somewhere
+                // to go.
+                <div className="text-center py-16">
+                  <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-semibold text-foreground">No researchers to show yet</p>
+                  <p className="text-sm text-muted-foreground mt-1 mb-4">
+                    Researchers will appear here as the platform grows.
+                  </p>
+                  <Link to="/leaderboard" className="text-sm text-primary hover:underline">
+                    Browse the full leaderboard →
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {topAnalysts.map(analyst => (
+                    <AnalystFeedCard key={analyst.id} analyst={analyst} allReports={reports} />
+                  ))}
+                </div>
+              )
             ) : filtered.length === 0 ? (
               activeTab === "following" ? (
                 <EmptyFollowingState onFollow={handleFollowAnalyst} />

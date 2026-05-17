@@ -1,4 +1,4 @@
-const STORAGE_KEY = "stakify_twits";
+const STORAGE_KEY = "stoa_twits";
 
 const DEFAULT_TWITS = [
   { id: 1, content: "Watching NVDA open. This AI infrastructure cycle has legs — don't fight the tape. 🟢", time: "2h ago" },

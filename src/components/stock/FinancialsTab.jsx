@@ -1,32 +1,61 @@
 import { useState, useEffect } from "react";
-import { fetchFinancials, fmtFin } from "@/lib/stockData";
+import { fetchFinancials, fmtFin, fmtPerShare } from "@/lib/stockData";
 import { Loader2 } from "lucide-react";
 
+// Yahoo's quoteSummary returns slightly different field names depending on
+// the company, the industry, and which feed version is serving the request
+// — totalLiab vs totalLiabilities, cash vs cashAndCashEquivalents, etc.
+// Each row carries a list of candidate keys; we read the first one that
+// produces a numeric value. This is what fixes Gross Profit / Balance
+// Sheet rendering blank for tickers whose Yahoo response uses the alt
+// field names.
 const INCOME_ROWS = [
-  { label: "Total Revenue",        key: "totalRevenue" },
-  { label: "Gross Profit",         key: "grossProfit" },
-  { label: "Operating Income",     key: "operatingIncome" },
-  { label: "EBITDA",               key: "ebitda" },
-  { label: "Net Income",           key: "netIncome" },
-  { label: "Basic EPS",            key: "basicEPS" },
+  { label: "Total Revenue",    keys: ["totalRevenue"] },
+  { label: "Cost of Revenue",  keys: ["costOfRevenue"] },
+  { label: "Gross Profit",     keys: ["grossProfit"], derive: (s) => firstNum(s, "totalRevenue") - firstNum(s, "costOfRevenue") },
+  { label: "Operating Income", keys: ["operatingIncome", "operatingIncomeOrLoss"] },
+  { label: "EBITDA",           keys: ["ebitda", "normalizedEBITDA"] },
+  { label: "Net Income",       keys: ["netIncome", "netIncomeApplicableToCommonShares", "netIncomeFromContinuingOps"] },
+  { label: "Basic EPS",        keys: ["basicEPS", "earningsPerShare"], format: "perShare" },
 ];
 
 const BALANCE_ROWS = [
-  { label: "Total Assets",         key: "totalAssets" },
-  { label: "Total Liabilities",    key: "totalLiab" },
-  { label: "Stockholder Equity",   key: "totalStockholderEquity" },
-  { label: "Cash & Equivalents",   key: "cash" },
-  { label: "Short Term Debt",      key: "shortLongTermDebt" },
-  { label: "Long Term Debt",       key: "longTermDebt" },
+  { label: "Total Assets",       keys: ["totalAssets"] },
+  { label: "Total Liabilities",  keys: ["totalLiab", "totalLiabilities", "totalLiabilitiesNetMinorityInterest"] },
+  { label: "Stockholder Equity", keys: ["totalStockholderEquity", "stockholdersEquity", "commonStockEquity"] },
+  { label: "Cash & Equivalents", keys: ["cash", "cashAndCashEquivalents", "cashAndCashEquivalentsAtCarryingValue", "cashFinancial"] },
+  { label: "Short Term Debt",    keys: ["shortLongTermDebt", "shortTermDebt", "currentDebt"] },
+  { label: "Long Term Debt",     keys: ["longTermDebt", "longTermDebtNoncurrent"] },
 ];
 
 const CASHFLOW_ROWS = [
-  { label: "Operating Cash Flow",  key: "totalCashFromOperatingActivities" },
-  { label: "Capital Expenditures", key: "capitalExpenditures" },
-  { label: "Free Cash Flow",       key: "freeCashFlow" },
-  { label: "Investing Activities", key: "totalCashFromInvestingActivities" },
-  { label: "Financing Activities", key: "totalCashFromFinancingActivities" },
+  { label: "Operating Cash Flow",  keys: ["totalCashFromOperatingActivities", "operatingCashFlow"] },
+  { label: "Capital Expenditures", keys: ["capitalExpenditures", "capitalExpenditure"] },
+  { label: "Free Cash Flow",       keys: ["freeCashFlow"], derive: (s) => firstNum(s, "totalCashFromOperatingActivities", "operatingCashFlow") + firstNum(s, "capitalExpenditures", "capitalExpenditure") },
+  { label: "Investing Activities", keys: ["totalCashFromInvestingActivities", "investingCashFlow"] },
+  { label: "Financing Activities", keys: ["totalCashFromFinancingActivities", "financingCashFlow"] },
 ];
+
+// Pick the first present numeric value across a list of candidate keys.
+// Yahoo encodes numbers as either bare values or { raw, fmt, longFmt }.
+function pickValue(statement, keys) {
+  if (!statement) return null;
+  for (const k of keys) {
+    const v = statement[k];
+    if (v == null) continue;
+    const raw = typeof v === "object" ? v.raw : v;
+    if (typeof raw === "number" && isFinite(raw)) return v;
+  }
+  return null;
+}
+
+// Helper used by `derive` fns above — returns 0 for missing values so
+// arithmetic doesn't NaN out when only one operand is present.
+function firstNum(statement, ...keys) {
+  const v = pickValue(statement, keys);
+  if (v == null) return 0;
+  return typeof v === "object" ? v.raw : v;
+}
 
 function FinTable({ title, rows, statements }) {
   if (!statements?.length) return null;
@@ -55,15 +84,24 @@ function FinTable({ title, rows, statements }) {
           </thead>
           <tbody>
             {rows.map(row => (
-              <tr key={row.key} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
+              <tr key={row.label} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
                 <td className="px-5 py-2.5 text-xs text-muted-foreground">{row.label}</td>
                 {cols.map((s, i) => {
-                  const val = s[row.key];
-                  const n = val?.raw ?? val;
-                  const isNeg = n != null && n < 0;
+                  let val = pickValue(s, row.keys);
+                  // If the direct keys missed, try the derive function (e.g.
+                  // Gross Profit = Revenue − Cost of Revenue, Free Cash Flow
+                  // = Operating Cash Flow + CapEx) so we don't show $0 on
+                  // companies whose Yahoo feed omits the precomputed field.
+                  if (val == null && typeof row.derive === "function") {
+                    const computed = row.derive(s);
+                    if (typeof computed === "number" && isFinite(computed) && computed !== 0) val = computed;
+                  }
+                  const raw = typeof val === "object" && val ? val.raw : val;
+                  const isNeg = typeof raw === "number" && raw < 0;
+                  const formatted = row.format === "perShare" ? fmtPerShare(val) : fmtFin(val);
                   return (
                     <td key={i} className={`px-5 py-2.5 text-right text-xs font-medium tabular-nums ${isNeg ? "text-loss" : "text-foreground"}`}>
-                      {fmtFin(val)}
+                      {formatted}
                     </td>
                   );
                 })}
