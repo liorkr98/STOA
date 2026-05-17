@@ -94,39 +94,54 @@
   }
 
   .dark {
-    --background: 216 56% 11%;            /* #0C1829 */
-    --foreground: 0 0% 98%;
-    --card: 216 56% 13%;
-    --card-foreground: 0 0% 98%;
-    --popover: 216 56% 13%;
-    --popover-foreground: 0 0% 98%;
+    /* Dark-mode palette refresh — May 17.
+       The previous palette stacked --background at 56% saturation and only
+       lifted --card by 2 points, which made cards nearly invisible against
+       the page and gave the whole UI a flat, harsh-navy feel ("weird and
+       uncomfortable" per design review).
+       The new values:
+         • Drop saturation from 56% → 22% so dark mode reads as a neutral
+           navy-charcoal rather than aggressive royal blue.
+         • Open the gap between background (#0E141C) and card (#161E2A) to
+           5+ lightness points so surfaces actually feel like surfaces.
+         • Softer foreground (~94%) so high-contrast text isn't glaring.
+         • Brighter muted-foreground (~72%) for secondary text legibility.
+       Reference: Claude's dark mode, GitHub dark, Linear — all use
+       low-saturation neutral darks with strong surface elevation contrast. */
+    --background: 216 22% 9%;             /* #0E141C — deep neutral navy-charcoal */
+    --foreground: 220 14% 94%;            /* warm off-white, easier on the eyes than pure white */
+    --card: 216 20% 15%;                  /* #1E2733 — clearly elevated from bg */
+    --card-foreground: 220 14% 94%;
+    --popover: 216 22% 13%;
+    --popover-foreground: 220 14% 94%;
     --primary: var(--blue-primary);
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 40% 18%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 216 40% 16%;
-    --muted-foreground: 0 0% 78%;         /* bumped for dark-on-dark legibility */
+    --secondary: 216 16% 20%;             /* visible chip / tag surface */
+    --secondary-foreground: 220 10% 92%;
+    --muted: 216 16% 18%;
+    --muted-foreground: 218 10% 72%;      /* lifted for legibility against card */
     --accent: var(--gold);                /* accent stays gold */
     --accent-foreground: var(--navy-deepest);
     --destructive: var(--sentiment-negative);
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100%;                  /* base; consumed as hsl(var(--border) / 0.08) via glass */
-    --input: 216 40% 18%;
+    --border: 0 0% 100%;                  /* base; consumed as hsl(var(--border) / 0.10) via glass */
+    --input: 216 16% 22%;
     --ring: var(--blue-primary);
 
-    --sidebar-background: 216 56% 10%;
-    --sidebar-foreground: 0 0% 95%;
+    --sidebar-background: 216 22% 7%;
+    --sidebar-foreground: 220 14% 92%;
     --sidebar-primary: var(--blue-primary);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 40% 16%;
-    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-accent: 216 16% 18%;
+    --sidebar-accent-foreground: 220 10% 92%;
     --sidebar-border: 0 0% 100%;
     --sidebar-ring: var(--blue-primary);
 
-    /* Dark mode glass — Liquid Glass spec */
-    --glass-bg: rgba(255, 255, 255, 0.06);
+    /* Dark mode glass — slightly stronger so the "glass" cards lift off
+       the background instead of dissolving into it. */
+    --glass-bg: rgba(255, 255, 255, 0.045);
     --glass-border: rgba(255, 255, 255, 0.10);
-    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.16) 50%, transparent 100%);
     --glass-blur: 20px;
 
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);

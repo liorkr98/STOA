@@ -77,7 +77,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
 
     try {
       await base44.entities.Notification.create({
-        user_email: "barams2023@gmail.com",
+        user_email: "support@stoamarket.ai",
         type:       "ai_review",
         title:      `AI fact-check flagged — ${claim.type}`,
         body:       `"${claim.text.slice(0, 140)}${claim.text.length > 140 ? "…" : ""}"`,
@@ -90,7 +90,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
 
     try {
       await base44.integrations.Core.SendEmail({
-        to: "barams2023@gmail.com",
+        to: "support@stoamarket.ai",
         subject: `AI Fact Check Flagged — ${claim.type} — ${reportTitle || "(unknown)"}`,
         body,
       });

@@ -145,7 +145,12 @@ function AvatarUploader({ onUploaded }) {
     try {
       const cropped = await cropToSquare(file);
       const { file_url } = await base44.integrations.Core.UploadFile({ file: cropped });
-      await base44.entities.User.updateMyUserData({ profile_picture_url: file_url });
+      // updateMyUserData isn't exposed on the entity SDK in this Base44 build —
+      // the canonical pattern (used by BecomeAnalystPage etc.) is to load
+      // the current user via auth.me() and call User.update(id, patch).
+      const me = await base44.auth.me();
+      if (!me?.id) throw new Error("Could not resolve current user");
+      await base44.entities.User.update(me.id, { profile_picture_url: file_url });
       onUploaded(file_url);
       toast.success("Profile picture updated");
     } catch (err) {
@@ -330,7 +335,19 @@ export default function AnalystProfilePage() {
         let userData = null;
         const allUsers = await base44.entities.User.list("-created_date", 200).catch(() => []);
 
-        if (username) {
+        // Disambiguator: when multiple users share the same name they
+        // collide on the slug. ReportCard now appends ?u=<email> to the
+        // profile URL — when present, we resolve by email FIRST so each
+        // user gets their own profile regardless of name collisions.
+        const emailParam = searchParams.get("u");
+
+        if (emailParam) {
+          userData = allUsers.find(
+            u => (u.email || "").toLowerCase() === emailParam.toLowerCase()
+          ) || null;
+        }
+
+        if (!userData && username) {
           const target = username.toLowerCase();
           userData = allUsers.find(u => getAnalystSlug(u) === target) || null;
           if (!userData) userData = allUsers.find(u => u.id === username || u.email === username) || null;
@@ -348,7 +365,7 @@ export default function AnalystProfilePage() {
           if (!userData) {
             userData = { full_name: "Unknown Researcher", email: "", _notFound: true };
           }
-        } else if (me) {
+        } else if (!userData && !username && me) {
           userData = me;
         }
 
@@ -399,7 +416,10 @@ export default function AnalystProfilePage() {
       }
     };
     load();
-  }, [username]);
+    // searchParams included so switching between two users that share a
+    // name (same slug, different ?u=) actually re-loads the correct user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, searchParams.get("u")]);
 
   // ── Follow ────────────────────────────────────────────────────────────────
   const handleFollow = async () => {

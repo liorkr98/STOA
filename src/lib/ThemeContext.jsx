@@ -81,8 +81,12 @@ export function ThemeProvider({ children }) {
     setThemeState(next);
     try { localStorage.setItem(STORAGE_KEY, next); } catch {}
     // Persist to the user's profile (cross-device). Best-effort; failing here
-    // shouldn't undo the visual change.
-    try { await base44.entities.User.updateMyUserData({ theme_preference: next }); } catch {}
+    // shouldn't undo the visual change. updateMyUserData isn't on the SDK, so
+    // we resolve the current user via auth.me() and call User.update.
+    try {
+      const me = await base44.auth.me();
+      if (me?.id) await base44.entities.User.update(me.id, { theme_preference: next });
+    } catch {}
   }, []);
 
   return (

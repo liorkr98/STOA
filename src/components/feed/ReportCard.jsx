@@ -380,12 +380,17 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   // Use the actual user record's full_name (looked up via userMap by email)
   // — NOT report.author_name. report.author_name falls back to "Researcher"
   // for old/un-baked reports, which collapsed many authors into the same
-  // "researcher" slug and sent every click to whichever user resolved first
-  // (often the current user's own profile). Falling back to the email
-  // prefix keeps the slug unique per author.
+  // "researcher" slug. The slug-based URL alone isn't enough when two
+  // users share the same name (e.g. two "Lior Krisi" accounts) — they'd
+  // both resolve to the same /analyst/lior-krisi page. So we also pass
+  // the unique email as a `?u=` disambiguator query param. The profile
+  // page prefers that param over the slug when present.
   const slug =
     getAnalystSlug({ ...(authorUser || {}), email: authorEmail }) ||
     (authorEmail || "").split("@")[0].toLowerCase();
+  const profileHref = authorEmail
+    ? `/analyst/${slug}?u=${encodeURIComponent(authorEmail)}`
+    : `/analyst/${slug}`;
 
   return (
     <>
@@ -426,7 +431,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         {/* ── HEADER ROW ── */}
         <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:12, marginTop: isPremium ? 22 : 0 }}>
           {/* Avatar */}
-          <Link to={`/analyst/${slug}`} onClick={e => e.stopPropagation()} style={{ flexShrink:0 }}>
+          <Link to={profileHref} onClick={e => e.stopPropagation()} style={{ flexShrink:0 }}>
             <div style={{
               width:40, height:40, borderRadius:'50%', border:'2px solid #e2e8f0',
               background:'#dbeafe', display:'flex', alignItems:'center', justifyContent:'center',
@@ -442,7 +447,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
               <Link
-                to={`/analyst/${slug}`}
+                to={profileHref}
                 onClick={e => e.stopPropagation()}
                 style={{ fontSize:14, fontWeight:700, color:'#0f172a', textDecoration:'none' }}
               >

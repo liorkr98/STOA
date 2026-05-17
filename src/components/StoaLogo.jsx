@@ -1,20 +1,33 @@
 import React from "react";
 
 // Candle Colonnade mark — three pillars + two beams (Greek stoa structure),
-// with hairline "ghost wicks" above each pillar (candlestick-chart wicks at
-// 30% opacity — only finance people notice). Pure SVG so it scales, recolors
-// with theme, and blends into the surrounding nav instead of looking pasted.
+// reinterpreted as candlestick bodies with wicks ABOVE and BELOW each pillar.
+// The wick pattern is short-tall-short (symmetric), so the middle candle reads
+// as the "high-range" candle and the outer two as supporting candles —
+// classic candlestick visual rhythm. Pure inline SVG so it scales crisply
+// and recolors with theme.
 function LogoMark({ size, color, wickColor }) {
-  // Geometry (viewBox 64×64) — beams 56 wide, three pillars centered.
-  // Wicks extend above beams; offsets are picked so the lines land on
-  // the column centerlines.
-  const BEAM_TOP_Y    = 14;
-  const BEAM_BOTTOM_Y = 49;
-  const PILLAR_TOP    = BEAM_TOP_Y + 3;
-  const PILLAR_BOTTOM = BEAM_BOTTOM_Y - 0;
+  // Geometry on a 64×64 viewBox. The drawing is vertically centered: the
+  // top and bottom beams are equidistant from the middle line (y=32) so
+  // the mark balances against the wordmark beside it.
+  const CENTER_Y      = 32;
+  const HALF_BODY     = 9;                              // pillar half-height
+  const BEAM_TOP_Y    = CENTER_Y - HALF_BODY - 5;       // 18
+  const BEAM_BOTTOM_Y = CENTER_Y + HALF_BODY + 2;       // 43
+  const PILLAR_TOP    = BEAM_TOP_Y + 3;                 // 21
+  const PILLAR_BOTTOM = BEAM_BOTTOM_Y;                  // 43
   const PILLAR_W      = 6;
-  // Centerlines: 16, 32, 48
-  const CENTERS = [16, 32, 48];
+  const CENTERS       = [16, 32, 48];
+
+  // Wick lengths: outer wicks shorter, middle wick longer.
+  // Pattern: low-high-low (symmetric).
+  const OUTER_WICK_TOP_Y = BEAM_TOP_Y - 6;     // outer wicks start higher (less tall)
+  const MIDDLE_WICK_TOP_Y = BEAM_TOP_Y - 12;   // middle wick extends further up
+  const OUTER_WICK_BOT_Y = BEAM_BOTTOM_Y + 6;  // mirrored below
+  const MIDDLE_WICK_BOT_Y = BEAM_BOTTOM_Y + 12;
+
+  const wickYTop    = (i) => (i === 1 ? MIDDLE_WICK_TOP_Y : OUTER_WICK_TOP_Y);
+  const wickYBottom = (i) => (i === 1 ? MIDDLE_WICK_BOT_Y : OUTER_WICK_BOT_Y);
 
   return (
     <svg
@@ -26,22 +39,20 @@ function LogoMark({ size, color, wickColor }) {
       role="img"
       aria-label="STOA"
     >
-      {/* Ghost wicks (candlestick wicks above each pillar).
-          Opacity bumped from 0.3 → 0.45 and stroke from 0.5 → 0.9
-          so the candlestick reference reads at small sizes. */}
+      {/* Top wicks — short / tall / short */}
       <g stroke={wickColor} strokeWidth="0.9" opacity="0.45" strokeLinecap="round">
         {CENTERS.map((cx, i) => (
-          <line key={i} x1={cx} y1="2" x2={cx} y2={BEAM_TOP_Y - 0.5} />
+          <line key={`t-${i}`} x1={cx} y1={wickYTop(i)} x2={cx} y2={BEAM_TOP_Y - 0.5} />
         ))}
       </g>
 
       {/* Top beam */}
       <rect x="4" y={BEAM_TOP_Y} width="56" height="3" rx="0.5" fill={color} />
 
-      {/* Three pillars */}
+      {/* Three pillars — candle bodies */}
       {CENTERS.map((cx, i) => (
         <rect
-          key={i}
+          key={`p-${i}`}
           x={cx - PILLAR_W / 2}
           y={PILLAR_TOP}
           width={PILLAR_W}
@@ -53,6 +64,13 @@ function LogoMark({ size, color, wickColor }) {
 
       {/* Bottom beam */}
       <rect x="4" y={BEAM_BOTTOM_Y} width="56" height="3" rx="0.5" fill={color} />
+
+      {/* Bottom wicks — mirror of top (short / tall / short) */}
+      <g stroke={wickColor} strokeWidth="0.9" opacity="0.45" strokeLinecap="round">
+        {CENTERS.map((cx, i) => (
+          <line key={`b-${i}`} x1={cx} y1={BEAM_BOTTOM_Y + 3.5} x2={cx} y2={wickYBottom(i)} />
+        ))}
+      </g>
     </svg>
   );
 }
