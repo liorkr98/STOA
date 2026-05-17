@@ -13,6 +13,7 @@ import { computeScore } from "@/lib/scoringEngine";
 import { loadMyWallet } from "@/lib/walletService";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
 import { computeAnalystTier } from "@/lib/analystTier";
+import { analystHref } from "@/lib/analystSlug";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 
@@ -482,7 +483,7 @@ export default function AnalystDashboard() {
                 return (
                   <Link
                     key={sub.id}
-                    to={`/analyst/${sub.analyst_email?.split("@")[0]}`}
+                    to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                   >
                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 overflow-hidden">

@@ -9,7 +9,7 @@ import {
   Target, Zap, FileText, PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
@@ -156,7 +156,7 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
   return (
     <div
       className="flex items-center gap-3 py-2.5 px-2 hover:bg-secondary/50 rounded-xl transition-colors cursor-pointer group"
-      onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
+      onClick={() => navigate(analystHref(analyst))}
     >
       <span className="text-xs font-bold w-5 text-center shrink-0 text-muted-foreground">{MEDALS[rank] || rank}</span>
       <div className="w-9 h-9 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
@@ -549,7 +549,7 @@ export default function InvestorHome() {
                   return (
                     <Link
                       key={sub.id}
-                      to={`/analyst/${sub.analyst_email?.split("@")[0]}`}
+                      to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                     >
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">

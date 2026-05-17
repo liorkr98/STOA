@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { computeAnalystTier } from "@/lib/analystTier";
 import { Target, TrendingUp, Heart, Users } from "lucide-react";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 
 export default function AnalystFeedCard({ analyst, allReports = [] }) {
@@ -23,7 +23,7 @@ export default function AnalystFeedCard({ analyst, allReports = [] }) {
 
   return (
     <Link
-      to={`/analyst/${slug}`}
+      to={analystHref(analyst)}
       className="block bg-card border border-border rounded-xl p-4 hover:shadow-md hover:border-primary/30 transition-all"
     >
       <div className="flex items-start gap-3 mb-3">

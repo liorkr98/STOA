@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { TrendingUp, Trophy } from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { analystHref } from "@/lib/analystSlug";
 import { computeAnalystStats } from "@/lib/analystStats";
 import { computeScore } from "@/lib/scoringEngine";
 
@@ -155,7 +155,7 @@ export default function Leaderboard() {
             return (
               <div
                 key={analyst.id}
-                onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
+                onClick={() => navigate(analystHref(analyst))}
                 style={{
                   display:'flex', alignItems:'center', gap:8,
                   padding:'8px 6px', borderRadius:8, cursor:'pointer',

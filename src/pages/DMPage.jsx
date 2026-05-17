@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { analystHref } from "@/lib/analystSlug";
 import useGoBack from "@/hooks/useGoBack";
 
 function makeConvId(a, b) {
@@ -159,7 +159,7 @@ export default function DMPage() {
           {other.tagline && <p className="text-xs text-muted-foreground truncate">{other.tagline}</p>}
         </div>
         <Link
-          to={`/analyst/${getAnalystSlug(other)}`}
+          to={analystHref(other)}
           className="text-xs text-primary hover:underline flex-shrink-0"
         >
           View profile

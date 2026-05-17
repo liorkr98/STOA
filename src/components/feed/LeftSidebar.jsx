@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
 import { Users, Star, FileText, ChevronDown, ChevronUp, Lock, BadgeCheck } from "lucide-react";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 function Section({ icon: SectionIcon, title, children, defaultOpen = true }) {
@@ -25,10 +25,10 @@ function Section({ icon: SectionIcon, title, children, defaultOpen = true }) {
   );
 }
 
-function AnalystRow({ name, avatar, accuracy, slug, lastPostDate, postCountThisWeek, hasNewPost }) {
+function AnalystRow({ name, avatar, accuracy, href, lastPostDate, postCountThisWeek, hasNewPost }) {
   return (
     <Link
-      to={`/analyst/${slug}`}
+      to={href}
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary transition-colors group"
     >
       <div className="relative w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
@@ -95,7 +95,7 @@ function SuggestedAnalysts() {
       {topAnalysts.map(a => {
         const name = a.full_name || a.email?.split("@")[0] || "Researcher";
         return (
-          <Link key={a.id} to={`/analyst/${getAnalystSlug(a)}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link key={a.id} to={analystHref(a)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary overflow-hidden flex-shrink-0">
               {a.picture ? <img src={a.picture} alt={name} className="w-full h-full object-cover" /> : name[0]}
             </div>
@@ -198,13 +198,13 @@ export default function LeftSidebar() {
               const lastPost = authorReports[0]?.created_date || null;
               const weeklyCount = authorReports.filter(r => new Date(r.created_date).getTime() > oneWeekAgo).length;
               const hasNewPost = lastPost ? differenceInHours(new Date(), new Date(lastPost)) < 2 : false;
-              const slug = getAnalystSlug({ full_name: f.analyst_name, email: f.analyst_email });
+              const href = analystHref({ full_name: f.analyst_name, email: f.analyst_email });
               return (
                 <AnalystRow
                   key={f.id}
                   name={f.analyst_name}
                   avatar={f.analyst_avatar}
-                  slug={slug}
+                  href={href}
                   lastPostDate={lastPost}
                   postCountThisWeek={weeklyCount}
                   hasNewPost={hasNewPost}
@@ -230,7 +230,7 @@ export default function LeftSidebar() {
                 key={s.id}
                 name={s.analyst_name}
                 avatar={s.analyst_avatar}
-                slug={getAnalystSlug({ full_name: s.analyst_name, email: s.analyst_email })}
+                href={analystHref({ full_name: s.analyst_name, email: s.analyst_email })}
               />
             ))
           )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { analystHref } from "@/lib/analystSlug";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { toast } from "sonner";
 
@@ -80,7 +80,7 @@ export default function EmptySubscriptionsState({ currentUser, onSubscribed }) {
                     : name[0]}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <Link to={`/analyst/${getAnalystSlug(a)}`} style={{ fontSize:13, fontWeight:600, color:'#0f172a', textDecoration:'none' }}>
+                  <Link to={analystHref(a)} style={{ fontSize:13, fontWeight:600, color:'#0f172a', textDecoration:'none' }}>
                     {name}
                   </Link>
                   <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2 }}>

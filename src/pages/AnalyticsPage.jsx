@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { analystHref } from "@/lib/analystSlug";
 import {
   ArrowLeft, TrendingUp, TrendingDown, Minus, Target, CheckCircle2,
   XCircle, Clock, BarChart3, Flame, Zap, Filter, RefreshCw,
@@ -467,7 +468,7 @@ export default function AnalyticsPage() {
             const tier = computeAnalystTier(a, reports);
             return (
               <button key={a.id}
-                onClick={() => navigate(`/analyst/${a.email}`)}
+                onClick={() => navigate(analystHref(a))}
                 className="grid grid-cols-12 gap-2 px-4 py-3 w-full text-left bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all">
                 <div className="col-span-1 flex items-center">
                   <span className="text-base">{i < 3 ? medals[i] : <span className="text-xs font-bold text-muted-foreground">#{i+1}</span>}</span>

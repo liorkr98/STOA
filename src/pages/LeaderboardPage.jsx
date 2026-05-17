@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trophy, TrendingUp, Loader2, PenLine, Heart, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
 import { computeAnalystTier } from "@/lib/analystTier";
 import { computeAvgYield } from "@/lib/yieldCalc";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
@@ -116,7 +116,7 @@ export default function LeaderboardPage() {
               return (
                 <button
                   key={analyst.id}
-                  onClick={() => navigate(`/analyst/${slug}`)}
+                  onClick={() => navigate(analystHref(analyst))}
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl border text-center hover:shadow-md transition-all"
                   style={{ background: tier?.bg, borderColor: tier?.border }}
                 >
@@ -223,7 +223,7 @@ export default function LeaderboardPage() {
               const totalLikes = likesMap[analyst.email] || 0;
               const totalViews = viewsMap[analyst.email] || 0;
               return (
-                <button key={analyst.id} onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
+                <button key={analyst.id} onClick={() => navigate(analystHref(analyst))}
                   className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
                   <span className="text-lg font-bold w-8 text-center flex-shrink-0">
                     {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-semibold">#{rank}</span>}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { analystHref } from "@/lib/analystSlug";
 
 export function TrendingDivider({ report }) {
   if (!report) return null;
@@ -46,7 +46,7 @@ export function AnalystSpotlight({ analyst }) {
           Researcher Spotlight
         </span>
       </div>
-      <Link to={`/analyst/${getAnalystSlug(analyst)}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
+      <Link to={analystHref(analyst)} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
         <div style={{ width:40, height:40, borderRadius:'50%', background:'#dbeafe', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#2563eb', overflow:'hidden' }}>
           {analyst.picture ? <img src={analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : name[0]?.toUpperCase()}
         </div>

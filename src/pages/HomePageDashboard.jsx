@@ -9,7 +9,7 @@ import {
   ChevronRight, Loader2, Target, Zap, Plus, Lock, BookOpen, Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAnalystSlug } from "@/lib/analystSlug";
+import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const WATCHLIST_KEY = "stoa_watchlist";
@@ -167,7 +167,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
   return (
     <div
       className="flex items-center gap-2.5 py-2 hover:bg-secondary/50 rounded-lg px-1 transition-colors cursor-pointer group"
-      onClick={() => navigate(`/analyst/${getAnalystSlug(analyst)}`)}
+      onClick={() => navigate(analystHref(analyst))}
     >
       <span className="text-xs font-bold w-5 text-center shrink-0 text-muted-foreground">
         {MEDALS[rank] || rank}
@@ -706,11 +706,10 @@ export default function HomePageDashboard() {
               <div className="flex flex-wrap gap-2 mb-4">
                 {mySubscriptions.map(sub => {
                   const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
-                  const slug = sub.analyst_email?.split("@")[0];
                   return (
                     <Link
                       key={sub.id}
-                      to={`/analyst/${slug}`}
+                      to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                     >
                       <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
