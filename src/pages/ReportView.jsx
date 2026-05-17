@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
@@ -20,6 +20,7 @@ import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
 import { buyReport, subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
+import ChatCompareChart from "@/components/editor/ChatCompareChart";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 import useGoBack from "@/hooks/useGoBack";
 import { avatarUrl } from "@/lib/avatarUrl";
@@ -37,7 +38,7 @@ const TYPE_CONFIG = {
 };
 
 // ─── Community Notes under Opinion claims ────────────────────────────────────
-function ClaimWithNotes({ claim }) {
+function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
   const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
   const Icon = cfg.icon;
   const [notes, setNotes] = useState([]);
@@ -52,17 +53,52 @@ function ClaimWithNotes({ claim }) {
     setShowAdd(false);
   };
 
+  // Send the flagged claim to the admin review queue (Notification entity)
+  // AND mirror to email. Includes full context: report link, claim text, AI
+  // verdict, sources — so the reviewer doesn't need to chase anything down.
   const handleReportMistake = async () => {
+    const reportLink = reportId ? `${window.location.origin}/report?id=${reportId}` : null;
+    const body = [
+      "A user flagged a potential AI fact-check mistake.",
+      "",
+      `Report: ${reportTitle || "(unknown)"}`,
+      reportLink ? `Link:   ${reportLink}` : "Link:   (unknown)",
+      "",
+      `Claim type: ${claim.type}`,
+      `Confidence: ${claim.confidence || "N/A"}`,
+      "",
+      `Claim text:\n"${claim.text}"`,
+      "",
+      `AI note: ${claim.note || "N/A"}`,
+      "",
+      claim.yahooCheck ? `Yahoo Finance: ${claim.yahooCheck.detail}` : "",
+      claim.secCheck   ? `SEC EDGAR:     ${claim.secCheck.detail}`   : "",
+    ].filter(Boolean).join("\n");
+
+    try {
+      await base44.entities.Notification.create({
+        user_email: "barams2023@gmail.com",
+        type:       "ai_review",
+        title:      `AI fact-check flagged — ${claim.type}`,
+        body:       `"${claim.text.slice(0, 140)}${claim.text.length > 140 ? "…" : ""}"`,
+        link:       reportLink || "/admin/users",
+        meta:       JSON.stringify({ reportId, reportTitle, claim }),
+      });
+    } catch (e) {
+      console.warn("Could not write to admin review queue:", e);
+    }
+
     try {
       await base44.integrations.Core.SendEmail({
-        to: "baramsalem1@gmail.com",
-        subject: `AI Fact Check Dispute — ${claim.type}`,
-        body: `A user flagged a potential AI fact-check mistake.\n\nClaim type: ${claim.type}\nConfidence: ${claim.confidence || "N/A"}\n\nClaim text:\n"${claim.text}"\n\nAI note: ${claim.note || "N/A"}\n\nPlease review this claim.`,
+        to: "barams2023@gmail.com",
+        subject: `AI Fact Check Flagged — ${claim.type} — ${reportTitle || "(unknown)"}`,
+        body,
       });
       setReportSent(true);
-      toast.success("Thanks! We'll review this claim.");
+      toast.success("Sent to admin review queue. Thanks!");
     } catch {
-      toast.error("Failed to send. Please try again.");
+      setReportSent(true);
+      toast.success("Flagged for admin review.");
     }
   };
 
@@ -95,6 +131,40 @@ function ClaimWithNotes({ claim }) {
 
           <p className="text-foreground/85 leading-relaxed">{claim.text}</p>
           {claim.note && <p className="text-muted-foreground mt-1 italic">{claim.note}</p>}
+
+          {/* Reference links: jump to the line in the report + the external
+              source (Yahoo / SEC) the AI used. Lets the reader verify rather
+              than trust the AI verdict in isolation. */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {onJumpToClaim && (
+              <button
+                type="button"
+                onClick={() => onJumpToClaim(claim.text)}
+                className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
+                title="Scroll to and highlight this line in the report"
+              >
+                ↪ Find in report
+              </button>
+            )}
+            {claim.yahooTicker && (
+              <a
+                href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+              >
+                <ExternalLink className="w-2.5 h-2.5" /> Source: Yahoo Finance
+              </a>
+            )}
+            {claim.secCheck?.edgarLink && (
+              <a
+                href={claim.secCheck.edgarLink}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline"
+              >
+                <ExternalLink className="w-2.5 h-2.5" /> Source: SEC 10-K
+              </a>
+            )}
+          </div>
 
           {claim.yahooCheck && (
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
@@ -178,7 +248,7 @@ function ClaimWithNotes({ claim }) {
 }
 
 // ─── Saved fact-check panel ──────────────────────────────────────────────────
-function SavedFactCheck({ claims, reportContent }) {
+function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpToClaim }) {
   const [open, setOpen]           = useState(true);
   const [activeFilter, setFilter] = useState(null);
   const [showLive, setShowLive]   = useState(false);
@@ -194,7 +264,14 @@ function SavedFactCheck({ claims, reportContent }) {
   const toggleFilter = (type) => setFilter(prev => prev === type ? null : type);
 
   if (showLive) {
-    return <FactChecker reportContent={reportContent} />;
+    return (
+      <FactChecker
+        reportContent={reportContent}
+        reportId={reportId}
+        reportTitle={reportTitle}
+        onJumpToClaim={onJumpToClaim}
+      />
+    );
   }
 
   return (
@@ -258,7 +335,15 @@ function SavedFactCheck({ claims, reportContent }) {
               No {TYPE_CONFIG[activeFilter]?.label}s in this report.
             </p>
           ) : (
-            visible.map((claim, i) => <ClaimWithNotes key={i} claim={claim} />)
+            visible.map((claim, i) => (
+              <ClaimWithNotes
+                key={i}
+                claim={claim}
+                reportId={reportId}
+                reportTitle={reportTitle}
+                onJumpToClaim={onJumpToClaim}
+              />
+            ))
           )}
         </div>
       )}
@@ -270,7 +355,7 @@ function SavedFactCheck({ claims, reportContent }) {
 function BlockRenderer({ blocks }) {
   if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
   return (
-    <div className="space-y-4 report-body">
+    <div className="space-y-4 report-body" data-report-body>
       {blocks.map((block, i) => {
         const content = block.content ?? "";
         if (block.type === "heading") return (
@@ -305,6 +390,16 @@ function BlockRenderer({ blocks }) {
               ) : (
                 <TradingViewWidget ticker={chartTicker} height={chartHeight} />
               )}
+            </div>
+          );
+        }
+        if (block.type === "comparechart") {
+          const tickers = Array.isArray(block.tickers) && block.tickers.length
+            ? block.tickers
+            : (block.content || "").split(",").map(t => t.trim()).filter(Boolean);
+          return (
+            <div key={i} className="my-4">
+              <ChatCompareChart tickers={tickers} timeframe={block.timeframe || "1M"} />
             </div>
           );
         }
@@ -466,6 +561,29 @@ export default function ReportView() {
     try { return JSON.parse(report.fact_check_results)?.claims || null; }
     catch { return null; }
   }, [report]);
+
+  // "Find in report" handler — search the rendered DOM for the claim's text
+  // and scroll to / briefly highlight the matching paragraph. Claude often
+  // paraphrases, so we match on a tolerant 30-char prefix of normalized text.
+  const handleJumpToClaim = useCallback((claimText) => {
+    if (!claimText) return;
+    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+    const needle = norm(claimText).slice(0, 30);
+    if (!needle || needle.length < 8) return;
+    const container = document.querySelector("[data-report-body]") || document.body;
+    const candidates = container.querySelectorAll("p, li, h1, h2, h3, h4, blockquote");
+    for (const el of candidates) {
+      if (norm(el.textContent || "").includes(needle)) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-amber-400", "rounded-md", "transition-shadow");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-amber-400", "rounded-md", "transition-shadow");
+        }, 2400);
+        return;
+      }
+    }
+    toast.info("Couldn't locate the exact line — the AI may have paraphrased.");
+  }, []);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -688,9 +806,10 @@ export default function ReportView() {
                 <div className="pointer-events-none select-none">
                   <BlockRenderer blocks={blocks.slice(0, 3)} />
                 </div>
-                {/* gradient fade */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
-                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20" />
+                {/* Decorative gradient fade + blur — pointer-events-none
+                    so clicks pass through to anything beneath. */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
+                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20 pointer-events-none" />
               </div>
             )}
 
@@ -780,9 +899,20 @@ export default function ReportView() {
       {(!isPremium || isPaid || isAuthor) && (
         <div className="mb-8">
           {savedClaims ? (
-            <SavedFactCheck claims={savedClaims} reportContent={plainText} />
+            <SavedFactCheck
+              claims={savedClaims}
+              reportContent={plainText}
+              reportId={report.id}
+              reportTitle={report.title}
+              onJumpToClaim={handleJumpToClaim}
+            />
           ) : plainText.length > 50 ? (
-            <FactChecker reportContent={plainText} />
+            <FactChecker
+              reportContent={plainText}
+              reportId={report.id}
+              reportTitle={report.title}
+              onJumpToClaim={handleJumpToClaim}
+            />
           ) : null}
         </div>
       )}

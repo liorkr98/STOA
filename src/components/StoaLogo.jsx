@@ -26,8 +26,10 @@ function LogoMark({ size, color, wickColor }) {
       role="img"
       aria-label="STOA"
     >
-      {/* Ghost wicks (candlestick wicks above each pillar) */}
-      <g stroke={wickColor} strokeWidth="0.5" opacity="0.3" strokeLinecap="round">
+      {/* Ghost wicks (candlestick wicks above each pillar).
+          Opacity bumped from 0.3 → 0.45 and stroke from 0.5 → 0.9
+          so the candlestick reference reads at small sizes. */}
+      <g stroke={wickColor} strokeWidth="0.9" opacity="0.45" strokeLinecap="round">
         {CENTERS.map((cx, i) => (
           <line key={i} x1={cx} y1="2" x2={cx} y2={BEAM_TOP_Y - 0.5} />
         ))}

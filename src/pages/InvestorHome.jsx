@@ -606,6 +606,32 @@ export default function InvestorHome() {
         {/* ═══ RIGHT COLUMN ═══ */}
         <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
 
+          {/* Quick links — pinned to the top of the right column so they're
+              the first thing the user sees after the header. Used to sit
+              at the very bottom, which defeated the point of "quick" access. */}
+          <section className="surface p-5">
+            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
+            <div className="space-y-1">
+              {[
+                { icon: BarChart3, label: "Markets & Stocks", to: "/stocks" },
+                { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
+                { icon: Flame, label: "Research Feed", to: "/feed" },
+                { icon: Zap, label: "Wallet & Credits", to: "/wallet" },
+                { icon: Bell, label: "Inbox & Notifications", to: "/inbox" },
+              ].map(({ icon: Icon, label, to }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
+                  {label}
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))}
+            </div>
+          </section>
+
           {/* Top Analysts */}
           <section className="surface p-5">
             <div className="flex items-center justify-between mb-4">
@@ -679,29 +705,6 @@ export default function InvestorHome() {
             )}
           </section>
 
-          {/* Quick links */}
-          <section className="surface p-5">
-            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
-            <div className="space-y-1">
-              {[
-                { icon: BarChart3, label: "Markets & Stocks", to: "/stocks" },
-                { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
-                { icon: Flame, label: "Research Feed", to: "/feed" },
-                { icon: Zap, label: "Wallet & Credits", to: "/wallet" },
-                { icon: Bell, label: "Notifications", to: "/notifications" },
-              ].map(({ icon: Icon, label, to }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
-                  {label}
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-            </div>
-          </section>
         </div>
       </div>
 

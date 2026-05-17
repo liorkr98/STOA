@@ -19,6 +19,7 @@ import { base44 } from "@/api/base44Client";
 
 import EditorBlock from "@/components/editor/EditorBlock";
 import StockChartBlock from "@/components/editor/StockChartBlock";
+import ChatCompareChart from "@/components/editor/ChatCompareChart";
 import ImageBlock from "@/components/editor/ImageBlock";
 import PredictionBlock from "@/components/editor/PredictionBlock";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
@@ -93,6 +94,9 @@ const sanitizeBlock = (b) => {
     savedAt:      b.savedAt      || undefined,
     rowGroup:     b.rowGroup     || undefined,
     blockAlign:   b.blockAlign   || undefined,
+    // Comparison-chart block: holds multiple tickers rendered as one chart
+    tickers:      Array.isArray(b.tickers) ? b.tickers : undefined,
+    timeframe:    b.timeframe    || undefined,
   };
 };
 
@@ -183,6 +187,11 @@ export default function ReportEditor() {
   // The previous localStorage-only list drifted from the entity-backed dashboard view,
   // which is why the editor could show "Drafts 4" while the dashboard said "No drafts yet".
   const [drafts, setDrafts] = useState([]);
+  // The draft we're currently editing. When set, persistDraft updates that
+  // record instead of creating a new one — this is what fixes the bug where
+  // each auto-save (every 30s) was spawning a new draft row.
+  const [currentDraftId, setCurrentDraftId] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -192,9 +201,26 @@ export default function ReportEditor() {
         const rows = await base44.entities.Report.filter(
           { created_by: me.email, status: "draft" },
           "-updated_date",
-          50
+          200
         ).catch(() => []);
-        if (!cancelled) setDrafts(rows || []);
+
+        // Dedupe: drafts that share the same title + content payload are
+        // duplicates created by the old save-as-create-every-time logic.
+        // Keep the most recently updated one in each group; delete the rest
+        // (best-effort, so a failed delete doesn't block the editor).
+        const seen = new Map();
+        const survivors = [];
+        const toDelete = [];
+        for (const d of rows || []) {
+          const key = `${(d.title || "").trim().toLowerCase()}::${(d.content_blocks || "").length}::${(d.content_blocks || "").slice(0, 64)}`;
+          if (seen.has(key)) toDelete.push(d.id);
+          else { seen.set(key, true); survivors.push(d); }
+        }
+        if (toDelete.length) {
+          Promise.allSettled(toDelete.map(id => base44.entities.Report.delete(id)))
+            .catch(() => {});
+        }
+        if (!cancelled) setDrafts(survivors);
       } catch {}
     })();
     return () => { cancelled = true; };
@@ -374,6 +400,13 @@ export default function ReportEditor() {
   // ── Drafts ────────────────────────────────────────────────────────────────
   // Drafts are persisted as Report entities with status='draft'. This is the
   // same source the dashboard reads from, so both views always agree.
+  //
+  // Save semantics:
+  //   - If we already have a currentDraftId (loaded an existing draft, or
+  //     this is the second+ save in a session) → UPDATE that row.
+  //   - Otherwise → CREATE a new row and remember its id for next time.
+  // This is what stops the auto-save timer from spawning a duplicate
+  // every 30 seconds.
   const persistDraft = async (silent = false) => {
     try {
       const me = await base44.auth.me();
@@ -394,10 +427,21 @@ export default function ReportEditor() {
         prediction_stop_loss:     predictionData?.stopLoss     ?? null,
         prediction_portfolio_pct: predictionData?.portfolioPct ?? null,
       };
-      const created = await base44.entities.Report.create(payload);
-      setDrafts(prev => [created, ...prev]);
+
+      if (currentDraftId) {
+        const updated = await base44.entities.Report.update(currentDraftId, payload);
+        setDrafts(prev => {
+          const others = prev.filter(d => d.id !== currentDraftId);
+          return [updated || { ...payload, id: currentDraftId, updated_date: new Date().toISOString() }, ...others];
+        });
+      } else {
+        const created = await base44.entities.Report.create(payload);
+        if (created?.id) setCurrentDraftId(created.id);
+        setDrafts(prev => [created, ...prev]);
+      }
+
       setLastSaved(Date.now());
-      if (!silent) toast.success("Draft saved!");
+      if (!silent) toast.success(currentDraftId ? "Draft updated" : "Draft saved");
     } catch (err) {
       if (!silent) toast.error("Could not save draft.");
     }
@@ -421,14 +465,20 @@ export default function ReportEditor() {
     setMarketCap(draft.market_cap || "");
     setCoverImage("");
     setTags((draft.tickers || "").split(",").map(t => t.trim()).filter(Boolean));
+    // Remember this draft id so subsequent saves UPDATE it instead of
+    // creating a new row.
+    setCurrentDraftId(draft.id);
     setShowDrafts(false);
-    toast.success("Draft loaded!");
+    toast.success("Draft loaded — saves will update this draft");
   };
 
   const deleteDraft = async (id) => {
     try {
       await base44.entities.Report.delete(id);
       setDrafts(prev => prev.filter(d => d.id !== id));
+      // If we just deleted the draft we were editing, forget it so the next
+      // save creates a fresh row (otherwise update() would fail).
+      if (id === currentDraftId) setCurrentDraftId(null);
     } catch {
       toast.error("Could not delete draft.");
     }
@@ -470,8 +520,14 @@ export default function ReportEditor() {
         if (Array.isArray(newBlocks) && newBlocks.length > 0) {
           setBlocks(prev => {
             const next = [...prev];
+            // Preserve full block payload (tickers/timeframe for comparechart,
+            // ticker for stockchart, etc.) — earlier this only forwarded
+            // type+content, which is why a multi-ticker compare chart lost
+            // its data and degraded to 2 stockchart blocks.
             newBlocks.forEach((b, i) => {
-              next.splice(idx + i, 0, makeBlock(b.type || "text", b.content || ""));
+              const base = makeBlock(b.type || "text", b.content || "");
+              const merged = { ...base, ...b, id: base.id };
+              next.splice(idx + i, 0, merged);
             });
             pushHistory(next);
             return next;
@@ -484,8 +540,23 @@ export default function ReportEditor() {
     }
 
     // Single-block payload
-    const text = e.dataTransfer.getData("ai-text");
-    const type = e.dataTransfer.getData("ai-type") || "text";
+    const text      = e.dataTransfer.getData("ai-text");
+    const type      = e.dataTransfer.getData("ai-type") || "text";
+    const tickers   = e.dataTransfer.getData("ai-tickers");
+    const timeframe = e.dataTransfer.getData("ai-timeframe");
+    if (type === "comparechart" && tickers) {
+      setBlocks(prev => {
+        const next = [...prev];
+        next.splice(idx, 0, {
+          ...makeBlock("comparechart", tickers),
+          tickers: tickers.split(",").filter(Boolean),
+          timeframe: timeframe || "1M",
+        });
+        pushHistory(next);
+        return next;
+      });
+      return;
+    }
     if (text) insertBlockAt(idx, { type, content: text });
   };
 
@@ -625,6 +696,15 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         console.warn("Credit deduction failed (non-fatal):", e)
       );
 
+      // Drop the in-progress draft record now that it's been published —
+      // otherwise the user sees their just-published report sitting in the
+      // drafts list too.
+      if (currentDraftId) {
+        base44.entities.Report.delete(currentDraftId).catch(() => {});
+        setDrafts(prev => prev.filter(d => d.id !== currentDraftId));
+        setCurrentDraftId(null);
+      }
+
       if (isScheduled) {
         const when = new Date(scheduleTime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
         toast.success(`Scheduled for ${when} · It will go live automatically.`);
@@ -681,6 +761,21 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           onChange={(u) => updateBlock(block.id, u)}
           onDelete={() => deleteBlock(block.id)}
         />
+      ) : block.type === "comparechart" ? (
+        <div className="relative group bg-card border border-border rounded-xl my-2">
+          <ChatCompareChart
+            tickers={block.tickers || (block.content || "").split(",").filter(Boolean)}
+            timeframe={block.timeframe || "1M"}
+          />
+          <button
+            type="button"
+            onClick={() => deleteBlock(block.id)}
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-card/80 text-muted-foreground hover:text-destructive border border-border"
+            title="Remove comparison chart"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       ) : block.type === "columns" ? (
         <ColumnsBlock
           block={block}
@@ -796,22 +891,51 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-72">
-                    <DropdownMenuLabel className="text-xs">Saved Drafts</DropdownMenuLabel>
+                  <DropdownMenuContent align="end" className="w-80">
+                    <DropdownMenuLabel className="text-xs flex items-center justify-between">
+                      <span>Saved Drafts</span>
+                      <span className={`text-[10px] font-normal flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+                        {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        {lastSaved ? `Auto-saves every 30s · last ${new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Auto-saves every 30s"}
+                      </span>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {drafts.length === 0 ? (
                       <div className="px-3 py-4 text-center text-xs text-muted-foreground">No drafts saved yet.</div>
                     ) : (
-                      drafts.map(d => (
-                        <div key={d.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-secondary rounded-md mx-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{d.title}</p>
-                            <p className="text-[10px] text-muted-foreground">{new Date(d.updated_date || d.created_date).toLocaleString()}</p>
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => loadDraft(d)} className="text-xs h-6 px-2">Load</Button>
-                          <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      ))
+                      // Sort newest first, then group by "today / earlier"
+                      [...drafts]
+                        .sort((a, b) => new Date(b.updated_date || b.created_date) - new Date(a.updated_date || a.created_date))
+                        .map(d => {
+                          const ts   = new Date(d.updated_date || d.created_date);
+                          const diff = Date.now() - ts.getTime();
+                          const mins = Math.floor(diff / 60000);
+                          const rel  = mins < 1 ? "just now"
+                                     : mins < 60 ? `${mins}m ago`
+                                     : mins < 1440 ? `${Math.floor(mins / 60)}h ago`
+                                     : `${Math.floor(mins / 1440)}d ago`;
+                          const isCurrent = d.id === currentDraftId;
+                          return (
+                            <div key={d.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md mx-1 ${isCurrent ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-secondary"}`}>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate flex items-center gap-1.5">
+                                  {d.title || "Untitled Draft"}
+                                  {isCurrent && <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Editing</span>}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
+                              </div>
+                              <Button
+                                variant={isCurrent ? "outline" : "ghost"}
+                                size="sm"
+                                onClick={() => loadDraft(d)}
+                                className="text-xs h-6 px-2"
+                              >
+                                {isCurrent ? "Reloaded" : "Resume"}
+                              </Button>
+                              <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5" title="Delete draft"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          );
+                        })
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

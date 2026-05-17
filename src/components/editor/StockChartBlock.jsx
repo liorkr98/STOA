@@ -161,22 +161,51 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     notify({ studies: next });
   };
 
-  // Save chart using html2canvas to capture the chart container
+  // Save chart — captures the chart WITH any user annotations (drawings,
+  // text, signatures placed via TradingView's drawing tools).
+  //
+  // Previously we used html2canvas on the chart container, but TradingView
+  // renders inside a cross-origin iframe — html2canvas can't see into it,
+  // so all user annotations were silently lost (the saved PNG was blank
+  // where the chart should be). TradingView's widget exposes
+  // `takeClientScreenshot()` which returns a canvas with the chart AND
+  // every drawing tool layer composited in. We use that as the primary
+  // path and only fall back to html2canvas if the widget isn't ready
+  // (e.g. resolving exchange).
   const handleSaveChart = async () => {
     setSaving(true);
     try {
-      const container = chartContainerRef.current;
-      if (!container) throw new Error("Chart container not found");
+      let canvas = null;
 
-      // Dynamically import html2canvas
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(container, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 1,
-        logging: false,
-        foreignObjectRendering: false,
-      });
+      // ── Primary: TradingView widget screenshot (includes annotations) ──
+      const widget = widgetRef.current;
+      if (widget && typeof widget.onChartReady === "function") {
+        try {
+          await new Promise((resolve) => widget.onChartReady(resolve));
+          const chartApi = typeof widget.activeChart === "function" ? widget.activeChart() : null;
+          if (chartApi && typeof chartApi.takeClientScreenshot === "function") {
+            canvas = await chartApi.takeClientScreenshot();
+          } else if (typeof widget.takeClientScreenshot === "function") {
+            canvas = await widget.takeClientScreenshot();
+          }
+        } catch (e) {
+          console.warn("TradingView screenshot failed, falling back to html2canvas:", e);
+        }
+      }
+
+      // ── Fallback: html2canvas on the container ──
+      if (!canvas) {
+        const container = chartContainerRef.current;
+        if (!container) throw new Error("Chart container not found");
+        const html2canvas = (await import("html2canvas")).default;
+        canvas = await html2canvas(container, {
+          useCORS: true,
+          allowTaint: true,
+          scale: 1,
+          logging: false,
+          foreignObjectRendering: false,
+        });
+      }
 
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(b => b ? resolve(b) : reject(new Error("Canvas to blob failed")), "image/png", 0.92);
@@ -197,7 +226,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
       };
       setFrozen(true);
       notify(patch);
-      toast.success(`Chart saved! ${ticker} · ${interval}`);
+      toast.success(`Chart saved with annotations · ${ticker} · ${interval}`);
     } catch (e) {
       console.error(e);
       toast.error("Could not capture chart: " + e.message);

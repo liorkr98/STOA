@@ -110,19 +110,26 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
   // Y-axis ticks (3 lines: top, 0%, bottom)
   const yTicks = [yMax, 0, yMin].filter((v, i, a) => a.indexOf(v) === i);
 
-  // Drag-to-report: a compare chart inserts each ticker as its own stockchart
-  // block in the editor (the editor doesn't have a built-in compare block).
-  // Payload is a JSON array; the editor's drop handler will iterate it.
+  // Drag-to-report: emit a SINGLE "comparechart" block that holds both tickers
+  // and the timeframe — so the editor renders one integrated comparison chart,
+  // not one stockchart per ticker. (Previously each ticker was emitted as its
+  // own stockchart, which is why exports showed two separate charts.)
   const handleDragStart = (e) => {
-    const blocks = normalized.map(s => ({ type: "stockchart", content: s.ticker }));
-    e.dataTransfer.setData("ai-blocks", JSON.stringify(blocks));
-    // Also set single-block fallback in case the editor's drop handler
-    // hasn't been updated (insert the first ticker).
-    e.dataTransfer.setData("ai-type", "stockchart");
-    e.dataTransfer.setData("ai-text", normalized[0]?.ticker || "");
+    const tickerList = normalized.map(s => s.ticker);
+    const compareBlock = {
+      type: "comparechart",
+      content: tickerList.join(","),
+      tickers: tickerList,
+      timeframe: tf,
+    };
+    e.dataTransfer.setData("ai-blocks", JSON.stringify([compareBlock]));
+    e.dataTransfer.setData("ai-type", "comparechart");
+    e.dataTransfer.setData("ai-text", tickerList.join(","));
+    e.dataTransfer.setData("ai-tickers", tickerList.join(","));
+    e.dataTransfer.setData("ai-timeframe", tf);
     e.dataTransfer.effectAllowed = "copy";
     const ghost = document.createElement("div");
-    ghost.textContent = `📊 ${normalized.map(s => s.ticker).join(" + ")}`;
+    ghost.textContent = `📊 ${tickerList.join(" + ")} · ${tf}`;
     ghost.style.cssText = "position:absolute;top:-1000px;padding:8px 12px;background:#0f172a;color:white;font:bold 12px ui-monospace;border-radius:8px";
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 30, 15);
@@ -214,7 +221,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
       {/* Drag hint */}
       <div className="px-3 py-1 border-t border-border bg-secondary/30 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
         <span className="text-[9px] text-muted-foreground flex items-center gap-1">
-          <GripHorizontal className="w-2.5 h-2.5" /> Drag to report · inserts {normalized.length} chart blocks
+          <GripHorizontal className="w-2.5 h-2.5" /> Drag to report · inserts one integrated comparison chart
         </span>
       </div>
     </div>

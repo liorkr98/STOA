@@ -331,8 +331,23 @@ export default function AnalystProfilePage() {
         const allUsers = await base44.entities.User.list("-created_date", 200).catch(() => []);
 
         if (username) {
-          userData = allUsers.find(u => getAnalystSlug(u) === username) || null;
+          const target = username.toLowerCase();
+          userData = allUsers.find(u => getAnalystSlug(u) === target) || null;
           if (!userData) userData = allUsers.find(u => u.id === username || u.email === username) || null;
+          // Last-resort fallback: match by email-prefix (case-insensitive).
+          // ReportCard now routes here when no full_name is available, so the
+          // username param may be the email's local-part rather than a slug.
+          if (!userData) {
+            userData = allUsers.find(u =>
+              (u.email || "").toLowerCase().split("@")[0] === target
+            ) || null;
+          }
+          // If we STILL didn't resolve anyone, fall back to a stub object so
+          // we render an "unknown analyst" page rather than silently
+          // defaulting to the current user (which was the original bug).
+          if (!userData) {
+            userData = { full_name: "Unknown Researcher", email: "", _notFound: true };
+          }
         } else if (me) {
           userData = me;
         }
@@ -625,11 +640,16 @@ export default function AnalystProfilePage() {
 
       {/* ── Hero banner ── */}
       <div className="relative h-36 overflow-hidden" style={{ background: bannerTheme.bg }}>
-        <div className="absolute inset-0 opacity-10" style={{
+        {/* Decorative grid pattern — pointer-events-none so it doesn't
+            swallow clicks on the Back button below. Without this, the
+            absolute overlay sat on top of the entire banner including
+            the back button, which is why Back was visible but unclickable. */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-4xl mx-auto px-4 relative z-10">
           <button
+            type="button"
             onClick={goBack}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
           >

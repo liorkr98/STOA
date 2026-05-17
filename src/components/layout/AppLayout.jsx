@@ -89,6 +89,27 @@ export default function AppLayout() {
     if (title) document.title = title;
   }, [location.pathname]);
 
+  // Global "back" keyboard shortcuts. Gives users a guaranteed-working path
+  // back even if a specific page's back button gets covered by an overlay
+  // or has stale styling. Alt+ArrowLeft and Cmd/Ctrl+[ both trigger.
+  // Ignored when focus is in an input/textarea so typing doesn't navigate.
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = (e.target?.tagName || "").toLowerCase();
+      const isTyping = tag === "input" || tag === "textarea" || e.target?.isContentEditable;
+      if (isTyping) return;
+      const altLeft = e.altKey && e.key === "ArrowLeft";
+      const cmdBracket = (e.metaKey || e.ctrlKey) && e.key === "[";
+      if (altLeft || cmdBracket) {
+        e.preventDefault();
+        if (window.history.length > 1) navigate(-1);
+        else navigate("/");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigate]);
+
   // Show onboarding for new users — check once user is loaded
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -141,7 +162,7 @@ export default function AppLayout() {
       <header role="banner" className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
-            <StoaLogo size={24} textSize="text-lg" />
+            <StoaLogo size={32} textSize="text-xl" />
           </Link>
 
           <div className="flex-1 max-w-sm hidden sm:block">

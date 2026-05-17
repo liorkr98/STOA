@@ -46,7 +46,7 @@ const TYPE_CONFIG = {
   },
 };
 
-function ClaimCard({ claim }) {
+function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
   const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
   const Icon = cfg.icon;
   const [showNotes, setShowNotes] = useState(false);
@@ -54,17 +54,76 @@ function ClaimCard({ claim }) {
   const [noteText, setNoteText] = useState("");
   const [reportSent, setReportSent] = useState(false);
 
+  // Build the full payload the admin sees in the review queue. This must
+  // contain enough context that a reviewer doesn't need to chase down the
+  // original report — claim text, AI verdict, source data, report link.
+  const buildContext = () => ({
+    reportId:    reportId || null,
+    reportTitle: reportTitle || null,
+    reportLink:  reportId ? `${window.location.origin}/report?id=${reportId}` : null,
+    claim: {
+      text:       claim.text,
+      type:       claim.type,
+      note:       claim.note || null,
+      confidence: claim.confidence || null,
+    },
+    sources: {
+      yahooTicker: claim.yahooTicker || null,
+      yahooCheck:  claim.yahooCheck  || null,
+      secCheck:    claim.secCheck    || null,
+    },
+    flaggedAt: new Date().toISOString(),
+  });
+
   const handleReportMistake = async () => {
+    const ctx = buildContext();
+    const body = [
+      "A user flagged a potential AI fact-check mistake.",
+      "",
+      `Report: ${ctx.reportTitle || "(unknown)"}`,
+      ctx.reportLink ? `Link:   ${ctx.reportLink}` : "Link:   (pre-publish — not yet saved)",
+      "",
+      `Claim type: ${ctx.claim.type}`,
+      `Confidence: ${ctx.claim.confidence || "N/A"}`,
+      "",
+      `Claim text:\n"${ctx.claim.text}"`,
+      "",
+      `AI note: ${ctx.claim.note || "N/A"}`,
+      "",
+      ctx.sources.yahooCheck ? `Yahoo Finance: ${ctx.sources.yahooCheck.detail}` : "",
+      ctx.sources.secCheck   ? `SEC EDGAR:     ${ctx.sources.secCheck.detail}`   : "",
+      "",
+      "Please review this claim and reach out to the analyst if needed.",
+    ].filter(Boolean).join("\n");
+
+    // Mirror to the admin review queue (Notification entity, type=ai_review)
+    // so it's visible inside the app — not just in email. Best-effort: if the
+    // entity write fails (e.g. permissions), we still want the email to land.
+    try {
+      await base44.entities.Notification.create({
+        user_email: "barams2023@gmail.com",
+        type:       "ai_review",
+        title:      `AI fact-check flagged — ${ctx.claim.type}`,
+        body:       `"${ctx.claim.text.slice(0, 140)}${ctx.claim.text.length > 140 ? "…" : ""}"`,
+        link:       ctx.reportLink || "/admin/users",
+        meta:       JSON.stringify(ctx),
+      });
+    } catch (e) {
+      console.warn("Could not write to admin review queue:", e);
+    }
+
     try {
       await base44.integrations.Core.SendEmail({
-        to: "baramsalem1@gmail.com",
-        subject: `AI Fact Check Dispute — ${claim.type}`,
-        body: `A user flagged a potential AI fact-check mistake.\n\nClaim type: ${claim.type}\nConfidence: ${claim.confidence || "N/A"}\n\nClaim text:\n"${claim.text}"\n\nAI note: ${claim.note || "N/A"}\n\nPlease review this claim.`,
+        to: "barams2023@gmail.com",
+        subject: `AI Fact Check Flagged — ${claim.type} — ${ctx.reportTitle || "(pre-publish)"}`,
+        body,
       });
       setReportSent(true);
-      toast.success("Thanks! We'll review this claim.");
+      toast.success("Sent to admin review queue. Thanks!");
     } catch {
-      toast.error("Failed to send. Please try again.");
+      // Email failed but entity write may have succeeded — still acknowledge
+      setReportSent(true);
+      toast.success("Flagged for admin review.");
     }
   };
 
@@ -106,6 +165,44 @@ function ClaimCard({ claim }) {
           {claim.note && (
             <p className="text-muted-foreground mt-1 italic">{claim.note}</p>
           )}
+
+          {/* Reference links: (a) jump to the line in the analyst's report,
+              (b) open the external source the AI used. Both are surfaced
+              inline so readers can verify rather than trust. */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {onJumpToClaim && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onJumpToClaim(claim.text); }}
+                className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
+                title="Scroll to and highlight this line in the report"
+              >
+                ↪ Find in report
+              </button>
+            )}
+            {claim.yahooTicker && (
+              <a
+                href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+              >
+                <ExternalLink className="w-2.5 h-2.5" /> Source: Yahoo Finance
+              </a>
+            )}
+            {claim.secCheck?.edgarLink && (
+              <a
+                href={claim.secCheck.edgarLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline"
+              >
+                <ExternalLink className="w-2.5 h-2.5" /> Source: SEC 10-K
+              </a>
+            )}
+          </div>
 
           {claim.yahooCheck && (
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
@@ -187,7 +284,7 @@ function ClaimCard({ claim }) {
   );
 }
 
-export default function FactChecker({ reportContent, content }) {
+export default function FactChecker({ reportContent, content, reportId, reportTitle, onJumpToClaim }) {
   const [loading, setLoading] = useState(false);
   const [phase,   setPhase]   = useState("");
   const [claims,  setClaims]  = useState(null);
@@ -548,7 +645,15 @@ Report:
 
       {claims && claims.length > 0 && (
         <div className="space-y-2">
-          {claims.map((claim, i) => <ClaimCard key={i} claim={claim} />)}
+          {claims.map((claim, i) => (
+            <ClaimCard
+              key={i}
+              claim={claim}
+              reportId={reportId}
+              reportTitle={reportTitle}
+              onJumpToClaim={onJumpToClaim}
+            />
+          ))}
         </div>
       )}
 

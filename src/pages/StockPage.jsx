@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, PenLine, TrendingUp, TrendingDown, Globe, Users, Building2, ExternalLink } from "lucide-react";
+import { ArrowLeft, PenLine, TrendingUp, TrendingDown, Globe, Users, Building2, ExternalLink, Star } from "lucide-react";
+import { toast } from "sonner";
+
+const WATCHLIST_KEY = "stoa_watchlist";
 import { Badge } from "@/components/ui/badge";
 import { setMeta } from "@/lib/seo";
 import {
@@ -36,6 +39,33 @@ export default function StockPage() {
   const [ratings,      setRatings]      = useState(null);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
+
+  // Watchlist toggle. Source of truth is the same localStorage key the
+  // Markets page uses (stoa_watchlist), so toggling here flips the star on
+  // the Markets page too. Optimistic — flip state first, persist
+  // synchronously, no roll-back needed since localStorage doesn't fail.
+  const [isWatched, setIsWatched] = useState(false);
+  useEffect(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
+      setIsWatched(list.some(w => w.symbol === ticker));
+    } catch { setIsWatched(false); }
+  }, [ticker]);
+
+  const toggleWatch = useCallback(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
+      const exists = list.some(w => w.symbol === ticker);
+      const next = exists
+        ? list.filter(w => w.symbol !== ticker)
+        : [...list, { symbol: ticker, name: quote?.companyName || ticker }];
+      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next));
+      setIsWatched(!exists);
+      toast.success(exists ? `${ticker} removed from watchlist` : `${ticker} added to watchlist`);
+    } catch {
+      toast.error("Could not update watchlist");
+    }
+  }, [ticker, quote?.companyName]);
 
   useEffect(() => {
     setMeta({
@@ -85,12 +115,30 @@ export default function StockPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <button
-          onClick={() => navigate(`/editor?ticker=${ticker}`)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <PenLine className="w-3.5 h-3.5" /> Write Report on {ticker}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Watchlist star — prominent, optimistic toggle, syncs with Markets page */}
+          <button
+            type="button"
+            onClick={toggleWatch}
+            aria-pressed={isWatched}
+            aria-label={isWatched ? `Remove ${ticker} from watchlist` : `Add ${ticker} to watchlist`}
+            title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+              isWatched
+                ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                : "bg-card text-muted-foreground border-border hover:text-amber-600 hover:border-amber-200"
+            }`}
+          >
+            <Star className={`w-4 h-4 ${isWatched ? "fill-amber-500 text-amber-500" : ""}`} />
+            {isWatched ? "Watching" : "Watch"}
+          </button>
+          <button
+            onClick={() => navigate(`/editor?ticker=${ticker}`)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <PenLine className="w-3.5 h-3.5" /> Write Report on {ticker}
+          </button>
+        </div>
       </div>
 
       {/* ── Header card ──────────────────────────────────────── */}

@@ -320,46 +320,62 @@ export default function AnalystDashboard() {
         </div>
       </div>
 
-      {/* ── Stats Grid — hero score + supporting KPIs ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
-        {/* Hero stat: Score */}
-        <button onClick={() => navigate("/predictions")} className="stat-card stat-card-hero md:row-span-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="stat-card-label flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-primary/70" />Score</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+      {/* ── Compact stats strip — small pills, not hero cards.
+          Sits right under the action buttons so the dashboard's primary
+          content (predictions / reports) doesn't get pushed below the
+          fold by oversized score tiles. Each pill is still a button —
+          tapping jumps to the relevant detail view. */}
+      <div className="flex flex-wrap items-stretch gap-2 mb-6">
+        <button
+          onClick={() => navigate("/predictions")}
+          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
+        >
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Target className="w-3.5 h-3.5 text-primary" />
           </div>
-          <p className="stat-card-value">{scoring.total > 0 ? accuracyScore : "—"}</p>
-          <p className="stat-card-sub">{scoring.total > 0 ? `${scoring.hits}W · ${scoring.misses}L · ${scoring.total} resolved` : `${predictions.length} prediction${predictions.length === 1 ? "" : "s"} · none resolved yet`}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Score</p>
+            <p className="text-base font-extrabold leading-tight tabular-nums">{scoring.total > 0 ? accuracyScore : "—"}</p>
+          </div>
         </button>
 
-        {/* AI Credits */}
-        <button onClick={() => navigate("/wallet")} className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="stat-card-label flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--accent))" }} />AI Credits</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+        <button
+          onClick={() => navigate("/wallet")}
+          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
+        >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "hsl(42 96% 45% / 0.12)" }}>
+            <Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--accent))" }} />
           </div>
-          <p className="stat-card-value">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
-          <p className="stat-card-sub">Available balance</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">AI Credits</p>
+            <p className="text-base font-extrabold leading-tight tabular-nums">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
+          </div>
         </button>
 
-        {/* Yield */}
-        <button onClick={() => navigate("/analytics?category=yield")} className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" />Avg Yield</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+        <button
+          onClick={() => navigate("/analytics?category=yield")}
+          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
+        >
+          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+            <TrendingUp className="w-3.5 h-3.5 text-foreground/70" />
           </div>
-          <p className={`stat-card-value ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
-          <p className="stat-card-sub">{computedYield != null ? `${resolvedCount} resolved prediction${resolvedCount === 1 ? "" : "s"}` : "No resolved predictions yet"}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Avg Yield</p>
+            <p className={`text-base font-extrabold leading-tight tabular-nums ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
+          </div>
         </button>
 
-        {/* Followers */}
-        <button onClick={() => navigate("/analytics?category=followers")} className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="stat-card-label flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Followers</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+        <button
+          onClick={() => navigate("/analytics?category=followers")}
+          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
+        >
+          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+            <Users className="w-3.5 h-3.5 text-foreground/70" />
           </div>
-          <p className="stat-card-value">{analyst.followers.toLocaleString()}</p>
-          <p className="stat-card-sub">Total followers</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Followers</p>
+            <p className="text-base font-extrabold leading-tight tabular-nums">{analyst.followers.toLocaleString()}</p>
+          </div>
         </button>
       </div>
 
