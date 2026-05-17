@@ -806,9 +806,10 @@ export default function ReportView() {
                 <div className="pointer-events-none select-none">
                   <BlockRenderer blocks={blocks.slice(0, 3)} />
                 </div>
-                {/* gradient fade */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
-                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20" />
+                {/* Decorative gradient fade + blur — pointer-events-none
+                    so clicks pass through to anything beneath. */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
+                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20 pointer-events-none" />
               </div>
             )}
 

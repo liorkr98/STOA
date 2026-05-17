@@ -640,11 +640,16 @@ export default function AnalystProfilePage() {
 
       {/* ── Hero banner ── */}
       <div className="relative h-36 overflow-hidden" style={{ background: bannerTheme.bg }}>
-        <div className="absolute inset-0 opacity-10" style={{
+        {/* Decorative grid pattern — pointer-events-none so it doesn't
+            swallow clicks on the Back button below. Without this, the
+            absolute overlay sat on top of the entire banner including
+            the back button, which is why Back was visible but unclickable. */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-4xl mx-auto px-4 relative z-10">
           <button
+            type="button"
             onClick={goBack}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors pt-4"
           >

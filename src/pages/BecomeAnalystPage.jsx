@@ -130,11 +130,14 @@ export default function BecomeAnalystPage() {
     <div className="min-h-screen bg-background">
       {/* Hero — pt-4 adds room so the sticky nav doesn't clip the top */}
       <div className="relative overflow-hidden pt-4" style={{ minHeight: 120, background: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)" }}>
-        <div className="absolute inset-0 opacity-10" style={{
+        {/* Decorative grid pattern — pointer-events-none so clicks reach
+            the Back button below (same fix as AnalystProfilePage hero). */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
         }} />
-        <div className="max-w-2xl mx-auto px-4 pb-8">
+        <div className="max-w-2xl mx-auto px-4 pb-8 relative z-10">
           <button
+            type="button"
             onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
             className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white/90 transition-colors"
           >
