@@ -88,7 +88,11 @@ export default function NotificationCenter() {
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] font-medium font-display rounded-full flex items-center justify-center">
+          <span
+            className="absolute top-1 right-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] font-medium font-display rounded-full flex items-center justify-center"
+            aria-live="polite"
+            aria-label={`${unread} unread notification${unread === 1 ? "" : "s"}`}
+          >
             {unread > 9 ? "9+" : unread}
           </span>
         )}

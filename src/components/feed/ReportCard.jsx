@@ -556,9 +556,16 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
             className={`inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium cursor-pointer transition-colors ${
               liked ? "text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
+            aria-label={liked ? "Unlike this report" : "Like this report"}
+            aria-pressed={liked}
           >
-            <Heart size={15} fill={liked ? "currentColor" : "none"} />
-            <span className="font-display">{likeCount}</span>
+            <Heart
+              key={liked ? "filled" : "empty"}
+              className="scale-pulse"
+              size={15}
+              fill={liked ? "currentColor" : "none"}
+            />
+            <span className="font-display" aria-live="polite">{likeCount}</span>
           </button>
 
           <button
@@ -578,8 +585,15 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
             className={`inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium cursor-pointer transition-colors ${
               saved ? "text-accent" : "text-muted-foreground hover:text-foreground"
             }`}
+            aria-label={saved ? "Remove from saved" : "Save report"}
+            aria-pressed={saved}
           >
-            <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
+            <Bookmark
+              key={saved ? "saved" : "unsaved"}
+              className="scale-pulse"
+              size={15}
+              fill={saved ? "currentColor" : "none"}
+            />
             Save
           </button>
 

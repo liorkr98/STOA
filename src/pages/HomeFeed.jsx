@@ -20,6 +20,7 @@ import FeedSkeletonCard from "@/components/feed/FeedSkeletonCard";
 import QuickFilterRow from "@/components/feed/QuickFilterRow";
 import { TrendingDivider, AnalystSpotlight } from "@/components/feed/FeedDividerCard";
 import AnalystFeedCard from "@/components/feed/AnalystFeedCard";
+import Spinner from "@/components/ui/Spinner";
 
 const FEED_TABS = [
   { id: "trending", label: "Trending", icon: Flame },
@@ -325,15 +326,18 @@ export default function HomeFeed() {
           </div>
 
           {/* Feed tabs */}
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+          <div role="tablist" aria-label="Feed sections" className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
             {FEED_TABS.map(tab => {
               const Icon = tab.icon;
               const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-tag text-sm font-medium whitespace-nowrap transition-colors border ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-tag text-sm font-medium whitespace-nowrap transition-colors border ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}{count != null && count > 0 ? ` (${count})` : ""}
@@ -450,7 +454,7 @@ export default function HomeFeed() {
                 <div ref={loadMoreRef} className="py-2" />
                 {hasMore && (
                   <div className="flex justify-center py-4">
-                    <div className="w-5 h-5 border border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <Spinner size="sm" />
                   </div>
                 )}
               </>

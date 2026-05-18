@@ -755,13 +755,13 @@ Report:"""${fullText.slice(0, 3000)}"""`,
     <React.Fragment key={block.id}>
       {/* Drop zone above each block */}
       <div
-        className="relative"
+ className="relative"
         onDragOver={(e) => handleDragOver(e, blockIdx)}
         onDragLeave={() => setDropIndicatorAt(null)}
         onDrop={(e) => handleDrop(e, blockIdx)}
       >
         {dropIndicatorAt === blockIdx && (
-          <div className="h-0.5 bg-primary rounded mx-2 my-1 animate-pulse" />
+ <div className="h-0.5 bg-primary rounded mx-2 my-1 animate-pulse" />
         )}
       </div>
 
@@ -778,7 +778,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           onDelete={() => deleteBlock(block.id)}
         />
       ) : block.type === "comparechart" ? (
-        <div className="relative group bg-card border border-border rounded-xl my-2">
+ <div className="relative group bg-card border border-border rounded-xl my-2">
           <ChatCompareChart
             tickers={block.tickers || (block.content || "").split(",").filter(Boolean)}
             timeframe={block.timeframe || "1M"}
@@ -786,10 +786,10 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           <button
             type="button"
             onClick={() => deleteBlock(block.id)}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-card/80 text-muted-foreground hover:text-destructive border border-border"
+ className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-card/80 text-muted-foreground hover:text-destructive border border-border"
             title="Remove comparison chart"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+ <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       ) : block.type === "columns" ? (
@@ -833,33 +833,33 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
   // ─── Layout ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background">
+ <div className="min-h-screen bg-background">
       {/* Floating rich text toolbar */}
       <FloatingToolbar />
 
       {/* ── Top Toolbar ── */}
-      <div className="sticky top-14 z-20 bg-card/95 backdrop-blur border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 h-11 flex items-center gap-1.5">
+ <div className="sticky top-14 z-20 bg-card/95 backdrop-blur border-b border-border">
+ <div className="max-w-6xl mx-auto px-4 h-11 flex items-center gap-1.5">
           {/* Mode toggle */}
-          <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5 mr-1">
+ <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5 mr-1">
             <button
               onClick={() => setEditorMode("deep")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "deep" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+ className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "deep" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}
             >
-              <FileText className="w-3 h-3" />Deep Report
+ <FileText className="w-3 h-3" />Deep Report
             </button>
             <button
               onClick={() => setEditorMode("quick")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "quick" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+ className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "quick" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Zap className="w-3 h-3" />Quick Post
+ <Zap className="w-3 h-3" />Quick Post
             </button>
           </div>
 
           {editorMode === "deep" && (
             <>
               {/* Panel tabs */}
-              <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
+ <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
                 {[
                   { id: "write",    label: "Write",    icon: FileText },
                   { id: "design",   label: "Design",   icon: Palette },
@@ -868,56 +868,56 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   <button
                     key={id}
                     onClick={() => setActivePanel(id)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                      activePanel === id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+ className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                      activePanel === id ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />{label}
+ <Icon className="w-3.5 h-3.5" />{label}
                   </button>
                 ))}
               </div>
 
-              <span className={`text-[11px] ml-3 hidden md:flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
-                {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+ <span className={`text-[11px] ml-3 hidden md:flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+ {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                 {saveStatus === "saved" ? "Saved" : "Unsaved"}
               </span>
 
-              <div className="flex items-center gap-1 ml-auto">
+ <div className="flex items-center gap-1 ml-auto">
                 {/* Undo/Redo */}
-                <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-8 w-8 p-0 text-muted-foreground" title="Undo (Cmd+Z)"><Undo2 className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-8 w-8 p-0 text-muted-foreground" title="Redo (Cmd+Shift+Z)"><Redo2 className="w-3.5 h-3.5" /></Button>
+ <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-8 w-8 p-0 text-muted-foreground" title="Undo (Cmd+Z)"><Undo2 className="w-3.5 h-3.5" /></Button>
+ <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-8 w-8 p-0 text-muted-foreground" title="Redo (Cmd+Shift+Z)"><Redo2 className="w-3.5 h-3.5" /></Button>
 
-                <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1.5 hover:text-foreground">
-                  <Layout className="w-3.5 h-3.5" />Templates
+ <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1.5 hover:text-foreground">
+ <Layout className="w-3.5 h-3.5" />Templates
                 </Button>
-                <Button variant="ghost" size="sm" onClick={addDYOR} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1">
-                  <FileText className="w-3 h-3" />DYOR
+ <Button variant="ghost" size="sm" onClick={addDYOR} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1">
+ <FileText className="w-3 h-3" />DYOR
                 </Button>
 
                 {/* Drafts */}
                 <DropdownMenu open={showDrafts} onOpenChange={setShowDrafts}>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1 relative">
-                      <FolderOpen className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Drafts</span>
+ <Button variant="outline" size="sm" className="text-xs h-8 gap-1 relative">
+ <FolderOpen className="w-3.5 h-3.5" />
+ <span className="hidden sm:inline">Drafts</span>
                       {drafts.length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-medium rounded-full flex items-center justify-center">
+ <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-medium rounded-full flex items-center justify-center">
                           {drafts.length}
                         </span>
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80">
-                    <DropdownMenuLabel className="text-xs flex items-center justify-between">
+ <DropdownMenuContent align="end" className="w-80">
+ <DropdownMenuLabel className="text-xs flex items-center justify-between">
                       <span>Saved Drafts</span>
-                      <span className={`text-[10px] font-normal flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
-                        {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+ <span className={`text-[10px] font-normal flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+ {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                         {lastSaved ? `Auto-saves every 30s · last ${new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Auto-saves every 30s"}
                       </span>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {drafts.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-xs text-muted-foreground">No drafts saved yet.</div>
+ <div className="px-3 py-4 text-center text-xs text-muted-foreground">No drafts saved yet.</div>
                     ) : (
                       // Sort newest first, then group by "today / earlier"
                       [...drafts]
@@ -932,23 +932,23 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                                      : `${Math.floor(mins / 1440)}d ago`;
                           const isCurrent = d.id === currentDraftId;
                           return (
-                            <div key={d.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md mx-1 ${isCurrent ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-secondary"}`}>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate flex items-center gap-1.5">
+ <div key={d.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md mx-1 ${isCurrent ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-secondary"}`}>
+ <div className="flex-1 min-w-0">
+ <p className="text-xs font-medium truncate flex items-center gap-1.5">
                                   {d.title || "Untitled Draft"}
-                                  {isCurrent && <span className="text-[8px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
+ {isCurrent && <span className="text-[8px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
+ <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
                               </div>
                               <Button
                                 variant={isCurrent ? "outline" : "ghost"}
                                 size="sm"
                                 onClick={() => loadDraft(d)}
-                                className="text-xs h-6 px-2"
+ className="text-xs h-6 px-2"
                               >
                                 {isCurrent ? "Reloaded" : "Resume"}
                               </Button>
-                              <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5" title="Delete draft"><Trash2 className="w-3.5 h-3.5" /></button>
+ <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5" title="Delete draft"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           );
                         })
@@ -960,29 +960,29 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                   variant={isRTL ? "default" : "outline"}
                   size="sm"
                   onClick={() => setIsRTL(r => !r)}
-                  className="text-xs h-8 gap-1"
+ className="text-xs h-8 gap-1"
                   title="Toggle RTL writing (Hebrew / Arabic)"
                 >
-                  <Languages className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">RTL</span>
+ <Languages className="w-3.5 h-3.5" />
+ <span className="hidden sm:inline">RTL</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/5">
-                  <Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI</span>
+ <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/5">
+ <Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI</span>
                 </Button>
               </div>
             </>
           )}
 
           {editorMode === "quick" && (
-            <div className="ml-auto">
-              <span className="text-xs text-muted-foreground">Quick takes publish instantly to the feed</span>
+ <div className="ml-auto">
+ <span className="text-xs text-muted-foreground">Quick takes publish instantly to the feed</span>
             </div>
           )}
         </div>
       </div>
 
       {/* ── Main content ── */}
-      <div className="max-w-6xl mx-auto px-4 py-4">
+ <div className="max-w-6xl mx-auto px-4 py-4">
         {editorMode === "quick" ? (
           <QuickPostEditor quickImage={quickImage} setQuickImage={setQuickImage}
             quickShowPrediction={quickShowPrediction} setQuickShowPrediction={setQuickShowPrediction}
@@ -992,11 +992,11 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             quickTarget={quickTarget} setQuickTarget={setQuickTarget}
             title={title} setTitle={setTitle} />
         ) : activePanel === "design" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+ <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
             {/* Live preview */}
             <div>
-              <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
-                <Eye className="w-3 h-3" /> Live preview — changes apply instantly
+ <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+ <Eye className="w-3 h-3" /> Live preview — changes apply instantly
               </p>
               <div
                 style={{
@@ -1016,21 +1016,21 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                     {brandName && <span style={{ fontSize: 9, fontWeight: 700, color: themeObj?.text, opacity: 0.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{brandName}</span>}
                   </div>
                 )}
-                <h2 style={{ color: accentColor }} className="text-2xl font-medium mb-2">{title || "Your Report Title"}</h2>
-                {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
-                <div className="space-y-3">
+ <h2 style={{ color: accentColor }} className="text-2xl font-medium mb-2">{title || "Your Report Title"}</h2>
+ {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
+ <div className="space-y-3">
                   {blocks.slice(0, 5).filter(b => b.content || b.type === "divider").map((b, i) => (
                     <div key={i}>
-                      {b.type === "heading" && <h3 style={{ color: accentColor }} className="text-xl font-medium">{b.content}</h3>}
-                      {b.type === "heading2" && <h4 style={{ color: accentColor }} className="text-lg font-medium">{b.content}</h4>}
-                      {b.type === "text" && <p className="text-sm leading-relaxed">{b.content?.slice(0, 200)}{b.content?.length > 200 ? "..." : ""}</p>}
-                      {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{(b.content || "").split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
-                      {b.type === "quote" && <blockquote style={{ borderLeftColor: accentColor }} className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
-                      {b.type === "callout" && <div className="border-l-4 rounded-r p-2 text-sm" style={{ background: accentColor + "18", borderLeftColor: accentColor }}>{b.content}</div>}
-                      {b.type === "divider" && <hr style={{ borderColor: accentColor }} className="border-t-2 opacity-30" />}
+ {b.type === "heading" && <h3 style={{ color: accentColor }} className="text-xl font-medium">{b.content}</h3>}
+ {b.type === "heading2" && <h4 style={{ color: accentColor }} className="text-lg font-medium">{b.content}</h4>}
+ {b.type === "text" && <p className="text-sm leading-relaxed">{b.content?.slice(0, 200)}{b.content?.length > 200 ? "..." : ""}</p>}
+ {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{(b.content || "").split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
+ {b.type === "quote" && <blockquote style={{ borderLeftColor: accentColor }} className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
+ {b.type === "callout" && <div className="border-l-4 rounded-r p-2 text-sm" style={{ background: accentColor + "18", borderLeftColor: accentColor }}>{b.content}</div>}
+ {b.type === "divider" && <hr style={{ borderColor: accentColor }} className="border-t-2 opacity-30" />}
                     </div>
                   ))}
-                  {blocks.every(b => !b.content && b.type !== "divider") && <p className="text-sm opacity-40 italic">Write some content to see the preview here.</p>}
+ {blocks.every(b => !b.content && b.type !== "divider") && <p className="text-sm opacity-40 italic">Write some content to see the preview here.</p>}
                 </div>
               </div>
             </div>
@@ -1054,7 +1054,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             </div>
           </div>
         ) : activePanel === "write" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+ <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             {/* ── Editor canvas ── */}
             <div
               style={{
@@ -1071,28 +1071,28 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             >
               {/* Cover image */}
               {coverImage ? (
-                <div className="relative mb-6 rounded-2xl overflow-hidden aspect-[3/1] bg-secondary group">
-                  <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+ <div className="relative mb-6 rounded-2xl overflow-hidden aspect-[3/1] bg-secondary group">
+ <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
                   <button
                     onClick={() => setCoverImage("")}
-                    className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+ className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <X className="w-3.5 h-3.5" />
+ <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ) : (
-                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground mb-4 w-fit transition-colors">
-                  <ImageIcon className="w-3.5 h-3.5" />
+ <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground mb-4 w-fit transition-colors">
+ <ImageIcon className="w-3.5 h-3.5" />
                   {uploadingCover ? "Uploading..." : "Add cover image"}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+ <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
                 </label>
               )}
 
               {/* Brand header */}
               {(brandName || brandLogo) && (
-                <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border" dir="ltr">
-                  {brandLogo && <img src={brandLogo} alt={brandName} className="h-7 object-contain" onError={e => e.currentTarget.style.display = "none"} />}
-                  {brandName && <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{brandName}</span>}
+ <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border" dir="ltr">
+ {brandLogo && <img src={brandLogo} alt={brandName} className="h-7 object-contain" onError={e => e.currentTarget.style.display = "none"} />}
+ {brandName && <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{brandName}</span>}
                 </div>
               )}
 
@@ -1103,7 +1103,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 placeholder="Report title..."
                 rows={1}
                 dir={isRTL ? "rtl" : "ltr"}
-                className="w-full text-3xl md:text-4xl font-medium text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
+ className="w-full text-3xl md:text-4xl font-medium text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
                 style={{ fontFamily: fontObj?.style?.fontFamily, color: accentColor !== "#1d4ed8" ? accentColor : undefined }}
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
@@ -1115,19 +1115,19 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 placeholder="Write a short summary or teaser..."
                 rows={2}
                 dir={isRTL ? "rtl" : "ltr"}
-                className="w-full text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-6 leading-relaxed"
+ className="w-full text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-6 leading-relaxed"
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
 
-              <div className="border-b border-border mb-6" />
+ <div className="border-b border-border mb-6" />
 
               {/* Tags */}
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-4">
+ <div className="flex flex-wrap gap-1.5 mb-4">
                   {tags.map(tag => (
-                    <span key={tag} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-tag border border-primary/20">
-                      <Hash className="w-2.5 h-2.5" />{tag}
-                      <button onClick={() => setTags(prev => prev.filter(t => t !== tag))}><X className="w-2.5 h-2.5" /></button>
+ <span key={tag} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-tag border border-primary/20">
+ <Hash className="w-2.5 h-2.5" />{tag}
+ <button onClick={() => setTags(prev => prev.filter(t => t !== tag))}><X className="w-2.5 h-2.5" /></button>
                     </span>
                   ))}
                 </div>
@@ -1140,7 +1140,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                     <div
                       ref={droppableProvided.innerRef}
                       {...droppableProvided.droppableProps}
-                      className={`space-y-0.5 mb-4 transition-colors rounded-xl ${droppableSnapshot.isDraggingOver ? "bg-primary/3" : ""}`}
+ className={`space-y-0.5 mb-4 transition-colors rounded-xl ${droppableSnapshot.isDraggingOver ? "bg-primary/3" : ""}`}
                       dir={isRTL ? "rtl" : "ltr"}
                     >
                       {blocks.map((block, idx) => (
@@ -1149,32 +1149,32 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                             <div
                               ref={dragProvided.innerRef}
                               {...dragProvided.draggableProps}
-                              className={`relative group/draggable ${dragSnapshot.isDragging ? "opacity-80 shadow-xl rounded-xl bg-card ring-2 ring-primary/20 z-20" : ""}`}
+ className={`relative group/draggable ${dragSnapshot.isDragging ? "opacity-80 rounded-xl bg-card ring-2 ring-primary/20 z-20" : ""}`}
                             >
                               {/* Drop zone for AI content */}
                               <div
-                                className="absolute top-0 left-0 right-0 h-2 -translate-y-1 z-10"
+ className="absolute top-0 left-0 right-0 h-2 -translate-y-1 z-10"
                                 onDragOver={(e) => handleDragOver(e, idx)}
                                 onDragLeave={() => setDropIndicatorAt(null)}
                                 onDrop={(e) => handleDrop(e, idx)}
                               >
                                 {dropIndicatorAt === idx && (
-                                  <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+ <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
                                 )}
                               </div>
 
-                              <div className="flex items-start gap-1">
+ <div className="flex items-start gap-1">
                                 {/* Drag handle */}
                                 <div
                                   {...dragProvided.dragHandleProps}
-                                  className="flex-shrink-0 mt-2 w-5 flex flex-col items-center gap-0.5 opacity-0 group-hover/draggable:opacity-100 transition-opacity"
+ className="flex-shrink-0 mt-2 w-5 flex flex-col items-center gap-0.5 opacity-0 group-hover/draggable:opacity-100 transition-opacity"
                                   title="Drag to reorder"
                                 >
-                                  <GripVertical className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+ <GripVertical className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
                                 </div>
 
                                 {/* Block content — alignment applied here */}
-                                <div className="flex-1 min-w-0" style={(() => {
+ <div className="flex-1 min-w-0" style={(() => {
                                   const align = block.blockAlign;
                                   if (!align || align === "full") return {};
                                   if (align === "center") return { maxWidth: "65%", margin: "0 auto" };
@@ -1186,7 +1186,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                                 </div>
 
                                 {/* Block alignment toggle — appears on hover */}
-                                <div className="flex-shrink-0 flex flex-col gap-0.5 pt-2 opacity-0 group-hover/draggable:opacity-100 transition-opacity">
+ <div className="flex-shrink-0 flex flex-col gap-0.5 pt-2 opacity-0 group-hover/draggable:opacity-100 transition-opacity">
                                   {[
                                     { key: "full",   label: "⬛", title: "Full width" },
                                     { key: "left",   label: "◧",  title: "Align left (55%)" },
@@ -1197,7 +1197,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                                       key={key}
                                       onClick={() => updateBlock(block.id, { blockAlign: key === "full" ? undefined : key })}
                                       title={title}
-                                      className={`text-[9px] font-display px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+ className={`text-[9px] font-display px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
                                     >
                                       {label}
                                     </button>
@@ -1211,13 +1211,13 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                       {droppableProvided.placeholder}
                       {/* Final AI drop zone */}
                       <div
-                        className="h-6"
+ className="h-6"
                         onDragOver={(e) => handleDragOver(e, blocks.length)}
                         onDragLeave={() => setDropIndicatorAt(null)}
                         onDrop={(e) => handleDrop(e, blocks.length)}
                       >
                         {dropIndicatorAt === blocks.length && (
-                          <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+ <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
                         )}
                       </div>
                     </div>
@@ -1228,24 +1228,24 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               {/* Add block */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/40 rounded-xl px-4 py-2 w-full transition-colors group mb-4">
-                    <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
+ <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/40 rounded-xl px-4 py-2 w-full transition-colors group mb-4">
+ <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
                     <span>Add a block</span>
-                    <span className="ml-auto text-[10px] opacity-50">Type / in editor</span>
+ <span className="ml-auto text-[10px] opacity-50">Type / in editor</span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52">
-                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Content Blocks</DropdownMenuLabel>
+ <DropdownMenuContent align="start" className="w-52">
+ <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Content Blocks</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {BLOCK_TYPES.map((bt, i) => {
                     const Icon = bt.icon;
                     return (
                       <React.Fragment key={bt.type}>
                         {i === 7 && <DropdownMenuSeparator />}
-                        <DropdownMenuItem onClick={() => addBlock(bt.type)} className="cursor-pointer">
-                          <Icon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+ <DropdownMenuItem onClick={() => addBlock(bt.type)} className="cursor-pointer">
+ <Icon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
                           {bt.label}
-                          <span className="ml-auto text-[10px] text-muted-foreground font-display">{bt.shortcut}</span>
+ <span className="ml-auto text-[10px] text-muted-foreground font-display">{bt.shortcut}</span>
                         </DropdownMenuItem>
                       </React.Fragment>
                     );
@@ -1254,21 +1254,21 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               </DropdownMenu>
 
               {/* Prediction */}
-              <div className="mb-6">
+ <div className="mb-6">
                 <button
                   onClick={() => setShowPrediction(p => !p)}
-                  className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border-2 font-medium transition-all mb-1 ${
+ className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border-2 font-medium transition-all mb-1 ${
                     showPrediction
                       ? "bg-primary/5 border-primary/30 text-primary"
                       : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
                   }`}
                 >
-                  <Lock className="w-3.5 h-3.5" />
+ <Lock className="w-3.5 h-3.5" />
                   {showPrediction ? "✓ Prediction added" : "+ Add Locked Prediction"}
-                  <span className="ml-1 text-[10px] font-normal opacity-60">— builds your track record</span>
+ <span className="ml-1 text-[10px] font-normal opacity-60">— builds your track record</span>
                 </button>
                 {showPrediction && (
-                  <div className="mt-3">
+ <div className="mt-3">
                     <PredictionBlock initialData={predictionData} onChange={setPredictionData} />
                   </div>
                 )}
@@ -1276,50 +1276,50 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             </div>
 
             {/* ── Sidebar ── */}
-            <div className="space-y-3">
+ <div className="space-y-3">
               {/* Publish card */}
-              <div className="bg-card border border-border rounded-xl p-3">
-                <h3 className="text-xs font-medium mb-2 flex items-center gap-2">
-                  <Send className="w-3 h-3 text-primary" /> Publish
+ <div className="bg-card border border-border rounded-xl p-3">
+ <h3 className="text-xs font-medium mb-2 flex items-center gap-2">
+ <Send className="w-3 h-3 text-primary" /> Publish
                 </h3>
-                <div className="space-y-2">
-                  <Button onClick={() => handlePublish()} disabled={publishing} className="w-full gap-1.5">
-                    <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish Now"}
+ <div className="space-y-2">
+ <Button onClick={() => handlePublish()} disabled={publishing} className="w-full gap-1.5">
+ <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish Now"}
                   </Button>
 
                   {/* Schedule toggle */}
                   <button
                     onClick={() => setShowScheduler(s => !s)}
-                    className={`w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-all font-medium ${showScheduler ? "border-primary/40 text-primary bg-primary/5" : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
+ className={`w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-all font-medium ${showScheduler ? "border-primary/40 text-primary bg-primary/5" : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
                   >
-                    <Clock className="w-3.5 h-3.5" />
+ <Clock className="w-3.5 h-3.5" />
                     {showScheduler ? "Cancel schedule" : "Schedule for later"}
                   </button>
 
                   {showScheduler && (
-                    <div className="space-y-2 pt-1">
-                      <p className="text-[10px] text-muted-foreground">Report goes live automatically at the chosen time.</p>
+ <div className="space-y-2 pt-1">
+ <p className="text-[10px] text-muted-foreground">Report goes live automatically at the chosen time.</p>
                       <input
                         type="datetime-local"
                         value={scheduledAt}
                         min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
                         onChange={e => setScheduledAt(e.target.value)}
-                        className="w-full text-xs border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:border-primary"
+ className="w-full text-xs border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:border-primary"
                       />
                       <Button
                         onClick={() => handlePublish(scheduledAt)}
                         disabled={publishing || !scheduledAt}
                         variant="outline"
-                        className="w-full gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/5"
+ className="w-full gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/5"
                       >
-                        <Clock className="w-3.5 h-3.5" />
+ <Clock className="w-3.5 h-3.5" />
                         {publishing ? "Scheduling..." : "Confirm Schedule"}
                       </Button>
                     </div>
                   )}
 
-                  <Button variant="outline" onClick={() => persistDraft()} className="w-full gap-1.5 text-xs">
-                    <Save className="w-3.5 h-3.5" />Save as Draft
+ <Button variant="outline" onClick={() => persistDraft()} className="w-full gap-1.5 text-xs">
+ <Save className="w-3.5 h-3.5" />Save as Draft
                   </Button>
                 </div>
               </div>
@@ -1338,31 +1338,31 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               />
 
               {/* Stats */}
-              <div className="bg-secondary/50 border border-border rounded-xl p-3">
-                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Stats</h3>
-                <div className="space-y-1.5">
+ <div className="bg-secondary/50 border border-border rounded-xl p-3">
+ <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Stats</h3>
+ <div className="space-y-1.5">
                   {[
-                    { label: "Words", value: <span className={wordCountColor}>{wordCount}</span> },
+ { label: "Words", value: <span className={wordCountColor}>{wordCount}</span> },
                     { label: "Reading time", value: `${readingTime} min` },
                     { label: "Blocks", value: blocks.length },
                     { label: "Has prediction", value: predictionData ? "Yes ✓" : "No" },
                     { label: "Monetization", value: isPremium ? `$${reportPrice}` : "Free" },
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="font-medium text-foreground">{value}</span>
+ <div key={label} className="flex justify-between text-xs">
+ <span className="text-muted-foreground">{label}</span>
+ <span className="font-medium text-foreground">{value}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Tips */}
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-                <h3 className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Tips
+ <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+ <h3 className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
+ <TrendingUp className="w-3 h-3" /> Tips
                 </h3>
-                <ul className="space-y-1 text-[10px] text-muted-foreground">
-                  <li>✦ Type <code className="bg-secondary px-1 rounded">/</code> anywhere to insert a block</li>
+ <ul className="space-y-1 text-[10px] text-muted-foreground">
+ <li>✦ Type <code className="bg-secondary px-1 rounded">/</code> anywhere to insert a block</li>
                   <li>✦ Select text for rich formatting toolbar</li>
                   <li>✦ Cmd+Z / Cmd+Shift+Z to undo/redo</li>
                   <li>✦ 600+ words ranks higher in the feed</li>

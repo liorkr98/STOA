@@ -204,68 +204,68 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
         width: 340,
         userSelect: dragging ? "none" : "auto",
       }}
-      className="surface overflow-hidden"
+ className="surface overflow-hidden"
     >
       {/* Drag handle header */}
       <div
         onMouseDown={handleMouseDown}
-        className={`flex items-center justify-between px-4 py-3 border-b border-border/60 bg-secondary/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+ className={`flex items-center justify-between px-4 py-3 border-b border-border/60 bg-secondary/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        <div className="flex items-center gap-2 pointer-events-none">
-          <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="font-serif text-[14px] text-foreground">AI Research Assistant</span>
+ <div className="flex items-center gap-2 pointer-events-none">
+ <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+ <Sparkles className="w-4 h-4 text-primary" />
+ <span className="font-serif text-[14px] text-foreground">AI Research Assistant</span>
           {credits != null && (
-            <span className={`text-[10px] font-medium font-display px-1.5 py-0.5 rounded-tag flex items-center gap-0.5 ${
+ <span className={`text-[10px] font-medium font-display px-1.5 py-0.5 rounded-tag flex items-center gap-0.5 ${
               credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"
             }`}>
-              <Coins className="w-2.5 h-2.5" /> {credits}
+ <Coins className="w-2.5 h-2.5" /> {credits}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-0.5 pointer-events-auto">
+ <div className="flex items-center gap-0.5 pointer-events-auto">
           <button
             onMouseDown={e => e.stopPropagation()}
             onClick={() => setMinimized(m => !m)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+ className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${minimized ? "rotate-180" : ""}`} />
+ <ChevronDown className={`w-3.5 h-3.5 transition-transform ${minimized ? "rotate-180" : ""}`} />
           </button>
           <button
             onMouseDown={e => e.stopPropagation()}
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+ className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            <X className="w-3.5 h-3.5" />
+ <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Body — hidden when minimized */}
       {!minimized && (
-        <div className="p-4">
+ <div className="p-4">
           {/* Mode toggle */}
-          <div className="flex gap-1 p-1 bg-secondary rounded-lg mb-4">
+ <div className="flex gap-1 p-1 bg-secondary rounded-lg mb-4">
             <button
               onClick={() => setMode("elite")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "elite" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+ className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "elite" ? "bg-card text-primary " : "text-muted-foreground"}`}
             >
-              <TrendingUp className="w-3 h-3" /> Elite Research
+ <TrendingUp className="w-3 h-3" /> Elite Research
             </button>
             <button
               onClick={() => setMode("generic")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "generic" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+ className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all ${mode === "generic" ? "bg-card text-primary " : "text-muted-foreground"}`}
             >
-              <Sparkles className="w-3 h-3" /> Quick Template
+ <Sparkles className="w-3 h-3" /> Quick Template
             </button>
           </div>
 
           {mode === "elite" ? (
-            <p className="text-xs text-muted-foreground mb-3">
+ <p className="text-xs text-muted-foreground mb-3">
               Enter a <strong>stock ticker</strong> (e.g. NVDA) for a full institutional-grade research report with fundamentals, technicals, valuation, catalysts & price target.
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground mb-3">
+ <p className="text-xs text-muted-foreground mb-3">
               Enter a company or topic, or leave blank for a generic template.
             </p>
           )}
@@ -274,47 +274,47 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             value={topic}
             onChange={e => setTopic(e.target.value.toUpperCase())}
             placeholder={mode === "elite" ? "Ticker e.g. NVDA, AAPL, TSLA..." : "e.g. NVIDIA, Tesla, Bitcoin..."}
-            className="mb-4 font-display"
+ className="mb-4 font-display"
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             autoFocus
           />
 
           {mode === "elite" && isTickerLike && topic.trim() && (
-            <div className="mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs text-primary">
+ <div className="mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs text-primary">
               Will generate full 8-section institutional research for <strong>{topic.trim().toUpperCase()}</strong> using live internet data
             </div>
           )}
 
           {credits != null && credits <= 0 && topic.trim() && (
-            <div className="mb-2 px-3 py-2 bg-loss/10 border border-loss/20 rounded-tag text-[10px] text-loss flex items-center gap-1.5">
-              <Coins className="w-3 h-3 flex-shrink-0" />
-              No AI credits remaining. Top up in your <a href="/wallet" className="underline ml-0.5">Wallet</a>.
+ <div className="mb-2 px-3 py-2 bg-loss/10 border border-loss/20 rounded-tag text-[10px] text-loss flex items-center gap-1.5">
+ <Coins className="w-3 h-3 flex-shrink-0" />
+ No AI credits remaining. Top up in your <a href="/wallet" className="underline ml-0.5">Wallet</a>.
             </div>
           )}
 
           <Button
             onClick={handleGenerate}
             disabled={generating || (topic.trim() ? credits != null && credits <= 0 : false)}
-            className="w-full"
+ className="w-full"
           >
             {generating
-              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "elite" ? "Researching with AI..." : topic ? "Writing with AI..." : "Loading template..."}</>
-              : <><Sparkles className="w-4 h-4 mr-2" />{mode === "elite" && isTickerLike && topic ? `Research ${topic.trim().toUpperCase()}` : topic ? "Generate with AI" : "Use Generic Template"}</>
+ ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "elite" ? "Researching with AI..." : topic ? "Writing with AI..." : "Loading template..."}</>
+ : <><Sparkles className="w-4 h-4 mr-2" />{mode === "elite" && isTickerLike && topic ? `Research ${topic.trim().toUpperCase()}` : topic ? "Generate with AI" : "Use Generic Template"}</>
             }
           </Button>
 
           {topic.trim() && (
-            <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
-              <Coins className="w-2.5 h-2.5" />
+ <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+ <Coins className="w-2.5 h-2.5" />
               {mode === "elite" && isTickerLike
                 ? `${COST_ELITE} credits · live internet data · ~20–40 sec`
                 : `${COST_GENERIC} credits · AI-generated outline`}
             </p>
           )}
 
-          <div className="mt-4 pt-3 border-t border-border/60">
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag to report</p>
-            <p className="text-[10px] text-muted-foreground">
+ <div className="mt-4 pt-3 border-t border-border/60">
+ <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag to report</p>
+ <p className="text-[10px] text-muted-foreground">
               Generate above to populate your report, or drag this panel anywhere on screen.
             </p>
           </div>

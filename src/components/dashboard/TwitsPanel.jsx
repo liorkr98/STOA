@@ -77,7 +77,7 @@ export default function TwitsPanel({ currentUser }) {
           twits.map(t => (
             <div key={t.id} className="flex gap-2">
               {avatarUrl(currentUser)
-                ? <img src={avatarUrl(currentUser)} alt="" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
+                ? <img src={avatarUrl(currentUser)} alt={`${displayName || "User"}'s avatar`} className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
                 : <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0">{displayName?.[0]}</div>
               }
               <div>

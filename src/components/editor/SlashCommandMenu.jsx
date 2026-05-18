@@ -54,11 +54,11 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-xl w-72 py-1.5 overflow-hidden"
+ className="absolute left-0 top-full mt-1 z-50 bg-card border border-border rounded-xl w-72 py-1.5 overflow-hidden"
     >
       {filter ? (
         <>
-          <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border mb-1 font-medium tracking-wider uppercase">
+ <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border mb-1 font-medium tracking-wider uppercase">
             Blocks · "{filter}"
           </div>
           {filtered.map((cmd, i) => (
@@ -68,7 +68,7 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
       ) : (
         groupsInResult.map(group => (
           <div key={group}>
-            <div className="px-3 pt-2 pb-1 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+ <div className="px-3 pt-2 pb-1 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
               {group}
             </div>
             {filtered.filter(c => c.group === group).map(cmd => {
@@ -88,16 +88,16 @@ function CommandRow({ cmd, active, onSelect }) {
   return (
     <button
       onMouseDown={(e) => { e.preventDefault(); onSelect(cmd.type); }}
-      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+ className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
         active ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
       }`}
     >
-      <span className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-secondary rounded-lg flex-shrink-0 font-display tracking-tighter">
+ <span className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-secondary rounded-lg flex-shrink-0 font-display tracking-tighter">
         {cmd.icon}
       </span>
-      <div className="min-w-0">
-        <div className="text-xs font-medium">{cmd.label}</div>
-        <div className="text-[10px] text-muted-foreground">{cmd.desc}</div>
+ <div className="min-w-0">
+ <div className="text-xs font-medium">{cmd.label}</div>
+ <div className="text-[10px] text-muted-foreground">{cmd.desc}</div>
       </div>
     </button>
   );

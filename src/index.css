@@ -77,14 +77,17 @@
     --sidebar-border: var(--neutral-200);
     --sidebar-ring: var(--blue-primary);
 
-    /* Shadows — softer, warmer (uses near-black neutral tone instead of cool slate) */
-    --shadow-xs: 0 1px 2px 0 rgb(12 12 11 / 0.04);
-    --shadow-sm: 0 1px 2px 0 rgb(12 12 11 / 0.04), 0 1px 3px -1px rgb(12 12 11 / 0.05);
-    --shadow-md: 0 4px 12px -2px rgb(12 12 11 / 0.06), 0 2px 4px -2px rgb(12 12 11 / 0.04);
-    --shadow-lg: 0 12px 28px -6px rgb(12 12 11 / 0.10), 0 4px 10px -4px rgb(12 12 11 / 0.06);
-    --shadow-xl: 0 24px 56px -12px rgb(12 12 11 / 0.16), 0 8px 16px -8px rgb(12 12 11 / 0.08);
-    --shadow-glow-gold: 0 0 0 0.5px hsl(var(--gold) / 0.18), 0 8px 24px -8px hsl(var(--gold) / 0.30);
-    --shadow-glow-navy: 0 0 0 0.5px hsl(var(--blue-primary) / 0.18), 0 8px 24px -8px hsl(var(--blue-primary) / 0.30);
+    /* Shadows — zeroed out per design system. Depth comes from glass layering
+       and top-edge highlights only, never drop shadows. The tokens stay so
+       that any consumer (.surface, shadow-card-*, Tailwind shadow-sm etc.)
+       still resolves to a no-op rather than a runtime error. */
+    --shadow-xs: 0 0 0 0 transparent;
+    --shadow-sm: 0 0 0 0 transparent;
+    --shadow-md: 0 0 0 0 transparent;
+    --shadow-lg: 0 0 0 0 transparent;
+    --shadow-xl: 0 0 0 0 transparent;
+    --shadow-glow-gold: 0 0 0 0 transparent;
+    --shadow-glow-navy: 0 0 0 0 transparent;
 
     /* Glass card tints — Liquid Glass spec (light mode) */
     --glass-bg: rgba(30, 58, 138, 0.03);
@@ -150,11 +153,12 @@
     --glass-top-edge: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.16) 50%, transparent 100%);
     --glass-blur: 20px;
 
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.6), 0 4px 10px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 24px 56px -12px rgb(0 0 0 / 0.8), 0 8px 16px -8px rgb(0 0 0 / 0.5);
+    /* Dark-mode shadows zeroed for the same reason as light. */
+    --shadow-xs: 0 0 0 0 transparent;
+    --shadow-sm: 0 0 0 0 transparent;
+    --shadow-md: 0 0 0 0 transparent;
+    --shadow-lg: 0 0 0 0 transparent;
+    --shadow-xl: 0 0 0 0 transparent;
   }
 }
 
@@ -269,8 +273,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 0.5px solid var(--glass-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: border-color 0.18s ease, transform 0.18s ease;
 }
 .surface::before {
   content: "";
@@ -282,14 +285,12 @@
   border-top-right-radius: inherit;
   pointer-events: none;
 }
-.surface:hover { box-shadow: var(--shadow-md); }
 
 .surface-interactive {
   cursor: pointer;
-  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 .surface-interactive:hover {
-  box-shadow: var(--shadow-md);
   border-color: hsl(var(--blue-lighter) / 0.30);
   transform: translateY(-1px);
 }
@@ -299,9 +300,8 @@
   position: relative;
   background: var(--glass-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
   border: 0.5px solid var(--glass-border);
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 .surface-premium::after {
   content: "";
@@ -327,7 +327,7 @@
   pointer-events: none;
 }
 .surface-premium:hover::before { opacity: 1; }
-.surface-premium:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.surface-premium:hover { transform: translateY(-2px); }
 
 /* Stat card — KPI surface. Sentiment colors are NOT used here per design rules. */
 .stat-card {
@@ -337,9 +337,8 @@
   border-radius: var(--radius);
   padding: 1.25rem;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
   overflow: hidden;
-  box-shadow: var(--shadow-xs);
 }
 .stat-card::before {
   content: "";
@@ -357,7 +356,7 @@
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.stat-card:hover { border-color: hsl(var(--blue-primary) / 0.25); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-card:hover { border-color: hsl(var(--blue-primary) / 0.25); transform: translateY(-1px); }
 .stat-card:hover::after { opacity: 1; }
 .stat-card-label {
   font-family: var(--font-sans);
@@ -428,6 +427,20 @@
 @keyframes flashRed   { 0% { color: hsl(var(--sentiment-negative)); } 100% { color: inherit; } }
 .flash-up   { animation: flashGreen 1s ease; }
 .flash-down { animation: flashRed 1s ease; }
+
+/* Micro-interaction: subtle scale pulse for toggle buttons (like, follow).
+   Triggered by toggling the `.scale-pulse` class on the element. */
+@keyframes scalePulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.scale-pulse {
+  animation: scalePulse 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scale-pulse { animation: none; }
+}
 
 .divider-gradient {
   height: 0.5px;

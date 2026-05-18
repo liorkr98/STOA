@@ -475,7 +475,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="col-span-3 flex items-center gap-2.5">
                   {a.picture
-                    ? <img src={a.picture} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+                    ? <img src={a.picture} alt={`${a.full_name || "Analyst"}'s avatar`} className="w-8 h-8 rounded-full object-cover flex-shrink-0" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
                     : null}
                   <div className={`w-8 h-8 rounded-full bg-primary/10 items-center justify-center text-sm font-medium text-primary flex-shrink-0 ${a.picture ? 'hidden' : 'flex'}`}>
                     {(a.full_name || "?")[0]}

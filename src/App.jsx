@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from '@/components/layout/AppLayout';
+import Spinner from '@/components/ui/Spinner';
 import { Toaster as SonnerToaster } from 'sonner';
 
 // ── Critical paths: load eagerly ───────────────────────────────────────────
@@ -56,7 +57,7 @@ const BecomeAnalystPage     = lazy(() => import('@/pages/BecomeAnalystPage'));
 // Tiny spinner shown while a route's bundle is fetching
 const RouteFallback = () => (
   <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
-    <div className="w-6 h-6 border border-border border-t-primary rounded-full animate-spin" />
+    <Spinner size="md" />
   </div>
 );
 
@@ -103,7 +104,7 @@ const AuthenticatedApp = () => {
     if (isSignIn) return <SignIn />;
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <Spinner size="lg" />
       </div>
     );
   }

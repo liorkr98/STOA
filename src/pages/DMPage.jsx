@@ -181,7 +181,7 @@ export default function DMPage() {
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} items-end gap-2`}>
               {!isMe && (
                 other.picture
-                  ? <img src={other.picture} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mb-1" />
+                  ? <img src={other.picture} alt={`${displayName}'s avatar`} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mb-1" />
                   : <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0 mb-1">
                       {displayName[0]}
                     </div>

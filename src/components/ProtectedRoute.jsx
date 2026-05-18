@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import Spinner from '@/components/ui/Spinner';
 
 const DefaultFallback = () => (
   <div className="fixed inset-0 flex items-center justify-center">
-    <div className="w-8 h-8 border border-border border-t-foreground rounded-full animate-spin"></div>
+    <Spinner size="lg" />
   </div>
 );
 
