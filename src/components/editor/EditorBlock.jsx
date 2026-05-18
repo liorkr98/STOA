@@ -6,12 +6,12 @@ import MetricsBlock from "./MetricsBlock";
 import ThesisBlock from "./ThesisBlock";
 
 const BLOCK_STYLES = {
-  heading:  "text-2xl font-bold text-foreground leading-tight",
-  heading2: "text-xl font-semibold text-foreground leading-snug",
+  heading:  "text-2xl font-medium font-serif text-foreground leading-tight",
+  heading2: "text-xl font-medium font-serif text-foreground leading-snug",
   text:     "text-[15px] text-foreground/90 leading-relaxed",
   bullets:  "text-[15px] text-foreground/90 leading-relaxed whitespace-pre-wrap",
   numbered: "text-[15px] text-foreground/90 leading-relaxed whitespace-pre-wrap",
-  quote:    "text-[15px] text-foreground/75 italic border-l-4 border-primary/40 pl-4 py-1",
+  quote:    "text-[15px] text-foreground/75 italic border-l border-accent/60 pl-4 py-1",
   callout:  "text-[15px] text-foreground/90 leading-relaxed",
   divider:  "",
   table:    "text-[15px] text-foreground/90",
@@ -199,8 +199,8 @@ export default function EditorBlock({ block, onChange, onDelete, onEnter, onInse
         onMouseLeave={() => setIsHovered(false)}
       >
         {dropIndicator && <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded" />}
-        <div className="flex-1 border-t-2 border-primary/30 rounded-full" />
-        <button onClick={onDelete} className={`text-muted-foreground/40 hover:text-loss text-[10px] transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>✕</button>
+        <div className="flex-1 border-t border-border" />
+        <button onClick={onDelete} className={`text-muted-foreground/40 hover:text-foreground text-[10px] transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>✕</button>
       </div>
     );
   }

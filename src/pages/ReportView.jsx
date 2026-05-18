@@ -115,7 +115,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
             {/* "Unverified — high confidence" is self-contradictory: by definition we
                 couldn't verify the claim. Suppress the confidence chip for that case. */}
             {claim.confidence && claim.type !== "Unverified" && (
-              <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${
+              <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-semibold ${
                 claim.confidence === "high" ? "bg-gain/10 text-gain" :
                 claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
                 "bg-muted text-muted-foreground"
@@ -197,14 +197,14 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
           {/* AI mistaken? — amber pill */}
           <div className="mt-2">
             {reportSent ? (
-              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
+              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-tag font-medium">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
               </span>
             ) : (
               <button
                 onClick={handleReportMistake}
                 aria-label="Report AI mistake for this claim"
-                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-full font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-tag font-medium transition-colors"
               >
                 <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
               </button>
@@ -290,7 +290,7 @@ function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpTo
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowLive(true)}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground border border-border rounded-full px-2 py-0.5 hover:border-primary/40 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground border border-border rounded-tag px-2 py-0.5 hover:border-primary/40 transition-colors"
             title="Re-run fact check with latest data"
           >
             <RefreshCw className="w-2.5 h-2.5" /> Re-run
@@ -311,7 +311,7 @@ function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpTo
             <button
               key={type}
               onClick={() => toggleFilter(type)}
-              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cfg.bg} ${cfg.color} ${
+              className={`text-[10px] font-semibold px-2.5 py-1 rounded-tag border transition-all ${cfg.bg} ${cfg.color} ${
                 isActive ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-70 hover:opacity-100"
               }`}
               title={isActive ? "Clear filter" : `Show only ${cfg.label}s`}
@@ -324,7 +324,7 @@ function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpTo
         {activeFilter && (
           <button
             onClick={() => setFilter(null)}
-            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-full border border-border"
+            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-tag border border-border"
           >
             Show all ({claims.length})
           </button>

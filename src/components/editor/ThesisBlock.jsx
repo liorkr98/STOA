@@ -19,10 +19,10 @@ export default function ThesisBlock({ block, onChange, onDelete }) {
   const { bull, bear } = parseThesis(block.content);
 
   return (
-    <div className="group relative rounded-xl border border-border overflow-hidden my-2">
+    <div className="group relative surface overflow-hidden my-2">
       {/* Header */}
       <div className="flex items-center justify-between bg-secondary px-4 py-2 border-b border-border">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
           Investment Thesis
         </span>
         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -47,7 +47,7 @@ export default function ThesisBlock({ block, onChange, onDelete }) {
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-gain flex-shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-gain">
+            <span className="text-[11px] font-medium uppercase tracking-widest text-gain">
               Bull Case
             </span>
           </div>
@@ -71,7 +71,7 @@ export default function ThesisBlock({ block, onChange, onDelete }) {
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-loss flex-shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-loss">
+            <span className="text-[11px] font-medium uppercase tracking-widest text-loss">
               Bear Case
             </span>
           </div>

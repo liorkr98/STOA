@@ -120,7 +120,7 @@ const STEPS = [
           <div className="text-[10px] text-muted-foreground">Your tagline here</div>
           <div className="flex gap-1 mt-1.5">
             {["Tech", "AI", "Macro"].map(s => (
-              <span key={s} className="text-[10px] px-1.5 py-0.5 bg-secondary rounded-full">{s}</span>
+              <span key={s} className="text-[10px] px-1.5 py-0.5 bg-secondary rounded-tag">{s}</span>
             ))}
           </div>
         </div>

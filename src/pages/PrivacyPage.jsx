@@ -55,10 +55,10 @@ export default function PrivacyPage() {
         </div>
         <div className="flex items-start gap-4 flex-wrap">
           <div>
-            <h1 className="text-4xl font-extrabold mb-2">Privacy Policy</h1>
+            <h1 className="text-4xl font-medium mb-2">Privacy Policy</h1>
             <div className="flex items-center gap-3">
-              <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-full border border-border">Last updated: May 9, 2026</span>
-              <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200">STOA Technologies Ltd.</span>
+              <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-tag border border-border">Last updated: May 9, 2026</span>
+              <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-tag border border-blue-200">STOA Technologies Ltd.</span>
             </div>
           </div>
         </div>

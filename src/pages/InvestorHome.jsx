@@ -79,14 +79,14 @@ function WatchItem({ entry, live }) {
     >
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center">
-          <span className="text-[9px] font-mono font-black text-primary">{ticker?.slice(0, 2)}</span>
+          <span className="text-[9px] font-mono font-medium text-primary">{ticker?.slice(0, 2)}</span>
         </div>
         <span className="text-xs font-mono font-bold group-hover:text-primary transition-colors">{ticker}</span>
       </div>
       {live?.price != null ? (
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+          <span className={`text-[11px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
@@ -134,7 +134,7 @@ function ReportRow({ report, index }) {
       </div>
       <div className="shrink-0 text-right">
         {!isPending ? (
-          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
             {isHit ? "Hit ✓" : "Miss ✗"}
           </span>
         ) : (
@@ -172,7 +172,7 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
       {currentUserEmail && currentUserEmail !== analyst.email && (
         <button
           onClick={e => { e.stopPropagation(); onFollow(analyst); }}
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all shrink-0 ${
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-tag border transition-all shrink-0 ${
             following
               ? "border-green-300 text-green-700 bg-green-50"
               : "border-primary/30 text-primary hover:bg-primary/5"
@@ -420,7 +420,7 @@ export default function InvestorHome() {
                 return (
                   <div key={q.symbol}>
                     <p className="text-white/45 text-[10px] uppercase tracking-wider mb-1">{q.symbol}</p>
-                    <p className="text-2xl font-extrabold tracking-tight tabular-nums">
+                    <p className="text-2xl font-medium tracking-tight tabular-nums">
                       {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
                     </p>
                     <p className={`text-[12px] font-bold mt-0.5 flex items-center gap-1 ${up ? "text-green-400" : "text-red-400"}`}>
@@ -562,7 +562,7 @@ export default function InvestorHome() {
                         <p className="text-[11px] font-semibold truncate max-w-[80px] group-hover:text-primary transition-colors">{name}</p>
                         <p className="text-[9px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
                       </div>
-                      <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-full">Active</span>
+                      <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag">Active</span>
                     </Link>
                   );
                 })}
@@ -715,7 +715,7 @@ export default function InvestorHome() {
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
           <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "hsl(var(--accent))" }}>Have a market view?</span>
-          <h3 className="text-xl font-extrabold text-white mt-1.5 mb-2">Become a Researcher</h3>
+          <h3 className="text-xl font-medium text-white mt-1.5 mb-2">Become a Researcher</h3>
           <p className="text-white/55 text-sm leading-relaxed mb-5">
             Publish research, build a verified track record, and monetize your insights on the platform.
           </p>

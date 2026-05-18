@@ -136,7 +136,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-extrabold text-sm">${ticker}</span>
+            <span className="font-mono font-medium text-sm">${ticker}</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{tf}</span>
           </div>
           <p className="text-[10px] text-muted-foreground truncate">{name}</p>

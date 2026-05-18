@@ -55,10 +55,10 @@ export default function TermsPage() {
           <span>›</span>
           <span>Terms & Conditions</span>
         </div>
-        <h1 className="text-4xl font-extrabold mb-2">Terms & Conditions</h1>
+        <h1 className="text-4xl font-medium mb-2">Terms & Conditions</h1>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-full border border-border">Last updated: May 9, 2026</span>
-          <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-full border border-border">Effective: May 9, 2026</span>
+          <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-tag border border-border">Last updated: May 9, 2026</span>
+          <span className="text-xs bg-secondary text-muted-foreground px-3 py-1 rounded-tag border border-border">Effective: May 9, 2026</span>
         </div>
       </div>
 

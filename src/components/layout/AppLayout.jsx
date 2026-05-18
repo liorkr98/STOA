@@ -153,7 +153,7 @@ export default function AppLayout() {
       {/* Skip to main content — screen reader / keyboard nav */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-sm focus:text-sm focus:font-medium"
       >
         Skip to main content
       </a>
@@ -180,7 +180,7 @@ export default function AppLayout() {
                   aria-label={item.label}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm font-medium transition-colors",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -197,23 +197,23 @@ export default function AppLayout() {
                 <Link
                   to="/wallet"
                   aria-label={`Wallet — balance $${walletBalance == null ? "loading" : walletBalance.toFixed(2)}`}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-border hover:border-primary/30 hover:bg-secondary transition-all"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-medium font-display px-2.5 py-1.5 rounded-sm border border-border hover:border-primary/40 hover:bg-secondary transition-colors"
                 >
                   <Wallet className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                   ${walletBalance == null ? "—" : walletBalance.toFixed(2)}
                 </Link>
                 <NotificationCenter />
-                <Link to="/inbox" aria-label={`Messages${unreadCount > 0 ? ` — ${unreadCount} unread` : ""}`} className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                <Link to="/inbox" aria-label={`Messages${unreadCount > 0 ? ` — ${unreadCount} unread` : ""}`} className="relative p-2 rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   <MessageSquare className="w-4 h-4" aria-hidden="true" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[9px] text-white font-bold">
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[9px] text-primary-foreground font-medium font-display">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button aria-label="Account menu" className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                    <button aria-label="Account menu" className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                       {avatarUrl(user)
                         ? <img src={avatarUrl(user)} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
                         : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary">
@@ -240,11 +240,9 @@ export default function AppLayout() {
                           </div>
                       }
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{user?.full_name || "My Account"}</p>
+                        <p className="text-sm font-medium truncate">{user?.full_name || "My Account"}</p>
                         <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                        <span className={`mt-1 inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                          isAnalyst ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
-                        }`}>
+                        <span className={`mt-1 inline-block ${isAnalyst ? "pill-accent" : "pill"}`}>
                           {isAnalyst ? "Researcher" : "Investor"}
                         </span>
                       </div>
@@ -252,9 +250,9 @@ export default function AppLayout() {
 
                     {/* INVESTOR — prominent upgrade prompt */}
                     {!isAnalyst && (
-                      <DropdownMenuItem onClick={() => navigate("/become-analyst")} className="bg-amber-50 focus:bg-amber-100">
-                        <Sparkles className="w-4 h-4 mr-2 text-amber-600" />
-                        <span className="font-bold text-amber-800">Become a Researcher</span>
+                      <DropdownMenuItem onClick={() => navigate("/become-analyst")} className="bg-accent/10 focus:bg-accent/15">
+                        <Sparkles className="w-4 h-4 mr-2 text-accent" />
+                        <span className="font-medium text-accent">Become a Researcher</span>
                       </DropdownMenuItem>
                     )}
 
@@ -275,7 +273,7 @@ export default function AppLayout() {
                     <DropdownMenuItem onClick={() => navigate("/inbox")}>
                       <MessageSquare className="w-4 h-4 mr-2" /> Messages
                       {unreadCount > 0 && (
-                        <span className="ml-auto text-[10px] bg-primary text-white rounded-full px-1.5 py-0.5 font-bold">{unreadCount}</span>
+                        <span className="ml-auto text-[10px] bg-primary text-primary-foreground rounded-tag px-1.5 py-0.5 font-medium font-display">{unreadCount}</span>
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/wallet")}>
@@ -311,12 +309,11 @@ export default function AppLayout() {
                               type="button"
                               onClick={(e) => { e.preventDefault(); setTheme(key); }}
                               className={cn(
-                                "flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md text-[10px] font-semibold transition-colors border",
+                                "flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-sm text-[10px] font-medium transition-colors border",
                                 active
-                                  ? "border-accent/40 bg-accent/10 text-accent-foreground"
+                                  ? "border-accent/40 bg-accent/10 text-accent"
                                   : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
                               )}
-                              style={active ? { color: "hsl(46 65% 32%)" } : undefined}
                               aria-pressed={active}
                             >
                               <Icon className="w-3.5 h-3.5" /> {label}
@@ -326,7 +323,7 @@ export default function AppLayout() {
                       </div>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => logout(true)} className="text-loss focus:text-loss">
+                    <DropdownMenuItem onClick={() => logout(true)} className="text-muted-foreground focus:text-foreground">
                       <LogOut className="w-4 h-4 mr-2" /> Log Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>

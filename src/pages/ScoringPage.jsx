@@ -35,7 +35,7 @@ export default function ScoringPage() {
 
       {/* Hero */}
       <div className="text-center mb-14">
-        <h1 className="text-4xl font-extrabold mb-4 tracking-tight">Scoring & Calculations</h1>
+        <h1 className="text-4xl font-medium mb-4 tracking-tight">Scoring & Calculations</h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
           Every researcher score on STOA is calculated automatically from verified prediction data. No manual input, no cherry-picking — just math.
         </p>
@@ -54,7 +54,7 @@ export default function ScoringPage() {
             { label: "Miss", val: "−10–20", desc: "Points lost for incorrect call", color: "text-loss" },
           ].map((item, i) => (
             <div key={i} className="bg-secondary rounded-xl p-4 text-center border border-border">
-              <div className={`text-2xl font-extrabold mb-1 ${item.color}`}>{item.val}</div>
+              <div className={`text-2xl font-medium mb-1 ${item.color}`}>{item.val}</div>
               <div className="text-sm font-semibold text-foreground mb-1">{item.label}</div>
               <div className="text-xs text-muted-foreground">{item.desc}</div>
             </div>

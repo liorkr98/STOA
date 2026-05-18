@@ -115,17 +115,17 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
       >
         <div className="flex items-start justify-between mb-2">
           <div>
-            <span className="font-mono font-black text-sm tracking-wide">{stock.symbol}</span>
-            {isWatched && <span className="ml-1.5 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">Watched</span>}
+            <span className="font-mono font-medium text-sm tracking-wide">{stock.symbol}</span>
+            {isWatched && <span className="ml-1.5 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-tag">Watched</span>}
           </div>
           <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-semibold">{stock.exchange}</span>
         </div>
         <p className="text-[11px] text-muted-foreground truncate mb-3 leading-snug">{stock.name}</p>
         {stock.price != null ? (
           <div className="flex items-center justify-between">
-            <p className="text-base font-extrabold tabular-nums">${Number(stock.price).toFixed(2)}</p>
+            <p className="text-base font-medium tabular-nums">${Number(stock.price).toFixed(2)}</p>
             {stock.change != null && (
-              <span className={`text-[11px] font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-full ${isUp ? "text-green-700 bg-green-50 border border-green-100" : "text-red-600 bg-red-50 border border-red-100"}`}>
+              <span className={`text-[11px] font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50 border border-green-100" : "text-red-600 bg-red-50 border border-red-100"}`}>
                 {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                 {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
               </span>
@@ -170,7 +170,7 @@ function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
       className="flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all group"
     >
       <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
-        <span className="text-[10px] font-black text-white font-mono">{stock.symbol?.slice(0, 2)}</span>
+        <span className="text-[10px] font-medium text-white font-mono">{stock.symbol?.slice(0, 2)}</span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -186,7 +186,7 @@ function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
               {fmtCap(stock.mktCap)}
             </span>
           )}
-          <span className={`text-xs font-bold w-16 text-right flex items-center justify-end gap-0.5 px-2 py-0.5 rounded-full ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+          <span className={`text-xs font-bold w-16 text-right flex items-center justify-end gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
           </span>
@@ -323,7 +323,7 @@ export default function StocksPage() {
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
               <span className="eyebrow" style={{ color: "hsl(var(--accent))" }}>Markets</span>
-              <h1 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">US Stock Market</h1>
+              <h1 className="text-3xl font-medium text-white mt-1.5 tracking-tight">US Stock Market</h1>
               <p className="text-white/50 text-sm mt-1">Most active stocks · Star any ticker to track live prices</p>
             </div>
             {/* Live index tiles */}
@@ -334,7 +334,7 @@ export default function StocksPage() {
                   return (
                     <div key={q.symbol} className="rounded-xl px-4 py-2.5 border border-white/10 bg-white/5 min-w-[80px]">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-white/40 mb-0.5">{q.symbol}</p>
-                      <p className="text-base font-extrabold text-white tabular-nums">
+                      <p className="text-base font-medium text-white tabular-nums">
                         {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
                       </p>
                       <p className={`text-[11px] font-bold flex items-center gap-0.5 mt-0.5 ${up ? "text-green-400" : "text-red-400"}`}>

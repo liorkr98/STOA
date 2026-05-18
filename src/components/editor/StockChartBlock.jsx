@@ -395,7 +395,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
         <span className="text-[10px] text-muted-foreground">Indicators:</span>
         {STUDIES_OPTIONS.map(s => (
           <button key={s} onClick={() => toggleStudy(s)}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${studies.includes(s) ? "bg-primary/10 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/30"}`}>
+            className={`px-2 py-0.5 rounded-tag text-[10px] font-medium border transition-all ${studies.includes(s) ? "bg-primary/10 text-primary border-primary/30" : "border-border text-muted-foreground hover:border-primary/30"}`}>
             {studies.includes(s) ? `× ${s}` : `+ ${s}`}
           </button>
         ))}

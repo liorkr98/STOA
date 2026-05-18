@@ -936,7 +936,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium truncate flex items-center gap-1.5">
                                   {d.title || "Untitled Draft"}
-                                  {isCurrent && <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Editing</span>}
+                                  {isCurrent && <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
                               </div>
@@ -1125,7 +1125,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {tags.map(tag => (
-                    <span key={tag} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+                    <span key={tag} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-tag border border-primary/20">
                       <Hash className="w-2.5 h-2.5" />{tag}
                       <button onClick={() => setTags(prev => prev.filter(t => t !== tag))}><X className="w-2.5 h-2.5" /></button>
                     </span>

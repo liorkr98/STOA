@@ -44,7 +44,7 @@ function CommentItem({ comment }) {
         {Object.keys(reactions).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {Object.entries(reactions).map(([emoji, count]) => (
-              <button key={emoji} onClick={() => handleReaction(emoji)} className="flex items-center gap-0.5 text-xs bg-card border border-border rounded-full px-2 py-0.5 hover:border-primary/40 transition-colors">
+              <button key={emoji} onClick={() => handleReaction(emoji)} className="flex items-center gap-0.5 text-xs bg-background border border-border rounded-tag px-2 py-0.5 hover:border-primary/40 transition-colors">
                 {emoji} {count}
               </button>
             ))}

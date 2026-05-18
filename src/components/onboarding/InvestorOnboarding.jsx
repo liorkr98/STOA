@@ -37,8 +37,8 @@ const STEPS = [
         </div>
         <div className="text-xs font-bold mb-1">NVIDIA: AI supercycle still has 18 months left</div>
         <div className="flex gap-1.5">
-          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full font-semibold">LONG $NVDA</span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-full">Target: $190</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-tag font-semibold">LONG $NVDA</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-tag">Target: $190</span>
         </div>
       </div>
     ),
@@ -64,7 +64,7 @@ const STEPS = [
                 <div className="text-[10px] text-muted-foreground">{a.spec}</div>
               </div>
             </div>
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">{a.tier}</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-tag">{a.tier}</span>
           </div>
         ))}
       </div>

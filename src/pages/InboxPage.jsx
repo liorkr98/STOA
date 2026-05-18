@@ -104,7 +104,7 @@ export default function InboxPage() {
             <MessageSquare className="w-5 h-5 text-primary" />
             Messages
             {totalUnread > 0 && (
-              <span className="text-xs bg-primary text-white rounded-full px-2 py-0.5 font-bold">
+              <span className="text-xs bg-primary text-white rounded-tag px-2 py-0.5 font-bold">
                 {totalUnread}
               </span>
             )}

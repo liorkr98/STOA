@@ -32,7 +32,7 @@ function AnalystCard({ entry, type, onUnfollow, onUnsubscribe }) {
               </span>
             )}
             {type === "subscribers" && entry.plan && (
-              <span className="text-[11px] px-1.5 py-0 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              <span className="text-[11px] px-1.5 py-0 rounded-tag bg-primary/10 text-primary border border-primary/20 font-medium">
                 {entry.plan.label}
               </span>
             )}
@@ -149,7 +149,7 @@ export default function SubscribersPage() {
             >
               <Icon className="w-4 h-4" />
               {t.label}
-              <span className={`text-xs px-1.5 py-0 rounded-full font-semibold ${tab === t.key ? "bg-primary text-white" : "bg-border text-muted-foreground"}`}>
+              <span className={`text-xs px-1.5 py-0 rounded-tag font-semibold ${tab === t.key ? "bg-primary text-white" : "bg-border text-muted-foreground"}`}>
                 {count}
               </span>
             </button>

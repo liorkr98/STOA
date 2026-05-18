@@ -21,7 +21,7 @@ export default function PageNotFound() {
           <StoaLogo size={48} textSize="text-2xl" />
         </div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-muted-foreground text-xs font-semibold mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-tag bg-secondary text-muted-foreground text-xs font-semibold mb-6">
           <Compass className="w-3.5 h-3.5" /> 404 · Page not found
         </div>
 

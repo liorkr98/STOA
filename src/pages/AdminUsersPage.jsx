@@ -18,10 +18,12 @@ function fmtDate(dateStr) {
   return format(new Date(dateStr), "MMM d, yyyy");
 }
 
-const ROLE_STYLES = {
-  admin: "bg-red-100 text-red-700 border-red-200",
-  analyst: "bg-blue-100 text-blue-700 border-blue-200",
-  user: "bg-gray-100 text-gray-600 border-gray-200",
+// Admin uses pill-accent (gold premium tier signal), analyst uses pill-primary
+// (active role), regular users get neutral pill. None use market red.
+const ROLE_PILL = {
+  admin: "pill-accent",
+  analyst: "pill-primary",
+  user: "pill",
 };
 
 const COLUMNS = [
@@ -117,7 +119,7 @@ export default function AdminUsersPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="w-6 h-6 border border-primary/30 border-t-primary rounded-full animate-spin" />
     </div>
   );
 
@@ -128,7 +130,7 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-bold">Admin — Users</h1>
-          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{sorted.length} users</span>
+          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-tag border border-border"><span className="font-display">{sorted.length}</span> users</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -206,7 +208,7 @@ export default function AdminUsersPage() {
                   </td>
                   {/* Role */}
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${ROLE_STYLES[u.role] || ROLE_STYLES.user}`}>
+                    <span className={`capitalize ${ROLE_PILL[u.role] || ROLE_PILL.user}`}>
                       {u.role || "user"}
                     </span>
                   </td>
