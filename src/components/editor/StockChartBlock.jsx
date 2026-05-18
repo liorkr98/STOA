@@ -64,7 +64,7 @@ async function resolveExchangeForTicker(ticker) {
 
 let _chartCount = 0;
 
-export default function StockChartBlock({ block, onDelete, onChange, registerSaver }) {
+export default function StockChartBlock({ block, onDelete, onChange }) {
   const initialTicker = block?.ticker || block?.content || "AAPL";
   const [ticker, setTicker] = useState(initialTicker);
   const [inputTicker, setInputTicker] = useState(initialTicker);
@@ -172,14 +172,9 @@ export default function StockChartBlock({ block, onDelete, onChange, registerSav
   // every drawing tool layer composited in. We use that as the primary
   // path and only fall back to html2canvas if the widget isn't ready
   // (e.g. resolving exchange).
-  //
-  // The capture body lives behind a ref so two callers can share it: the
-  // "Save Chart" button (toasts + spinner) and the imperative saver the
-  // Publish flow invokes (no toast — Publish surfaces its own). On
-  // success it returns the patch so the caller can merge it into the
-  // local frozenBlocks before serializing to the DB.
-  const captureRef = useRef(null);
-  captureRef.current = async () => {
+  const handleSaveChart = async () => {
+    setSaving(true);
+    try {
       let canvas = null;
 
       // ── Primary: TradingView widget screenshot (includes annotations) ──
@@ -295,14 +290,6 @@ export default function StockChartBlock({ block, onDelete, onChange, registerSav
       };
       setFrozen(true);
       notify(patch);
-      return patch;
-  };
-
-  // Button-click handler: spinner + toast UX, swallows errors after toasting.
-  const handleSaveChart = async () => {
-    setSaving(true);
-    try {
-      await captureRef.current();
       toast.success(`Chart saved with annotations · ${ticker} · ${interval}`);
     } catch (e) {
       console.error(e);
@@ -311,26 +298,6 @@ export default function StockChartBlock({ block, onDelete, onChange, registerSav
       setSaving(false);
     }
   };
-
-  // Imperative saver for the Publish flow. Returns the patch so the
-  // caller can merge it into its local block list synchronously
-  // (React state updates from notify() won't flush in the same tick).
-  // Rethrows on failure so Publish can abort cleanly.
-  useEffect(() => {
-    const id = block?.id;
-    if (!registerSaver || !id) return;
-    const saver = async () => {
-      if (frozen) return null;
-      setSaving(true);
-      try {
-        return await captureRef.current();
-      } finally {
-        setSaving(false);
-      }
-    };
-    registerSaver(id, saver);
-    return () => registerSaver(id, null);
-  }, [block?.id, registerSaver, frozen]);
 
   const handleUnfreeze = () => {
     setFrozen(false);
