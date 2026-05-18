@@ -63,6 +63,7 @@ export default function WalletConfirmDialog({
     >
       <div
         className="surface w-full max-w-sm overflow-hidden"
+        style={{ background: "hsl(var(--card))" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

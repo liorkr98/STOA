@@ -1193,7 +1193,7 @@ export default function AnalystProfilePage() {
       {/* ── Score modal ── */}
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
-          <div className="surface p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="surface p-6 w-full max-w-sm" style={{ background: "hsl(var(--card))" }} onClick={e => e.stopPropagation()}>
             <h3 className="font-serif text-[16px] text-foreground mb-1">Researcher Score</h3>
             <p className="text-5xl font-medium font-display text-primary mb-1">{scoring.score}</p>
             <p className="text-xs text-muted-foreground mb-5">out of 100 · <span className="font-display">{scoring.total}</span> resolved predictions</p>
