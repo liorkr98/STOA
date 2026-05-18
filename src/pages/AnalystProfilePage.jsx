@@ -732,8 +732,17 @@ export default function AnalystProfilePage() {
       <div className="max-w-4xl mx-auto px-4">
 
         {/* ── Profile header card ── */}
+        {/* `surface-premium` defaults to a near-transparent glass background
+            (3% navy in light mode, 4.5% white in dark). That works fine for
+            cards floating over the page background, but this card is pulled
+            UP by -mt-12 so its top 48px overlaps the dark navy banner.
+            With a translucent fill the banner bled straight through, making
+            the upper area of the card look navy and the analyst name appear
+            as dark-text-on-dark. Inline style overrides the glass fill with
+            the opaque theme card color so the top-edge highlight + gradient
+            border still work, but the banner can't bleed through anymore. */}
         <div className="relative -mt-12 mb-6">
-          <div className="surface-premium p-6">
+          <div className="surface-premium p-6" style={{ background: "hsl(var(--card))" }}>
             <div className="flex items-end gap-4 mb-5">
 
               {/* Avatar — uploaded profile_picture_url overrides auth-provider picture */}
