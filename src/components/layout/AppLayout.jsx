@@ -206,7 +206,11 @@ export default function AppLayout() {
                 <Link to="/inbox" aria-label={`Messages${unreadCount > 0 ? ` — ${unreadCount} unread` : ""}`} className="relative p-2 rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   <MessageSquare className="w-4 h-4" aria-hidden="true" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[9px] text-primary-foreground font-medium font-display">
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[9px] text-primary-foreground font-medium font-display"
+                      aria-live="polite"
+                      aria-label={`${unreadCount} unread message${unreadCount === 1 ? "" : "s"}`}
+                    >
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}

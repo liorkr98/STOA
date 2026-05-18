@@ -588,9 +588,30 @@ export default function ReportView() {
     toast.info("Couldn't locate the exact line — the AI may have paraphrased.");
   }, []);
 
+  // Content-shaped skeleton: back link + ticker chips + title + author meta
+  // + body. Mirrors the actual layout so the page doesn't flash from a
+  // centered spinner to a left-aligned article.
   if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+    <div className="max-w-3xl mx-auto px-4 py-6" aria-busy="true" aria-label="Loading report">
+      <div className="h-4 w-12 shimmer rounded-tag mb-6" />
+      <div className="flex gap-2 mb-4">
+        <div className="h-6 w-16 shimmer rounded-tag" />
+        <div className="h-6 w-20 shimmer rounded-tag" />
+      </div>
+      <div className="h-8 w-3/4 shimmer rounded-tag mb-4" />
+      <div className="h-8 w-2/3 shimmer rounded-tag mb-6" />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-8 h-8 rounded-full shimmer" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-32 shimmer rounded-tag" />
+          <div className="h-2.5 w-20 shimmer rounded-tag" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <div key={i} className={`h-4 shimmer rounded-tag ${i % 3 === 2 ? "w-3/5" : "w-full"}`} />
+        ))}
+      </div>
     </div>
   );
 

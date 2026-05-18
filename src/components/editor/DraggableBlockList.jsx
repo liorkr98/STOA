@@ -65,7 +65,7 @@ export default function DraggableBlockList({ blocks, onReorder, onUpdate, onDele
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`space-y-1 mb-4 transition-colors ${snapshot.isDraggingOver ? "bg-primary/3 rounded-xl" : ""}`}
+ className={`space-y-1 mb-4 transition-colors ${snapshot.isDraggingOver ? "bg-primary/3 rounded-xl" : ""}`}
           >
             {rows.map((row, rowIdx) => {
               if (row.type === "group") {
@@ -92,8 +92,8 @@ export default function DraggableBlockList({ blocks, onReorder, onUpdate, onDele
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className={`relative group/draggable flex items-start gap-1 ${
-                        snapshot.isDragging ? "opacity-80 shadow-lg rounded-xl bg-card ring-2 ring-primary/20" : ""
+ className={`relative group/draggable flex items-start gap-1 ${
+                        snapshot.isDragging ? "opacity-80  rounded-xl bg-card ring-2 ring-primary/20" : ""
                       }`}
                       onMouseEnter={() => setHoveredId(block.id)}
                       onMouseLeave={() => setHoveredId(null)}
@@ -101,14 +101,14 @@ export default function DraggableBlockList({ blocks, onReorder, onUpdate, onDele
                       {/* Drag handle */}
                       <div
                         {...provided.dragHandleProps}
-                        className="flex-shrink-0 mt-2 w-5 h-8 flex items-center justify-center text-muted-foreground/30 hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing opacity-0 group-hover/draggable:opacity-100 transition-opacity"
+ className="flex-shrink-0 mt-2 w-5 h-8 flex items-center justify-center text-muted-foreground/30 hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing opacity-0 group-hover/draggable:opacity-100 transition-opacity"
                         title="Drag to reorder"
                       >
-                        <GripVertical className="w-4 h-4" />
+ <GripVertical className="w-4 h-4" />
                       </div>
 
                       {/* Block content */}
-                      <div className="flex-1 min-w-0">
+ <div className="flex-1 min-w-0">
                         {block.type === "stockchart" ? (
                           <StockChartBlock
                             block={block}
@@ -133,23 +133,23 @@ export default function DraggableBlockList({ blocks, onReorder, onUpdate, onDele
 
                       {/* Column group buttons */}
                       {hoveredId === block.id && (canGroup2 || canGroup3) && (
-                        <div className="absolute -bottom-0.5 right-6 flex gap-1 z-10">
+ <div className="absolute -bottom-0.5 right-6 flex gap-1 z-10">
                           {canGroup2 && (
                             <button
                               onClick={() => groupWithNext(block.id, 2)}
-                              className="flex items-center gap-1 text-[10px] bg-card border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-sm"
+ className="flex items-center gap-1 text-[10px] bg-card border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all "
                               title="Place next block side-by-side (2 columns)"
                             >
-                              <Columns2 className="w-3 h-3" /> 2 col
+ <Columns2 className="w-3 h-3" /> 2 col
                             </button>
                           )}
                           {canGroup3 && (
                             <button
                               onClick={() => groupWithNext(block.id, 3)}
-                              className="flex items-center gap-1 text-[10px] bg-card border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-sm"
+ className="flex items-center gap-1 text-[10px] bg-card border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all "
                               title="Place next 2 blocks side-by-side (3 columns)"
                             >
-                              <Columns3 className="w-3 h-3" /> 3 col
+ <Columns3 className="w-3 h-3" /> 3 col
                             </button>
                           )}
                         </div>

@@ -72,6 +72,8 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
     <button
       onClick={handleClick}
       disabled={loading}
+      aria-pressed={following}
+      aria-label={following ? `Unfollow ${analystName || "analyst"}` : `Follow ${analystName || "analyst"}`}
       className={`shrink-0 inline-flex items-center text-[11px] font-medium uppercase tracking-wider px-2.5 py-1 border transition-colors ${
         following
           ? "bg-primary/10 text-primary border-primary/30"
@@ -79,7 +81,9 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
       } ${loading ? "opacity-60" : ""}`}
       style={{ borderRadius: 6 }}
     >
-      {following ? "Following ✓" : "Follow"}
+      <span key={following ? "on" : "off"} className="scale-pulse inline-block">
+        {following ? "Following ✓" : "Follow"}
+      </span>
     </button>
   );
 }

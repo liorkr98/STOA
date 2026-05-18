@@ -28,38 +28,38 @@ function CommentItem({ comment }) {
   const authorInitial = (comment.author_name || "A")[0].toUpperCase();
 
   return (
-    <div className="flex gap-3">
+ <div className="flex gap-3">
       {comment.author_avatar
-        ? <img src={comment.author_avatar} alt={comment.author_name} className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 object-cover" />
-        : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 mt-0.5">{authorInitial}</div>
+ ? <img src={comment.author_avatar} alt={comment.author_name} className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 object-cover" />
+ : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 mt-0.5">{authorInitial}</div>
       }
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-xs text-foreground">{comment.author_name || "Anonymous"}</span>
-          <span className="text-[10px] text-muted-foreground ml-auto">
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-2 mb-1">
+ <span className="font-medium text-xs text-foreground">{comment.author_name || "Anonymous"}</span>
+ <span className="text-[10px] text-muted-foreground ml-auto">
             {comment.created_date ? format(new Date(comment.created_date), "MMM d, HH:mm") : "just now"}
           </span>
         </div>
-        <p className="text-sm text-foreground/90 mb-2">{comment.content}</p>
+ <p className="text-sm text-foreground/90 mb-2">{comment.content}</p>
         {Object.keys(reactions).length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+ <div className="flex flex-wrap gap-1 mb-2">
             {Object.entries(reactions).map(([emoji, count]) => (
-              <button key={emoji} onClick={() => handleReaction(emoji)} className="flex items-center gap-0.5 text-xs bg-background border border-border rounded-tag px-2 py-0.5 hover:border-primary/40 transition-colors">
+ <button key={emoji} onClick={() => handleReaction(emoji)} className="flex items-center gap-0.5 text-xs bg-background border border-border rounded-tag px-2 py-0.5 hover:border-primary/40 transition-colors">
                 {emoji} {count}
               </button>
             ))}
           </div>
         )}
-        <div className="flex items-center gap-3 relative">
+ <div className="flex items-center gap-3 relative">
           <button onClick={() => { setLiked(v => !v); setLikeCount(p => liked ? p - 1 : p + 1); }}
-            className={`flex items-center gap-1 text-xs transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}>
-            <Heart className={`w-3.5 h-3.5 ${liked ? "fill-loss" : ""}`} /> {likeCount}
+ className={`flex items-center gap-1 text-xs transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}>
+ <Heart className={`w-3.5 h-3.5 ${liked ? "fill-loss" : ""}`} /> {likeCount}
           </button>
-          <button onClick={() => setShowReactions(!showReactions)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">React</button>
+ <button onClick={() => setShowReactions(!showReactions)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">React</button>
           {showReactions && (
-            <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-xl p-2 shadow-lg z-10">
+ <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-xl p-2 z-10">
               {REACTIONS.map(r => (
-                <button key={r.emoji} onClick={() => handleReaction(r.emoji)} className="text-lg hover:scale-125 transition-transform">{r.emoji}</button>
+ <button key={r.emoji} onClick={() => handleReaction(r.emoji)} className="text-lg hover:scale-125 transition-transform">{r.emoji}</button>
               ))}
             </div>
           )}
@@ -123,22 +123,22 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
   const displayAvatar = avatarUrl(currentUser);
 
   return (
-    <div id="comments" className="mt-8">
-      <div className="flex items-center gap-2 mb-4">
-        <MessageCircle className="w-4 h-4 text-primary" />
-        <h3 className="font-medium text-base">Discussion ({comments.length})</h3>
+ <div id="comments" className="mt-8">
+ <div className="flex items-center gap-2 mb-4">
+ <MessageCircle className="w-4 h-4 text-primary" />
+ <h3 className="font-medium text-base">Discussion ({comments.length})</h3>
       </div>
 
       {currentUser && (
-        <div className="flex gap-3 mb-6">
+ <div className="flex gap-3 mb-6">
           {displayAvatar
-            ? <img src={displayAvatar} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
-            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">{displayName[0]?.toUpperCase()}</div>
+ ? <img src={displayAvatar} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
+ : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">{displayName[0]?.toUpperCase()}</div>
           }
-          <div className="flex-1">
-            <Textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add to the discussion..." className="text-sm resize-none h-20 mb-2" />
+ <div className="flex-1">
+ <Textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add to the discussion..." className="text-sm resize-none h-20 mb-2" />
             <Button onClick={addComment} size="sm" disabled={!newComment.trim() || posting}>
-              {posting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+ {posting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
               Post Comment
             </Button>
           </div>
@@ -146,11 +146,11 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+ <div className="flex items-center justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">No comments yet. Be the first to share your thoughts.</p>
+ <p className="text-sm text-muted-foreground text-center py-6">No comments yet. Be the first to share your thoughts.</p>
       ) : (
-        <div className="space-y-5">
+ <div className="space-y-5">
           {comments.map(c => <CommentItem key={c.id} comment={c} />)}
         </div>
       )}

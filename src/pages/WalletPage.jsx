@@ -116,18 +116,23 @@ export default function WalletPage() {
       </div>
 
       {/* ── Tab switcher ── */}
-      <div className="flex gap-1 mb-5 p-1 rounded-tag border border-border bg-secondary w-fit">
-        {[["cash", "💵", "Cash Balance"], ["credits", "⚡", "AI Credits"]].map(([key, emoji, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-tag text-sm font-medium transition-colors ${
-              tab === key
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>{emoji}</span> {label}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Wallet balance type" className="flex gap-1 mb-5 p-1 rounded-tag border border-border bg-secondary w-fit">
+        {[["cash", "💵", "Cash Balance"], ["credits", "⚡", "AI Credits"]].map(([key, emoji, label]) => {
+          const isActive = tab === key;
+          return (
+            <button key={key} onClick={() => setTab(key)}
+              role="tab"
+              aria-selected={isActive}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-tag text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span aria-hidden="true">{emoji}</span> {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── CASH TAB ── */}

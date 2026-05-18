@@ -19,23 +19,23 @@ export default function AccuracyTrendChart() {
   const currentVal = isAccuracy ? lastPoint.accuracy : lastPoint.yield;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-      <div className="flex items-center justify-between mb-3">
+ <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+ <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-medium text-sm">Performance Trend</h2>
-          <p className="text-xs text-muted-foreground">
-            Current: <span className={isAccuracy ? "text-primary font-medium" : "text-amber-600 font-medium"}>
+ <h2 className="font-medium text-sm">Performance Trend</h2>
+ <p className="text-xs text-muted-foreground">
+ Current: <span className={isAccuracy ? "text-primary font-medium" : "text-amber-600 font-medium"}>
               {isAccuracy ? `${currentVal}%` : `+${currentVal}%`}
             </span>
-            <span className="ml-2 text-muted-foreground/60">vs S&P 500: +12%</span>
+ <span className="ml-2 text-muted-foreground/60">vs S&P 500: +12%</span>
           </p>
         </div>
-        <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
+ <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
           {["accuracy", "yield"].map(m => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all capitalize ${mode === m ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+ className={`px-3 py-1 rounded-md text-xs font-medium transition-all capitalize ${mode === m ? "bg-card text-foreground" : "text-muted-foreground"}`}
             >
               {m}
             </button>

@@ -599,9 +599,40 @@ export default function AnalystProfilePage() {
   };
 
   // ── Guards ────────────────────────────────────────────────────────────────
+  // Content-shaped skeleton that mirrors the actual page layout: banner +
+  // avatar + name + tagline + 5-stat row + tab bar. Uses the shimmer
+  // utility from index.css so all skeletons across the app feel uniform.
   if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    <div className="min-h-screen bg-background" aria-busy="true" aria-label="Loading profile">
+      <div className="relative h-36 overflow-hidden shimmer" />
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="relative -mt-12 mb-6">
+          <div className="surface-premium p-6" style={{ background: "hsl(var(--card))" }}>
+            <div className="flex items-end gap-4 mb-5">
+              <div className="w-20 h-20 rounded-full shimmer -mt-10 ring-4 ring-background" />
+              <div className="flex-1 min-w-0 pb-1 space-y-2">
+                <div className="h-5 w-48 shimmer rounded-tag" />
+                <div className="h-3 w-72 shimmer rounded-tag" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} className="h-20 shimmer rounded-tag" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-0 border-b border-border/60 mb-6">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="h-10 w-32 shimmer mx-2" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="h-32 shimmer rounded-tag" />
+          ))}
+        </div>
+      </div>
     </div>
   );
 
@@ -688,7 +719,7 @@ export default function AnalystProfilePage() {
       )}
 
       {/* ── Hero banner ── */}
-      <div className="relative h-36 overflow-hidden" style={{ background: bannerTheme.bg }}>
+      <div className="relative h-36 overflow-hidden ambient-section" style={{ background: bannerTheme.bg }}>
         {/* Decorative grid pattern — pointer-events-none so it doesn't
             swallow clicks on the Back button below. Without this, the
             absolute overlay sat on top of the entire banner including
@@ -948,25 +979,32 @@ export default function AnalystProfilePage() {
         )}
 
         {/* ── Tab bar ── */}
-        <div className="flex gap-0 border-b border-border/60 mb-6">
-          {tabsToShow.map((tab, idx) => (
-            <div
-              key={tab}
-              draggable={isEditMode}
-              onDragStart={e => handleDragStart(e, idx)}
-              onDragOver={handleDragOver}
-              onDrop={e => handleDrop(e, idx)}
-              className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b transition-all select-none ${
-                effectiveTab === tab
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              } ${isEditMode ? "cursor-grab" : "cursor-pointer"}`}
-              onClick={() => !isEditMode && setActiveTab(tab)}
-            >
-              {isEditMode && <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />}
-              {tab}
-            </div>
-          ))}
+        <div role="tablist" aria-label="Profile sections" className="flex gap-0 border-b border-border/60 mb-6">
+          {tabsToShow.map((tab, idx) => {
+            const isActive = effectiveTab === tab;
+            return (
+              <div
+                key={tab}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isEditMode ? -1 : 0}
+                draggable={isEditMode}
+                onDragStart={e => handleDragStart(e, idx)}
+                onDragOver={handleDragOver}
+                onDrop={e => handleDrop(e, idx)}
+                className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b transition-all select-none ${
+                  isActive
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                } ${isEditMode ? "cursor-grab" : "cursor-pointer"}`}
+                onClick={() => !isEditMode && setActiveTab(tab)}
+                onKeyDown={e => { if (!isEditMode && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setActiveTab(tab); } }}
+              >
+                {isEditMode && <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />}
+                {tab}
+              </div>
+            );
+          })}
         </div>
 
         {/* ── Reports tab ── */}
