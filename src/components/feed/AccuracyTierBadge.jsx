@@ -1,29 +1,27 @@
 import React from "react";
 import { computeAnalystTier } from "@/lib/analystTier";
 
-// TierBadge: pass user + allReports for full tier calculation
-// OR pass a pre-computed tierData object directly
+// Map tier identity to a design-system pill variant. The pill utility classes
+// (.pill / .pill-primary / .pill-accent) own the colors, border, and radius so
+// the tier hex values from scoringEngine.js are ignored here on purpose.
+const TIER_VARIANT = {
+  legend: "pill-accent",
+  elite: "pill-accent",
+  expert: "pill-primary",
+  strong: "pill-primary",
+  rising: "pill-primary",
+  building: "pill",
+};
+
 export default function AccuracyTierBadge({ user, allReports, tierData, size = "sm" }) {
   const tier = tierData || (user ? computeAnalystTier(user, allReports || []) : null);
   if (!tier) return null;
-
-  const fontSize = size === "lg" ? 13 : 10;
-  const padding  = size === "lg" ? "5px 12px" : "3px 8px";
+  const variant = TIER_VARIANT[tier.key] || "pill";
+  const sizeStyle = size === "lg" ? { fontSize: 13, padding: "5px 12px" } : undefined;
 
   return (
-    <span style={{
-      background: tier.bg,
-      color: tier.color,
-      border: `1px solid ${tier.border}`,
-      fontSize,
-      fontWeight: 700,
-      padding,
-      borderRadius: 20,
-      letterSpacing: '0.01em',
-      flexShrink: 0,
-      display: 'inline-block',
-    }}>
-      {tier.label}
+    <span className={`${variant} shrink-0`} style={sizeStyle}>
+      <span aria-hidden="true">{tier.icon}</span> {tier.label}
     </span>
   );
 }

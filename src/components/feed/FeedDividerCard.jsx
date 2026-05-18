@@ -1,29 +1,26 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Flame, BarChart3 } from "lucide-react";
 import { analystHref } from "@/lib/analystSlug";
 
 export function TrendingDivider({ report }) {
   if (!report) return null;
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
-      borderRadius: 12,
-      border: '1px dashed #bfdbfe',
-      padding: 16,
-      marginBottom: 12,
-    }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-        <span style={{ fontSize:14 }}>🔥</span>
-        <span style={{ fontSize:11, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+    <div className="surface p-4 mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Flame size={14} className="text-accent" />
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-primary">
           Trending Right Now
         </span>
       </div>
-      <Link to={`/report?id=${report.id}`} style={{ textDecoration:'none' }}>
-        <p style={{ fontSize:13, fontWeight:600, color:'#0f172a', lineHeight:1.4, marginBottom:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+      <Link to={`/report?id=${report.id}`} className="block no-underline">
+        <p className="font-serif text-[15px] text-foreground leading-snug line-clamp-2 mb-1">
           {report.title}
         </p>
-        <p style={{ fontSize:11, color:'#64748b' }}>{report.likes || 0} likes · {report.author_name || "Researcher"}</p>
-        <p style={{ fontSize:11, color:'#2563eb', fontWeight:600, marginTop:6 }}>Join the conversation →</p>
+        <p className="text-[11px] text-muted-foreground">
+          <span className="font-display">{report.likes || 0}</span> likes · {report.author_name || "Researcher"}
+        </p>
+        <p className="text-[11px] text-primary font-medium mt-1.5">Join the conversation →</p>
       </Link>
     </div>
   );
@@ -33,28 +30,31 @@ export function AnalystSpotlight({ analyst }) {
   if (!analyst) return null;
   const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)',
-      borderRadius: 12,
-      border: '1px dashed #bfdbfe',
-      padding: 16,
-      marginBottom: 12,
-    }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-        <span style={{ fontSize:14 }}>📊</span>
-        <span style={{ fontSize:11, fontWeight:700, color:'#1d4ed8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+    <div className="surface p-4 mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <BarChart3 size={14} className="text-accent" />
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-primary">
           Researcher Spotlight
         </span>
       </div>
-      <Link to={analystHref(analyst)} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
-        <div style={{ width:40, height:40, borderRadius:'50%', background:'#dbeafe', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#2563eb', overflow:'hidden' }}>
-          {analyst.picture ? <img src={analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : name[0]?.toUpperCase()}
+      <Link to={analystHref(analyst)} className="flex items-center gap-2.5 no-underline">
+        <div className="w-10 h-10 rounded-full bg-secondary shrink-0 flex items-center justify-center text-[14px] font-medium text-primary overflow-hidden">
+          {analyst.picture ? (
+            <img src={analyst.picture} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            name[0]?.toUpperCase()
+          )}
         </div>
-        <div style={{ flex:1 }}>
-          <p style={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{name}</p>
-          <p style={{ fontSize:11, color:'#64748b' }}>{analyst.accuracy_score?.toFixed(1)}% accuracy · {analyst.accuracy_tier || "Building"}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-serif text-[14px] text-foreground">{name}</p>
+          <p className="text-[11px] text-muted-foreground">
+            <span className="font-display">{analyst.accuracy_score?.toFixed(1)}%</span> accuracy ·{" "}
+            {analyst.accuracy_tier || "Building"}
+          </p>
         </div>
-        <span style={{ fontSize:11, fontWeight:700, color:'#2563eb', border:'1px solid #2563eb', borderRadius:6, padding:'3px 10px' }}>Follow</span>
+        <span className="text-[11px] font-medium text-primary border border-primary/40 rounded-sm px-2.5 py-0.5">
+          Follow
+        </span>
       </Link>
     </div>
   );
