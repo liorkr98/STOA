@@ -736,9 +736,11 @@ export default function ReportView() {
               }
               base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
             }}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-primary" : "text-muted-foreground"}`}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label={liked ? "Unlike this report" : "Like this report"}
+            aria-pressed={liked}
           >
-            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} /> <span className="font-display">{likeCount}</span>
+            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} /> <span className="font-display" aria-live="polite">{likeCount}</span>
           </button>
           <ShareMenu title={report.title} reportId={report.id} />
           {(isAuthor || (!isPremium)) && (

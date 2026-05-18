@@ -554,7 +554,12 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           <button
             onClick={handleLike}
             className={`inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium cursor-pointer transition-colors ${
-              liked ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              // Filled heart is velvet red — the design system's sentiment-negative
+              // token. This is the one deliberate exception where market red shows
+              // up outside of Long/Short/Hit/Miss: a red filled heart is a
+              // universally understood "favorited" affordance and breaking that
+              // convention to satisfy the palette rule would cost recognition.
+              liked ? "text-loss" : "text-muted-foreground hover:text-foreground"
             }`}
             aria-label={liked ? "Unlike this report" : "Like this report"}
             aria-pressed={liked}
