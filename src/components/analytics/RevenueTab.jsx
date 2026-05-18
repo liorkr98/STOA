@@ -81,7 +81,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
                       <td className="py-2.5 font-semibold text-green-600">${sub.price || 29}</td>
                       <td className="py-2.5 text-muted-foreground text-xs">{format(new Date(sub.created_date), "MMM d, yyyy")}</td>
                       <td className="py-2.5">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.status === "active" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${sub.status === "active" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
                           {sub.status === "active" ? "Active" : "Cancelled"}
                         </span>
                       </td>

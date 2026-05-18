@@ -344,7 +344,7 @@ export default function StockPage() {
 function LoadingScreen({ ticker }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 flex flex-col items-center justify-center gap-4 text-muted-foreground" style={{ minHeight: 400 }}>
-      <div className="w-10 h-10 rounded-full border-4 border-border border-t-primary animate-spin" />
+      <div className="w-10 h-10 rounded-full border border-primary/30 border-t-primary animate-spin" />
       <p className="text-sm">Loading {ticker} data...</p>
     </div>
   );

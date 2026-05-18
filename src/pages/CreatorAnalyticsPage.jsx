@@ -82,7 +82,7 @@ function KPICard({ label, value, trend, icon: Icon, iconBg, children }) {
       </div>
       {children || (
         <>
-          <p className="text-3xl font-extrabold tracking-tight leading-none tabular-nums">{value}</p>
+          <p className="text-3xl font-medium tracking-tight leading-none tabular-nums">{value}</p>
           <Trend value={trend} />
         </>
       )}
@@ -287,7 +287,7 @@ export default function CreatorAnalyticsPage() {
       <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
         <div>
           <span className="eyebrow">Creator Analytics</span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-2">Dashboard</h1>
+          <h1 className="text-3xl font-medium tracking-tight mt-2">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Your complete performance overview — live data.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -330,7 +330,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-white text-base font-bold leading-snug mb-1">
                   Prediction accuracy
                 </p>
-                <p className="text-3xl font-extrabold tabular-nums" style={{ color: "hsl(var(--accent))" }}>
+                <p className="text-3xl font-medium tabular-nums" style={{ color: "hsl(var(--accent))" }}>
                   {scoring.score.toFixed(0)}
                   <span className="text-lg">pts</span>
                 </p>
@@ -341,7 +341,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-white text-base font-bold leading-snug mb-1">
                   {published.length > 0 ? "Keep publishing!" : "Start publishing reports"}
                 </p>
-                <p className="text-3xl font-extrabold" style={{ color: "hsl(var(--accent))" }}>
+                <p className="text-3xl font-medium" style={{ color: "hsl(var(--accent))" }}>
                   {published.length}
                   <span className="text-lg"> reports</span>
                 </p>
@@ -356,21 +356,21 @@ export default function CreatorAnalyticsPage() {
 
         {/* MRR */}
         <KPICard label="Monthly Revenue" value={`$${mrr.toLocaleString()}`} trend={subsTrend} icon={DollarSign} iconBg="#22c55e">
-          <p className="text-3xl font-extrabold tracking-tight leading-none tabular-nums">${mrr.toLocaleString()}</p>
+          <p className="text-3xl font-medium tracking-tight leading-none tabular-nums">${mrr.toLocaleString()}</p>
           <p className="text-[11px] text-muted-foreground">from {activeSubs.length} active subscribers</p>
           <Trend value={subsTrend} />
         </KPICard>
 
         {/* Total Views */}
         <KPICard label="Total Views" icon={Eye} iconBg="#3b82f6">
-          <p className="text-3xl font-extrabold tracking-tight leading-none tabular-nums">{totalViews.toLocaleString()}</p>
+          <p className="text-3xl font-medium tracking-tight leading-none tabular-nums">{totalViews.toLocaleString()}</p>
           <p className="text-[11px] text-muted-foreground">{curViews.toLocaleString()} in selected period</p>
           <Trend value={viewsTrend} />
         </KPICard>
 
         {/* Likes */}
         <KPICard label="Total Likes" icon={Heart} iconBg="#ec4899">
-          <p className="text-3xl font-extrabold tracking-tight leading-none tabular-nums">{totalLikes.toLocaleString()}</p>
+          <p className="text-3xl font-medium tracking-tight leading-none tabular-nums">{totalLikes.toLocaleString()}</p>
           <p className="text-[11px] text-muted-foreground">{curLikes.toLocaleString()} in selected period</p>
           <Trend value={likesTrend} />
         </KPICard>
@@ -467,7 +467,7 @@ export default function CreatorAnalyticsPage() {
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-xl font-extrabold leading-none tabular-nums">
+                      <p className="text-xl font-medium leading-none tabular-nums">
                         {scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "—"}
                       </p>
                       <p className="text-[9px] text-muted-foreground">Score</p>
@@ -530,7 +530,7 @@ export default function CreatorAnalyticsPage() {
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           {r.prediction_outcome && r.prediction_outcome !== "pending" && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-tag ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
                               {isHit ? "HIT" : isMiss ? "MISS" : (r.prediction_outcome || "").toUpperCase()}
                             </span>
                           )}
@@ -550,7 +550,7 @@ export default function CreatorAnalyticsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-muted-foreground">♥ {r.likes || 0}</span>
-                        {r.is_premium && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">Premium</span>}
+                        {r.is_premium && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-tag">Premium</span>}
                         <span className="text-[10px] text-muted-foreground ml-auto">{format(new Date(r.created_date), "MMM d")}</span>
                       </div>
                     </button>
@@ -567,7 +567,7 @@ export default function CreatorAnalyticsPage() {
             title="Active Subscribers"
             subtitle={`${activeSubs.length} paying subscribers`}
             action={
-              <span className="text-[10px] font-bold text-gain bg-gain/10 border border-gain/20 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-gain bg-gain/10 border border-gain/20 px-2 py-0.5 rounded-tag">
                 ${mrr}/mo
               </span>
             }
@@ -629,7 +629,7 @@ export default function CreatorAnalyticsPage() {
                   { label: "Net", value: `$${projNet.toLocaleString()}`, color: "text-purple-600", bg: "bg-purple-50" },
                 ].map(s => (
                   <div key={s.label} className={`${s.bg} rounded-xl p-2 text-center border border-border/40`}>
-                    <p className={`text-sm font-extrabold ${s.color}`}>{s.value}</p>
+                    <p className={`text-sm font-medium ${s.color}`}>{s.value}</p>
                     <p className="text-[9px] text-muted-foreground">{s.label}</p>
                   </div>
                 ))}
@@ -642,7 +642,7 @@ export default function CreatorAnalyticsPage() {
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.25) 0%, transparent 70%)", transform: "translate(20%, -20%)" }} />
             <div className="text-2xl mb-2 relative z-10">👑</div>
             <div className="relative z-10">
-              <h3 className="text-white font-extrabold text-sm leading-snug mb-1.5">
+              <h3 className="text-white font-medium text-sm leading-snug mb-1.5">
                 Level up your analytics to the next level.
               </h3>
               <p className="text-white/55 text-[11px] leading-relaxed mb-3">
@@ -706,7 +706,7 @@ export default function CreatorAnalyticsPage() {
               { label: "Pending",      value: (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) > 0 ? (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) : 0, color: "text-amber-500" },
             ].map(s => (
               <div key={s.label} className="bg-secondary rounded-xl p-3 text-center">
-                <p className={`text-xl font-extrabold ${s.color} tabular-nums`}>{s.value}</p>
+                <p className={`text-xl font-medium ${s.color} tabular-nums`}>{s.value}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
               </div>
             ))}

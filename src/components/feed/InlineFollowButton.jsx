@@ -65,25 +65,19 @@ export default function InlineFollowButton({ analystEmail, analystName, analystA
     }
   };
 
+  // Follow → primary-blue solid CTA (per design system).
+  // Following → primary-blue subtle confirmation (not market green; that
+  // would code Following as a "gain" which it isn't).
   return (
     <button
       onClick={handleClick}
       disabled={loading}
-      style={{
-        padding: '3px 10px',
-        borderRadius: 4,
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        cursor: 'pointer',
-        transition: 'all 150ms ease',
-        border: following ? '0.5px solid hsl(var(--sentiment-positive))' : '0.5px solid hsl(var(--blue-primary))',
-        background: following ? 'hsl(var(--sentiment-positive) / 0.10)' : 'transparent',
-        color: following ? 'hsl(var(--sentiment-positive))' : 'hsl(var(--blue-primary))',
-        opacity: loading ? 0.6 : 1,
-        flexShrink: 0,
-      }}
+      className={`shrink-0 inline-flex items-center text-[11px] font-medium uppercase tracking-wider px-2.5 py-1 border transition-colors ${
+        following
+          ? "bg-primary/10 text-primary border-primary/30"
+          : "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+      } ${loading ? "opacity-60" : ""}`}
+      style={{ borderRadius: 6 }}
     >
       {following ? "Following ✓" : "Follow"}
     </button>

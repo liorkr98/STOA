@@ -78,9 +78,9 @@ export default function PredictionsTab({ reports }) {
             <div className="space-y-2">
               <p className="font-bold text-lg">{bestCall.prediction_ticker}</p>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bestCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{bestCall.prediction_action}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${bestCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{bestCall.prediction_action}</span>
                 <span className="text-green-600 font-bold text-lg">+{bestCall.yield.toFixed(2)}%</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
               </div>
               <p className="text-xs text-muted-foreground">{bestCall.title?.slice(0, 50)}</p>
             </div>
@@ -93,9 +93,9 @@ export default function PredictionsTab({ reports }) {
             <div className="space-y-2">
               <p className="font-bold text-lg">{worstCall.prediction_ticker}</p>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${worstCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{worstCall.prediction_action}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${worstCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{worstCall.prediction_action}</span>
                 <span className={`font-bold text-lg ${worstCall.yield >= 0 ? "text-green-600" : "text-red-500"}`}>{worstCall.yield >= 0 ? "+" : ""}{worstCall.yield.toFixed(2)}%</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">Miss ❌</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-red-50 text-red-700 border border-red-200">Miss ❌</span>
               </div>
               <p className="text-xs text-muted-foreground">{worstCall.title?.slice(0, 50)}</p>
             </div>
@@ -147,11 +147,11 @@ export default function PredictionsTab({ reports }) {
                       </td>
                       <td className="py-2">
                         {isPending ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
                         ) : isHit ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
                         ) : (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 capitalize">{r.prediction_outcome} ❌</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-red-50 text-red-700 border border-red-200 capitalize">{r.prediction_outcome} ❌</span>
                         )}
                       </td>
                       <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">{format(new Date(r.created_date), "MMM d, yy")}</td>

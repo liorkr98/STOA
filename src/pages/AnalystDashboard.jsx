@@ -337,7 +337,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Score</p>
-            <p className="text-base font-extrabold leading-tight tabular-nums">{scoring.total > 0 ? accuracyScore : "—"}</p>
+            <p className="text-base font-medium leading-tight tabular-nums">{scoring.total > 0 ? accuracyScore : "—"}</p>
           </div>
         </button>
 
@@ -350,7 +350,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">AI Credits</p>
-            <p className="text-base font-extrabold leading-tight tabular-nums">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
+            <p className="text-base font-medium leading-tight tabular-nums">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
           </div>
         </button>
 
@@ -363,7 +363,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Avg Yield</p>
-            <p className={`text-base font-extrabold leading-tight tabular-nums ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
+            <p className={`text-base font-medium leading-tight tabular-nums ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
           </div>
         </button>
 
@@ -376,7 +376,7 @@ export default function AnalystDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Followers</p>
-            <p className="text-base font-extrabold leading-tight tabular-nums">{analyst.followers.toLocaleString()}</p>
+            <p className="text-base font-medium leading-tight tabular-nums">{analyst.followers.toLocaleString()}</p>
           </div>
         </button>
       </div>
@@ -403,7 +403,7 @@ export default function AnalystDashboard() {
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-white/45 text-[10px] uppercase tracking-wider mb-1">{label}</p>
-                    <p className="text-3xl font-extrabold tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
+                    <p className="text-3xl font-medium tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
                   </div>
                 ))}
               </div>
@@ -496,7 +496,7 @@ export default function AnalystDashboard() {
                       <p className="text-xs font-semibold truncate max-w-[90px] group-hover:text-primary transition-colors">{name}</p>
                       <p className="text-[9px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
                     </div>
-                    <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-full ml-1">Active</span>
+                    <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag ml-1">Active</span>
                   </Link>
                 );
               })}
@@ -532,12 +532,12 @@ export default function AnalystDashboard() {
                         </div>
                         <div className="shrink-0 text-right">
                           {!isPending && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                               {isHit ? "Hit ✓" : "Miss ✗"}
                             </span>
                           )}
                           {dir && isPending && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/8 text-primary">{dir}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
                           )}
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
@@ -595,12 +595,12 @@ export default function AnalystDashboard() {
                   </div>
                   <div className="shrink-0 text-right">
                     {!isPending && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                         {isHit ? "Hit ✓" : "Miss ✗"}
                       </span>
                     )}
                     {dir && isPending && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/8 text-primary">{dir}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
                     )}
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
@@ -638,9 +638,9 @@ export default function AnalystDashboard() {
             { id: "subscriptions", label: "Subscribed", count: null },
           ].filter(t => !t.hidden).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${tab === t.id ? "bg-primary text-white shadow-glow-navy" : "text-muted-foreground bg-secondary hover:text-foreground"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-tag text-xs font-semibold transition-all ${tab === t.id ? "bg-primary text-white shadow-glow-navy" : "text-muted-foreground bg-secondary hover:text-foreground"}`}>
               {t.label}
-              {t.count != null && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${tab === t.id ? "bg-white/20" : "bg-border"}`}>{t.count}</span>}
+              {t.count != null && <span className={`text-[10px] px-1.5 py-0.5 rounded-tag font-bold ${tab === t.id ? "bg-white/20" : "bg-border"}`}>{t.count}</span>}
             </button>
           ))}
         </div>
@@ -691,15 +691,15 @@ export default function AnalystDashboard() {
                       {/* Status badge */}
                       <div className="shrink-0 text-right">
                         {outcome && outcome !== "pending" ? (
-                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                             {isHit ? "Hit ✓" : "Miss ✗"}
                           </span>
                         ) : report.prediction_action ? (
-                          <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary/8 text-primary">
+                          <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-tag bg-primary/8 text-primary">
                             <ActionIcon className="w-3 h-3" />{report.prediction_action}
                           </span>
                         ) : (
-                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">Published</span>
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-tag bg-secondary text-muted-foreground">Published</span>
                         )}
                         <p className="text-[10px] text-muted-foreground/50 mt-0.5 tabular-nums">#{String(i + 1).padStart(3, "0")}</p>
                       </div>
@@ -793,7 +793,7 @@ export default function AnalystDashboard() {
                     <p className="text-xs text-muted-foreground">{report.likes || 0} likes</p>
                   </div>
                   {boosts[report.id] ? (
-                    <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">Promoted</span>
+                    <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-tag">Promoted</span>
                   ) : (
                     <Button size="sm" variant="outline" className="text-xs" onClick={() => setBoosts(prev => ({ ...prev, [report.id]: true }))}>Boost</Button>
                   )}
@@ -861,7 +861,7 @@ export default function AnalystDashboard() {
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/40 mb-3">Grow your influence</p>
-          <h3 className="text-2xl font-extrabold text-white leading-tight mb-2 tracking-tight">
+          <h3 className="text-2xl font-medium text-white leading-tight mb-2 tracking-tight">
             Level up your<br />researcher profile.
           </h3>
           <p className="text-sm text-white/50 mb-6 leading-relaxed">

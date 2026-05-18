@@ -137,7 +137,7 @@ export default function LeaderboardPage() {
                   </p>
 
                   {/* Tier badge */}
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#fff', color: tier?.color, border: `1px solid ${tier?.border}` }}>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-tag" style={{ background: '#fff', color: tier?.color, border: `1px solid ${tier?.border}` }}>
                     {tier?.label}
                   </span>
 
@@ -274,7 +274,7 @@ export default function LeaderboardPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${reward.color}`}>⚡ {reward.label}</span>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-tag border ${reward.color}`}>⚡ {reward.label}</span>
                           </TooltipTrigger>
                           <TooltipContent side="left" className="text-xs max-w-[180px]">
                             Top researchers earn monthly AI credits for template generation, fact checker & AI assistant.

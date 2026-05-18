@@ -51,7 +51,7 @@ function OutcomeBadge({ outcome }) {
   }[outcome] || { cls: "bg-secondary text-muted-foreground border-border", icon: Clock, label: outcome };
   const Icon = cfg.icon;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
       <Icon className="w-3 h-3" />{cfg.label}
     </span>
   );
@@ -65,7 +65,7 @@ function ActionBadge({ action }) {
   }[action] || { cls: "bg-secondary text-muted-foreground border-border", icon: Minus };
   const Icon = cfg.icon;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
       <Icon className="w-3 h-3" />{action}
     </span>
   );
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Live performance data across all published analyst calls</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-gain/10 border border-gain/20 text-gain rounded-full">
+          <span className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-gain/10 border border-gain/20 text-gain rounded-tag">
             <Activity className="w-3 h-3" /> Live
           </span>
         </div>

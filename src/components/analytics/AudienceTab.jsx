@@ -75,9 +75,9 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
                       <td className="py-2.5 text-muted-foreground text-xs">{format(new Date(f.created_date), "MMM d, yyyy")}</td>
                       <td className="py-2.5">
                         {isSub ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Subscriber</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Subscriber</span>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">Follower</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-secondary text-muted-foreground border border-border">Follower</span>
                         )}
                       </td>
                     </tr>

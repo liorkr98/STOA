@@ -153,7 +153,7 @@ export default function PredictionSummaryPage() {
           <div className="flex flex-wrap gap-2 mb-4">
             {["all", "hit", "near", "partial", "miss", "pending"].map(s => (
               <button key={s} onClick={() => setFilterStatus(s)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-all capitalize ${filterStatus === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                className={`text-xs px-3 py-1.5 rounded-tag border transition-all capitalize ${filterStatus === s ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
                 {s === "all" ? "All" : STATUS_CONFIG[s]?.label || s}
               </button>
             ))}

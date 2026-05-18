@@ -90,20 +90,20 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
   };
 
   return (
-    <div className="bg-secondary border border-border rounded-xl p-4">
+    <div className="surface p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-primary" />
-          <h4 className="font-semibold text-sm">Prediction</h4>
+          <h4 className="font-serif text-[14px] text-foreground">Prediction</h4>
         </div>
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+        <span className="pill-accent">
           🔒 Locks at publish
         </span>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3 flex items-start gap-2">
-        <Info className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] text-amber-800 leading-snug">
+      <div className="bg-accent/10 border border-accent/30 rounded-tag px-3 py-2 mb-3 flex items-start gap-2">
+        <Info className="w-3.5 h-3.5 text-accent flex-shrink-0 mt-0.5" />
+        <p className="text-[11px] text-foreground leading-snug">
           When you click <strong>Publish</strong>, we'll fetch the live price at that exact moment and lock it as your entry.
           Draft saves don't lock anything.
         </p>
@@ -211,11 +211,11 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
             const rewardPct = entry > 0 ? ((Math.abs(reward) / entry) * 100).toFixed(1) : null;
             const riskPct   = entry > 0 ? ((Math.abs(risk)   / entry) * 100).toFixed(1) : null;
             return rr ? (
-              <div className={`rounded-lg px-3 py-2 text-xs flex items-center justify-between ${
-                parseFloat(rr) >= 2 ? "bg-gain/10 border border-gain/20" : parseFloat(rr) >= 1 ? "bg-amber-50 border border-amber-200" : "bg-loss/10 border border-loss/20"
+              <div className={`rounded-tag px-3 py-2 text-xs flex items-center justify-between ${
+                parseFloat(rr) >= 2 ? "bg-gain/10 border border-gain/20" : parseFloat(rr) >= 1 ? "bg-accent/10 border border-accent/30" : "bg-loss/10 border border-loss/20"
               }`}>
                 <div>
-                  <span className="font-bold">R/R {rr}:1</span>
+                  <span className="font-medium font-display">R/R {rr}:1</span>
                   <span className="text-muted-foreground ml-2">
                     {rewardPct && `+${rewardPct}% reward`} · {riskPct && `-${riskPct}% risk`}
                   </span>

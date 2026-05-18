@@ -11,38 +11,41 @@ import { Coins } from "lucide-react";
 
 const COST_FACT_CHECK = 3; // credits — Claude classify + Yahoo Finance + SEC EDGAR
 
+// Verified / supportive states share the gain palette; disputed/misleading
+// share loss/accent; opinion + unverified stay neutral so they don't look like
+// market sentiment.
 const TYPE_CONFIG = {
   Fact: {
     icon: CheckCircle2, color: "text-gain",
     bg: "bg-gain/10 border-gain/20", label: "Verified Fact",
   },
   Opinion: {
-    icon: MessageSquareQuote, color: "text-blue-600",
-    bg: "bg-blue-50 border-blue-200", label: "Opinion",
+    icon: MessageSquareQuote, color: "text-primary",
+    bg: "bg-primary/10 border-primary/20", label: "Opinion",
   },
   Misleading: {
     icon: AlertTriangle, color: "text-loss",
     bg: "bg-loss/10 border-loss/20", label: "Potentially Misleading",
   },
   Unverified: {
-    icon: Info, color: "text-amber-600",
-    bg: "bg-amber-50 border-amber-200", label: "Unverified",
+    icon: Info, color: "text-muted-foreground",
+    bg: "bg-muted border-border", label: "Unverified",
   },
   "Yahoo-Verified": {
-    icon: TrendingUp, color: "text-emerald-700",
-    bg: "bg-emerald-50 border-emerald-200", label: "Yahoo Finance Verified",
+    icon: TrendingUp, color: "text-gain",
+    bg: "bg-gain/10 border-gain/20", label: "Yahoo Finance Verified",
   },
   "Yahoo-Disputed": {
-    icon: AlertTriangle, color: "text-orange-600",
-    bg: "bg-orange-50 border-orange-200", label: "Disputed by Yahoo Finance",
+    icon: AlertTriangle, color: "text-accent",
+    bg: "bg-accent/10 border-accent/30", label: "Disputed by Yahoo Finance",
   },
   "SEC-Verified": {
-    icon: CheckCircle2, color: "text-violet-700",
-    bg: "bg-violet-50 border-violet-200", label: "SEC Filing Verified",
+    icon: CheckCircle2, color: "text-primary",
+    bg: "bg-primary/10 border-primary/20", label: "SEC Filing Verified",
   },
   "SEC-Disputed": {
-    icon: AlertTriangle, color: "text-red-700",
-    bg: "bg-red-50 border-red-200", label: "Disputed by SEC Filing",
+    icon: AlertTriangle, color: "text-loss",
+    bg: "bg-loss/10 border-loss/20", label: "Disputed by SEC Filing",
   },
 };
 
@@ -139,13 +142,13 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
         <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
+            <span className={`font-medium text-[11px] ${cfg.color}`}>{cfg.label}</span>
             {/* See ReportView.ClaimCard: "Unverified — high confidence" is self-contradictory. */}
             {claim.confidence && claim.type !== "Unverified" && (
-              <span className={`text-[9px] rounded-full px-1.5 py-0.5 font-semibold ${
-                claim.confidence === "high"   ? "bg-gain/10 text-gain"
-                : claim.confidence === "medium" ? "bg-amber-50 text-amber-700"
-                : "bg-muted text-muted-foreground"
+              <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-medium border ${
+                claim.confidence === "high"   ? "bg-gain/10 text-gain border-gain/20"
+                : claim.confidence === "medium" ? "bg-accent/10 text-accent border-accent/30"
+                : "bg-muted text-muted-foreground border-border"
               }`}>{claim.confidence}</span>
             )}
             {claim.yahooData && (
@@ -153,7 +156,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
                 href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-0.5 text-[9px] text-blue-600 hover:underline"
+                className="flex items-center gap-0.5 text-[9px] text-primary hover:underline"
               >
                 <ExternalLink className="w-2.5 h-2.5" />Yahoo Finance
               </a>
@@ -186,7 +189,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
               >
                 <ExternalLink className="w-2.5 h-2.5" /> Source: Yahoo Finance
               </a>
@@ -197,7 +200,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline"
+                className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
               >
                 <ExternalLink className="w-2.5 h-2.5" /> Source: SEC 10-K
               </a>
@@ -205,16 +208,16 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
           </div>
 
           {claim.yahooCheck && (
-            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-orange-50 text-orange-700"
+            <div className={`mt-1.5 p-1.5 rounded-tag text-[10px] border ${
+              claim.yahooCheck.match ? "bg-gain/10 text-gain border-gain/20" : "bg-accent/10 text-accent border-accent/30"
             }`}>
               <strong>Yahoo Finance:</strong> {claim.yahooCheck.detail}
             </div>
           )}
 
           {claim.secCheck && (
-            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
+            <div className={`mt-1.5 p-1.5 rounded-tag text-[10px] border ${
+              claim.secCheck.match ? "bg-primary/10 text-primary border-primary/20" : "bg-loss/10 text-loss border-loss/20"
             }`}>
               <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
               {claim.secCheck.edgarLink && (
@@ -230,17 +233,17 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
             </div>
           )}
 
-          {/* Report mistake — amber pill, always visible */}
+          {/* Report mistake — accent pill, always visible */}
           <div className="mt-2">
             {reportSent ? (
-              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
+              <span className="inline-flex items-center gap-1 text-[10px] bg-accent/10 text-accent border border-accent/30 px-2 py-0.5 rounded-tag font-medium">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
               </span>
             ) : (
               <button
                 onClick={handleReportMistake}
                 aria-label="Report AI mistake for this claim"
-                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-full font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] bg-accent/10 text-accent border border-accent/30 hover:bg-accent/15 px-2 py-0.5 rounded-tag font-medium transition-colors"
               >
                 <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
               </button>
@@ -565,20 +568,20 @@ Report:
   }, [claims]);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 mt-4">
+    <div className="surface p-4 mt-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
-            <h4 className="font-semibold text-sm">AI Fact Checker</h4>
+            <h4 className="font-serif text-[14px] text-foreground">AI Fact Checker</h4>
             <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Credit badge */}
           {credits != null && (
-            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-              credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
+            <span className={`text-[10px] font-medium font-display px-1.5 py-0.5 rounded-tag flex items-center gap-0.5 border ${
+              credits <= 0 ? "bg-loss/10 text-loss border-loss/20" : credits <= 10 ? "bg-accent/10 text-accent border-accent/30" : "bg-secondary text-muted-foreground border-border"
             }`} title={`${COST_FACT_CHECK} credits per fact-check`}>
               <Coins className="w-2.5 h-2.5" /> {credits}
             </span>
@@ -635,7 +638,7 @@ Report:
             const cfg = TYPE_CONFIG[type];
             if (!cfg) return null;
             return (
-              <span key={type} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+              <span key={type} className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${cfg.bg} ${cfg.color}`}>
                 {count} {cfg.label}{count > 1 ? "s" : ""}
               </span>
             );

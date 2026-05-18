@@ -66,11 +66,11 @@ export default function FeedCustomizer({ onClose, onApply }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="surface w-full max-w-md max-h-[85vh] flex flex-col" style={{ background: "hsl(var(--card))" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border/60 flex-shrink-0">
           <div>
-            <h3 className="font-bold text-base">Customize Your Feed</h3>
+            <h3 className="font-serif text-[16px] text-foreground">Customize Your Feed</h3>
             <p className="text-xs text-muted-foreground">Filter by sectors, market cap, or specific stocks</p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1"><X className="w-4 h-4" /></button>
@@ -86,7 +86,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
             <button
               key={key}
               onClick={() => setActiveSection(key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-all ${activeSection === key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b transition-colors ${activeSection === key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               <Icon className="w-3.5 h-3.5" />
               {label}
@@ -104,7 +104,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
                   const active = (prefs.sectors || []).includes(s);
                   return (
                     <button key={s} onClick={() => toggleSector(s)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${active ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-tag text-xs font-medium border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
                       {active && <Check className="w-3 h-3" />}
                       {s}
                     </button>
@@ -123,7 +123,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
                   const desc = { Mega: ">$200B", Large: "$10B–$200B", Mid: "$2B–$10B", Small: "$300M–$2B", Micro: "<$300M" }[cap];
                   return (
                     <button key={cap} onClick={() => toggleCap(cap)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-left ${active ? "bg-primary/10 border-primary/40 text-primary" : "border-border hover:border-primary/20"}`}>
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-tag border transition-colors text-left ${active ? "bg-primary/10 border-primary/40 text-primary" : "border-border hover:border-primary/40"}`}>
                       <div>
                         <span className="text-sm font-semibold">{cap} Cap</span>
                         <span className="text-xs text-muted-foreground ml-2">{desc}</span>
@@ -148,7 +148,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
                   className="text-sm uppercase"
                 />
                 <button onClick={() => addTicker(tickerInput)}
-                  className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90 whitespace-nowrap">
+                  className="px-3 py-1.5 bg-primary text-primary-foreground rounded-sm text-xs font-medium hover:bg-primary/90 whitespace-nowrap">
                   Add
                 </button>
               </div>
@@ -156,7 +156,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
               {(prefs.tickers || []).length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {(prefs.tickers || []).map(t => (
-                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-primary text-white rounded-full text-xs font-semibold">
+                    <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-primary text-primary-foreground rounded-tag text-xs font-medium font-display">
                       ${t}
                       <button onClick={() => removeTicker(t)}><X className="w-3 h-3" /></button>
                     </span>
@@ -168,7 +168,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
               <div className="flex flex-wrap gap-1.5">
                 {POPULAR_TICKERS.filter(t => !(prefs.tickers || []).includes(t)).map(t => (
                   <button key={t} onClick={() => addTicker(t)}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition-all">
+                    className="px-2.5 py-1 rounded-tag text-xs font-medium border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors font-display">
                     ${t}
                   </button>
                 ))}
@@ -178,12 +178,12 @@ export default function FeedCustomizer({ onClose, onApply }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 px-5 py-4 border-t border-border flex-shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-t border-border/60 flex-shrink-0">
           <button onClick={clearAll} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Clear all {totalActive > 0 ? `(${totalActive})` : ""}
           </button>
           <button onClick={apply}
-            className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors">
+            className="flex-1 bg-primary text-primary-foreground rounded-sm py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors">
             Apply Filters{totalActive > 0 ? ` · ${totalActive} active` : ""}
           </button>
         </div>

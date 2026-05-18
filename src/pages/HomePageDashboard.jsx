@@ -67,7 +67,7 @@ function StatChip({ label, value, color = "text-foreground", to }) {
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
       <div className="flex flex-col">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
-        <span className={`text-lg font-extrabold leading-tight tabular-nums ${color}`}>{value}</span>
+        <span className={`text-lg font-medium leading-tight tabular-nums ${color}`}>{value}</span>
       </div>
     </div>
   );

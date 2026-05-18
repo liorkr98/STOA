@@ -55,11 +55,11 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
                 <span className="flex items-center gap-1 text-pink-600 font-semibold">❤️ {topReport.likes || 0} likes</span>
                 <span className="text-muted-foreground">{format(new Date(topReport.created_date), "MMM d, yyyy")}</span>
                 {topReport.prediction_action && (
-                  <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${topReport.prediction_action === "Long" ? "bg-green-100 text-green-700" : topReport.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                  <span className={`font-bold px-2 py-0.5 rounded-tag text-xs ${topReport.prediction_action === "Long" ? "bg-green-100 text-green-700" : topReport.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
                     {topReport.prediction_action}
                   </span>
                 )}
-                {topReport.is_premium && <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>}
+                {topReport.is_premium && <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-tag">Premium</span>}
               </div>
             </div>
             <span className="text-primary text-sm font-semibold">View →</span>
@@ -103,15 +103,15 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
                       <td className="py-2.5 text-muted-foreground text-xs whitespace-nowrap">{format(new Date(r.created_date), "MMM d, yyyy")}</td>
                       <td className="py-2.5">
                         {r.is_premium
-                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
-                          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">Free</span>
+                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
+                          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-secondary text-muted-foreground border border-border">Free</span>
                         }
                       </td>
                       <td className="py-2.5 text-pink-600 font-semibold">{r.likes || 0}</td>
                       <td className="py-2.5 text-purple-600 font-semibold">{voteCount}</td>
                       <td className="py-2.5">
                         {r.prediction_action && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.prediction_action === "Long" ? "bg-green-100 text-green-700" : r.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${r.prediction_action === "Long" ? "bg-green-100 text-green-700" : r.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
                             {r.prediction_action}
                           </span>
                         )}
