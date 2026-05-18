@@ -178,6 +178,16 @@ export default function ReportEditor() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [dropIndicatorAt, setDropIndicatorAt] = useState(null);
 
+  // Imperative savers exposed by each StockChartBlock — keyed by block.id.
+  // Publish iterates these to snapshot any still-live charts before the
+  // DB write, so analysts don't lose drawings by forgetting to hit
+  // "Save Chart" on each block.
+  const chartSaversRef = useRef(new Map());
+  const registerChartSaver = useCallback((id, fn) => {
+    if (fn) chartSaversRef.current.set(id, fn);
+    else chartSaversRef.current.delete(id);
+  }, []);
+
   // Undo/Redo
   const historyRef = useRef([]);
   const historyIndexRef = useRef(-1);
@@ -646,10 +656,40 @@ export default function ReportEditor() {
         }
       }
 
-      // ── Step 3: Freeze stock chart blocks ─────────────────────────────────
-      const frozenBlocks = validBlocks.map(b =>
-        b.type === "stockchart" && !b.frozen ? { ...b, frozen: true } : b
-      );
+      // ── Step 3: Snapshot any still-live stock charts ──────────────────────
+      // Each StockChartBlock has registered an imperative saver via
+      // registerChartSaver. Run them sequentially (TradingView screenshots
+      // are heavy; parallelizing risks rate limits + memory spikes), collect
+      // the returned patches, and merge them into a local frozenBlocks
+      // variable. We can't rely on setBlocks(updatedBlocks) propagating in
+      // time for the DB write below — React state updates are async.
+      const unfrozenCharts = validBlocks.filter(b => b.type === "stockchart" && !b.frozen);
+      const chartPatches = new Map(); // block.id -> patch
+      if (unfrozenCharts.length > 0) {
+        toast.info(
+          unfrozenCharts.length === 1
+            ? "📸 Capturing chart…"
+            : `📸 Capturing ${unfrozenCharts.length} charts…`,
+          { duration: 2000 }
+        );
+        for (const b of unfrozenCharts) {
+          const saver = chartSaversRef.current.get(b.id);
+          if (!saver) continue; // block unmounted somehow; fall through to silent freeze
+          try {
+            const patch = await saver();
+            if (patch) chartPatches.set(b.id, patch);
+          } catch (e) {
+            toast.error(`Couldn't capture chart for $${b.ticker || "chart"}: ${e.message}`);
+            return; // finally{} below clears setPublishing
+          }
+        }
+      }
+
+      const frozenBlocks = validBlocks.map(b => {
+        if (b.type !== "stockchart" || b.frozen) return b;
+        const patch = chartPatches.get(b.id);
+        return patch ? { ...b, ...patch } : { ...b, frozen: true };
+      });
       setBlocks(frozenBlocks);
 
       const fullText = [title, ...frozenBlocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
@@ -770,6 +810,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
           block={block}
           onChange={(u) => updateBlock(block.id, u)}
           onDelete={() => deleteBlock(block.id)}
+          registerSaver={registerChartSaver}
         />
       ) : block.type === "image" ? (
         <ImageBlock
