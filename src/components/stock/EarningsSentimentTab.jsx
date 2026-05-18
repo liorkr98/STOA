@@ -50,13 +50,13 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
       {history.length > 0 && (
         <div className={`flex items-center gap-5 rounded-xl border p-5 ${sentimentBg}`}>
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-medium flex-shrink-0"
             style={{ background: sentimentColor }}
           >
             {beatRate}%
           </div>
           <div>
-            <div className="text-lg font-bold" style={{ color: sentimentColor }}>{sentimentLabel} Earnings Sentiment</div>
+            <div className="text-lg font-medium" style={{ color: sentimentColor }}>{sentimentLabel} Earnings Sentiment</div>
             <div className="text-sm text-muted-foreground mt-0.5">
               Beat EPS estimates in {beats} of last {total} quarters
             </div>
@@ -68,7 +68,7 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
       {history.length > 0 && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-border bg-secondary/30">
-            <h3 className="font-semibold text-sm">Quarterly EPS History</h3>
+            <h3 className="font-medium text-sm">Quarterly EPS History</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -91,7 +91,7 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
                     <tr key={i} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
                       <td className="px-5 py-2.5 font-medium text-xs">{quarterLabel(q)}</td>
                       <td className="px-5 py-2.5 text-xs">{fmtSigned(q.epsEstimate?.raw)}</td>
-                      <td className="px-5 py-2.5 font-semibold text-xs">{fmtSigned(q.epsActual?.raw)}</td>
+                      <td className="px-5 py-2.5 font-medium text-xs">{fmtSigned(q.epsActual?.raw)}</td>
                       <td className={`px-5 py-2.5 text-xs ${color}`}>
                         {diff == null ? "—" : `${diff >= 0 ? "+" : ""}${fmtSigned(diff)}`}
                       </td>
@@ -99,7 +99,7 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
                         {surp == null ? (
                           <span className="px-2 py-0.5 rounded text-xs text-muted-foreground">—</span>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${isPos ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${isPos ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                             {isPos ? "+" : ""}{surp.toFixed(2)}%
                           </span>
                         )}
@@ -116,14 +116,14 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
       {/* EPS Estimates Trend */}
       {earnings?.trend?.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-4">EPS Estimates Trend</h3>
+          <h3 className="font-medium text-sm mb-4">EPS Estimates Trend</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {earnings.trend.slice(0, 4).map((t, i) => {
               const label = t.period === "0q" ? "Current Q" : t.period === "+1q" ? "Next Q" : t.period === "0y" ? "This Year" : "Next Year";
               return (
                 <div key={i} className="bg-secondary/50 rounded-lg p-3">
                   <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
-                  <div className="text-xl font-bold">${t.earningsEstimate?.avg?.raw?.toFixed(2) || "—"}</div>
+                  <div className="text-xl font-medium">${t.earningsEstimate?.avg?.raw?.toFixed(2) || "—"}</div>
                   <div className="text-[10px] text-muted-foreground mt-1">{t.numberOfAnalysts?.raw} analysts</div>
                 </div>
               );
@@ -134,7 +134,7 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
 
       {/* STOA Reports */}
       <div>
-        <h3 className="font-semibold text-sm mb-3">STOA Analyst Reports</h3>
+        <h3 className="font-medium text-sm mb-3">STOA Analyst Reports</h3>
         {reports.length > 0
           ? reports.map(r => <ReportCard key={r.id} report={r} />)
           : (

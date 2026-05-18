@@ -133,7 +133,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
               onBlur={handleTickerBlur}
               onKeyDown={e => e.key === "Enter" && fetchLivePrice(ticker)}
               placeholder="e.g. AAPL"
-              className="h-9 font-mono flex-1"
+              className="h-9 font-display flex-1"
             />
             <Button
               size="sm" variant="outline" className="h-9 px-3 text-xs gap-1"
@@ -146,7 +146,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
           </div>
           {livePrice && !fetchingPrice && (
             <div className="mt-1.5 flex items-center gap-2 text-xs flex-wrap">
-              <span className="text-gain font-semibold">✓ Current price: ${livePrice.toFixed(2)}</span>
+              <span className="text-gain font-medium">✓ Current price: ${livePrice.toFixed(2)}</span>
               {companyName && <span className="text-muted-foreground">· {companyName}</span>}
               <span className="text-muted-foreground italic">· Lock price will be re-fetched at publish</span>
             </div>
@@ -165,7 +165,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
               value={targetPrice}
               onChange={e => setTargetPrice(e.target.value)}
               placeholder="$0.00"
-              className={`h-9 font-mono ${targetInvalid ? "border-loss" : ""}`}
+              className={`h-9 font-display ${targetInvalid ? "border-loss" : ""}`}
               type="number" min="0" step="0.01"
             />
             {targetInvalid && (
@@ -180,7 +180,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
               value={stopLoss}
               onChange={e => setStopLoss(e.target.value)}
               placeholder="$0.00"
-              className={`h-9 font-mono ${
+              className={`h-9 font-display ${
                 stopLoss && livePrice && (
                   (action === "Long"  && parseFloat(stopLoss) >= livePrice) ||
                   (action === "Short" && parseFloat(stopLoss) <= livePrice)
@@ -220,7 +220,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
                     {rewardPct && `+${rewardPct}% reward`} · {riskPct && `-${riskPct}% risk`}
                   </span>
                 </div>
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                   parseFloat(rr) >= 2 ? "text-gain" : parseFloat(rr) >= 1 ? "text-amber-700" : "text-loss"
                 }`}>
                   {parseFloat(rr) >= 2 ? "✓ Good setup" : parseFloat(rr) >= 1 ? "Marginal" : "Poor R/R"}
@@ -242,7 +242,7 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Portfolio % <span className="font-normal opacity-60">(optional)</span></label>
-            <Input value={portfolioPct} onChange={e => setPortfolioPct(e.target.value)} placeholder="e.g. 10" className="h-9 font-mono" type="number" min="1" max="100" />
+            <Input value={portfolioPct} onChange={e => setPortfolioPct(e.target.value)} placeholder="e.g. 10" className="h-9 font-display" type="number" min="1" max="100" />
           </div>
         </div>
 

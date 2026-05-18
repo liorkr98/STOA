@@ -66,7 +66,7 @@ function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
       <div className="flex flex-col">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
         <span className={`text-lg font-medium leading-tight tabular-nums ${color}`}>{value}</span>
       </div>
     </div>
@@ -105,11 +105,11 @@ function WatchItem({ entry, live }) {
       to={`/stock?ticker=${entry.symbol}`}
       className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-secondary/50 transition-colors group"
     >
-      <span className="text-xs font-mono font-bold group-hover:text-primary transition-colors">{entry.symbol}</span>
+      <span className="text-xs font-display font-medium group-hover:text-primary transition-colors">{entry.symbol}</span>
       {live?.price != null ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-semibold flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <span className="text-xs font-medium tabular-nums">${live.price.toFixed(2)}</span>
+          <span className={`text-[11px] font-medium flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
             {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
@@ -130,7 +130,7 @@ function FollowedReportCard({ report }) {
       className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:shadow-sm transition-all group"
     >
       {dir && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
           {dir}
         </span>
       )}
@@ -141,7 +141,7 @@ function FollowedReportCard({ report }) {
         <div className="flex items-center gap-2 mt-1">
           <span className="text-[11px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
           {report.stock_ticker && (
-            <span className="text-[10px] font-mono font-bold text-primary/80">{report.stock_ticker}</span>
+            <span className="text-[10px] font-display font-medium text-primary/80">{report.stock_ticker}</span>
           )}
           <span className="text-[11px] text-muted-foreground ml-auto">{timeAgo(report.created_date)}</span>
         </div>
@@ -169,22 +169,22 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
       className="flex items-center gap-2.5 py-2 hover:bg-secondary/50 rounded-lg px-1 transition-colors cursor-pointer group"
       onClick={() => navigate(analystHref(analyst))}
     >
-      <span className="text-xs font-bold w-5 text-center shrink-0 text-muted-foreground">
+      <span className="text-xs font-medium w-5 text-center shrink-0 text-muted-foreground">
         {MEDALS[rank] || rank}
       </span>
-      <div className="w-8 h-8 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+      <div className="w-8 h-8 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-medium text-primary shrink-0 overflow-hidden">
         {analyst.picture
           ? <img src={analyst.picture} alt={name} className="w-full h-full object-cover" />
           : name[0]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{name}</p>
+        <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{name}</p>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-bold ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
+          <span className={`text-[10px] font-medium ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
             {acc.toFixed(1)}%
           </span>
           {computed != null && (
-            <span className={`text-[10px] font-semibold ${computed >= 0 ? "text-green-600" : "text-red-500"}`}>
+            <span className={`text-[10px] font-medium ${computed >= 0 ? "text-green-600" : "text-red-500"}`}>
               {computed >= 0 ? "+" : ""}{computed.toFixed(1)}% yield
             </span>
           )}
@@ -193,7 +193,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
       {currentUserEmail && currentUserEmail !== analyst.email && (
         <button
           onClick={e => { e.stopPropagation(); onFollow(analyst); }}
-          className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-all shrink-0 ${
+          className={`text-[10px] font-medium px-2 py-0.5 rounded border transition-all shrink-0 ${
             isFollowing
               ? "border-green-300 text-green-600 bg-green-50"
               : "border-primary/30 text-primary hover:bg-primary/5"
@@ -218,19 +218,19 @@ function TrendingPredictionCard({ report }) {
       className="w-full text-left flex items-center gap-2.5 py-2 hover:bg-secondary/40 rounded-lg px-1 transition-colors group"
     >
       {dir && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${directionColor(dir)}`}>
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${directionColor(dir)}`}>
           {dir}
         </span>
       )}
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{report.title}</p>
         {report.stock_ticker && (
-          <p className="text-[10px] font-mono font-bold text-primary/70">{report.stock_ticker}</p>
+          <p className="text-[10px] font-display font-medium text-primary/70">{report.stock_ticker}</p>
         )}
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {isResolved && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
             {isHit ? "HIT" : "MISS"}
           </span>
         )}
@@ -451,7 +451,7 @@ export default function HomePageDashboard() {
       {/* ── Welcome header ── */}
       <div className="mb-7">
         <span className="eyebrow">Creator Studio</span>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mt-2">
+        <h1 className="text-3xl md:text-4xl font-medium tracking-tight mt-2">
           {greeting}, <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{displayName.split(" ")[0]}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1.5">Here's your research intelligence overview.</p>
@@ -479,12 +479,12 @@ export default function HomePageDashboard() {
           <Link to="/editor">
             <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl bg-gradient-to-br from-primary to-primary/85 text-white hover:shadow-glow-navy hover:-translate-y-0.5 transition-all cursor-pointer">
               <PenLine className="w-4 h-4" />
-              <span className="text-sm font-bold leading-none">Write Report</span>
+              <span className="text-sm font-medium leading-none">Write Report</span>
             </div>
           </Link>
           <Link to="/analyst">
             <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
-              <span className="text-sm font-semibold leading-none text-foreground">View public profile →</span>
+              <span className="text-sm font-medium leading-none text-foreground">View public profile →</span>
             </div>
           </Link>
         </div>
@@ -499,7 +499,7 @@ export default function HomePageDashboard() {
           {/* My Drafts */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
+              <h2 className="font-medium text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 My Drafts
               </h2>
@@ -525,7 +525,7 @@ export default function HomePageDashboard() {
           {/* My Published Reports */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
+              <h2 className="font-medium text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
                 My Reports
                 {myPublished.length > 0 && (
@@ -560,7 +560,7 @@ export default function HomePageDashboard() {
                       className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/30 transition-all group"
                     >
                       {dir && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
                           {dir}
                         </span>
                       )}
@@ -570,10 +570,10 @@ export default function HomePageDashboard() {
                         </p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {r.stock_ticker && (
-                            <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                            <span className="text-[10px] font-display font-medium text-primary/80">{r.stock_ticker}</span>
                           )}
                           {!isPending && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
                               isHit  ? "bg-green-100 text-green-700"
                               : isMiss ? "bg-red-100 text-red-700"
                               : "bg-amber-100 text-amber-700"
@@ -582,7 +582,7 @@ export default function HomePageDashboard() {
                             </span>
                           )}
                           {isPending && r.prediction_action && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
                               ACTIVE
                             </span>
                           )}
@@ -608,7 +608,7 @@ export default function HomePageDashboard() {
           {watchlist.length > 0 && (
             <section className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm flex items-center gap-2">
+                <h2 className="font-medium text-sm flex items-center gap-2">
                   <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                   My Watchlist
                 </h2>
@@ -637,7 +637,7 @@ export default function HomePageDashboard() {
           {(purchasedReports.length > 0) && (
             <section className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-sm flex items-center gap-2">
+                <h2 className="font-medium text-sm flex items-center gap-2">
                   <Lock className="w-4 h-4 text-amber-500" />
                   Reports You've Unlocked
                   <span className="text-xs text-muted-foreground font-normal">({purchasedReports.length})</span>
@@ -669,13 +669,13 @@ export default function HomePageDashboard() {
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-[10px] text-muted-foreground">{r.author_name || r.created_by?.split("@")[0]}</span>
                           {r.stock_ticker && (
-                            <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                            <span className="text-[10px] font-display font-medium text-primary/80">{r.stock_ticker}</span>
                           )}
                           {dir && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
                           )}
                           {!isPending && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
                               {(outcome || "").toUpperCase()}
                             </span>
                           )}
@@ -693,7 +693,7 @@ export default function HomePageDashboard() {
           {(mySubscriptions.length > 0) && (
             <section className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-sm flex items-center gap-2">
+                <h2 className="font-medium text-sm flex items-center gap-2">
                   <Crown className="w-4 h-4 text-primary" />
                   From Your Subscriptions
                   <span className="text-xs text-muted-foreground font-normal">({mySubscriptions.length} active)</span>
@@ -712,10 +712,10 @@ export default function HomePageDashboard() {
                       to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                     >
-                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-medium text-primary shrink-0">
                         {name[0].toUpperCase()}
                       </div>
-                      <span className="text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors truncate max-w-[80px]">{name}</span>
+                      <span className="text-[11px] font-medium text-foreground group-hover:text-primary transition-colors truncate max-w-[80px]">{name}</span>
                     </Link>
                   );
                 })}
@@ -740,7 +740,7 @@ export default function HomePageDashboard() {
                         className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/30 transition-all group"
                       >
                         {dir && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${directionColor(dir)}`}>
                             {dir}
                           </span>
                         )}
@@ -751,10 +751,10 @@ export default function HomePageDashboard() {
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-[10px] text-muted-foreground">{r.author_name || r.created_by?.split("@")[0]}</span>
                             {r.stock_ticker && (
-                              <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
+                              <span className="text-[10px] font-display font-medium text-primary/80">{r.stock_ticker}</span>
                             )}
                             {!isPending && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
                                 {(outcome || "").toUpperCase()}
                               </span>
                             )}
@@ -772,7 +772,7 @@ export default function HomePageDashboard() {
           {/* From analysts you follow */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
+              <h2 className="font-medium text-sm flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 From Researchers You Follow
               </h2>
@@ -804,7 +804,7 @@ export default function HomePageDashboard() {
               actually lives up to its name. (Previously buried at the
               bottom of the page below several large sections.) */}
           <section className="bg-card border border-border rounded-2xl p-5">
-            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
+            <h2 className="font-medium text-sm mb-3">Quick Access</h2>
             <div className="space-y-1">
               {[
                 { icon: BarChart3, label: "My Dashboard", to: "/dashboard" },
@@ -829,7 +829,7 @@ export default function HomePageDashboard() {
           {/* Top Analysts */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
+              <h2 className="font-medium text-sm flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-500" />
                 Top Researchers
               </h2>
@@ -857,8 +857,8 @@ export default function HomePageDashboard() {
           {/* Trending Predictions */}
           <section className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
-                <Flame className="w-4 h-4 text-orange-500" />
+              <h2 className="font-medium text-sm flex items-center gap-2">
+                <Flame className="w-4 h-4 text-accent" />
                 Hot Predictions
               </h2>
               <Link to="/feed" className="text-xs text-primary hover:underline">More</Link>
@@ -877,7 +877,7 @@ export default function HomePageDashboard() {
           {/* Trending tickers + sectors */}
           <section className="surface p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
+              <h2 className="font-medium text-sm flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-primary" />
                 Market Activity
               </h2>
@@ -894,13 +894,13 @@ export default function HomePageDashboard() {
                   return (
                     <div key={q.symbol} className="group rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md px-3 py-2 transition-all">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-mono font-bold tracking-wide text-muted-foreground">{q.label}</span>
+                        <span className="text-[10px] font-display font-medium tracking-wide text-muted-foreground">{q.label}</span>
                         {up ? <TrendingUp className="w-2.5 h-2.5 text-gain" /> : <TrendingDown className="w-2.5 h-2.5 text-loss" />}
                       </div>
-                      <div className="text-sm font-bold tabular-nums leading-tight">
+                      <div className="text-sm font-medium tabular-nums leading-tight">
                         {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
                       </div>
-                      <div className={`text-[11px] font-semibold tabular-nums ${up ? "text-gain" : "text-loss"}`}>
+                      <div className={`text-[11px] font-medium tabular-nums ${up ? "text-gain" : "text-loss"}`}>
                         {up ? "+" : ""}{q.change?.toFixed(2)}%
                       </div>
                     </div>
@@ -911,13 +911,13 @@ export default function HomePageDashboard() {
 
             {trendingTickers.length > 0 && (
               <>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Most Covered</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Most Covered</p>
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {trendingTickers.map(t => (
                     <button
                       key={t}
                       onClick={() => navigate(`/stock?ticker=${t}`)}
-                      className="text-[11px] font-mono font-bold px-2 py-1 rounded-lg bg-secondary hover:bg-primary/10 hover:text-primary border border-border transition-all"
+                      className="text-[11px] font-display font-medium px-2 py-1 rounded-lg bg-secondary hover:bg-primary/10 hover:text-primary border border-border transition-all"
                     >
                       {t}
                     </button>
@@ -928,13 +928,13 @@ export default function HomePageDashboard() {
 
             {trendingSectors.length > 0 && (
               <>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Top Sectors</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Top Sectors</p>
                 <div className="space-y-2">
                   {trendingSectors.map(({ name, pct }) => (
                     <div key={name}>
                       <div className="flex justify-between text-[11px] mb-1">
                         <span className="text-foreground/80 truncate pr-2">{name}</span>
-                        <span className="font-semibold shrink-0">{pct}%</span>
+                        <span className="font-medium shrink-0">{pct}%</span>
                       </div>
                       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                         <div

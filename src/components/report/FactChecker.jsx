@@ -252,7 +252,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
 
           {claim.type === "Opinion" && (
             <div className="mt-2 pt-2 border-t border-current/10">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Community Notes</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Community Notes</span>
               {notes.length === 0 && !showNotes && (
                 <p className="text-[10px] text-muted-foreground italic mt-0.5">No community notes yet.</p>
               )}
@@ -271,7 +271,7 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
                     className="flex-1 text-[10px] border border-blue-200 rounded px-2 py-1 bg-white/80 focus:outline-none"
                     autoFocus
                   />
-                  <button onClick={addNote} className="text-[10px] text-blue-600 font-semibold px-2">Post</button>
+                  <button onClick={addNote} className="text-[10px] text-blue-600 font-medium px-2">Post</button>
                   <button onClick={() => setShowNotes(false)} className="text-[10px] text-muted-foreground px-1">✕</button>
                 </div>
               ) : (

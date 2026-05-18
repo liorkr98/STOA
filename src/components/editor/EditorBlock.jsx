@@ -47,7 +47,7 @@ function renderNumbered(content) {
     <ol className="list-none space-y-0.5 pl-0">
       {lines.map((line, i) => (
         <li key={i} className="flex items-start gap-2">
-          <span className="text-primary font-semibold text-sm w-5 flex-shrink-0">{i + 1}.</span>
+          <span className="text-primary font-medium text-sm w-5 flex-shrink-0">{i + 1}.</span>
           <span>{line.replace(/^\d+\.\s*/, "")}</span>
         </li>
       ))}
@@ -64,7 +64,7 @@ function renderTable(content) {
         <thead>
           <tr className="bg-secondary">
             {rows[0].map((cell, i) => (
-              <th key={i} className="px-3 py-2 text-left font-semibold text-foreground border-r border-border last:border-r-0">{cell.trim()}</th>
+              <th key={i} className="px-3 py-2 text-left font-medium text-foreground border-r border-border last:border-r-0">{cell.trim()}</th>
             ))}
           </tr>
         </thead>

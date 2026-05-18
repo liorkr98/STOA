@@ -76,7 +76,7 @@ export default function WalletPolicy() {
     <div className="mt-10">
       <div className="flex items-center gap-2 mb-4">
         <Info className="w-4 h-4 text-muted-foreground" />
-        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
           Wallet policy &amp; fees
         </h2>
       </div>
@@ -86,7 +86,7 @@ export default function WalletPolicy() {
           <div key={title} className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
               <Icon className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-sm">{title}</h3>
+              <h3 className="font-medium text-sm">{title}</h3>
             </div>
             <ul className="space-y-1.5 text-xs text-foreground/80">
               {bullets.map(b => (

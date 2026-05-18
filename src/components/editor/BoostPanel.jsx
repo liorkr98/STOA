@@ -23,23 +23,23 @@ export default function BoostPanel() {
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Rocket className="w-4 h-4 text-orange-500" />
-        <h3 className="font-semibold text-sm">Boost Report</h3>
+        <Rocket className="w-4 h-4 text-accent" />
+        <h3 className="font-medium text-sm">Boost Report</h3>
       </div>
       <div className="space-y-2 mb-3">
         {BOOST_PLANS.map(plan => (
           <button key={plan.id} onClick={() => setSelected(plan.id)}
-            className={`w-full text-left border rounded-xl p-3 transition-all ${selected === plan.id ? "border-orange-400 bg-orange-50" : "border-border hover:border-orange-300"}`}>
+            className={`w-full text-left border rounded-xl p-3 transition-all ${selected === plan.id ? "border-accent/30 bg-accent/10" : "border-border hover:border-accent/30"}`}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-xs font-semibold">{plan.label}</span>
-              <span className="text-xs font-bold text-orange-600">${plan.price}</span>
+              <span className="text-xs font-medium">{plan.label}</span>
+              <span className="text-xs font-medium text-accent">${plan.price}</span>
             </div>
             <p className="text-[10px] text-muted-foreground">{plan.desc}</p>
-            <p className="text-[10px] text-orange-600">{plan.reach}</p>
+            <p className="text-[10px] text-accent">{plan.reach}</p>
           </button>
         ))}
       </div>
-      <Button size="sm" onClick={handleBoost} disabled={!selected} className="w-full text-xs bg-orange-500 hover:bg-orange-600 text-white">
+      <Button size="sm" onClick={handleBoost} disabled={!selected} className="w-full text-xs bg-accent/10 hover:bg-accent/10 text-white">
         Boost Now
       </Button>
     </div>

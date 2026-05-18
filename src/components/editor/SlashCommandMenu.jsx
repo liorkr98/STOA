@@ -68,7 +68,7 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
       ) : (
         groupsInResult.map(group => (
           <div key={group}>
-            <div className="px-3 pt-2 pb-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+            <div className="px-3 pt-2 pb-1 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
               {group}
             </div>
             {filtered.filter(c => c.group === group).map(cmd => {
@@ -92,11 +92,11 @@ function CommandRow({ cmd, active, onSelect }) {
         active ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
       }`}
     >
-      <span className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-secondary rounded-lg flex-shrink-0 font-mono tracking-tighter">
+      <span className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-secondary rounded-lg flex-shrink-0 font-display tracking-tighter">
         {cmd.icon}
       </span>
       <div className="min-w-0">
-        <div className="text-xs font-semibold">{cmd.label}</div>
+        <div className="text-xs font-medium">{cmd.label}</div>
         <div className="text-[10px] text-muted-foreground">{cmd.desc}</div>
       </div>
     </button>

@@ -16,7 +16,7 @@ export default function AnalystConsensus({ ratings }) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-5">
-      <h3 className="font-semibold text-sm mb-4">Analyst Consensus</h3>
+      <h3 className="font-medium text-sm mb-4">Analyst Consensus</h3>
 
       {/* Sentiment bar */}
       <div className="flex h-3 rounded-full overflow-hidden mb-3">
@@ -25,22 +25,22 @@ export default function AnalystConsensus({ ratings }) {
         <div style={{ width: `${bearPct}%` }} className="bg-loss" />
       </div>
       <div className="flex justify-between text-xs mb-4">
-        <span className="text-gain font-semibold">Buy {bullPct}%</span>
-        <span className="text-amber-500 font-semibold">Hold {holdPct}%</span>
-        <span className="text-loss font-semibold">Sell {bearPct}%</span>
+        <span className="text-gain font-medium">Buy {bullPct}%</span>
+        <span className="text-amber-500 font-medium">Hold {holdPct}%</span>
+        <span className="text-loss font-medium">Sell {bearPct}%</span>
       </div>
       <div className="text-xs text-muted-foreground mb-4">
-        <span className="font-semibold text-foreground">{strongBuy}</span> Strong Buy ·{" "}
-        <span className="font-semibold text-foreground">{buy}</span> Buy ·{" "}
-        <span className="font-semibold text-foreground">{hold}</span> Hold ·{" "}
-        <span className="font-semibold text-foreground">{sell}</span> Sell ·{" "}
-        <span className="font-semibold text-foreground">{strongSell}</span> Strong Sell
+        <span className="font-medium text-foreground">{strongBuy}</span> Strong Buy ·{" "}
+        <span className="font-medium text-foreground">{buy}</span> Buy ·{" "}
+        <span className="font-medium text-foreground">{hold}</span> Hold ·{" "}
+        <span className="font-medium text-foreground">{sell}</span> Sell ·{" "}
+        <span className="font-medium text-foreground">{strongSell}</span> Strong Sell
       </div>
 
       {/* Recent upgrades */}
       {ratings.upgrades?.length > 0 && (
         <div>
-          <div className="text-xs font-semibold mb-2">Recent Rating Changes</div>
+          <div className="text-xs font-medium mb-2">Recent Rating Changes</div>
           {ratings.upgrades.slice(0, 5).map((u, i) => {
             const toGrade = u.toGrade || "";
             const color = toGrade.toLowerCase().includes("buy")

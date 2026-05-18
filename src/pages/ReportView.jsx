@@ -111,11 +111,11 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
         <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.label}</span>
+            <span className={`font-medium text-[11px] ${cfg.color}`}>{cfg.label}</span>
             {/* "Unverified — high confidence" is self-contradictory: by definition we
                 couldn't verify the claim. Suppress the confidence chip for that case. */}
             {claim.confidence && claim.type !== "Unverified" && (
-              <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-semibold ${
+              <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-medium ${
                 claim.confidence === "high" ? "bg-gain/10 text-gain" :
                 claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
                 "bg-muted text-muted-foreground"
@@ -162,7 +162,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
               <a
                 href={claim.secCheck.edgarLink}
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline"
+                className="inline-flex items-center gap-1 text-[10px] text-accent hover:underline"
               >
                 <ExternalLink className="w-2.5 h-2.5" /> Source: SEC 10-K
               </a>
@@ -171,7 +171,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
 
           {claim.yahooCheck && (
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-orange-50 text-orange-700"
+              claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-accent/10 text-accent"
             }`}>
               <strong>Yahoo Finance:</strong> {claim.yahooCheck.detail}
             </div>
@@ -179,7 +179,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
 
           {claim.secCheck && (
             <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.secCheck.match ? "bg-violet-50 text-violet-700" : "bg-red-50 text-red-700"
+              claim.secCheck.match ? "bg-accent/10 text-accent" : "bg-red-50 text-red-700"
             }`}>
               <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
               {claim.secCheck.edgarLink && (
@@ -216,7 +216,7 @@ function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
       {/* Community Notes — only for Opinion */}
       {claim.type === "Opinion" && (
         <div className="mt-2 ml-5 pl-2 border-l-2 border-blue-200">
-          <p className="text-[10px] font-semibold text-blue-600 mb-1 flex items-center gap-1">
+          <p className="text-[10px] font-medium text-blue-600 mb-1 flex items-center gap-1">
             <MessageSquareQuote className="w-3 h-3" /> Community Notes
           </p>
           {notes.length === 0 && !showAdd && (
@@ -283,7 +283,7 @@ function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpTo
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
-            <h4 className="font-semibold text-sm">AI Fact Check</h4>
+            <h4 className="font-medium text-sm">AI Fact Check</h4>
             <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
           </div>
         </div>
@@ -311,7 +311,7 @@ function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpTo
             <button
               key={type}
               onClick={() => toggleFilter(type)}
-              className={`text-[10px] font-semibold px-2.5 py-1 rounded-tag border transition-all ${cfg.bg} ${cfg.color} ${
+              className={`text-[10px] font-medium px-2.5 py-1 rounded-tag border transition-all ${cfg.bg} ${cfg.color} ${
                 isActive ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-70 hover:opacity-100"
               }`}
               title={isActive ? "Clear filter" : `Show only ${cfg.label}s`}
@@ -362,7 +362,7 @@ function BlockRenderer({ blocks }) {
       {blocks.map((block, i) => {
         const content = block.content ?? "";
         if (block.type === "heading") return (
-          <h2 key={i} className="text-xl font-bold text-foreground mt-6 mb-2">{content}</h2>
+          <h2 key={i} className="text-xl font-medium text-foreground mt-6 mb-2">{content}</h2>
         );
         if (block.type === "bullets") return (
           <ul key={i} className="list-disc list-inside space-y-1 pl-2">
@@ -382,7 +382,7 @@ function BlockRenderer({ blocks }) {
               {block.snapshot_url ? (
                 <>
                   <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
-                    <span className="font-mono font-bold text-sm text-primary">{chartTicker}</span>
+                    <span className="font-display font-medium text-sm text-primary">{chartTicker}</span>
                     <span className="text-[10px] text-muted-foreground ml-auto">Chart snapshot at publish time</span>
                   </div>
                   <img src={block.snapshot_url} alt={`${chartTicker} chart`} loading="lazy" className="w-full object-cover" style={{ height: chartHeight }} />
@@ -671,18 +671,18 @@ export default function ReportView() {
         </div>
       )}
 
-      <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-4">{report.title}</h1>
+      <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4">{report.title}</h1>
 
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button onClick={() => navigate(`/analyst?id=${report.created_by}`)} className="flex items-center gap-2">
           {authorAvatar
             ? <img src={authorAvatar} alt={authorName} loading="lazy" className="w-8 h-8 rounded-full object-cover border border-border" />
-            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
                 {(authorName[0] || "A").toUpperCase()}
               </div>
           }
           <div>
-            <p className="text-sm font-semibold hover:text-primary transition-colors">{authorName}</p>
+            <p className="text-sm font-medium hover:text-primary transition-colors">{authorName}</p>
             {report.author_accuracy > 0 && <p className="text-xs text-muted-foreground">{report.author_accuracy}% Acc.</p>}
           </div>
         </button>
@@ -743,7 +743,7 @@ export default function ReportView() {
                style={{ background: "hsl(var(--card))" }}>
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-5 h-5 text-loss" />
-              <h3 className="text-lg font-bold">Delete this report?</h3>
+              <h3 className="text-lg font-medium">Delete this report?</h3>
             </div>
             {/* Three explanations: admin override, author with lock, author without lock. */}
             {isAdmin && !isAuthor ? (
@@ -878,10 +878,10 @@ export default function ReportView() {
             <div className="mt-4 flex items-center gap-3 p-3 bg-secondary rounded-tag border border-border">
               {authorAvatar
                 ? <img src={authorAvatar} alt={authorName} className="w-9 h-9 rounded-full object-cover border border-border" />
-                : <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">{(authorName[0] || "A").toUpperCase()}</div>
+                : <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary text-sm">{(authorName[0] || "A").toUpperCase()}</div>
               }
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{authorName}</p>
+                <p className="text-sm font-medium">{authorName}</p>
                 <p className="text-xs text-muted-foreground">
                   {report.author_accuracy > 0 ? `${report.author_accuracy}% prediction accuracy` : "Verified researcher on STOA"}
                 </p>

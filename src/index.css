@@ -1,7 +1,7 @@
 /* ────────────────────────────────────────────────────────────────────────────
    Fonts — Lora (display/serif), Manrope (UI/body), Space Grotesk (data/numbers)
    ──────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Manrope:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -211,7 +211,7 @@
     font-weight: 600;
     letter-spacing: -0.015em;
   }
-  h1 { font-weight: 700; letter-spacing: -0.025em; }
+  h1 { font-weight: 600; letter-spacing: -0.025em; }
   h2 { font-weight: 600; }
   .font-serif, .font-display {
     font-weight: 500;       /* default Lora paragraph weight, up from 400 */
@@ -364,11 +364,11 @@
   font-size: 10px;
   letter-spacing: 0.12em;      /* small-caps tracking */
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;            /* Manrope caps at 500 per design system */
   color: hsl(var(--muted-foreground));
 }
 .stat-card-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono);  /* Space Grotesk — 700 allowed for numeric values */
   font-size: 28px;
   line-height: 1.1;
   font-weight: 700;
@@ -388,7 +388,7 @@
   padding: 4px 10px;
   border-radius: var(--radius-tag);
   font-family: var(--font-sans);
-  font-size: 11px; font-weight: 600;
+  font-size: 11px; font-weight: 500;   /* Manrope max 500 per design system */
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: hsl(var(--secondary));
@@ -405,7 +405,7 @@
 .eyebrow {
   font-family: var(--font-sans);
   display: inline-block;
-  font-size: 11px; font-weight: 700;
+  font-size: 11px; font-weight: 500;   /* Manrope max 500 per design system */
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
@@ -470,8 +470,8 @@
 }
 
 .prose-editorial p { margin-bottom: 1.35rem; }
-.prose-editorial h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
-.prose-editorial h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; margin-top: 1.75rem; font-family: var(--font-serif); letter-spacing: -0.01em; }
+.prose-editorial h2 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 2.25rem; font-family: var(--font-serif); letter-spacing: -0.015em; }
+.prose-editorial h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.75rem; font-family: var(--font-serif); letter-spacing: -0.01em; }
 .prose-editorial blockquote {
   border-left: 0.5px solid hsl(var(--gold));
   padding: 0.25rem 0 0.25rem 1.25rem;
@@ -520,7 +520,7 @@
   border: 0.5px solid rgba(212, 175, 55, 0.3);
   color: hsl(46 65% 32%);                 /* gold-on-light text */
   border-radius: var(--radius);
-  font-weight: 600;
+  font-weight: 500;                       /* Manrope max 500 per design system */
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -549,7 +549,7 @@
   padding: 3px 8px;
   border-radius: var(--radius-tag);
   font-family: var(--font-sans);
-  font-size: 10px; font-weight: 700;
+  font-size: 10px; font-weight: 500;    /* Manrope max 500 per design system */
   letter-spacing: 0.12em;
   text-transform: uppercase;
   background: rgba(212, 175, 55, 0.15);

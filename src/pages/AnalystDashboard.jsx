@@ -77,7 +77,7 @@ function DashboardDMs({ subscriptions, currentUser }) {
             onClick={() => openDM(sub)}
             className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all ${selectedAnalyst?.id === sub.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`}
           >
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 overflow-hidden">
               {sub.analyst_avatar
                 ? <img src={sub.analyst_avatar} alt={sub.analyst_name} className="w-full h-full object-cover" />
                 : (sub.analyst_name || "A")[0]}
@@ -95,7 +95,7 @@ function DashboardDMs({ subscriptions, currentUser }) {
         <div className="flex-1 flex flex-col gap-2">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
             <MessageCircle className="w-3.5 h-3.5 text-primary" />
-            <span className="text-sm font-semibold">{selectedAnalyst.analyst_name}</span>
+            <span className="text-sm font-medium">{selectedAnalyst.analyst_name}</span>
             <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1"><Lock className="w-3 h-3" /> Subscribers only</span>
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 max-h-60 pr-1">
@@ -289,7 +289,7 @@ export default function AnalystDashboard() {
           <div className="relative">
             {analyst.avatar
               ? <img src={analyst.avatar} alt={analyst.name} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
-              : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-bold text-white">{analyst.name?.[0] || "A"}</div>
+              : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-medium text-white">{analyst.name?.[0] || "A"}</div>
             }
             <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gain border-2 border-card" title="Active" />
           </div>
@@ -297,7 +297,7 @@ export default function AnalystDashboard() {
           <div className="flex-1 min-w-[240px]">
             <span className="eyebrow">Creator Studio</span>
             <div className="flex items-center gap-2 flex-wrap mt-1.5 mb-1.5">
-              <h1 className="text-2xl font-bold text-foreground">{analyst.name}</h1>
+              <h1 className="text-2xl font-medium text-foreground">{analyst.name}</h1>
               <AccuracyTierBadge tierData={computeAnalystTier(currentUser, publishedReports)} size="lg" />
             </div>
             <p className="text-sm text-muted-foreground mb-3">{analyst.tagline}</p>
@@ -336,7 +336,7 @@ export default function AnalystDashboard() {
             <Target className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Score</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Score</p>
             <p className="text-base font-medium leading-tight tabular-nums">{scoring.total > 0 ? accuracyScore : "—"}</p>
           </div>
         </button>
@@ -349,7 +349,7 @@ export default function AnalystDashboard() {
             <Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--accent))" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">AI Credits</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">AI Credits</p>
             <p className="text-base font-medium leading-tight tabular-nums">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
           </div>
         </button>
@@ -362,7 +362,7 @@ export default function AnalystDashboard() {
             <TrendingUp className="w-3.5 h-3.5 text-foreground/70" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Avg Yield</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Avg Yield</p>
             <p className={`text-base font-medium leading-tight tabular-nums ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
           </div>
         </button>
@@ -375,7 +375,7 @@ export default function AnalystDashboard() {
             <Users className="w-3.5 h-3.5 text-foreground/70" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight">Followers</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Followers</p>
             <p className="text-base font-medium leading-tight tabular-nums">{analyst.followers.toLocaleString()}</p>
           </div>
         </button>
@@ -393,7 +393,7 @@ export default function AnalystDashboard() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-5">
                 <span className="w-2 h-2 rounded-full bg-gain animate-pulse" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Performance Snapshot</span>
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Performance Snapshot</span>
               </div>
               <div className="grid grid-cols-3 gap-6 mb-5">
                 {[
@@ -410,7 +410,7 @@ export default function AnalystDashboard() {
               {topReport && (
                 <div className="pt-4 border-t border-white/10">
                   <p className="text-white/35 text-[10px] uppercase tracking-wider mb-1.5">Top Report by Likes</p>
-                  <Link to={`/report?id=${topReport.id}`} className="text-sm font-semibold hover:underline truncate block" style={{ color: "hsl(var(--accent))" }}>
+                  <Link to={`/report?id=${topReport.id}`} className="text-sm font-medium hover:underline truncate block" style={{ color: "hsl(var(--accent))" }}>
                     {topReport.title}
                   </Link>
                   <p className="text-white/35 text-[11px] mt-0.5">{topReport.likes || 0} likes · {topReport.views || 0} views</p>
@@ -429,7 +429,7 @@ export default function AnalystDashboard() {
               <Trophy className="w-4 h-4" style={{ color: "hsl(var(--accent))" }} />
             </div>
             <div>
-              <h2 className="font-semibold text-sm leading-tight">Achievements</h2>
+              <h2 className="font-medium text-sm leading-tight">Achievements</h2>
               <span className="text-[11px] text-muted-foreground">{achievements.filter(a => a.earned).length} of {achievements.length} unlocked</span>
             </div>
           </div>
@@ -445,7 +445,7 @@ export default function AnalystDashboard() {
             return (
               <div key={a.label} className={`group relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border text-center transition-all ${a.earned ? "bg-card border-accent/30 hover:border-accent/60 hover:-translate-y-0.5 hover:shadow-card-md" : "bg-secondary/40 border-border/60 opacity-50 grayscale"}`}>
                 <Icon className={`w-5 h-5 ${a.earned ? "" : "text-muted-foreground"}`} style={a.earned ? { color: "hsl(var(--accent))" } : undefined} />
-                <span className="text-[10px] font-semibold leading-tight">{a.label}</span>
+                <span className="text-[10px] font-medium leading-tight">{a.label}</span>
                 {a.earned && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: "hsl(var(--accent))" }} />}
               </div>
             );
@@ -461,7 +461,7 @@ export default function AnalystDashboard() {
               <Crown className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm leading-tight">My Subscriptions</h2>
+              <h2 className="font-medium text-sm leading-tight">My Subscriptions</h2>
               <span className="text-[11px] text-muted-foreground">{mySubscriptions.length} active</span>
             </div>
           </div>
@@ -487,16 +487,16 @@ export default function AnalystDashboard() {
                     to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                   >
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 overflow-hidden">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0 overflow-hidden">
                       {sub.analyst_avatar
                         ? <img src={sub.analyst_avatar} alt={name} className="w-full h-full object-cover" />
                         : name[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold truncate max-w-[90px] group-hover:text-primary transition-colors">{name}</p>
+                      <p className="text-xs font-medium truncate max-w-[90px] group-hover:text-primary transition-colors">{name}</p>
                       <p className="text-[9px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
                     </div>
-                    <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag ml-1">Active</span>
+                    <span className="text-[9px] font-medium text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag ml-1">Active</span>
                   </Link>
                 );
               })}
@@ -504,7 +504,7 @@ export default function AnalystDashboard() {
             {/* Recent reports from subscribed analysts */}
             {subscriptionReports.length > 0 && (
               <>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Recent from your subscriptions</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Recent from your subscriptions</p>
                 <div className="divide-y divide-border">
                   {subscriptionReports.map((report) => {
                     const outcome = report.prediction_outcome;
@@ -526,18 +526,18 @@ export default function AnalystDashboard() {
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
                             {report.stock_ticker && (
-                              <span className="text-[10px] font-mono font-bold text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
+                              <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
                             )}
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
                           {!isPending && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                               {isHit ? "Hit ✓" : "Miss ✗"}
                             </span>
                           )}
                           {dir && isPending && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
                           )}
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
@@ -560,7 +560,7 @@ export default function AnalystDashboard() {
                 <Lock className="w-4 h-4 text-amber-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm leading-tight">Reports You've Unlocked</h2>
+                <h2 className="font-medium text-sm leading-tight">Reports You've Unlocked</h2>
                 <span className="text-[11px] text-muted-foreground">{purchasedReports.length} reports</span>
               </div>
             </div>
@@ -589,18 +589,18 @@ export default function AnalystDashboard() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
                       {report.stock_ticker && (
-                        <span className="text-[10px] font-mono font-bold text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
+                        <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
                       )}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
                     {!isPending && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                         {isHit ? "Hit ✓" : "Miss ✗"}
                       </span>
                     )}
                     {dir && isPending && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
                     )}
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
@@ -622,7 +622,7 @@ export default function AnalystDashboard() {
               <FileText className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm leading-tight">My Reports</h2>
+              <h2 className="font-medium text-sm leading-tight">My Reports</h2>
               <span className="text-[11px] text-muted-foreground">{publishedReports.length} published</span>
             </div>
           </div>
@@ -638,9 +638,9 @@ export default function AnalystDashboard() {
             { id: "subscriptions", label: "Subscribed", count: null },
           ].filter(t => !t.hidden).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-tag text-xs font-semibold transition-all ${tab === t.id ? "bg-primary text-white shadow-glow-navy" : "text-muted-foreground bg-secondary hover:text-foreground"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-tag text-xs font-medium transition-all ${tab === t.id ? "bg-primary text-white shadow-glow-navy" : "text-muted-foreground bg-secondary hover:text-foreground"}`}>
               {t.label}
-              {t.count != null && <span className={`text-[10px] px-1.5 py-0.5 rounded-tag font-bold ${tab === t.id ? "bg-white/20" : "bg-border"}`}>{t.count}</span>}
+              {t.count != null && <span className={`text-[10px] px-1.5 py-0.5 rounded-tag font-medium ${tab === t.id ? "bg-white/20" : "bg-border"}`}>{t.count}</span>}
             </button>
           ))}
         </div>
@@ -654,7 +654,7 @@ export default function AnalystDashboard() {
                 <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center mx-auto mb-3">
                   <FileText className="w-6 h-6 text-primary/30" />
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground mb-1">No published reports yet</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">No published reports yet</p>
                 <p className="text-xs text-muted-foreground/60 mb-4">Publish your first research report to build your track record.</p>
                 <Link to="/editor"><Button size="sm" className="gap-1.5"><PenLine className="w-3.5 h-3.5" /> Write Your First Report</Button></Link>
               </div>
@@ -678,28 +678,28 @@ export default function AnalystDashboard() {
                       </div>
                       {/* Title + meta */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
+                        <p className="font-medium text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[11px] text-muted-foreground">{format(new Date(report.created_date), "MMM d, yyyy")}</span>
                           <span className="text-muted-foreground/30">·</span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{report.views || 0}</span>
                           <span className="text-muted-foreground/30">·</span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{report.likes || 0}</span>
-                          {report.stock_ticker && <span className="text-[10px] font-mono font-bold text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>}
+                          {report.stock_ticker && <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>}
                         </div>
                       </div>
                       {/* Status badge */}
                       <div className="shrink-0 text-right">
                         {outcome && outcome !== "pending" ? (
-                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+                          <span className={`text-[11px] font-medium px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                             {isHit ? "Hit ✓" : "Miss ✗"}
                           </span>
                         ) : report.prediction_action ? (
-                          <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-tag bg-primary/8 text-primary">
+                          <span className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-tag bg-primary/8 text-primary">
                             <ActionIcon className="w-3 h-3" />{report.prediction_action}
                           </span>
                         ) : (
-                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-tag bg-secondary text-muted-foreground">Published</span>
+                          <span className="text-[11px] font-medium px-2.5 py-1 rounded-tag bg-secondary text-muted-foreground">Published</span>
                         )}
                         <p className="text-[10px] text-muted-foreground/50 mt-0.5 tabular-nums">#{String(i + 1).padStart(3, "0")}</p>
                       </div>
@@ -737,7 +737,7 @@ export default function AnalystDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{r.title || "Untitled"}</p>
                         <p className="text-xs text-amber-700">
-                          Goes live {goLive.toLocaleDateString([], { month: "short", day: "numeric" })} at {goLive.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · <span className="font-semibold">{countdown}</span>
+                          Goes live {goLive.toLocaleDateString([], { month: "short", day: "numeric" })} at {goLive.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · <span className="font-medium">{countdown}</span>
                         </p>
                       </div>
                       <button
@@ -793,7 +793,7 @@ export default function AnalystDashboard() {
                     <p className="text-xs text-muted-foreground">{report.likes || 0} likes</p>
                   </div>
                   {boosts[report.id] ? (
-                    <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-tag">Promoted</span>
+                    <span className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-tag">Promoted</span>
                   ) : (
                     <Button size="sm" variant="outline" className="text-xs" onClick={() => setBoosts(prev => ({ ...prev, [report.id]: true }))}>Boost</Button>
                   )}
@@ -809,7 +809,7 @@ export default function AnalystDashboard() {
             <p className="text-sm text-muted-foreground mb-4">Boost your researcher profile to appear higher in the Leaderboard and gain more followers.</p>
             {profileBoosted ? (
               <div className="text-center py-6">
-                <p className="font-bold text-base mb-1">Profile Promoted</p>
+                <p className="font-medium text-base mb-1">Profile Promoted</p>
                 <p className="text-sm text-muted-foreground">Your profile is being promoted to new followers for 7 days.</p>
               </div>
             ) : (
@@ -822,10 +822,10 @@ export default function AnalystDashboard() {
                   <button key={plan.label} onClick={() => setProfileBoosted(true)} className="w-full flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 text-left transition-all">
                     <plan.Icon className="w-5 h-5 text-primary flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{plan.label}</p>
+                      <p className="font-medium text-sm">{plan.label}</p>
                       <p className="text-xs text-muted-foreground">{plan.reach}</p>
                     </div>
-                    <span className="font-bold text-sm text-primary">{plan.price}</span>
+                    <span className="font-medium text-sm text-primary">{plan.price}</span>
                   </button>
                 ))}
               </div>
@@ -860,7 +860,7 @@ export default function AnalystDashboard() {
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/40 mb-3">Grow your influence</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/40 mb-3">Grow your influence</p>
           <h3 className="text-2xl font-medium text-white leading-tight mb-2 tracking-tight">
             Level up your<br />researcher profile.
           </h3>
@@ -869,13 +869,13 @@ export default function AnalystDashboard() {
           </p>
           <div className="flex gap-3">
             <Link to="/analyst?edit=1">
-              <button className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5"
+              <button className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:-translate-y-0.5"
                 style={{ background: "hsl(var(--accent))", color: "#fff", boxShadow: "0 4px 20px rgba(201,150,19,0.4)" }}>
                 Edit My Profile
               </button>
             </Link>
             <Link to="/creator-analytics">
-              <button className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white/70 border border-white/15 hover:border-white/30 hover:text-white transition-all">
+              <button className="px-5 py-2.5 rounded-xl font-medium text-sm text-white/70 border border-white/15 hover:border-white/30 hover:text-white transition-all">
                 View Analytics
               </button>
             </Link>

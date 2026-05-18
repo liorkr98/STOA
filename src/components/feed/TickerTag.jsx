@@ -11,9 +11,9 @@ export default function TickerTag({ ticker }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); navigate(`/stock?ticker=${ticker}`); }}
-      className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-md bg-secondary border border-border hover:border-primary/40 transition-colors"
+      className="inline-flex items-center gap-1 text-xs font-display px-2 py-0.5 rounded-md bg-secondary border border-border hover:border-primary/40 transition-colors"
     >
-      <span className="font-bold">${ticker}</span>
+      <span className="font-medium">${ticker}</span>
       {stock && (
         <>
           <span className="text-foreground">${stock.price.toFixed(2)}</span>

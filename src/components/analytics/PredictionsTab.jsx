@@ -48,16 +48,16 @@ export default function PredictionsTab({ reports }) {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <AnalyticsKPICard icon="📊" label="Total Calls" value={allPredictions.length} sub="All time" color="text-primary" />
-        <AnalyticsKPICard icon="✅" label="Resolved" value={resolved.length} sub="Closed predictions" color="text-blue-600" />
-        <AnalyticsKPICard icon="🎯" label="Accuracy" value={accuracy ? `${accuracy}%` : "—"} sub="Hit rate" color={accuracy >= 60 ? "text-green-600" : "text-amber-600"} />
-        <AnalyticsKPICard icon="📈" label="Avg Yield" value={formatYield(avgYield)} sub="Avg return" color={avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-green-600" : "text-red-500"} />
-        <AnalyticsKPICard icon="⏳" label="Active" value={pending.length} sub="Pending" color="text-amber-600" />
+        <AnalyticsKPICard icon="✅" label="Resolved" value={resolved.length} sub="Closed predictions" color="text-primary" />
+        <AnalyticsKPICard icon="🎯" label="Accuracy" value={accuracy ? `${accuracy}%` : "—"} sub="Hit rate" color={accuracy >= 60 ? "text-primary" : "text-accent"} />
+        <AnalyticsKPICard icon="📈" label="Avg Yield" value={formatYield(avgYield)} sub="Avg return" color={avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-primary" : "text-loss"} />
+        <AnalyticsKPICard icon="⏳" label="Active" value={pending.length} sub="Pending" color="text-accent" />
       </div>
 
       {/* Accuracy Trend */}
       {accuracyTrend.length > 1 && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-4">Accuracy Trend</h3>
+          <h3 className="font-medium text-sm mb-4">Accuracy Trend</h3>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={accuracyTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -73,14 +73,14 @@ export default function PredictionsTab({ reports }) {
       {/* Best & Worst */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-3">🏆 Best Call</h3>
+          <h3 className="font-medium text-sm mb-3">🏆 Best Call</h3>
           {bestCall ? (
             <div className="space-y-2">
-              <p className="font-bold text-lg">{bestCall.prediction_ticker}</p>
+              <p className="font-medium text-lg">{bestCall.prediction_ticker}</p>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${bestCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{bestCall.prediction_action}</span>
-                <span className="text-green-600 font-bold text-lg">+{bestCall.yield.toFixed(2)}%</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${bestCall.prediction_action === "Long" ? "bg-gain/10 text-primary" : "bg-loss/10 text-loss"}`}>{bestCall.prediction_action}</span>
+                <span className="text-primary font-medium text-lg">+{bestCall.yield.toFixed(2)}%</span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-primary/10 text-primary border border-primary/20">Hit ✅</span>
               </div>
               <p className="text-xs text-muted-foreground">{bestCall.title?.slice(0, 50)}</p>
             </div>
@@ -88,14 +88,14 @@ export default function PredictionsTab({ reports }) {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-3">📉 Worst Call</h3>
+          <h3 className="font-medium text-sm mb-3">📉 Worst Call</h3>
           {worstCall && worstCall.id !== bestCall?.id ? (
             <div className="space-y-2">
-              <p className="font-bold text-lg">{worstCall.prediction_ticker}</p>
+              <p className="font-medium text-lg">{worstCall.prediction_ticker}</p>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${worstCall.prediction_action === "Long" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{worstCall.prediction_action}</span>
-                <span className={`font-bold text-lg ${worstCall.yield >= 0 ? "text-green-600" : "text-red-500"}`}>{worstCall.yield >= 0 ? "+" : ""}{worstCall.yield.toFixed(2)}%</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-red-50 text-red-700 border border-red-200">Miss ❌</span>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${worstCall.prediction_action === "Long" ? "bg-gain/10 text-primary" : "bg-loss/10 text-loss"}`}>{worstCall.prediction_action}</span>
+                <span className={`font-medium text-lg ${worstCall.yield >= 0 ? "text-primary" : "text-loss"}`}>{worstCall.yield >= 0 ? "+" : ""}{worstCall.yield.toFixed(2)}%</span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-muted text-loss border border-loss/20">Miss ❌</span>
               </div>
               <p className="text-xs text-muted-foreground">{worstCall.title?.slice(0, 50)}</p>
             </div>
@@ -105,7 +105,7 @@ export default function PredictionsTab({ reports }) {
 
       {/* Prediction History Table */}
       <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm mb-4">Prediction History</h3>
+        <h3 className="font-medium text-sm mb-4">Prediction History</h3>
         {allPredictions.length === 0 ? (
           <div className="text-center py-10">
             <Target className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
@@ -116,14 +116,14 @@ export default function PredictionsTab({ reports }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Ticker</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Dir</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Entry</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Target</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Exit</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Yield</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Outcome</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Date</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Ticker</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Dir</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Entry</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Target</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Exit</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Yield</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Outcome</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -132,26 +132,26 @@ export default function PredictionsTab({ reports }) {
                   const isPending = !r.prediction_outcome || r.prediction_outcome === "pending";
                   const isHit = r.prediction_outcome === "hit" || r.prediction_outcome === "near";
                   return (
-                    <tr key={r.id} className={`hover:bg-secondary/40 transition-colors ${isHit ? "bg-green-50/30" : !isPending ? "bg-red-50/30" : ""}`}>
-                      <td className="py-2 font-bold">{r.prediction_ticker || "—"}</td>
+                    <tr key={r.id} className={`hover:bg-secondary/40 transition-colors ${isHit ? "bg-primary/10/30" : !isPending ? "bg-muted/30" : ""}`}>
+                      <td className="py-2 font-medium">{r.prediction_ticker || "—"}</td>
                       <td className="py-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${r.prediction_action === "Long" ? "bg-green-100 text-green-700" : r.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${r.prediction_action === "Long" ? "bg-gain/10 text-primary" : r.prediction_action === "Short" ? "bg-loss/10 text-loss" : "bg-gray-100 text-gray-700"}`}>
                           {r.prediction_action}
                         </span>
                       </td>
                       <td className="py-2 text-xs">{r.prediction_lock_price ? `$${r.prediction_lock_price}` : "—"}</td>
                       <td className="py-2 text-xs">{r.prediction_target_price ? `$${r.prediction_target_price}` : "—"}</td>
                       <td className="py-2 text-xs">{r.prediction_resolved_price ? `$${r.prediction_resolved_price}` : "—"}</td>
-                      <td className={`py-2 text-xs font-bold ${yld === null ? "text-muted-foreground" : yld >= 0 ? "text-green-600" : "text-red-500"}`}>
+                      <td className={`py-2 text-xs font-medium ${yld === null ? "text-muted-foreground" : yld >= 0 ? "text-primary" : "text-loss"}`}>
                         {yld !== null ? `${yld >= 0 ? "+" : ""}${yld.toFixed(1)}%` : "—"}
                       </td>
                       <td className="py-2">
                         {isPending ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-tag bg-accent/10 text-accent border border-accent/30">Pending</span>
                         ) : isHit ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Hit ✅</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-tag bg-primary/10 text-primary border border-primary/20">Hit ✅</span>
                         ) : (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-tag bg-red-50 text-red-700 border border-red-200 capitalize">{r.prediction_outcome} ❌</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-tag bg-muted text-loss border border-loss/20 capitalize">{r.prediction_outcome} ❌</span>
                         )}
                       </td>
                       <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">{format(new Date(r.created_date), "MMM d, yy")}</td>

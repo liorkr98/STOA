@@ -146,7 +146,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
       {/* Header / legend */}
       <div className="px-3 py-2 border-b border-border">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
             Compare · {tf} normalized return
           </span>
         </div>
@@ -161,8 +161,8 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
                 className="flex items-center gap-1.5 hover:underline group"
               >
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                <span className="font-mono font-bold text-xs">${s.ticker}</span>
-                <span className={`text-[10px] font-bold ${isUp ? "text-green-600" : "text-red-500"}`}>
+                <span className="font-display font-medium text-xs">${s.ticker}</span>
+                <span className={`text-[10px] font-medium ${isUp ? "text-green-600" : "text-red-500"}`}>
                   {isUp ? <TrendingUp className="w-2.5 h-2.5 inline" /> : <TrendingDown className="w-2.5 h-2.5 inline" />}
                   {isUp ? "+" : ""}{s.lastPct.toFixed(2)}%
                 </span>

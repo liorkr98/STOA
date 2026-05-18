@@ -31,11 +31,11 @@ function CommentItem({ comment }) {
     <div className="flex gap-3">
       {comment.author_avatar
         ? <img src={comment.author_avatar} alt={comment.author_name} className="w-8 h-8 rounded-full flex-shrink-0 mt-0.5 object-cover" />
-        : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">{authorInitial}</div>
+        : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 mt-0.5">{authorInitial}</div>
       }
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-xs text-foreground">{comment.author_name || "Anonymous"}</span>
+          <span className="font-medium text-xs text-foreground">{comment.author_name || "Anonymous"}</span>
           <span className="text-[10px] text-muted-foreground ml-auto">
             {comment.created_date ? format(new Date(comment.created_date), "MMM d, HH:mm") : "just now"}
           </span>
@@ -126,14 +126,14 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
     <div id="comments" className="mt-8">
       <div className="flex items-center gap-2 mb-4">
         <MessageCircle className="w-4 h-4 text-primary" />
-        <h3 className="font-semibold text-base">Discussion ({comments.length})</h3>
+        <h3 className="font-medium text-base">Discussion ({comments.length})</h3>
       </div>
 
       {currentUser && (
         <div className="flex gap-3 mb-6">
           {displayAvatar
             ? <img src={displayAvatar} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
-            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName[0]?.toUpperCase()}</div>
+            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">{displayName[0]?.toUpperCase()}</div>
           }
           <div className="flex-1">
             <Textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add to the discussion..." className="text-sm resize-none h-20 mb-2" />

@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Theme-aware: previously hardcoded bg-white / text-slate-900 which left this
+// Theme-aware: previously hardcoded bg-white / text-foreground which left this
 // error screen as a glaring white card in dark mode. Routed through the
 // app's theme tokens (bg-background / bg-card / text-foreground) so it
 // matches the surrounding chrome in both light and dark themes.
@@ -9,12 +9,12 @@ const UserNotRegisteredError = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="max-w-md w-full p-8 bg-card rounded-lg shadow-card-md border border-border">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-orange-100 dark:bg-orange-500/15">
-            <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-accent/10 dark:bg-accent/10/15">
+            <svg className="w-8 h-8 text-accent dark:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Access Restricted</h1>
+          <h1 className="text-3xl font-medium text-foreground mb-4">Access Restricted</h1>
           <p className="text-muted-foreground mb-8">
             You are not registered to use this application. Please contact the app administrator to request access.
           </p>

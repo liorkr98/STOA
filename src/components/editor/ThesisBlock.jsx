@@ -97,8 +97,8 @@ export default function ThesisBlock({ block, onChange, onDelete }) {
         <div className="border-t border-border bg-secondary/50 p-3">
           <p className="text-[10px] text-muted-foreground mb-2">
             Start each line with{" "}
-            <code className="bg-card px-1 rounded font-mono">Bull:</code> or{" "}
-            <code className="bg-card px-1 rounded font-mono">Bear:</code>
+            <code className="bg-card px-1 rounded font-display">Bull:</code> or{" "}
+            <code className="bg-card px-1 rounded font-display">Bear:</code>
           </p>
           <textarea
             autoFocus

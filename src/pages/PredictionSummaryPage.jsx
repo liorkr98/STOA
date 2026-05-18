@@ -98,10 +98,10 @@ export default function PredictionSummaryPage() {
         <div className="flex items-center gap-3">
           {avatarUrl(currentUser)
             ? <img src={avatarUrl(currentUser)} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
-            : <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-base font-bold text-primary">{displayName?.[0]}</div>
+            : <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-base font-medium text-primary">{displayName?.[0]}</div>
           }
           <div>
-            <h1 className="text-xl font-bold">Prediction Summary</h1>
+            <h1 className="text-xl font-medium">Prediction Summary</h1>
             <p className="text-sm text-muted-foreground">{displayName} · All locked predictions</p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function PredictionSummaryPage() {
       {predictions.length === 0 ? (
         <div className="text-center py-16">
           <Target className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-base font-semibold text-muted-foreground mb-2">No predictions yet</h2>
+          <h2 className="text-base font-medium text-muted-foreground mb-2">No predictions yet</h2>
           <p className="text-sm text-muted-foreground">Publish a report with a locked prediction to track it here.</p>
         </div>
       ) : (
@@ -128,7 +128,7 @@ export default function PredictionSummaryPage() {
               { label: "In Progress", value: pending,                          sub: "awaiting resolution",           colorClass: "text-muted-foreground", bgClass: "bg-secondary border-border"       },
             ].map(s => (
               <div key={s.label} className={`rounded-xl border p-3 text-center ${s.bgClass}`}>
-                <p className={`text-2xl font-bold ${s.colorClass}`}>{s.value}</p>
+                <p className={`text-2xl font-medium ${s.colorClass}`}>{s.value}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
                 <p className="text-[10px] text-muted-foreground">{s.sub}</p>
               </div>
@@ -137,7 +137,7 @@ export default function PredictionSummaryPage() {
 
           {pieData.length > 0 && (
             <div className="bg-card border border-border rounded-2xl p-4 mb-6">
-              <h3 className="font-semibold text-sm mb-3">Outcome Distribution</h3>
+              <h3 className="font-medium text-sm mb-3">Outcome Distribution</h3>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}
@@ -172,7 +172,7 @@ export default function PredictionSummaryPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{report.title}</p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      {report.prediction_ticker && <span className="font-mono font-semibold">${report.prediction_ticker}</span>}
+                      {report.prediction_ticker && <span className="font-display font-medium">${report.prediction_ticker}</span>}
                       {report.prediction_action && <span className="capitalize">{report.prediction_action}</span>}
                       {report.prediction_lock_price && <span>Lock: <strong>${report.prediction_lock_price}</strong></span>}
                       {report.prediction_target_price && <span>Target: <strong>${report.prediction_target_price}</strong></span>}
@@ -182,7 +182,7 @@ export default function PredictionSummaryPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className={`text-xs font-semibold ${cfg.color}`}>{outcome.label}</span>
+                    <span className={`text-xs font-medium ${cfg.color}`}>{outcome.label}</span>
                     {outcome.status === "pending" && <span className="text-[10px] text-muted-foreground">{outcome.daysLeft}d left</span>}
                     {outcome.credit != null && outcome.status !== "pending" && (
                       <span className="text-[10px] text-muted-foreground">{(outcome.credit * 100).toFixed(0)}% credit</span>

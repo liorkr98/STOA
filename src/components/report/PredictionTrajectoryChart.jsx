@@ -81,11 +81,13 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
   const innerH = H - padT - padB;
 
   // Reference lines: lock + target + stop.
-  // Using the design system's neutral/sentiment hex values (mirrors MASTER.md).
+  // Target is gold accent (premium achievement signal, not market gain).
+  // Stop is muted neutral (not market red — the stop is a discipline marker,
+  // not an "incurred loss"). Lock stays warm neutral.
   const refLines = [
     { value: lockPrice,  label: "Lock",  color: "#5C5B58", solid: true,  icon: "🔒" },
-    targetPrice && { value: targetPrice, label: "Target", color: "#1E3A8A", solid: false },
-    stopLoss    && { value: stopLoss,    label: "Stop",   color: "#922B3E", solid: false },
+    targetPrice && { value: targetPrice, label: "Target", color: "#D4AF37", solid: false },
+    stopLoss    && { value: stopLoss,    label: "Stop",   color: "#8A8884", solid: false },
   ].filter(Boolean);
 
   // Compose Y-axis range — include all data points, lock, target, stop
@@ -189,8 +191,10 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
           <svg width={width} height={H} className="block">
             <defs>
               <linearGradient id={`grad-${ticker}-${lockTime}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor={isWinning ? "#0E6B45" : "#922B3E"} stopOpacity="0.18" />
-                <stop offset="100%" stopColor={isWinning ? "#0E6B45" : "#922B3E"} stopOpacity="0" />
+                {/* Price line stays primary-blue per design spec; the winning/losing
+                    state is communicated via the P&L pill in the header instead. */}
+                <stop offset="0%"  stopColor="#1E3A8A" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0" />
               </linearGradient>
             </defs>
 
@@ -221,7 +225,7 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             {areaPath && <path d={areaPath} fill={`url(#grad-${ticker}-${lockTime})`} />}
 
             {/* Price line */}
-            {linePath && <path d={linePath} fill="none" stroke={isWinning ? "#0E6B45" : "#922B3E"} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />}
+            {linePath && <path d={linePath} fill="none" stroke="#1E3A8A" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />}
 
             {/* Reference lines: lock / target / stop */}
             {refLines.map(ref => {
@@ -246,8 +250,8 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             {/* Current price marker */}
             {lastPoint && (
               <g>
-                <circle cx={xFor(lastPoint.t)} cy={yFor(lastPoint.p)} r="4" fill={isWinning ? "#0E6B45" : "#922B3E"} stroke="#FAFAFA" strokeWidth="2" />
-                <text x={xFor(lastPoint.t) - 8} y={yFor(lastPoint.p) - 8} fill={isWinning ? "#0E6B45" : "#922B3E"} fontSize="10" fontWeight="500" textAnchor="end" fontFamily="ui-monospace, monospace">
+                <circle cx={xFor(lastPoint.t)} cy={yFor(lastPoint.p)} r="4" fill="#1E3A8A" stroke="#FAFAFA" strokeWidth="2" />
+                <text x={xFor(lastPoint.t) - 8} y={yFor(lastPoint.p) - 8} fill="#1E3A8A" fontSize="10" fontWeight="500" textAnchor="end" fontFamily="ui-monospace, monospace">
                   ${lastPoint.p.toFixed(2)}
                 </text>
               </g>
@@ -266,7 +270,7 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
         {targetPrice && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Target</p>
-            <p className="font-display font-medium text-primary">${targetPrice.toFixed(2)}</p>
+            <p className="font-display font-medium text-accent">${targetPrice.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">
               {lockPrice > 0
                 ? `${(((targetPrice - lockPrice) / lockPrice) * 100 * directionMul).toFixed(1)}% from lock`
@@ -277,7 +281,7 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
         {stopLoss && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Stop Loss</p>
-            <p className="font-display font-medium text-loss">${stopLoss.toFixed(2)}</p>
+            <p className="font-display font-medium text-muted-foreground">${stopLoss.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">Risk floor</p>
           </div>
         )}

@@ -99,7 +99,7 @@ export default function SearchBar() {
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors text-left">
                   {analyst.picture
                     ? <img src={analyst.picture} alt={analyst.full_name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                    : <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                    : <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">
                         {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
                       </div>
                   }

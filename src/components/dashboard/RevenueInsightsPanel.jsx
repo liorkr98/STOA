@@ -45,16 +45,16 @@ export default function RevenueInsightsPanel() {
       value: loading ? null : subscribers != null ? subscribers : "—",
       sub: "Paying subscribers",
       icon: Users,
-      color: "text-purple-600",
-      bg: "bg-purple-50 border-purple-200",
+      color: "text-accent",
+      bg: "bg-accent/10 border-accent/30",
     },
     {
       label: "Recurring Revenue",
       value: loading ? null : subscribers != null ? `$${(subscribers * 29).toLocaleString()}/mo` : "—",
       sub: "Est. at $29/subscriber",
       icon: ArrowUpRight,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50 border-emerald-200",
+      color: "text-primary",
+      bg: "bg-primary/10 border-primary/20",
     },
   ];
 
@@ -62,11 +62,11 @@ export default function RevenueInsightsPanel() {
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <BarChart3 className="w-4 h-4 text-primary" />
-        <h3 className="font-semibold text-sm">Analytics & Revenue</h3>
+        <h3 className="font-medium text-sm">Analytics & Revenue</h3>
       </div>
       <Link to="/creator-analytics" className="block mb-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg hover:bg-primary/10 transition-colors">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-primary">📊 View Full Analytics →</span>
+          <span className="text-xs font-medium text-primary">📊 View Full Analytics →</span>
           <ArrowUpRight className="w-3.5 h-3.5 text-primary" />
         </div>
       </Link>
@@ -82,7 +82,7 @@ export default function RevenueInsightsPanel() {
               {loading ? (
                 <Loader2 className={`w-4 h-4 animate-spin ${s.color} mt-1`} />
               ) : (
-                <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+                <p className={`text-sm font-medium ${s.color}`}>{s.value}</p>
               )}
               <p className="text-[9px] text-muted-foreground">{s.sub}</p>
             </div>

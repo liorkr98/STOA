@@ -620,7 +620,7 @@ Analyst:`;
                 value={quickTicker}
                 onChange={(e) => setQuickTicker(e.target.value.toUpperCase())}
                 placeholder="Ticker (e.g. NVDA)"
-                className="flex-1 text-[11px] font-mono border border-border rounded-lg px-2 py-1 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+                className="flex-1 text-[11px] font-display border border-border rounded-lg px-2 py-1 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
                 maxLength={6}
               />
               <span className="text-[10px] text-muted-foreground">+ quick prompt:</span>

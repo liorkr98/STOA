@@ -45,12 +45,12 @@ export default function TwitsPanel({ currentUser }) {
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <MessageCircle className="w-4 h-4 text-primary" />
-        <h3 className="font-semibold text-sm">Quick Twits</h3>
+        <h3 className="font-medium text-sm">Quick Twits</h3>
       </div>
       <div className="flex gap-2 mb-3">
         {avatarUrl(currentUser)
           ? <img src={avatarUrl(currentUser)} alt={displayName} className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
-          : <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName?.[0] || "A"}</div>
+          : <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">{displayName?.[0] || "A"}</div>
         }
         <div className="flex-1">
           <Textarea
@@ -78,11 +78,11 @@ export default function TwitsPanel({ currentUser }) {
             <div key={t.id} className="flex gap-2">
               {avatarUrl(currentUser)
                 ? <img src={avatarUrl(currentUser)} alt="" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
-                : <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">{displayName?.[0]}</div>
+                : <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0">{displayName?.[0]}</div>
               }
               <div>
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-xs font-semibold">{displayName}</span>
+                  <span className="text-xs font-medium">{displayName}</span>
                   <span className="text-[10px] text-muted-foreground">{new Date(t.created_date).toLocaleDateString()}</span>
                 </div>
                 <p className="text-xs text-foreground/90">{t.content}</p>

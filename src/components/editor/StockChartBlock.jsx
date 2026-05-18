@@ -315,7 +315,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
           </div>
         </div>
         <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 border-t border-border">
-          <span className="text-xs text-muted-foreground font-mono">{ticker} · {INTERVALS.find(i => i.value === interval)?.label || interval}</span>
+          <span className="text-xs text-muted-foreground font-display">{ticker} · {INTERVALS.find(i => i.value === interval)?.label || interval}</span>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={handleUnfreeze}>
               <Pencil className="w-3 h-3" /> Edit Chart
@@ -342,10 +342,10 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
             onChange={e => setInputTicker(e.target.value.toUpperCase())}
             onKeyDown={e => e.key === "Enter" && applyTicker()}
             placeholder="TICKER"
-            className="w-24 h-7 text-sm font-mono"
+            className="w-24 h-7 text-sm font-display"
           />
           <Button size="sm" variant="ghost" className="h-7 px-2" onClick={applyTicker}><Search className="w-3.5 h-3.5" /></Button>
-          <span className="font-mono font-bold text-sm text-primary">{ticker}</span>
+          <span className="font-display font-medium text-sm text-primary">{ticker}</span>
         </div>
 
         <div className="w-px h-5 bg-border" />

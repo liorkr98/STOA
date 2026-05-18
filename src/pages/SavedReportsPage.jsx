@@ -54,7 +54,7 @@ export default function SavedReportsPage() {
       <div className="flex items-center gap-3 mb-6">
         <Bookmark className="w-6 h-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Saved Reports</h1>
+          <h1 className="text-2xl font-medium">Saved Reports</h1>
           <p className="text-sm text-muted-foreground">{savedReports.length} bookmarked prediction{savedReports.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function SavedReportsPage() {
       ) : savedReports.length === 0 ? (
         <div className="text-center py-16">
           <Bookmark className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-base font-semibold text-muted-foreground mb-2">No saved reports yet</h2>
+          <h2 className="text-base font-medium text-muted-foreground mb-2">No saved reports yet</h2>
           <p className="text-sm text-muted-foreground mb-4">Bookmark your favorite predictions to save them here.</p>
           <Button onClick={() => navigate("/feed")} className="text-sm">Browse Reports</Button>
         </div>

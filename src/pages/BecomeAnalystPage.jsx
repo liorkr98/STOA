@@ -59,7 +59,7 @@ export default function BecomeAnalystPage() {
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gain/10 flex items-center justify-center">
           <CheckCircle2 className="w-7 h-7 text-gain" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">You're already a researcher</h1>
+        <h1 className="text-2xl font-medium text-foreground mb-2">You're already a researcher</h1>
         <p className="text-sm text-muted-foreground mb-6">
           Your account has researcher access. Open your public profile to publish
           a report or update your bio.
@@ -183,7 +183,7 @@ export default function BecomeAnalystPage() {
             {[1, 2, 3].map(s => (
               <div key={s} className="flex-1">
                 <div className={`h-1 rounded-full transition-all ${s <= step ? "bg-primary" : "bg-secondary"}`} />
-                <p className={`text-[10px] mt-1 ${s <= step ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                <p className={`text-[10px] mt-1 ${s <= step ? "text-primary font-medium" : "text-muted-foreground"}`}>
                   Step {s} of 3
                 </p>
               </div>
@@ -194,7 +194,7 @@ export default function BecomeAnalystPage() {
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <h2 className="font-bold text-base mb-1">Who are you, in one line?</h2>
+                <h2 className="font-medium text-base mb-1">Who are you, in one line?</h2>
                 <p className="text-xs text-muted-foreground mb-3">
                   This is your public tagline — what visitors to your profile see first.
                 </p>
@@ -227,7 +227,7 @@ export default function BecomeAnalystPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <h2 className="font-bold text-base mb-1">Tell investors about you</h2>
+                <h2 className="font-medium text-base mb-1">Tell investors about you</h2>
                 <p className="text-xs text-muted-foreground mb-3">
                   Your bio appears on your profile page. Cover your background, edge, and what you focus on.
                 </p>
@@ -246,7 +246,7 @@ export default function BecomeAnalystPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-sm mb-1">Your specialty sectors</h3>
+                <h3 className="font-medium text-sm mb-1">Your specialty sectors</h3>
                 <p className="text-xs text-muted-foreground mb-2">Pick 1–4 — these appear as tags on your profile.</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {SPECIALTY_OPTIONS.map(s => (
@@ -281,7 +281,7 @@ export default function BecomeAnalystPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-sm mb-2">Your style</h3>
+                <h3 className="font-medium text-sm mb-2">Your style</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {STYLES.map(s => {
                     const Icon = s.icon;
@@ -296,7 +296,7 @@ export default function BecomeAnalystPage() {
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <Icon className={`w-4 h-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                          <span className="font-semibold text-sm">{s.label}</span>
+                          <span className="font-medium text-sm">{s.label}</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">{s.desc}</p>
                       </button>
@@ -311,7 +311,7 @@ export default function BecomeAnalystPage() {
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <h2 className="font-bold text-base mb-1">How do you make calls?</h2>
+                <h2 className="font-medium text-base mb-1">How do you make calls?</h2>
                 <p className="text-xs text-muted-foreground mb-3">
                   Briefly describe your research process — fundamentals, screens, models, signals.
                   Investors trust researchers who can explain their edge.

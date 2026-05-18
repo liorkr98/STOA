@@ -6,38 +6,38 @@ import { useNavigate } from "react-router-dom";
 const STEPS = [
   {
     icon: TrendingUp,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Welcome to STOA",
     subtitle: "Your edge in the market",
     body: "STOA is a platform where professional researchers publish in-depth reports on stocks, ETFs, and markets — with real predictions you can track over time.",
     visual: (
       <div className="grid grid-cols-2 gap-2 mt-4">
         {["$NVDA +42%", "$AAPL +18%", "$MSFT +27%", "$TSLA -12%"].map((t, i) => (
-          <div key={i} className={`rounded-lg px-3 py-2 text-sm font-bold text-center border ${t.includes("+") ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>{t}</div>
+          <div key={i} className={`rounded-lg px-3 py-2 text-sm font-medium text-center border ${t.includes("+") ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-loss border-border"}`}>{t}</div>
         ))}
       </div>
     ),
   },
   {
     icon: BookOpen,
-    color: "text-violet-500",
-    bg: "bg-violet-50",
+    color: "text-accent",
+    bg: "bg-accent/10",
     title: "Read Researcher Reports",
     subtitle: "Research by real researchers",
     body: "Browse the Feed to discover the latest researcher reports. Each report includes a full thesis, supporting data, and a verified price prediction — locked at the moment of publishing.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">JD</div>
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">JD</div>
           <div>
-            <div className="text-xs font-semibold">John D. · Tech Researcher</div>
+            <div className="text-xs font-medium">John D. · Tech Researcher</div>
             <div className="text-[10px] text-muted-foreground">2h ago · 12 min read</div>
           </div>
         </div>
-        <div className="text-xs font-bold mb-1">NVIDIA: AI supercycle still has 18 months left</div>
+        <div className="text-xs font-medium mb-1">NVIDIA: AI supercycle still has 18 months left</div>
         <div className="flex gap-1.5">
-          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-tag font-semibold">LONG $NVDA</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-tag font-medium">LONG $NVDA</span>
           <span className="text-[10px] px-1.5 py-0.5 bg-secondary text-muted-foreground rounded-tag">Target: $190</span>
         </div>
       </div>
@@ -45,8 +45,8 @@ const STEPS = [
   },
   {
     icon: Users,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
+    color: "text-accent",
+    bg: "bg-accent/10",
     title: "Follow Researchers",
     subtitle: "Build your inner circle",
     body: "Follow the researchers whose views align with yours. Their new reports will appear in your Feed the moment they publish. You can also subscribe for exclusive premium research.",
@@ -58,13 +58,13 @@ const STEPS = [
         ].map((a, i) => (
           <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-xs font-bold text-violet-700">{a.name[0]}</div>
+              <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-medium text-accent">{a.name[0]}</div>
               <div>
-                <div className="text-xs font-semibold">{a.name}</div>
+                <div className="text-xs font-medium">{a.name}</div>
                 <div className="text-[10px] text-muted-foreground">{a.spec}</div>
               </div>
             </div>
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-tag">{a.tier}</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-accent/10 text-accent border border-accent/30 rounded-tag">{a.tier}</span>
           </div>
         ))}
       </div>
@@ -72,23 +72,23 @@ const STEPS = [
   },
   {
     icon: BarChart3,
-    color: "text-green-500",
-    bg: "bg-green-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Track Predictions",
     subtitle: "Hold researchers accountable",
     body: "Every published prediction is automatically tracked against real market prices. Researchers earn their reputation through verified accuracy — not just good writing.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
-        <div className="text-[10px] text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Live prediction tracker</div>
+        <div className="text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">Live prediction tracker</div>
         <div className="space-y-1.5">
           {[
             { ticker: "NVDA", dir: "LONG", entry: "$120", current: "$148", pct: "+23%" },
             { ticker: "AMZN", dir: "LONG", entry: "$180", current: "$197", pct: "+9%" },
           ].map((p, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
-              <span className="font-bold">${p.ticker}</span>
+              <span className="font-medium">${p.ticker}</span>
               <span className="text-muted-foreground">{p.entry} → {p.current}</span>
-              <span className="font-bold text-green-600">{p.pct}</span>
+              <span className="font-medium text-primary">{p.pct}</span>
             </div>
           ))}
         </div>
@@ -97,8 +97,8 @@ const STEPS = [
   },
   {
     icon: Star,
-    color: "text-rose-500",
-    bg: "bg-rose-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Your Watchlist & Markets",
     subtitle: "Never miss a move",
     body: "Add any stock or ETF to your Watchlist. The Markets tab shows live prices with your watchlist at the top. AI analyst is always available to answer market questions.",
@@ -108,9 +108,9 @@ const STEPS = [
           <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2">
             <div className="flex items-center gap-2">
               <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span className="text-sm font-bold">{t}</span>
+              <span className="text-sm font-medium">{t}</span>
             </div>
-            <span className="text-xs font-semibold text-green-600">+{(Math.random() * 3 + 0.5).toFixed(2)}%</span>
+            <span className="text-xs font-medium text-primary">+{(Math.random() * 3 + 0.5).toFixed(2)}%</span>
           </div>
         ))}
       </div>

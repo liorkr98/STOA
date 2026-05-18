@@ -100,11 +100,11 @@ export default function InboxPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-xl font-medium flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-primary" />
             Messages
             {totalUnread > 0 && (
-              <span className="text-xs bg-primary text-white rounded-tag px-2 py-0.5 font-bold">
+              <span className="text-xs bg-primary text-white rounded-tag px-2 py-0.5 font-medium">
                 {totalUnread}
               </span>
             )}
@@ -119,7 +119,7 @@ export default function InboxPage() {
       {conversations.length === 0 && (
         <div className="text-center py-20 border border-dashed border-border rounded-2xl bg-secondary/30">
           <MessageSquare className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="text-sm font-semibold text-foreground/60 mb-1">No messages yet</p>
+          <p className="text-sm font-medium text-foreground/60 mb-1">No messages yet</p>
           <p className="text-xs text-muted-foreground">Subscribe to analysts to unlock direct messaging.</p>
         </div>
       )}
@@ -142,7 +142,7 @@ export default function InboxPage() {
                 {/* Avatar */}
                 {other.picture
                   ? <img src={other.picture} alt={name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                  : <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary flex-shrink-0 text-base">
+                  : <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary flex-shrink-0 text-base">
                       {name[0]}
                     </div>
                 }
@@ -150,7 +150,7 @@ export default function InboxPage() {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className={`text-sm font-semibold truncate ${conv.unread > 0 ? "text-foreground" : "text-foreground/80"}`}>
+                    <span className={`text-sm font-medium truncate ${conv.unread > 0 ? "text-foreground" : "text-foreground/80"}`}>
                       {name}
                     </span>
                     <span className="text-[11px] text-muted-foreground flex-shrink-0 ml-2">
@@ -163,7 +163,7 @@ export default function InboxPage() {
                       {last?.content || ""}
                     </p>
                     {conv.unread > 0 && (
-                      <span className="flex-shrink-0 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                      <span className="flex-shrink-0 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-medium">
                         {conv.unread}
                       </span>
                     )}

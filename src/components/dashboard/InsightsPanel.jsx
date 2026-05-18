@@ -11,7 +11,7 @@ export default function InsightsPanel({ accuracyScore = 0, reports = [] }) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <h3 className="font-semibold text-sm mb-3">Accuracy Trend</h3>
+      <h3 className="font-medium text-sm mb-3">Accuracy Trend</h3>
       {chartData.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
           Accuracy trend will appear as you publish more predictions.
@@ -19,7 +19,7 @@ export default function InsightsPanel({ accuracyScore = 0, reports = [] }) {
       ) : (
         <>
           <div className="text-center mb-3">
-            <span className={`text-2xl font-bold ${accuracyScore >= 80 ? "text-gain" : accuracyScore >= 60 ? "text-amber-500" : "text-loss"}`}>
+            <span className={`text-2xl font-medium ${accuracyScore >= 80 ? "text-gain" : accuracyScore >= 60 ? "text-amber-500" : "text-loss"}`}>
               {accuracyScore.toFixed(1)}%
             </span>
             <p className="text-xs text-muted-foreground">Overall Accuracy</p>

@@ -36,40 +36,40 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <AnalyticsKPICard icon="📝" label="Published" value={publishedReports.length} sub="Reports" color="text-primary" />
-        <AnalyticsKPICard icon="❤️" label="Total Likes" value={totalLikes} sub="Across all reports" color="text-pink-600" />
-        <AnalyticsKPICard icon="📊" label="Avg Likes/Report" value={avgLikes} sub="Per report" color="text-purple-600" />
-        <AnalyticsKPICard icon="⭐" label="Premium Reports" value={premiumReports.length} sub="Locked reports" color="text-amber-600" />
+        <AnalyticsKPICard icon="❤️" label="Total Likes" value={totalLikes} sub="Across all reports" color="text-primary" />
+        <AnalyticsKPICard icon="📊" label="Avg Likes/Report" value={avgLikes} sub="Per report" color="text-accent" />
+        <AnalyticsKPICard icon="⭐" label="Premium Reports" value={premiumReports.length} sub="Locked reports" color="text-accent" />
       </div>
 
       {/* Top Report */}
       {topReport && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-3">🏆 Top Performing Report</h3>
+          <h3 className="font-medium text-sm mb-3">🏆 Top Performing Report</h3>
           <div
-            className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer hover:border-amber-400 transition-all"
+            className="flex items-start gap-4 p-4 bg-accent/10 border border-accent/30 rounded-xl cursor-pointer hover:border-amber-400 transition-all"
             onClick={() => navigate(`/report?id=${topReport.id}`)}
           >
             <div className="flex-1">
-              <p className="font-bold text-base mb-2">{topReport.title}</p>
+              <p className="font-medium text-base mb-2">{topReport.title}</p>
               <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-pink-600 font-semibold">❤️ {topReport.likes || 0} likes</span>
+                <span className="flex items-center gap-1 text-primary font-medium">❤️ {topReport.likes || 0} likes</span>
                 <span className="text-muted-foreground">{format(new Date(topReport.created_date), "MMM d, yyyy")}</span>
                 {topReport.prediction_action && (
-                  <span className={`font-bold px-2 py-0.5 rounded-tag text-xs ${topReport.prediction_action === "Long" ? "bg-green-100 text-green-700" : topReport.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                  <span className={`font-medium px-2 py-0.5 rounded-tag text-xs ${topReport.prediction_action === "Long" ? "bg-gain/10 text-primary" : topReport.prediction_action === "Short" ? "bg-loss/10 text-loss" : "bg-gray-100 text-gray-700"}`}>
                     {topReport.prediction_action}
                   </span>
                 )}
-                {topReport.is_premium && <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-tag">Premium</span>}
+                {topReport.is_premium && <span className="text-xs font-medium text-accent bg-accent/10 border border-accent/30 px-2 py-0.5 rounded-tag">Premium</span>}
               </div>
             </div>
-            <span className="text-primary text-sm font-semibold">View →</span>
+            <span className="text-primary text-sm font-medium">View →</span>
           </div>
         </div>
       )}
 
       {/* Reports Table */}
       <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm mb-4">All Published Reports</h3>
+        <h3 className="font-medium text-sm mb-4">All Published Reports</h3>
         {publishedReports.length === 0 ? (
           <div className="text-center py-10">
             <FileText className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
@@ -80,12 +80,12 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Title</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Date</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Type</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Likes</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Votes</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Prediction</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Title</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Date</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Type</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Likes</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Votes</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Prediction</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -103,15 +103,15 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
                       <td className="py-2.5 text-muted-foreground text-xs whitespace-nowrap">{format(new Date(r.created_date), "MMM d, yyyy")}</td>
                       <td className="py-2.5">
                         {r.is_premium
-                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
-                          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-secondary text-muted-foreground border border-border">Free</span>
+                          ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-accent/10 text-accent border border-accent/30">Premium</span>
+                          : <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-secondary text-muted-foreground border border-border">Free</span>
                         }
                       </td>
-                      <td className="py-2.5 text-pink-600 font-semibold">{r.likes || 0}</td>
-                      <td className="py-2.5 text-purple-600 font-semibold">{voteCount}</td>
+                      <td className="py-2.5 text-primary font-medium">{r.likes || 0}</td>
+                      <td className="py-2.5 text-accent font-medium">{voteCount}</td>
                       <td className="py-2.5">
                         {r.prediction_action && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-tag ${r.prediction_action === "Long" ? "bg-green-100 text-green-700" : r.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${r.prediction_action === "Long" ? "bg-gain/10 text-primary" : r.prediction_action === "Short" ? "bg-loss/10 text-loss" : "bg-gray-100 text-gray-700"}`}>
                             {r.prediction_action}
                           </span>
                         )}
@@ -128,10 +128,10 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-3">Content Insights</h3>
+          <h3 className="font-medium text-sm mb-3">Content Insights</h3>
           <div className="space-y-2">
             {recommendations.map((rec, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+              <div key={i} className="flex items-start gap-3 p-3 bg-primary/10 border border-blue-100 rounded-xl">
                 <p className="text-sm text-foreground/80">{rec}</p>
               </div>
             ))}

@@ -139,7 +139,7 @@ export default function NotificationCenter() {
                           <Icon className={`w-4 h-4 ${cfg.color}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          <p className="text-xs font-medium text-foreground flex items-center gap-1">
                             {n.title}
                             {!n.read && <span className="w-1.5 h-1.5 bg-primary rounded-full inline-block" />}
                           </p>
