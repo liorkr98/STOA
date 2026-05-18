@@ -294,7 +294,16 @@
   border-color: hsl(var(--blue-lighter) / 0.30);
   transform: translateY(-1px);
 }
-.surface-interactive:active { transform: translateY(0); }
+/* The card's "press" feedback (drop back to translateY(0)) should only fire
+   when the user is pressing the card itself — not when they're pressing an
+   interactive child (heart, follow button, share menu, etc.). Without this
+   guard, clicking the heart drops the card by 1px at the exact moment the
+   heart's scale-pulse fires, producing two simultaneous animations that read
+   as a stutter. `:has()` lets the browser tell us "an interactive descendant
+   is being pressed right now" and we skip the drop. */
+.surface-interactive:active:not(:has(button:active, a:active, [role="button"]:active, input:active, textarea:active, select:active)) {
+  transform: translateY(0);
+}
 
 .surface-premium {
   position: relative;
@@ -429,14 +438,16 @@
 .flash-down { animation: flashRed 1s ease; }
 
 /* Micro-interaction: subtle scale pulse for toggle buttons (like, follow).
-   Triggered by toggling the `.scale-pulse` class on the element. */
+   Tone is deliberately understated — 1 → 1.15 → 1 over 150ms — so it
+   reads as a tap response, not a bounce. Toggled via the `.scale-pulse`
+   class. */
 @keyframes scalePulse {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.2); }
+  40%  { transform: scale(1.15); }
   100% { transform: scale(1); }
 }
 .scale-pulse {
-  animation: scalePulse 0.2s ease-out;
+  animation: scalePulse 0.15s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
   .scale-pulse { animation: none; }
