@@ -80,11 +80,12 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
   const innerW = width - padL - padR;
   const innerH = H - padT - padB;
 
-  // Reference lines: lock + target + stop
+  // Reference lines: lock + target + stop.
+  // Using the design system's neutral/sentiment hex values (mirrors MASTER.md).
   const refLines = [
-    { value: lockPrice,  label: "Lock",  color: "#475569", solid: true,  icon: "🔒" },
-    targetPrice && { value: targetPrice, label: "Target", color: "#16a34a", solid: false },
-    stopLoss    && { value: stopLoss,    label: "Stop",   color: "#dc2626", solid: false },
+    { value: lockPrice,  label: "Lock",  color: "#5C5B58", solid: true,  icon: "🔒" },
+    targetPrice && { value: targetPrice, label: "Target", color: "#1E3A8A", solid: false },
+    stopLoss    && { value: stopLoss,    label: "Stop",   color: "#922B3E", solid: false },
   ].filter(Boolean);
 
   // Compose Y-axis range — include all data points, lock, target, stop
@@ -139,33 +140,35 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
 
   const sourceInfo = describeSource(lockSource);
 
+  const actionToneClass = action === "Long" ? "text-gain" : action === "Short" ? "text-loss" : "text-muted-foreground";
+
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+    <div className="surface overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
+      <div className="px-5 py-3 border-b border-border/60 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-bold">Prediction Trajectory</span>
+          <span className="font-serif text-[14px] text-foreground">Prediction Trajectory</span>
           <span className="text-xs text-muted-foreground">·</span>
-          <span className="font-mono font-bold text-sm" style={{ color: actionColor }}>
+          <span className={`font-display font-medium text-sm ${actionToneClass}`}>
             <ActionIcon className="w-3 h-3 inline mb-0.5" /> {action} ${ticker}
           </span>
         </div>
 
         {isResolved ? (
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-            isHit  ? "bg-green-100 text-green-700 border border-green-200"
-            : isMiss? "bg-red-100 text-red-700 border border-red-200"
-            : "bg-amber-100 text-amber-700 border border-amber-200"
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-tag flex items-center gap-1 border ${
+            isHit  ? "bg-gain/10 text-gain border-gain/20"
+            : isMiss? "bg-loss/10 text-loss border-loss/20"
+            : "bg-muted text-foreground border-border"
           }`}>
             {isHit ? <CheckCircle2 className="w-3 h-3" /> : isMiss ? <XCircle className="w-3 h-3" /> : null}
             {outcome.toUpperCase()}
           </span>
         ) : (
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-            isWinning ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-tag flex items-center gap-1 border ${
+            isWinning ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
           }`}>
-            {isWinning ? "+" : ""}{pnlPct.toFixed(2)}%
+            <span className="font-display">{isWinning ? "+" : ""}{pnlPct.toFixed(2)}%</span>
             <span className="text-muted-foreground font-normal">live</span>
           </span>
         )}
@@ -186,8 +189,8 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
           <svg width={width} height={H} className="block">
             <defs>
               <linearGradient id={`grad-${ticker}-${lockTime}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor={isWinning ? "#16a34a" : "#dc2626"} stopOpacity="0.18" />
-                <stop offset="100%" stopColor={isWinning ? "#16a34a" : "#dc2626"} stopOpacity="0" />
+                <stop offset="0%"  stopColor={isWinning ? "#0E6B45" : "#922B3E"} stopOpacity="0.18" />
+                <stop offset="100%" stopColor={isWinning ? "#0E6B45" : "#922B3E"} stopOpacity="0" />
               </linearGradient>
             </defs>
 
@@ -198,8 +201,8 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
               const val = yMax - ratio * (yMax - yMin);
               return (
                 <g key={i}>
-                  <line x1={padL} x2={padL + innerW} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="2 3" />
-                  <text x={padL - 6} y={y + 3} fill="#94a3b8" fontSize="9" textAnchor="end" fontFamily="ui-monospace, monospace">
+                  <line x1={padL} x2={padL + innerW} y1={y} y2={y} stroke="#E8E6E1" strokeWidth="0.5" strokeDasharray="2 3" />
+                  <text x={padL - 6} y={y + 3} fill="#8A8884" fontSize="9" textAnchor="end" fontFamily="ui-monospace, monospace">
                     ${val.toFixed(2)}
                   </text>
                 </g>
@@ -207,10 +210,10 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             })}
 
             {/* X-axis: lock date and end date */}
-            <text x={padL} y={H - 8} fill="#64748b" fontSize="9" textAnchor="start">
+            <text x={padL} y={H - 8} fill="#8A8884" fontSize="9" textAnchor="start">
               {format(new Date(lockTime), "MMM d")}
             </text>
-            <text x={padL + innerW} y={H - 8} fill="#64748b" fontSize="9" textAnchor="end">
+            <text x={padL + innerW} y={H - 8} fill="#8A8884" fontSize="9" textAnchor="end">
               {resolvedTime ? format(new Date(resolvedTime), "MMM d") : "Now"}
             </text>
 
@@ -218,7 +221,7 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             {areaPath && <path d={areaPath} fill={`url(#grad-${ticker}-${lockTime})`} />}
 
             {/* Price line */}
-            {linePath && <path d={linePath} fill="none" stroke={isWinning ? "#16a34a" : "#dc2626"} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />}
+            {linePath && <path d={linePath} fill="none" stroke={isWinning ? "#0E6B45" : "#922B3E"} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />}
 
             {/* Reference lines: lock / target / stop */}
             {refLines.map(ref => {
@@ -243,8 +246,8 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             {/* Current price marker */}
             {lastPoint && (
               <g>
-                <circle cx={xFor(lastPoint.t)} cy={yFor(lastPoint.p)} r="4" fill={isWinning ? "#16a34a" : "#dc2626"} stroke="#fff" strokeWidth="2" />
-                <text x={xFor(lastPoint.t) - 8} y={yFor(lastPoint.p) - 8} fill={isWinning ? "#16a34a" : "#dc2626"} fontSize="10" fontWeight="700" textAnchor="end" fontFamily="ui-monospace, monospace">
+                <circle cx={xFor(lastPoint.t)} cy={yFor(lastPoint.p)} r="4" fill={isWinning ? "#0E6B45" : "#922B3E"} stroke="#FAFAFA" strokeWidth="2" />
+                <text x={xFor(lastPoint.t) - 8} y={yFor(lastPoint.p) - 8} fill={isWinning ? "#0E6B45" : "#922B3E"} fontSize="10" fontWeight="500" textAnchor="end" fontFamily="ui-monospace, monospace">
                   ${lastPoint.p.toFixed(2)}
                 </text>
               </g>
@@ -254,16 +257,16 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
       </div>
 
       {/* Footer — provenance + key facts */}
-      <div className="px-5 py-3 border-t border-border bg-secondary/30 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+      <div className="px-5 py-3 border-t border-border/60 bg-secondary/30 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Lock Price</p>
-          <p className="font-mono font-bold">${lockPrice.toFixed(2)}</p>
+          <p className="font-display font-medium">${lockPrice.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground">{format(new Date(lockTime), "MMM d, h:mm a")}</p>
         </div>
         {targetPrice && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Target</p>
-            <p className="font-mono font-bold text-green-700">${targetPrice.toFixed(2)}</p>
+            <p className="font-display font-medium text-primary">${targetPrice.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">
               {lockPrice > 0
                 ? `${(((targetPrice - lockPrice) / lockPrice) * 100 * directionMul).toFixed(1)}% from lock`
@@ -274,13 +277,13 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
         {stopLoss && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Stop Loss</p>
-            <p className="font-mono font-bold text-red-700">${stopLoss.toFixed(2)}</p>
+            <p className="font-display font-medium text-loss">${stopLoss.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">Risk floor</p>
           </div>
         )}
-        <div className={`p-2 rounded-lg border ${sourceInfo.bg}`}>
+        <div className={`p-2 rounded-tag border ${sourceInfo.bg}`}>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Data Source</p>
-          <p className={`text-xs font-bold ${sourceInfo.color}`}>{sourceInfo.label}</p>
+          <p className={`text-xs font-medium ${sourceInfo.color}`}>{sourceInfo.label}</p>
           <p className="text-[10px] text-muted-foreground">{sourceInfo.quality}</p>
         </div>
       </div>

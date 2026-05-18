@@ -165,15 +165,15 @@ export default function BecomeAnalystPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 -mt-12 pb-16">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm mb-5">
+        <div className="surface-premium p-6 mb-5">
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-tag bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold">Become a Researcher</h1>
+              <h1 className="font-serif text-[22px] text-foreground">Become a Researcher</h1>
               <p className="text-xs text-muted-foreground">Set up your public creator profile</p>
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function BecomeAnalystPage() {
                   onChange={e => setTagline(e.target.value)}
                   maxLength={80}
                   placeholder="e.g. AI & semiconductor researcher · long-term growth"
-                  className="w-full text-base border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:border-primary"
+                  className="w-full text-base border border-border rounded-tag px-3 py-2.5 bg-background focus:outline-none focus:border-primary"
                   autoFocus
                 />
                 <div className="flex justify-between mt-1.5">
@@ -212,8 +212,8 @@ export default function BecomeAnalystPage() {
                 </div>
               </div>
 
-              <div className="bg-secondary/50 border border-border rounded-xl p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1 text-xs uppercase tracking-wider">Good examples</p>
+              <div className="bg-secondary/50 border border-border rounded-tag p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-1 text-xs uppercase tracking-wider">Good examples</p>
                 <ul className="space-y-1 text-xs">
                   <li>• "Tech & megacaps · long-term value, contrarian when needed"</li>
                   <li>• "Crypto-native, on-chain researcher · ETH, L2s, DeFi"</li>
@@ -237,7 +237,7 @@ export default function BecomeAnalystPage() {
                   rows={5}
                   maxLength={600}
                   placeholder="I'm a former [role] now writing independently. My focus is..."
-                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:border-primary resize-none"
+                  className="w-full text-sm border border-border rounded-tag px-3 py-2.5 bg-background focus:outline-none focus:border-primary resize-none"
                 />
                 <div className="flex justify-between mt-1.5">
                   <p className="text-[10px] text-muted-foreground">Min 20 characters</p>
@@ -253,10 +253,10 @@ export default function BecomeAnalystPage() {
                     <button
                       key={s}
                       onClick={() => toggleSpec(s)}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-all font-medium ${
+                      className={`text-xs px-2.5 py-1 rounded-tag border transition-colors font-medium ${
                         specialties.includes(s)
-                          ? "bg-primary text-white border-primary"
-                          : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:border-primary/40"
                       }`}
                     >
                       {s}
@@ -269,11 +269,11 @@ export default function BecomeAnalystPage() {
                     onChange={e => setCustomSpec(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustom())}
                     placeholder="Add custom…"
-                    className="flex-1 text-xs border border-border rounded-lg px-2.5 py-1.5 bg-background focus:outline-none focus:border-primary"
+                    className="flex-1 text-xs border border-border rounded-tag px-2.5 py-1.5 bg-background focus:outline-none focus:border-primary"
                   />
                   <button
                     onClick={addCustom}
-                    className="text-xs bg-secondary text-foreground px-3 rounded-lg border border-border font-semibold hover:bg-primary/10"
+                    className="text-xs bg-secondary text-foreground px-3 rounded-tag border border-border font-medium hover:bg-primary/10"
                   >
                     Add
                   </button>
@@ -290,8 +290,8 @@ export default function BecomeAnalystPage() {
                       <button
                         key={s.key}
                         onClick={() => setStyle(s.key)}
-                        className={`text-left rounded-xl border-2 p-3 transition-all ${
-                          active ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                        className={`text-left rounded-tag border p-3 transition-colors ${
+                          active ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
@@ -322,7 +322,7 @@ export default function BecomeAnalystPage() {
                   rows={4}
                   maxLength={500}
                   placeholder="My process is..."
-                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:border-primary resize-none"
+                  className="w-full text-sm border border-border rounded-tag px-3 py-2.5 bg-background focus:outline-none focus:border-primary resize-none"
                 />
                 <div className="flex justify-between mt-1.5">
                   <p className="text-[10px] text-muted-foreground">Min 30 characters</p>
@@ -331,18 +331,18 @@ export default function BecomeAnalystPage() {
               </div>
 
               {/* Code of conduct */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="bg-accent/10 border border-accent/30 rounded-tag p-4">
                 <div className="flex items-start gap-2 mb-3">
-                  <Shield className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+                  <Shield className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-sm text-amber-900">STOA Creator Code of Conduct</p>
-                    <p className="text-xs text-amber-700 mt-0.5">
+                    <p className="font-serif text-[14px] text-foreground">STOA Creator Code of Conduct</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Verified track records are the core of this platform. By becoming a researcher, you agree to:
                     </p>
                   </div>
                 </div>
 
-                <ul className="space-y-2 text-xs text-amber-900 mb-4 ml-7">
+                <ul className="space-y-2 text-xs text-foreground mb-4 ml-7">
                   {[
                     "Publish only my own analysis and original views",
                     "Make predictions in good faith — never to manipulate prices",
@@ -352,7 +352,7 @@ export default function BecomeAnalystPage() {
                     "Cite sources when referencing third-party data or claims",
                   ].map(item => (
                     <li key={item} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent flex-shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -363,9 +363,9 @@ export default function BecomeAnalystPage() {
                     type="checkbox"
                     checked={agreed}
                     onChange={e => setAgreed(e.target.checked)}
-                    className="w-4 h-4 mt-0.5 accent-amber-600 cursor-pointer flex-shrink-0"
+                    className="w-4 h-4 mt-0.5 accent-current cursor-pointer flex-shrink-0 text-accent"
                   />
-                  <span className="text-xs font-semibold text-amber-900">
+                  <span className="text-xs font-medium text-foreground">
                     I agree to the STOA Creator Code of Conduct
                   </span>
                 </label>
@@ -374,7 +374,7 @@ export default function BecomeAnalystPage() {
           )}
 
           {/* Footer buttons */}
-          <div className="flex items-center justify-between mt-6 pt-5 border-t border-border">
+          <div className="flex items-center justify-between mt-6 pt-5 border-t border-border/60">
             <button
               onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -396,8 +396,8 @@ export default function BecomeAnalystPage() {
         </div>
 
         {/* Benefits panel */}
-        <div className="bg-card border border-border rounded-2xl p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">What you unlock</p>
+        <div className="surface p-5">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">What you unlock</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ["📝", "Publish reports",     "Write market analysis and lock predictions to the blockchain of your track record."],
@@ -410,7 +410,7 @@ export default function BecomeAnalystPage() {
               <div key={title} className="flex items-start gap-2">
                 <span className="text-lg leading-none mt-0.5">{icon}</span>
                 <div>
-                  <p className="text-sm font-semibold">{title}</p>
+                  <p className="text-sm font-medium">{title}</p>
                   <p className="text-[11px] text-muted-foreground leading-snug">{desc}</p>
                 </div>
               </div>

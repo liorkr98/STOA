@@ -193,7 +193,7 @@ export default function AnalystOnboarding({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm surface overflow-hidden">
         <button
           onClick={() => finish(null)}
           className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-secondary transition-colors z-10"
@@ -215,8 +215,8 @@ export default function AnalystOnboarding({ onClose }) {
             <Icon className={`w-6 h-6 ${S.color}`} />
           </div>
 
-          <h2 className="text-xl font-extrabold mb-0.5">{S.title}</h2>
-          <p className="text-xs font-semibold text-primary mb-2">{S.subtitle}</p>
+          <h2 className="font-serif text-[20px] text-foreground mb-0.5">{S.title}</h2>
+          <p className="text-xs font-medium text-primary mb-2">{S.subtitle}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">{S.body}</p>
 
           {S.visual}

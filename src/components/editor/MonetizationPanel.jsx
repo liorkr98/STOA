@@ -6,26 +6,26 @@ export default function MonetizationPanel({ isPremium, price, onIsPremiumChange,
   const mode = isPremium ? "paid" : "free";
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
+    <div className="surface p-4">
       <div className="flex items-center gap-2 mb-3">
         <DollarSign className="w-4 h-4 text-primary" />
-        <h4 className="font-semibold text-sm">Report Pricing</h4>
+        <h4 className="font-serif text-[14px] text-foreground">Report Pricing</h4>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <button
           onClick={() => onIsPremiumChange(false)}
-          className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${mode === "free" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+          className={`flex flex-col items-center gap-1.5 p-3 rounded-tag border transition-all ${mode === "free" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
         >
-          <Unlock className="w-4 h-4 text-gain" />
-          <span className="text-xs font-semibold">Free</span>
+          <Unlock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-medium">Free</span>
           <span className="text-[10px] text-muted-foreground">Anyone can read</span>
         </button>
         <button
           onClick={() => onIsPremiumChange(true)}
-          className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${mode === "paid" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+          className={`flex flex-col items-center gap-1.5 p-3 rounded-tag border transition-all ${mode === "paid" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
         >
-          <Lock className="w-4 h-4 text-amber-500" />
-          <span className="text-xs font-semibold">Premium</span>
+          <Lock className="w-4 h-4 text-accent" />
+          <span className="text-xs font-medium">Premium</span>
           <span className="text-[10px] text-muted-foreground">Paid unlock</span>
         </button>
       </div>

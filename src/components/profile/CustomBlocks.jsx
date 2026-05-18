@@ -49,8 +49,8 @@ async function fetchTickerQuote(symbol) {
 // ── Block renderers (public-facing) ───────────────────────────────────────────
 function TextBlockView({ block }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
-      {block.title && <h3 className="text-sm font-bold mb-2">{block.title}</h3>}
+    <div className="surface p-5">
+      {block.title && <h3 className="font-serif text-[14px] text-foreground mb-2">{block.title}</h3>}
       <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{block.content || ""}</p>
     </div>
   );
@@ -59,12 +59,12 @@ function TextBlockView({ block }) {
 function ImageBlockView({ block }) {
   if (!block.url) return null;
   return (
-    <div className="bg-card border border-border rounded-2xl p-3 overflow-hidden">
-      {block.title && <h3 className="text-sm font-bold mb-2 px-2">{block.title}</h3>}
+    <div className="surface p-3 overflow-hidden">
+      {block.title && <h3 className="font-serif text-[14px] text-foreground mb-2 px-2">{block.title}</h3>}
       <img
         src={block.url}
         alt={block.caption || block.title || "Image"}
-        className="w-full rounded-xl object-cover max-h-96"
+        className="w-full rounded-tag object-cover max-h-96"
         loading="lazy"
         onError={e => { e.target.style.display = "none"; }}
       />
@@ -77,8 +77,8 @@ function LinksBlockView({ block }) {
   const items = block.links || [];
   if (items.length === 0) return null;
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
-      {block.title && <h3 className="text-sm font-bold mb-3">{block.title}</h3>}
+    <div className="surface p-5">
+      {block.title && <h3 className="font-serif text-[14px] text-foreground mb-3">{block.title}</h3>}
       <div className="space-y-2">
         {items.map((item, i) => {
           const { Icon, color, label: defaultLabel } = iconForUrl(item.url);
@@ -88,12 +88,12 @@ function LinksBlockView({ block }) {
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-secondary/30 hover:bg-secondary hover:border-primary/30 transition-all group"
+              className="flex items-center gap-3 px-4 py-3 rounded-tag border border-border bg-secondary/30 hover:bg-secondary hover:border-primary/30 transition-all group"
             >
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, color }}>
+              <span className="w-8 h-8 rounded-tag flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, color }}>
                 <Icon className="w-4 h-4" />
               </span>
-              <span className="text-sm font-semibold flex-1 truncate">{item.label || defaultLabel}</span>
+              <span className="text-sm font-medium flex-1 truncate">{item.label || defaultLabel}</span>
               <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
             </a>
           );
@@ -118,12 +118,12 @@ function ChartBlockView({ block }) {
   return (
     <a
       href={`/stock?ticker=${ticker}`}
-      className="block bg-card border border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-sm transition-all"
+      className="block surface surface-interactive p-5"
     >
-      {block.title && <h3 className="text-sm font-bold mb-3">{block.title}</h3>}
+      {block.title && <h3 className="font-serif text-[14px] text-foreground mb-3">{block.title}</h3>}
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <p className="font-mono font-extrabold text-lg">${ticker}</p>
+          <p className="font-display font-medium text-lg">${ticker}</p>
           {quote?.name && <p className="text-xs text-muted-foreground truncate">{quote.name}</p>}
         </div>
         <div className="text-right">
@@ -131,8 +131,8 @@ function ChartBlockView({ block }) {
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           ) : quote ? (
             <>
-              <p className="font-bold text-base">${quote.price.toFixed(2)}</p>
-              <p className={`text-xs font-semibold ${isUp ? "text-green-600" : "text-red-500"}`}>
+              <p className="font-display font-medium text-base">${quote.price.toFixed(2)}</p>
+              <p className={`text-xs font-medium font-display ${isUp ? "text-gain" : "text-loss"}`}>
                 {isUp ? "+" : ""}{quote.change?.toFixed(2)}%
               </p>
             </>
@@ -164,7 +164,7 @@ function TextEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Section title (optional, e.g. 'My methodology')"
-        className="w-full text-sm font-bold border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <textarea
         value={block.content || ""}
@@ -172,7 +172,7 @@ function TextEditor({ block, onChange }) {
         rows={4}
         maxLength={2000}
         placeholder="Write the content…"
-        className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-2 bg-amber-50/30 focus:outline-none focus:border-amber-500 resize-none"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-2 bg-accent/5 focus:outline-none focus:border-accent resize-none"
       />
     </div>
   );
@@ -186,21 +186,21 @@ function ImageEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Title (optional)"
-        className="w-full text-sm font-bold border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <input
         type="url"
         value={block.url || ""}
         onChange={e => onChange({ ...block, url: e.target.value })}
         placeholder="Image URL (e.g. https://i.imgur.com/...)"
-        className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500 font-mono"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-mono"
       />
       <input
         type="text"
         value={block.caption || ""}
         onChange={e => onChange({ ...block, caption: e.target.value })}
         placeholder="Caption (optional)"
-        className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       {block.url && (
         <img src={block.url} alt="" className="w-full max-h-40 object-cover rounded-lg border border-border" onError={e => { e.target.style.display = "none"; }} />
@@ -226,7 +226,7 @@ function LinksEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Section title (e.g. 'Find me elsewhere')"
-        className="w-full text-sm font-bold border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <div className="space-y-1.5">
         {links.map((link, idx) => {
@@ -279,14 +279,14 @@ function ChartEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Title (e.g. 'My top pick this month')"
-        className="w-full text-sm font-bold border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <input
         type="text"
         value={block.ticker || ""}
         onChange={e => onChange({ ...block, ticker: e.target.value.toUpperCase() })}
         placeholder="Ticker (e.g. NVDA, AAPL, BTC-USD)"
-        className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500 font-mono"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-mono"
       />
       <p className="text-[10px] text-muted-foreground">Shows live price + % change. Links to the full stock page.</p>
     </div>
@@ -302,17 +302,17 @@ function BlockEditorWrapper({ block, onChange, onDelete, onDragStart, onDragOver
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className="bg-secondary/30 border-2 border-dashed border-amber-300 rounded-2xl p-4"
+      className="bg-secondary/30 border border-dashed border-accent/50 rounded-tag p-4"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-          {Icon && <Icon className="w-4 h-4 text-amber-700" />}
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-700">{def?.label || block.type}</span>
+          {Icon && <Icon className="w-4 h-4 text-accent" />}
+          <span className="text-xs font-medium uppercase tracking-wider text-accent">{def?.label || block.type}</span>
         </div>
         <button
           onClick={onDelete}
-          className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded"
+          className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
           aria-label="Delete block"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -332,16 +332,16 @@ function AddBlockPicker({ onAdd }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full py-3 rounded-2xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"
+        className="w-full py-3 rounded-tag border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <Plus className="w-4 h-4" /> Add a section
       </button>
     );
   }
   return (
-    <div className="bg-card border border-border rounded-2xl p-3">
+    <div className="surface p-3">
       <div className="flex items-center justify-between mb-3 px-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Choose a section type</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Choose a section type</span>
         <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
           <X className="w-4 h-4" />
         </button>
@@ -351,11 +351,11 @@ function AddBlockPicker({ onAdd }) {
           <button
             key={type}
             onClick={() => { onAdd(type); setOpen(false); }}
-            className="text-left p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-secondary transition-all"
+            className="text-left p-3 rounded-tag border border-border hover:border-primary/40 hover:bg-secondary transition-all"
           >
             <div className="flex items-center gap-2 mb-1">
               <Icon className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">{label}</span>
+              <span className="font-serif text-[14px] text-foreground">{label}</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-snug">{desc}</p>
           </button>
@@ -410,8 +410,8 @@ export function CustomBlocksSection({ blocks = [], isEditMode, onChange }) {
   // Edit view
   return (
     <div className="space-y-3">
-      <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-        <p className="text-xs text-amber-800">
+      <div className="px-3 py-2 bg-accent/10 border border-accent/30 rounded-tag">
+        <p className="text-xs text-foreground">
           ✨ <strong>Custom sections</strong> appear on your About tab. Drag to reorder, click trash to remove.
         </p>
       </div>

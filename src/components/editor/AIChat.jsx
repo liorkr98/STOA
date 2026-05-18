@@ -547,7 +547,7 @@ Analyst:`;
     return (
       <button
         onClick={() => setOpen(true)}
-        className={`hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 bg-primary text-white px-3 py-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-all text-sm font-medium ${
+        className={`hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 bg-primary text-primary-foreground px-3.5 py-2.5 rounded-sm border border-primary hover:bg-primary/90 transition-all text-sm font-medium ${
           hidByFooter ? "opacity-0 pointer-events-none translate-y-2" : "opacity-100"
         }`}
         aria-hidden={hidByFooter}
@@ -569,23 +569,23 @@ Analyst:`;
         width:      370,
         userSelect: dragging ? "none" : "auto",
       }}
-      className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+      className="surface overflow-hidden flex flex-col"
       onClick={handlePanelClick}
     >
       {/* Header / drag handle */}
       <div
         onMouseDown={onHeaderMouseDown}
-        className={`flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/50 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex items-center justify-between px-4 py-3 border-b border-border/60 bg-secondary/50 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         <div className="flex items-center gap-2 pointer-events-none">
           <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
           <Sparkles className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm">AI Research Assistant</span>
+          <span className="font-serif text-[14px] text-foreground">AI Research Assistant</span>
           {/* Credit badge */}
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+          <span className={`text-[10px] font-medium font-display px-1.5 py-0.5 rounded-tag flex items-center gap-0.5 ${
             credits == null ? "bg-secondary text-muted-foreground" :
             credits <= 0   ? "bg-loss/10 text-loss" :
-            credits <= 10  ? "bg-amber-100 text-amber-700" :
+            credits <= 10  ? "bg-accent/15 text-accent" :
             "bg-secondary text-muted-foreground"
           }`}>
             <Coins className="w-2.5 h-2.5" /> {credits == null ? "—" : credits}
@@ -663,7 +663,7 @@ Analyst:`;
                       <div
                         draggable
                         onDragStart={(e) => onDragStart(e, msg)}
-                        className="bg-secondary border border-border rounded-xl px-3 py-2.5 text-xs text-foreground leading-relaxed whitespace-pre-wrap cursor-grab active:cursor-grabbing hover:border-primary/30 transition-colors"
+                        className="bg-secondary border border-border rounded-tag px-3 py-2.5 text-xs text-foreground leading-relaxed whitespace-pre-wrap cursor-grab active:cursor-grabbing hover:border-primary/30 transition-colors"
                         title="Drag to drop into report"
                       >
                         {msg.content}
@@ -746,7 +746,7 @@ Analyst:`;
                     </div>
                   </div>
                 ) : (
-                  <div className="max-w-[80%] bg-primary text-white rounded-xl px-3 py-2 text-xs leading-relaxed">
+                  <div className="max-w-[80%] bg-primary text-primary-foreground rounded-tag px-3 py-2 text-xs leading-relaxed">
                     {msg.content}
                   </div>
                 )}
@@ -755,7 +755,7 @@ Analyst:`;
 
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-secondary border border-border rounded-xl px-3 py-2.5 flex items-center gap-2">
+                <div className="bg-secondary border border-border rounded-tag px-3 py-2.5 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                   <span className="text-xs text-muted-foreground">Analyzing…</span>
                 </div>
@@ -766,30 +766,30 @@ Analyst:`;
 
           {/* Out-of-credits banner */}
           {credits != null && credits <= 0 && (
-            <div className="mx-3 mb-2 p-2.5 bg-loss/8 border border-loss/20 rounded-xl flex items-center gap-2">
+            <div className="mx-3 mb-2 p-2.5 bg-loss/10 border border-loss/20 rounded-tag flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-loss flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-loss">No AI credits remaining</p>
+                <p className="text-xs font-medium text-loss">No AI credits remaining</p>
                 <p className="text-[10px] text-muted-foreground">Top up in your <a href="/wallet" className="underline text-primary">Wallet</a> to continue</p>
               </div>
             </div>
           )}
 
           {/* Input row */}
-          <div className="p-3 border-t border-border flex gap-2">
+          <div className="p-3 border-t border-border/60 flex gap-2">
             <input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
               placeholder="Ask about any stock, sector, or market…"
-              className="flex-1 text-xs border border-border rounded-xl px-3 py-2 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 text-xs border border-border rounded-tag px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
               disabled={loading}
             />
             <button
               onClick={() => send()}
               disabled={loading || !input.trim()}
-              className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-40 transition-colors flex-shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors flex-shrink-0"
             >
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>

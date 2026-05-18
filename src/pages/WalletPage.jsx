@@ -17,13 +17,13 @@ const TX_DISPLAY = {
   deposit:               { icon: ArrowDownLeft, color: "text-gain",       bg: "bg-gain/10",       label: "Deposit",         sign: "+" },
   withdrawal:            { icon: ArrowUpRight,  color: "text-loss",       bg: "bg-loss/10",       label: "Withdrawal",      sign: "-" },
   earning:               { icon: TrendingUp,    color: "text-gain",       bg: "bg-gain/10",       label: "Earning",         sign: "+" },
-  credits:               { icon: Zap,           color: "text-amber-600",  bg: "bg-amber-50",      label: "AI Credits",      sign: "+" },
-  conversion:            { icon: RefreshCw,     color: "text-amber-600",  bg: "bg-amber-50",      label: "Cash → Credits",  sign: "-" },
+  credits:               { icon: Zap,           color: "text-accent",     bg: "bg-accent/10",     label: "AI Credits",      sign: "+" },
+  conversion:            { icon: RefreshCw,     color: "text-accent",     bg: "bg-accent/10",     label: "Cash → Credits",  sign: "-" },
   report_unlock:         { icon: ArrowUpRight,  color: "text-loss",       bg: "bg-loss/10",       label: "Report unlock",   sign: "-" },
   report_earning:        { icon: TrendingUp,    color: "text-gain",       bg: "bg-gain/10",       label: "Report earning",  sign: "+" },
   subscription_purchase: { icon: ArrowUpRight,  color: "text-loss",       bg: "bg-loss/10",       label: "Subscription",    sign: "-" },
   subscription_earning:  { icon: TrendingUp,    color: "text-gain",       bg: "bg-gain/10",       label: "Subscriber",      sign: "+" },
-  boost:                 { icon: Zap,           color: "text-loss",       bg: "bg-loss/10",       label: "Boost",           sign: "-" },
+  boost:                 { icon: Zap,           color: "text-accent",     bg: "bg-accent/10",     label: "Boost",           sign: "-" },
   refund:                { icon: RefreshCw,     color: "text-primary",    bg: "bg-primary/10",    label: "Refund",          sign: "+" },
 };
 
@@ -104,27 +104,26 @@ export default function WalletPage() {
       {/* ── Header ── */}
       <div className="surface-premium p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-card-md" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
-            <Wallet className="w-6 h-6 text-white" />
+          <div className="w-14 h-14 rounded-tag bg-primary flex items-center justify-center">
+            <Wallet className="w-6 h-6 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="eyebrow">Finance</span>
-            <h1 className="text-2xl font-extrabold tracking-tight mt-0.5">My Wallet</h1>
+            <h1 className="font-serif text-[28px] text-foreground tracking-tight mt-0.5">My Wallet</h1>
             <p className="text-sm text-muted-foreground">Deposit · Spend · Earn · Withdraw</p>
           </div>
         </div>
       </div>
 
       {/* ── Tab switcher ── */}
-      <div className="flex gap-1 mb-5 p-1 rounded-2xl border border-border bg-secondary w-fit">
+      <div className="flex gap-1 mb-5 p-1 rounded-tag border border-border bg-secondary w-fit">
         {[["cash", "💵", "Cash Balance"], ["credits", "⚡", "AI Credits"]].map(([key, emoji, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-tag text-sm font-medium transition-colors ${
               tab === key
-                ? "text-white shadow-md"
+                ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            style={tab === key ? { background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" } : undefined}
           >
             <span>{emoji}</span> {label}
           </button>
@@ -134,33 +133,33 @@ export default function WalletPage() {
       {/* ── CASH TAB ── */}
       {tab === "cash" && (
         <>
-          {/* Balance card — dark navy with gold amount */}
-          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
-            <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.15) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
+          {/* Balance card — glass surface with gold amount */}
+          <div className="surface-premium p-7 mb-5 ambient-section">
             <div className="relative z-10">
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/40 mb-2">Wallet Balance</p>
-              <p className="text-6xl font-black mb-1 tabular-nums" style={{ color: "hsl(var(--accent))" }}>
+              <p className="eyebrow mb-2">Wallet Balance</p>
+              <p className="text-6xl font-medium mb-1 tabular-nums font-display text-accent">
                 ${(wallet?.balance || 0).toFixed(2)}
               </p>
-              <p className="text-white/40 text-xs mb-5">Available for spending or withdrawal</p>
+              <p className="text-muted-foreground text-xs mb-5">Available for spending or withdrawal</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => navigate("/pay?mode=deposit")}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl font-bold text-sm border border-white/20 text-white hover:bg-white/10 transition-all"
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-sm font-medium text-sm border border-border text-foreground hover:bg-secondary transition-colors"
+                  style={{ borderRadius: 6 }}
                 >
                   <Plus className="w-4 h-4" /> Deposit
                 </button>
                 <button
                   onClick={() => setShowWithdraw(true)}
                   disabled={!wallet?.balance}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent)/0.8))", color: "#0A1A3F" }}
+                  className="cta-gold flex items-center justify-center gap-1.5 flex-1 py-2.5 text-sm font-medium transition-colors disabled:opacity-40"
+                  style={{ borderRadius: 6 }}
                 >
                   <ArrowUpRight className="w-4 h-4" /> Withdraw
                 </button>
               </div>
-              <p className="text-[10px] text-white/30 mt-3 text-center">
-                Min deposit ${MIN_DEPOSIT_USD} · Min withdrawal ${MIN_WITHDRAWAL_USD}
+              <p className="text-[10px] text-muted-foreground mt-3 text-center">
+                Min deposit <span className="font-display">${MIN_DEPOSIT_USD}</span> · Min withdrawal <span className="font-display">${MIN_WITHDRAWAL_USD}</span>
               </p>
             </div>
           </div>
@@ -169,9 +168,9 @@ export default function WalletPage() {
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="stat-card">
               <div className="flex items-center justify-between mb-2">
-                <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-green-500" />Total Earned</span>
+                <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-gain" />Total Earned</span>
               </div>
-              <p className="stat-card-value text-green-600">${(wallet?.total_earned || 0).toFixed(2)}</p>
+              <p className="stat-card-value text-gain">${(wallet?.total_earned || 0).toFixed(2)}</p>
               <p className="stat-card-sub">After platform &amp; processing fees</p>
             </div>
             <div className="stat-card">
@@ -190,28 +189,27 @@ export default function WalletPage() {
       {/* ── AI CREDITS TAB ── */}
       {tab === "credits" && (
         <>
-          {/* Credits balance card — navy with gold lightning */}
-          <div className="rounded-2xl p-7 mb-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #2E5090 60%, #1E3A8A 100%)" }}>
-            <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.2) 0%, transparent 65%)", transform: "translate(25%, 30%)" }} />
-            <div className="absolute top-5 right-6 text-4xl select-none">⚡</div>
+          {/* Credits balance card */}
+          <div className="surface-premium p-7 mb-5 ambient-section">
+            <div className="absolute top-5 right-6 text-4xl select-none z-10">⚡</div>
             <div className="relative z-10">
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/40 mb-2">AI Credits Balance</p>
+              <p className="eyebrow mb-2">AI Credits Balance</p>
               <div className="flex items-end gap-2 mb-1">
-                <p className="text-6xl font-black tabular-nums" style={{ color: "hsl(var(--accent))" }}>{aiCredits.toLocaleString()}</p>
-                <span className="text-xl text-white/40 font-bold mb-2">cr.</span>
+                <p className="text-6xl font-medium tabular-nums font-display text-accent">{aiCredits.toLocaleString()}</p>
+                <span className="text-xl text-muted-foreground font-medium mb-2">cr.</span>
               </div>
-              <p className="text-white/40 text-xs">For AI chat, fact-check on publish, and analyst tools</p>
+              <p className="text-muted-foreground text-xs">For AI chat, fact-check on publish, and analyst tools</p>
             </div>
           </div>
 
           {/* Convert cash → credits */}
-          <div className="bg-card border border-border rounded-2xl p-5 mb-4">
+          <div className="surface p-5 mb-4">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--accent)/0.12)" }}>
-                <RefreshCw className="w-3.5 h-3.5" style={{ color: "hsl(var(--accent))" }} />
+              <div className="w-7 h-7 rounded-tag flex items-center justify-center bg-accent/15">
+                <RefreshCw className="w-3.5 h-3.5 text-accent" />
               </div>
-              <h3 className="font-semibold text-sm">Convert cash → AI credits</h3>
-              <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ color: "hsl(var(--accent))", background: "hsl(var(--accent)/0.1)", border: "1px solid hsl(var(--accent)/0.25)" }}>
+              <h3 className="font-serif text-[14px] text-foreground">Convert cash → AI credits</h3>
+              <span className="ml-auto pill-accent">
                 Instant
               </span>
             </div>
@@ -220,13 +218,13 @@ export default function WalletPage() {
             </p>
             <div className="flex gap-2 items-center">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
                 <input
                   type="number" min="1" step="0.01" max={wallet?.balance || 0}
                   value={convertAmount}
                   onChange={e => setConvertAmount(e.target.value)}
                   placeholder="5.00"
-                  className="w-full border border-input rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold outline-none focus:border-primary bg-card"
+                  className="w-full border border-input rounded-tag pl-7 pr-3 py-2.5 text-sm font-medium font-display outline-none focus:border-primary bg-background"
                 />
               </div>
               <Button
@@ -248,8 +246,8 @@ export default function WalletPage() {
           </div>
 
           {/* Quick convert */}
-          <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Quick convert</h3>
+          <div className="surface p-5 mb-4">
+            <h3 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-3">Quick convert</h3>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { dollars: 5,  credits: 50  },
@@ -260,23 +258,19 @@ export default function WalletPage() {
                   key={p.dollars}
                   onClick={() => setConvertAmount(String(p.dollars))}
                   disabled={(wallet?.balance || 0) < p.dollars}
-                  className="rounded-2xl border p-4 text-center transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{
-                    borderColor: "hsl(var(--accent)/0.3)",
-                    background: "linear-gradient(135deg, hsl(var(--accent)/0.06), transparent)",
-                  }}
+                  className="rounded-tag border border-accent/30 bg-accent/5 p-4 text-center transition-all hover:bg-accent/10 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Zap className="w-5 h-5 mx-auto mb-1.5" style={{ color: "hsl(var(--accent))" }} />
-                  <p className="font-mono font-extrabold text-lg">${p.dollars}</p>
-                  <p className="text-[10px] text-muted-foreground">{p.credits} credits</p>
+                  <Zap className="w-5 h-5 mx-auto mb-1.5 text-accent" />
+                  <p className="font-display font-medium text-lg">${p.dollars}</p>
+                  <p className="text-[10px] text-muted-foreground"><span className="font-display">{p.credits}</span> credits</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* What credits unlock */}
-          <div className="rounded-2xl p-5 mb-4 border" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)", borderColor: "hsl(var(--accent)/0.2)" }}>
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">What credits unlock</h3>
+          <div className="surface-premium p-5 mb-4">
+            <h3 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-3">What credits unlock</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { emoji: "🤖", cr: "1 cr.", label: "AI chat message" },
@@ -284,11 +278,11 @@ export default function WalletPage() {
                 { emoji: "📊", cr: "2 cr.", label: "Score deep-dive" },
                 { emoji: "💡", cr: "15 cr.", label: "AI prediction assist" },
               ].map(item => (
-                <div key={item.label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8">
+                <div key={item.label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-tag bg-background/40 border border-border/60">
                   <span className="text-lg">{item.emoji}</span>
                   <div>
-                    <p className="text-[11px] font-bold" style={{ color: "hsl(var(--accent))" }}>{item.cr}</p>
-                    <p className="text-[10px] text-white/50">{item.label}</p>
+                    <p className="text-[11px] font-medium font-display text-accent">{item.cr}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.label}</p>
                   </div>
                 </div>
               ))}
@@ -302,24 +296,24 @@ export default function WalletPage() {
       {/* Withdraw modal */}
       {showWithdraw && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowWithdraw(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="surface p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
-                <ArrowUpRight className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-tag flex items-center justify-center bg-primary">
+                <ArrowUpRight className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h3 className="font-bold text-base">Withdraw to PayPal</h3>
-                <p className="text-xs text-muted-foreground">Available: <strong>${wallet?.balance?.toFixed(2)}</strong></p>
+                <h3 className="font-serif text-[16px] text-foreground">Withdraw to PayPal</h3>
+                <p className="text-xs text-muted-foreground">Available: <span className="font-display font-medium">${wallet?.balance?.toFixed(2)}</span></p>
               </div>
             </div>
             <div className="relative mb-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
               <input
                 type="number" min={MIN_WITHDRAWAL_USD} step="0.01" max={wallet?.balance || 0}
                 value={withdrawAmount}
                 onChange={e => setWithdrawAmount(e.target.value)}
                 placeholder={`${MIN_WITHDRAWAL_USD}.00`}
-                className="w-full border border-input rounded-xl pl-7 pr-4 py-3 text-lg font-bold outline-none focus:border-primary bg-card"
+                className="w-full border border-input rounded-tag pl-7 pr-4 py-3 text-lg font-medium font-display outline-none focus:border-primary bg-background"
               />
             </div>
             <p className="text-[10px] text-muted-foreground mb-4">
@@ -348,52 +342,52 @@ export default function WalletPage() {
 function TransactionList({ transactions, emptyMsg = "No transactions yet." }) {
   if (!transactions || transactions.length === 0) {
     return (
-      <div className="text-center py-14 border border-dashed border-border rounded-2xl">
+      <div className="text-center py-14 border border-dashed border-border rounded-tag">
         <Clock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">{emptyMsg}</p>
       </div>
     );
   }
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-border flex items-center gap-2" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
-        <Clock className="w-4 h-4 text-white/60" />
-        <h2 className="font-semibold text-sm text-white">Transaction History</h2>
-        <span className="ml-auto text-[10px] font-bold text-white/40">{transactions.length} records</span>
+    <div className="surface overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2 bg-secondary/40">
+        <Clock className="w-4 h-4 text-muted-foreground" />
+        <h2 className="font-serif text-[14px] text-foreground">Transaction History</h2>
+        <span className="ml-auto text-[10px] font-medium text-muted-foreground"><span className="font-display">{transactions.length}</span> records</span>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/60">
         {transactions.map((tx, i) => {
           const cfg = TX_DISPLAY[tx.type] || TX_DISPLAY.earning;
           const Icon = cfg.icon;
           const showFees = (tx.platform_fee || tx.processing_fee) && tx.type === "report_earning";
           return (
             <div key={tx.id || i} className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/40 transition-colors">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
+              <div className={`w-9 h-9 rounded-tag flex items-center justify-center shrink-0 ${cfg.bg}`}>
                 <Icon className={`w-4 h-4 ${cfg.color}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{cfg.label}</p>
+                <p className="text-sm font-medium">{cfg.label}</p>
                 {tx.note && <p className="text-xs text-muted-foreground truncate">{tx.note}</p>}
                 <p className="text-[10px] text-muted-foreground">
                   {tx.created_date ? format(new Date(tx.created_date), "MMM d, yyyy · h:mm a") : "Just now"}
-                  {tx.status === "refunded" && <span className="ml-2 text-amber-600 font-semibold">· Refunded</span>}
+                  {tx.status === "refunded" && <span className="ml-2 text-accent font-medium">· Refunded</span>}
                 </p>
               </div>
               <div className="text-right shrink-0">
                 {tx.type === "conversion" ? (
                   <>
-                    <p className="font-bold text-sm text-loss">-${Math.abs(tx.amount).toFixed(2)}</p>
-                    {tx.credits && <p className="text-[10px] font-bold text-amber-600">+{tx.credits} cr.</p>}
+                    <p className="font-medium font-display text-sm text-loss">-${Math.abs(tx.amount).toFixed(2)}</p>
+                    {tx.credits && <p className="text-[10px] font-medium font-display text-accent">+{tx.credits} cr.</p>}
                   </>
                 ) : tx.type === "credits" ? (
-                  <p className="font-bold text-sm text-amber-600">+{tx.credits || 0} cr.</p>
+                  <p className="font-medium font-display text-sm text-accent">+{tx.credits || 0} cr.</p>
                 ) : (
-                  <p className={`font-bold text-sm ${tx.amount < 0 ? "text-loss" : "text-gain"}`}>
+                  <p className={`font-medium font-display text-sm ${tx.amount < 0 ? "text-loss" : "text-gain"}`}>
                     {tx.amount >= 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                   </p>
                 )}
                 {showFees && (
-                  <p className="text-[9px] text-muted-foreground">-${(tx.platform_fee + tx.processing_fee).toFixed(2)} fees</p>
+                  <p className="text-[9px] text-muted-foreground">-<span className="font-display">${(tx.platform_fee + tx.processing_fee).toFixed(2)}</span> fees</p>
                 )}
               </div>
             </div>

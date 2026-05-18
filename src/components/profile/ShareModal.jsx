@@ -76,11 +76,11 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
       onClick={onClose}
     >
       <div
-        className="bg-card border border-border rounded-2xl p-5 w-full max-w-sm shadow-xl"
+        className="surface p-5 w-full max-w-sm"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-base">Share this page</h3>
+          <h3 className="font-serif text-[16px] text-foreground">Share this page</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -92,14 +92,14 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
             value={shareUrl}
             readOnly
             onFocus={e => e.target.select()}
-            className="flex-1 text-xs bg-secondary border border-border rounded-lg px-3 py-2 font-mono outline-none focus:border-primary"
+            className="flex-1 text-xs bg-secondary border border-border rounded-tag px-3 py-2 font-mono outline-none focus:border-primary"
           />
           <button
             onClick={copyLink}
-            className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-all flex items-center gap-1.5 ${
+            className={`text-xs font-medium px-3 py-2 rounded-sm border transition-all flex items-center gap-1.5 ${
               copied
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-primary text-white border-primary hover:bg-primary/90"
+                ? "bg-accent/15 text-accent border-accent/30"
+                : "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
             }`}
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
@@ -108,7 +108,7 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
         </div>
 
         {/* Social targets */}
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">
           Share on
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -119,7 +119,7 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
               target="_blank"
               rel="noopener noreferrer"
               onClick={onClose}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-secondary transition-all text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-tag border border-border bg-background hover:border-primary/40 hover:bg-secondary transition-all text-sm font-medium"
             >
               <span style={{ color: t.color }}>{t.icon}</span>
               {t.label}

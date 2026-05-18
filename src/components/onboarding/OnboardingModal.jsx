@@ -27,7 +27,7 @@ export default function OnboardingModal({ onComplete }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-[420px] overflow-hidden shadow-2xl">
+      <div className="surface w-full max-w-[420px] overflow-hidden">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 pt-5 pb-4">
           {DOTS.map(d => (
@@ -41,7 +41,7 @@ export default function OnboardingModal({ onComplete }) {
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold mb-2">Welcome to STOA</h2>
+            <h2 className="font-serif text-[20px] text-foreground mb-2">Welcome to STOA</h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               The only platform where analysts lock their predictions on-chain, and every track record is publicly verifiable.
               Follow the best. Ignore the rest.
@@ -53,10 +53,10 @@ export default function OnboardingModal({ onComplete }) {
                 { emoji: "💰", label: "Premium Research", desc: "Institutional quality." },
                 { emoji: "🏆", label: "Ranked Leaderboard", desc: "Earn AI credits." },
               ].map(f => (
-                <div key={f.label} className="flex items-start gap-2 p-3 bg-secondary rounded-xl">
+                <div key={f.label} className="flex items-start gap-2 p-3 bg-secondary/60 rounded-tag border border-border/60">
                   <span className="text-xl">{f.emoji}</span>
                   <div>
-                    <p className="text-xs font-semibold">{f.label}</p>
+                    <p className="text-xs font-medium text-foreground">{f.label}</p>
                     <p className="text-[10px] text-muted-foreground">{f.desc}</p>
                   </div>
                 </div>
@@ -72,16 +72,16 @@ export default function OnboardingModal({ onComplete }) {
         {/* Step 2 */}
         {step === 2 && (
           <div className="px-6 pb-6">
-            <h2 className="text-lg font-bold mb-1 text-center">Choose your interests</h2>
+            <h2 className="font-serif text-[18px] text-foreground mb-1 text-center">Choose your interests</h2>
             <p className="text-sm text-muted-foreground text-center mb-4">We'll personalize your feed.</p>
             <div className="flex flex-wrap gap-2 mb-6">
               {SECTORS.map(s => (
                 <button
                   key={s}
                   onClick={() => toggleInterest(s)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  className={`px-3 py-1.5 rounded-tag text-xs font-medium border transition-all ${
                     interests.includes(s)
-                      ? "bg-primary text-white border-primary"
+                      ? "bg-primary text-primary-foreground border-primary"
                       : "border-border text-muted-foreground hover:border-primary/40"
                   }`}
                 >

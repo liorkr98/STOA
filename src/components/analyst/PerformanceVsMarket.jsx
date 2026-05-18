@@ -56,8 +56,8 @@ export default function PerformanceVsMarket({ resolvedReports = [] }) {
 
   if (total === 0) {
     return (
-      <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-        <h2 className="font-semibold text-sm mb-2">Performance vs Market</h2>
+      <div className="surface p-5 mb-6">
+        <h2 className="font-serif text-[14px] text-foreground mb-2">Performance vs Market</h2>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Track record builds as predictions are resolved. Publish and lock predictions to start.
         </p>
@@ -89,17 +89,17 @@ export default function PerformanceVsMarket({ resolvedReports = [] }) {
   const series   = buildMonthlySeries(resolvedReports);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+    <div className="surface p-5 mb-6">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="font-semibold text-sm">Performance vs Market</h2>
+        <h2 className="font-serif text-[14px] text-foreground">Performance vs Market</h2>
         <span className="text-[10px] text-muted-foreground">6 months · Cumulative Yield</span>
       </div>
       <p className="text-[10px] text-muted-foreground mb-3">
-        Based on {total} resolved prediction{total === 1 ? "" : "s"}
+        Based on <span className="font-display">{total}</span> resolved prediction{total === 1 ? "" : "s"}
       </p>
 
       {total < 10 && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-3">
+        <p className="text-[11px] text-accent bg-accent/10 border border-accent/30 rounded-tag px-2.5 py-1.5 mb-3">
           Early track record — becomes more meaningful after 10+ calls.
         </p>
       )}
@@ -108,11 +108,11 @@ export default function PerformanceVsMarket({ resolvedReports = [] }) {
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { label: "Alpha vs S&P", value: alpha != null ? `${alpha >= 0 ? "+" : ""}${alpha}%` : "—", color: "text-gain", bg: "bg-gain/10 border-gain/20" },
-          { label: "Win Rate",     value: `${winRate}%`,                                              color: "text-primary", bg: "bg-primary/5 border-primary/20" },
-          { label: "Avg Hold Time", value: holdDays != null ? `${holdDays} day${holdDays === 1 ? "" : "s"}` : "—", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
+          { label: "Win Rate",     value: `${winRate}%`,                                              color: "text-foreground", bg: "bg-secondary border-border" },
+          { label: "Avg Hold Time", value: holdDays != null ? `${holdDays} day${holdDays === 1 ? "" : "s"}` : "—", color: "text-foreground", bg: "bg-secondary border-border" },
         ].map(s => (
-          <div key={s.label} className={`rounded-xl border p-2.5 text-center ${s.bg}`}>
-            <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+          <div key={s.label} className={`rounded-tag border p-2.5 text-center ${s.bg}`}>
+            <p className={`text-sm font-medium font-display ${s.color}`}>{s.value}</p>
             <p className="text-[10px] text-muted-foreground">{s.label}</p>
           </div>
         ))}

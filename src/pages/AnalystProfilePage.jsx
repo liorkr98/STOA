@@ -35,15 +35,23 @@ const DEFAULT_CONFIG = {
   custom_blocks:  [],
 };
 
+// Banner themes — all on-brand, drawn from the Stoa palette.
+// (Previous palette stacked emerald/purple/rose/amber gradients that read as
+// off-brand third-party themes. Limited the set to navy and navy-gold per
+// design system MASTER.md.)
 const BANNER_THEMES = {
-  slate:    { label: "Dark",       bg: "linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",              dot: "#334155" },
+  slate:    { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
   blue:     { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
   navygold: { label: "Navy/Gold",  bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 60%,#D4AF37 100%)", dot: "#D4AF37" },
-  emerald:  { label: "Forest",     bg: "linear-gradient(135deg,#064e3b 0%,#059669 100%)",              dot: "#34d399" },
-  purple:   { label: "Royal",      bg: "linear-gradient(135deg,#3b0764 0%,#7c3aed 100%)",              dot: "#a855f7" },
-  rose:     { label: "Crimson",    bg: "linear-gradient(135deg,#881337 0%,#e11d48 100%)",              dot: "#fb7185" },
-  amber:    { label: "Gold",       bg: "linear-gradient(135deg,#78350f 0%,#d97706 100%)",              dot: "#fbbf24" },
+  emerald:  { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
+  purple:   { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
+  rose:     { label: "Navy",       bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 100%)",              dot: "#2E5090" },
+  amber:    { label: "Navy/Gold",  bg: "linear-gradient(135deg,#0A1A3F 0%,#1E3A8A 60%,#D4AF37 100%)", dot: "#D4AF37" },
 };
+
+// Monthly subscription price — shared across handleSubscribe + the Subscribe
+// CTA label so they stay in sync.
+const SUBSCRIPTION_PRICE_USD = 9;
 
 function parseConfig(analyst) {
   try { return { ...DEFAULT_CONFIG, ...JSON.parse(analyst?.profile_config || "{}") }; }
@@ -63,25 +71,25 @@ function getTimeframeBucket(tf) {
 
 function OutcomeBadge({ outcome }) {
   if (!outcome || outcome === "pending") return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">ACTIVE</span>
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-accent/15 text-accent border border-accent/30">ACTIVE</span>
   );
   if (outcome === "hit" || outcome === "near") return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">HIT</span>
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-gain/10 text-gain border border-gain/20">HIT</span>
   );
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">MISS</span>
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-loss/10 text-loss border border-loss/20">MISS</span>
   );
 }
 
 function PredictionRow({ report }) {
   const yld = report.prediction_yield;
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+    <div className="flex items-center gap-3 py-3 border-b border-border/60 last:border-0">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate">{report.title || "Untitled"}</p>
+        <p className="text-sm font-medium truncate">{report.title || "Untitled"}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {report.stock_ticker && (
-            <span className="text-[11px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+            <span className="text-[11px] font-display font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag border border-primary/20">
               {report.stock_ticker}
             </span>
           )}
@@ -92,7 +100,7 @@ function PredictionRow({ report }) {
       </div>
       <div className="text-right shrink-0">
         {yld != null && (
-          <p className={`text-sm font-bold ${yld >= 0 ? "text-green-600" : "text-red-500"}`}>
+          <p className={`text-sm font-medium font-display ${yld >= 0 ? "text-gain" : "text-loss"}`}>
             {yld >= 0 ? "+" : ""}{yld.toFixed(1)}%
           </p>
         )}
@@ -168,7 +176,7 @@ function AvatarUploader({ onUploaded }) {
         onClick={() => inputRef.current?.click()}
         disabled={busy}
         title="Change profile picture"
-        className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white border-2 border-background flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-60"
+        className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground border border-background flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-60"
       >
         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
       </button>
@@ -178,26 +186,24 @@ function AvatarUploader({ onUploaded }) {
 }
 
 function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
-  const directionColor = report.prediction_direction === "LONG"
-    ? "text-green-600 bg-green-50 border-green-200"
+  const directionTone = report.prediction_direction === "LONG"
+    ? "text-gain bg-gain/10 border-gain/20"
     : report.prediction_direction === "SHORT"
-    ? "text-red-600 bg-red-50 border-red-200"
+    ? "text-loss bg-loss/10 border-loss/20"
     : "text-muted-foreground bg-secondary border-border";
 
   return (
     <div className="relative group">
       <Link to={`/report?id=${report.id}`} className="block">
-        <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-[#D4AF37]/50" : "border-border"}`}
-             style={isPinned ? { boxShadow: "0 0 0 0.5px rgba(212,175,55,0.25)" } : undefined}>
+        <div className={`surface surface-interactive p-4 h-full ${isPinned ? "border-accent/40" : ""}`}>
           {isPinned && (
-            <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider"
-                  style={{ color: "#B8932E" }}>
+            <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-accent">
               <Pin className="w-2.5 h-2.5" /> Pinned
             </span>
           )}
           <div className="flex items-start justify-between gap-2 mb-2">
             {report.prediction_direction && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${directionColor}`}>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${directionTone}`}>
                 {report.prediction_direction}
               </span>
             )}
@@ -205,11 +211,11 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
               <OutcomeBadge outcome={report.prediction_outcome} />
             )}
           </div>
-          <h4 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors font-serif mb-2">
+          <h4 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors font-serif mb-2">
             {report.title || "Untitled Report"}
           </h4>
           {report.stock_ticker && (
-            <p className="text-xs font-mono font-bold text-primary/80 mb-1">{report.stock_ticker}</p>
+            <p className="text-xs font-display font-medium text-primary/80 mb-1">{report.stock_ticker}</p>
           )}
           <p className="text-[11px] text-muted-foreground">
             {report.created_date ? new Date(report.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
@@ -219,12 +225,11 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
       {isEditMode && (
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onTogglePin(report.id); }}
-          className={`absolute top-2 left-2 p-1.5 rounded-lg transition-all ${
+          className={`absolute top-2 left-2 p-1.5 rounded-tag transition-all ${
             isPinned
-              ? "bg-[#D4AF37]/15 border border-[#D4AF37]/40"
-              : "bg-card border border-border text-muted-foreground hover:text-[#B8932E] hover:border-[#D4AF37]/40 opacity-0 group-hover:opacity-100"
+              ? "bg-accent/15 border border-accent/40 text-accent"
+              : "bg-background border border-border text-muted-foreground hover:text-accent hover:border-accent/40 opacity-0 group-hover:opacity-100"
           }`}
-          style={isPinned ? { color: "#B8932E" } : undefined}
           title={isPinned ? "Unpin" : "Pin to top"}
         >
           <Pin className="w-3 h-3" />
@@ -235,12 +240,15 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
 }
 
 // ── Stat definitions ──────────────────────────────────────────────────────────
+// Stat cards use the .stat-card glass utility from the design system. Win-rate
+// and profit-factor are not market sentiment — they keep neutral foreground.
+// Average-return is a gain/loss percentage indicator (allowed market color).
 const ALL_STATS = [
-  { key: "score",         label: "Score",         sub: s => `${s.total} calls`,                      bg: "bg-primary/5 border border-primary/10" },
-  { key: "winRate",       label: "Win Rate",       sub: s => s.total > 0 ? `${s.hits}W · ${s.misses}L` : "",  bg: "bg-secondary" },
-  { key: "profitFactor",  label: "Profit Factor",  sub: () => "avg win / avg loss",                   bg: "bg-secondary" },
-  { key: "avgReturn",     label: "Avg Return",     sub: () => "per call",                             bg: "bg-secondary" },
-  { key: "followers",     label: "Followers",      sub: (s, a) => `${(a.published || 0)} reports`,   bg: "bg-secondary" },
+  { key: "score",         label: "Score",         sub: s => `${s.total} calls` },
+  { key: "winRate",       label: "Win Rate",       sub: s => s.total > 0 ? `${s.hits}W · ${s.misses}L` : "" },
+  { key: "profitFactor",  label: "Profit Factor",  sub: () => "avg win / avg loss" },
+  { key: "avgReturn",     label: "Avg Return",     sub: () => "per call" },
+  { key: "followers",     label: "Followers",      sub: (s, a) => `${(a.published || 0)} reports` },
 ];
 
 function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditMode, onToggle, onClick }) {
@@ -248,15 +256,15 @@ function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditM
     if (statKey === "score")
       return <span className="text-primary">{scoring.total >= 5 ? scoring.score : "—"}</span>;
     if (statKey === "winRate")
-      return <span className={scoring.rawWR == null ? "text-muted-foreground" : scoring.rawWR >= 0.6 ? "text-green-600" : scoring.rawWR >= 0.45 ? "text-amber-600" : "text-red-500"}>
+      return <span className="text-foreground">
         {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—"}
       </span>;
     if (statKey === "profitFactor")
-      return <span className={scoring.profitFactor == null ? "text-muted-foreground" : scoring.profitFactor >= 2 ? "text-green-600" : scoring.profitFactor >= 1 ? "text-amber-600" : "text-red-500"}>
+      return <span className="text-foreground">
         {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—"}
       </span>;
     if (statKey === "avgReturn")
-      return <span className={scoring.avgReturn == null ? "text-muted-foreground" : scoring.avgReturn >= 0 ? "text-green-600" : "text-red-500"}>
+      return <span className={scoring.avgReturn == null ? "text-muted-foreground" : scoring.avgReturn >= 0 ? "text-gain" : "text-loss"}>
         {scoring.avgReturn != null ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%` : "—"}
       </span>;
     if (statKey === "followers")
@@ -272,22 +280,22 @@ function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditM
 
   return (
     <div
-      className={`relative text-center p-4 rounded-xl transition-all ${def?.bg || "bg-secondary"} ${
-        isHidden ? "opacity-30" : ""
-      } ${statKey === "score" && !isHidden && !isEditMode ? "cursor-pointer hover:bg-primary/10" : "cursor-default"}`}
+      className={`stat-card text-center ${isHidden ? "opacity-30" : ""} ${
+        statKey === "score" && !isHidden && !isEditMode ? "cursor-pointer" : ""
+      }`}
       onClick={!isEditMode && statKey === "score" && !isHidden ? onClick : undefined}
     >
       {isEditMode && (
         <button
           onClick={e => { e.stopPropagation(); onToggle(statKey); }}
-          className="absolute top-1.5 right-1.5 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-1.5 right-1.5 p-0.5 rounded-tag text-muted-foreground hover:text-foreground transition-colors"
         >
           {isHidden ? <EyeOff className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
       )}
-      <p className="text-2xl font-extrabold leading-none mb-1">{renderValue()}</p>
-      <p className="text-[11px] text-muted-foreground font-medium">{def?.label}</p>
-      {subText && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{subText}</p>}
+      <p className="text-2xl font-medium font-display leading-none mb-1">{renderValue()}</p>
+      <p className="stat-card-label">{def?.label}</p>
+      {subText && <p className="text-[10px] text-muted-foreground/70 mt-0.5"><span className="font-display">{subText}</span></p>}
     </div>
   );
 }
@@ -471,8 +479,6 @@ export default function AnalystProfilePage() {
     }
   };
 
-  // ── Subscribe — paid via wallet (no PayPal popup, instant) ────────────────
-  const SUBSCRIPTION_PRICE_USD = 9; // monthly; tweak per analyst pricing in future
   const handleSubscribe = async () => {
     if (!currentUser || !analyst) return;
     try {
@@ -663,17 +669,17 @@ export default function AnalystProfilePage() {
 
       {/* ── Edit mode sticky bar ── */}
       {isEditMode && (
-        <div className="sticky top-0 z-50 bg-amber-50 border-b-2 border-amber-300 px-4 py-2.5 flex items-center justify-between gap-4">
+        <div className="sticky top-0 z-50 bg-accent/10 border-b border-accent/30 px-4 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-amber-700" />
-            <span className="text-sm font-semibold text-amber-800">Editing your profile page</span>
-            <span className="text-xs text-amber-600 hidden sm:block">· Changes are not public until you save</span>
+            <Pencil className="w-4 h-4 text-accent" />
+            <span className="text-sm font-medium text-foreground">Editing your profile page</span>
+            <span className="text-xs text-muted-foreground hidden sm:block">· Changes are not public until you save</span>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={cancelEditMode} className="border-amber-300 text-amber-800 hover:bg-amber-100 gap-1.5">
+            <Button size="sm" variant="outline" onClick={cancelEditMode} className="gap-1.5">
               <X className="w-3.5 h-3.5" /> Cancel
             </Button>
-            <Button size="sm" onClick={saveChanges} disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-white border-0 gap-1.5">
+            <Button size="sm" onClick={saveChanges} disabled={saving} className="cta-gold gap-1.5" style={{ borderRadius: 6 }}>
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               Save changes
             </Button>
@@ -700,19 +706,21 @@ export default function AnalystProfilePage() {
           </button>
         </div>
 
-        {/* Banner theme picker — edit mode only */}
+        {/* Banner theme picker — edit mode only.
+            Two options now (Navy / Navy+Gold) since the off-brand themes were
+            removed. The third "Gold" duplicates Navy+Gold for backwards-compat
+            with old saved configs. */}
         {isEditMode && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-tag px-3 py-2">
             <span className="text-xs text-white/70 mr-1">Theme:</span>
-            {Object.entries(BANNER_THEMES).map(([key, theme]) => (
+            {[["slate", BANNER_THEMES.slate], ["navygold", BANNER_THEMES.navygold]].map(([key, theme]) => (
               <button
                 key={key}
                 onClick={() => setEditConfig(c => ({ ...c, banner: key }))}
-                className="relative w-6 h-6 rounded-full border-2 transition-all hover:scale-110"
+                className="relative w-6 h-6 rounded-full border transition-all hover:scale-110"
                 style={{
                   background: theme.dot,
-                  borderColor: editConfig.banner === key ? "#fff" : "transparent",
-                  boxShadow: editConfig.banner === key ? "0 0 0 2px rgba(255,255,255,0.4)" : "none",
+                  borderColor: editConfig.banner === key ? "#FAFAFA" : "transparent",
                 }}
                 title={theme.label}
               />
@@ -725,7 +733,7 @@ export default function AnalystProfilePage() {
 
         {/* ── Profile header card ── */}
         <div className="relative -mt-12 mb-6">
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="surface-premium p-6">
             <div className="flex items-end gap-4 mb-5">
 
               {/* Avatar — uploaded profile_picture_url overrides auth-provider picture */}
@@ -734,7 +742,7 @@ export default function AnalystProfilePage() {
                   const src = analyst.profile_picture_url || analyst.picture;
                   return src
                     ? <img src={src} alt={displayName} className="w-20 h-20 rounded-full object-cover border border-border" />
-                    : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-bold text-primary">
+                    : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-medium text-primary font-serif">
                         {displayName?.[0] || "A"}
                       </div>;
                 })()}
@@ -750,16 +758,14 @@ export default function AnalystProfilePage() {
               {/* Name + tier + tagline */}
               <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold">{displayName}</h1>
+                  <h1 className="font-serif text-[20px] text-foreground font-medium">{displayName}</h1>
                   {tier && (
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: tier.bg, color: tier.color, border: `1px solid ${tier.border}` }}>
-                      {tier.icon} {tier.label}
-                    </span>
+                    <AccuracyTierBadge tierData={tier} />
                   )}
                   {activePredictions.length > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                      {activePredictions.length} active call{activePredictions.length > 1 ? "s" : ""}
+                    <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-tag bg-accent/15 text-accent border border-accent/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                      <span className="font-display">{activePredictions.length}</span> active call{activePredictions.length > 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
@@ -770,7 +776,7 @@ export default function AnalystProfilePage() {
                       value={editTagline}
                       onChange={e => setEditTagline(e.target.value)}
                       placeholder="Add a tagline…"
-                      className="mt-1.5 w-full text-sm border border-dashed border-amber-400 rounded-lg px-2 py-1 bg-amber-50/50 focus:outline-none focus:border-amber-500"
+                      className="mt-1.5 w-full text-sm border border-dashed border-accent/50 rounded-tag px-2 py-1 bg-accent/5 focus:outline-none focus:border-accent"
                     />
                   : displayTagline && <p className="text-sm text-muted-foreground mt-1">{displayTagline}</p>
                 }
@@ -780,7 +786,7 @@ export default function AnalystProfilePage() {
               <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                 <button
                   onClick={openShare}
-                  className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  className="p-2 rounded-tag border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                   aria-label="Share profile"
                   title="Share profile"
                 >
@@ -792,7 +798,7 @@ export default function AnalystProfilePage() {
                     <Button
                       size="sm"
                       variant={following ? "secondary" : "outline"}
-                      className={`gap-1.5 text-xs ${following ? "text-green-600 border-green-200" : ""}`}
+                      className={`gap-1.5 text-xs ${following ? "text-primary border-primary/30" : ""}`}
                       onClick={handleFollow}
                       disabled={followLoading}
                     >
@@ -801,13 +807,13 @@ export default function AnalystProfilePage() {
                     </Button>
                     {isSubscribed ? (
                       <Link to={`/dm?with=${encodeURIComponent(analyst.email)}`}>
-                        <Button size="sm" variant="outline" className="text-xs gap-1.5 text-green-600 border-green-200">
+                        <Button size="sm" variant="outline" className="text-xs gap-1.5 text-primary border-primary/30">
                           <MessageSquare className="w-3 h-3" /> Message
                         </Button>
                       </Link>
                     ) : (
-                      <Button size="sm" onClick={() => setShowSubModal(true)} className="text-xs">
-                        Subscribe
+                      <Button size="sm" onClick={() => setShowSubModal(true)} className="cta-gold text-xs" style={{ borderRadius: 6 }}>
+                        Subscribe . ${SUBSCRIPTION_PRICE_USD}/mo
                       </Button>
                     )}
                   </>
@@ -832,7 +838,7 @@ export default function AnalystProfilePage() {
             {!isEditMode && displaySpecialties.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-5">
                 {displaySpecialties.map(s => (
-                  <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-primary/8 text-primary border border-primary/15 font-medium">{s}</span>
+                  <span key={s} className="pill-primary">{s}</span>
                 ))}
               </div>
             )}
@@ -840,12 +846,12 @@ export default function AnalystProfilePage() {
             {/* Specialty editor */}
             {isEditMode && (
               <div className="mb-5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Specialties</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Specialties</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {editSpecialties.map(s => (
-                    <span key={s} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                    <span key={s} className="flex items-center gap-1 pill-primary">
                       {s}
-                      <button onClick={() => setEditSpecialties(p => p.filter(x => x !== s))} className="hover:text-red-500">
+                      <button onClick={() => setEditSpecialties(p => p.filter(x => x !== s))} className="hover:text-foreground">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -862,11 +868,11 @@ export default function AnalystProfilePage() {
                       }
                     }}
                     placeholder="Add specialty (e.g. Tech, Macro)…"
-                    className="flex-1 text-xs border border-dashed border-amber-400 rounded-lg px-2.5 py-1.5 bg-amber-50/50 focus:outline-none focus:border-amber-500"
+                    className="flex-1 text-xs border border-dashed border-accent/50 rounded-tag px-2.5 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
                   />
                   <button
                     onClick={() => { if (newSpecialty.trim()) { setEditSpecialties(p => [...p, newSpecialty.trim()]); setNewSpecialty(""); } }}
-                    className="text-xs bg-primary/10 text-primary px-3 rounded-lg border border-primary/20 font-semibold hover:bg-primary/20"
+                    className="text-xs bg-primary/10 text-primary px-3 rounded-tag border border-primary/20 font-medium hover:bg-primary/20"
                   >
                     Add
                   </button>
@@ -893,28 +899,28 @@ export default function AnalystProfilePage() {
 
             {/* Edit mode stat hint */}
             {isEditMode && (
-              <p className="text-[10px] text-amber-700 mt-2 flex items-center gap-1">
+              <p className="text-[10px] text-accent mt-2 flex items-center gap-1">
                 <Eye className="w-3 h-3" /> Click the eye icon on any stat to show/hide it from your public profile.
               </p>
             )}
 
             {/* Score breakdown */}
             {scoring.total >= 5 && !isEditMode && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Score breakdown</p>
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Score breakdown</p>
                 <div className="flex gap-4 flex-wrap">
                   {[
-                    { label: "Win Rate component",     value: scoring._winRateScore, color: "#2563eb" },
-                    { label: "Profit Factor component", value: scoring._pfScore,     color: "#16a34a" },
-                    scoring._alphaScore != null && { label: "Alpha component", value: scoring._alphaScore, color: "#d97706" },
+                    { label: "Win Rate component",     value: scoring._winRateScore, tone: "primary" },
+                    { label: "Profit Factor component", value: scoring._pfScore,     tone: "gain" },
+                    scoring._alphaScore != null && { label: "Alpha component", value: scoring._alphaScore, tone: "accent" },
                   ].filter(Boolean).map(item => (
                     <div key={item.label} className="flex-1 min-w-[100px]">
                       <div className="flex justify-between text-[10px] mb-1">
                         <span className="text-muted-foreground">{item.label}</span>
-                        <span className="font-bold" style={{ color: item.color }}>{item.value}</span>
+                        <span className={`font-medium font-display text-${item.tone === "gain" ? "gain" : item.tone === "accent" ? "accent" : "primary"}`}>{item.value}</span>
                       </div>
-                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${item.value}%`, background: item.color }} />
+                      <div className="h-1 bg-secondary rounded-tag overflow-hidden">
+                        <div className={`h-full rounded-tag bg-${item.tone === "gain" ? "gain" : item.tone === "accent" ? "accent" : "primary"}`} style={{ width: `${item.value}%` }} />
                       </div>
                     </div>
                   ))}
@@ -926,14 +932,14 @@ export default function AnalystProfilePage() {
 
         {/* ── Section reorder hint (edit mode) ── */}
         {isEditMode && (
-          <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
-            <GripVertical className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <p className="text-xs text-amber-800 font-medium">Drag the tabs below to reorder your profile sections.</p>
+          <div className="mb-3 p-3 bg-accent/10 border border-accent/30 rounded-tag flex items-center gap-2">
+            <GripVertical className="w-4 h-4 text-accent flex-shrink-0" />
+            <p className="text-xs text-foreground font-medium">Drag the tabs below to reorder your profile sections.</p>
           </div>
         )}
 
         {/* ── Tab bar ── */}
-        <div className="flex gap-0 border-b border-border mb-6">
+        <div className="flex gap-0 border-b border-border/60 mb-6">
           {tabsToShow.map((tab, idx) => (
             <div
               key={tab}
@@ -941,7 +947,7 @@ export default function AnalystProfilePage() {
               onDragStart={e => handleDragStart(e, idx)}
               onDragOver={handleDragOver}
               onDrop={e => handleDrop(e, idx)}
-              className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all select-none ${
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b transition-all select-none ${
                 effectiveTab === tab
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -958,18 +964,18 @@ export default function AnalystProfilePage() {
         {effectiveTab === "Reports" && (
           <div className="pb-12">
             {twits.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-4 mb-5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Quick Notes</h3>
+              <div className="surface p-4 mb-5">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Quick Notes</h3>
                 <div className="space-y-3">
                   {twits.map(t => (
                     <div key={t.id} className="flex gap-3">
                       {analyst.picture
-                        ? <img src={analyst.picture} alt="" className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
-                        : <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{displayName?.[0]}</div>
+                        ? <img src={analyst.picture} alt={displayName} className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
+                        : <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">{displayName?.[0]}</div>
                       }
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-semibold">{displayName}</span>
+                          <span className="text-xs font-medium">{displayName}</span>
                           <span className="text-[10px] text-muted-foreground">{new Date(t.created_date).toLocaleDateString()}</span>
                         </div>
                         <p className="text-sm text-foreground/90">{t.content}</p>
@@ -981,15 +987,15 @@ export default function AnalystProfilePage() {
             )}
 
             {sortedReports.length === 0 ? (
-              <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
+              <div className="text-center py-16 border border-dashed border-border rounded-tag text-muted-foreground">
                 <FileText className="w-8 h-8 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">No published reports yet.</p>
               </div>
             ) : (
               <>
                 {isEditMode && (
-                  <p className="text-xs text-amber-700 mb-3 flex items-center gap-1.5">
-                    📌 Click the pin icon on any report to pin it to the top of your profile.
+                  <p className="text-xs text-accent mb-3 flex items-center gap-1.5">
+                    <Pin className="w-3 h-3" /> Click the pin icon on any report to pin it to the top of your profile.
                   </p>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1011,19 +1017,19 @@ export default function AnalystProfilePage() {
         {/* ── Track Record tab ── */}
         {effectiveTab === "Track Record" && (
           <div className="pb-12 space-y-5">
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="text-sm font-semibold mb-4">Accuracy by Timeframe</h3>
+            <div className="surface p-5">
+              <h3 className="font-serif text-[14px] text-foreground mb-4">Accuracy by Timeframe</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(bucketStats).map(([key, stats]) => (
-                  <div key={key} className="text-center p-4 bg-secondary rounded-xl">
-                    <p className="text-[11px] text-muted-foreground mb-1">{BUCKET_LABELS[key]}</p>
+                  <div key={key} className="stat-card text-center">
+                    <p className="stat-card-label mb-1">{BUCKET_LABELS[key]}</p>
                     {stats.total > 0 ? (
                       <>
-                        <p className="text-xl font-bold">{Math.round((stats.hits / stats.total) * 100)}%</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{stats.hits}/{stats.total}</p>
+                        <p className="text-xl font-medium font-display">{Math.round((stats.hits / stats.total) * 100)}%</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 font-display">{stats.hits}/{stats.total}</p>
                       </>
                     ) : (
-                      <p className="text-xl font-bold text-muted-foreground/30">—</p>
+                      <p className="text-xl font-medium font-display text-muted-foreground/30">—</p>
                     )}
                   </div>
                 ))}
@@ -1031,9 +1037,9 @@ export default function AnalystProfilePage() {
             </div>
             <AccuracyBreakdown analystUser={analyst} />
             <PerformanceVsMarket resolvedReports={resolvedReports} />
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="text-sm font-semibold mb-1">All Predictions</h3>
-              <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved · {activePredictions.length} active</p>
+            <div className="surface p-5">
+              <h3 className="font-serif text-[14px] text-foreground mb-1">All Predictions</h3>
+              <p className="text-xs text-muted-foreground mb-4"><span className="font-display">{resolvedReports.length}</span> resolved · <span className="font-display">{activePredictions.length}</span> active</p>
               {myReports.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No predictions yet.</p>
               ) : (
@@ -1052,15 +1058,15 @@ export default function AnalystProfilePage() {
           <div className="pb-12 space-y-5">
 
             {/* Bio */}
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="text-sm font-semibold mb-3">About</h3>
+            <div className="surface p-5">
+              <h3 className="font-serif text-[14px] text-foreground mb-3">About</h3>
               {isEditMode ? (
                 <textarea
                   value={editBio}
                   onChange={e => setEditBio(e.target.value)}
                   rows={5}
                   placeholder="Write a bio — your background, methodology, what you focus on…"
-                  className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-2 bg-amber-50/30 focus:outline-none focus:border-amber-500 resize-none"
+                  className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-2 bg-accent/5 focus:outline-none focus:border-accent resize-none"
                 />
               ) : displayBio ? (
                 <p className="text-sm text-foreground/80 leading-relaxed">{displayBio}</p>
@@ -1071,8 +1077,8 @@ export default function AnalystProfilePage() {
 
             {/* Social links */}
             {(isEditMode || displaySocial.twitter || displaySocial.linkedin || displaySocial.website) && (
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold mb-3">Links</h3>
+              <div className="surface p-5">
+                <h3 className="font-serif text-[14px] text-foreground mb-3">Links</h3>
                 {isEditMode ? (
                   <div className="space-y-3">
                     {[
@@ -1087,7 +1093,7 @@ export default function AnalystProfilePage() {
                           value={editSocial[key]}
                           onChange={e => setEditSocial(s => ({ ...s, [key]: e.target.value }))}
                           placeholder={placeholder}
-                          className="flex-1 text-sm border border-dashed border-amber-400 rounded-lg px-2.5 py-1.5 bg-amber-50/30 focus:outline-none focus:border-amber-500"
+                          className="flex-1 text-sm border border-dashed border-accent/50 rounded-tag px-2.5 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
                         />
                       </div>
                     ))}
@@ -1128,24 +1134,24 @@ export default function AnalystProfilePage() {
             {isOwnProfile && <TierProgressBar user={analyst} allReports={myReports} />}
 
             {/* Achievements */}
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="surface p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold">Achievements</h3>
-                <span className="text-xs text-muted-foreground">{achievements.filter(a => a.earned).length}/{achievements.length} unlocked</span>
+                <h3 className="font-serif text-[14px] text-foreground">Achievements</h3>
+                <span className="text-xs text-muted-foreground"><span className="font-display">{achievements.filter(a => a.earned).length}/{achievements.length}</span> unlocked</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[...achievements.filter(a => a.earned), ...achievements.filter(a => !a.earned)].map(a => (
-                  <div key={a.name} className="flex items-start gap-3 p-3 rounded-xl border transition-all"
-                    style={{
-                      background:   a.earned ? "#fefce8" : "#f8fafc",
-                      borderColor:  a.earned ? "#fde68a" : "#e2e8f0",
-                      opacity:      a.earned ? 1 : 0.4,
-                      filter:       a.earned ? "none" : "grayscale(1)",
-                    }}
+                  <div
+                    key={a.name}
+                    className={`flex items-start gap-3 p-3 rounded-tag border transition-colors ${
+                      a.earned
+                        ? "bg-accent/10 border-accent/30"
+                        : "bg-secondary border-border opacity-40 grayscale"
+                    }`}
                   >
                     <span className="text-2xl leading-none shrink-0">{a.icon}</span>
                     <div>
-                      <p className="text-xs font-bold leading-tight">{a.name}</p>
+                      <p className="text-xs font-medium leading-tight">{a.name}</p>
                       <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{a.desc}</p>
                     </div>
                   </div>
@@ -1160,15 +1166,15 @@ export default function AnalystProfilePage() {
 
             {/* Owner links */}
             {isOwnProfile && !isEditMode && (
-              <Link to="/subscribers" className="flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-xl hover:border-purple-400 transition-colors">
+              <Link to="/subscribers" className="flex items-center justify-between p-4 surface surface-interactive">
                 <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-purple-600" />
+                  <Users className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="text-sm font-bold text-purple-700">Subscribers &amp; Following</p>
+                    <p className="font-serif text-[14px] text-foreground">Subscribers &amp; Following</p>
                     <p className="text-xs text-muted-foreground">Manage your audience</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-purple-500" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
             )}
           </div>
@@ -1178,31 +1184,35 @@ export default function AnalystProfilePage() {
       {/* ── Score modal ── */}
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1">Researcher Score</h3>
-            <p className="text-5xl font-extrabold text-primary mb-1">{scoring.score}</p>
-            <p className="text-xs text-muted-foreground mb-5">out of 100 · {scoring.total} resolved predictions</p>
+          <div className="surface p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-serif text-[16px] text-foreground mb-1">Researcher Score</h3>
+            <p className="text-5xl font-medium font-display text-primary mb-1">{scoring.score}</p>
+            <p className="text-xs text-muted-foreground mb-5">out of 100 · <span className="font-display">{scoring.total}</span> resolved predictions</p>
             <div className="space-y-3 mb-5">
               {[
-                { label: "Win Rate",       value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—",             sub: `${hitCount} wins · ${scoring.misses} losses`,                                                                   color: "#2563eb", bar: scoring._winRateScore },
-                { label: "Profit Factor",  value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—",        sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, color: "#16a34a", bar: scoring._pfScore },
-                scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "—", sub: "excess return vs benchmark", color: "#d97706", bar: scoring._alphaScore },
-              ].filter(Boolean).map(item => (
-                <div key={item.label}>
-                  <div className="flex justify-between mb-1">
-                    <div>
-                      <span className="text-sm font-semibold">{item.label}</span>
-                      <p className="text-[10px] text-muted-foreground">{item.sub}</p>
+                { label: "Win Rate",       value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—",             sub: `${hitCount} wins · ${scoring.misses} losses`,                                                                   tone: "primary", bar: scoring._winRateScore },
+                { label: "Profit Factor",  value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—",        sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, tone: "gain", bar: scoring._pfScore },
+                scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "—", sub: "excess return vs benchmark", tone: "accent", bar: scoring._alphaScore },
+              ].filter(Boolean).map(item => {
+                const toneClass = item.tone === "gain" ? "text-gain" : item.tone === "accent" ? "text-accent" : "text-primary";
+                const barClass = item.tone === "gain" ? "bg-gain" : item.tone === "accent" ? "bg-accent" : "bg-primary";
+                return (
+                  <div key={item.label}>
+                    <div className="flex justify-between mb-1">
+                      <div>
+                        <span className="text-sm font-medium">{item.label}</span>
+                        <p className="text-[10px] text-muted-foreground">{item.sub}</p>
+                      </div>
+                      <span className={`text-sm font-medium font-display ${toneClass}`}>{item.value}</span>
                     </div>
-                    <span className="text-sm font-bold" style={{ color: item.color }}>{item.value}</span>
+                    {item.bar != null && (
+                      <div className="h-1.5 bg-secondary rounded-tag overflow-hidden">
+                        <div className={`h-full rounded-tag ${barClass}`} style={{ width: `${item.bar}%` }} />
+                      </div>
+                    )}
                   </div>
-                  {item.bar != null && (
-                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${item.bar}%`, background: item.color }} />
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
             <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
               Score = Wilson-adjusted Win Rate (52%) + Profit Factor (48%). Alpha activates with 5+ benchmark-recorded calls. Sample-size adjusted.

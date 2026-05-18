@@ -107,10 +107,10 @@ export default function PaymentPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-card border border-border rounded-2xl p-6">
+      <div className="surface p-6">
         <div className="flex items-center gap-2 mb-1">
           <Wallet className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold">Deposit to Wallet</h1>
+          <h1 className="font-serif text-[20px] text-foreground">Deposit to Wallet</h1>
         </div>
         <p className="text-sm text-muted-foreground mb-6">
           One balance for everything on STOA. Spend it on reports, subscriptions, AI credits, or anything else.
@@ -118,14 +118,14 @@ export default function PaymentPage() {
 
         {/* Amount picker */}
         <div className="mb-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Choose amount</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-2">Choose amount</p>
           <div className="grid grid-cols-4 gap-2 mb-3">
             {QUICK_AMOUNTS.map(a => (
               <button
                 key={a}
                 onClick={() => setAmount(a)}
-                className={`rounded-xl border-2 py-2 text-sm font-bold transition-all ${
-                  amount === a ? "border-primary bg-primary/5 text-primary" : "border-border text-foreground/70 hover:border-primary/30"
+                className={`rounded-tag border py-2 text-sm font-medium font-display transition-colors ${
+                  amount === a ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground/70 hover:border-primary/40"
                 }`}
               >
                 ${a}
@@ -133,7 +133,7 @@ export default function PaymentPage() {
             ))}
           </div>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
             <input
               type="number"
               min={MIN_DEPOSIT_USD}
@@ -141,16 +141,16 @@ export default function PaymentPage() {
               value={amount}
               onChange={e => setAmount(parseFloat(e.target.value) || 0)}
               placeholder={`${MIN_DEPOSIT_USD}.00`}
-              className="w-full border border-input rounded-xl pl-7 pr-4 py-3 text-lg font-bold outline-none focus:border-primary"
+              className="w-full border border-input rounded-tag pl-7 pr-4 py-3 text-lg font-medium font-display outline-none focus:border-primary"
             />
           </div>
           {!isValid && (
-            <p className="text-[10px] text-amber-700 mt-1.5">Minimum deposit is ${MIN_DEPOSIT_USD}.</p>
+            <p className="text-[10px] text-accent mt-1.5">Minimum deposit is <span className="font-display">${MIN_DEPOSIT_USD}</span>.</p>
           )}
         </div>
 
         {/* What you can do with the balance */}
-        <div className="bg-secondary/40 border border-border rounded-xl p-3 mb-4">
+        <div className="bg-secondary/40 border border-border rounded-tag p-3 mb-4">
           <div className="flex items-start gap-2">
             <Info className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-[11px] text-muted-foreground leading-snug">

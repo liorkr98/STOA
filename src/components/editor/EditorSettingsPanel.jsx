@@ -46,16 +46,16 @@ export default function EditorSettingsPanel({
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       {/* Cover image */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <div className="surface p-5">
+        <h3 className="font-serif text-[14px] text-foreground mb-3 flex items-center gap-2">
           <Palette className="w-4 h-4 text-primary" /> Cover Image
         </h3>
         {coverImage ? (
-          <div className="relative rounded-xl overflow-hidden aspect-[3/1] bg-secondary mb-3">
+          <div className="relative rounded-tag overflow-hidden aspect-[3/1] bg-secondary mb-3">
             <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="rounded-xl border-2 border-dashed border-border aspect-[3/1] flex items-center justify-center mb-3 text-muted-foreground text-sm bg-secondary/30">
+          <div className="rounded-tag border border-dashed border-border aspect-[3/1] flex items-center justify-center mb-3 text-muted-foreground text-sm bg-secondary/30">
             No cover image
           </div>
         )}
@@ -75,9 +75,9 @@ export default function EditorSettingsPanel({
       </div>
 
       {/* Monetization */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-500" /> Monetization
+      <div className="surface p-5">
+        <h3 className="font-serif text-[14px] text-foreground mb-3 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-accent" /> Monetization
         </h3>
         <div className="grid grid-cols-2 gap-2 mb-3">
           {[
@@ -87,8 +87,8 @@ export default function EditorSettingsPanel({
             <button
               key={label}
               onClick={() => setIsPremium(val)}
-              className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-xs font-medium ${
-                isPremium === val ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
+              className={`flex flex-col items-center gap-1 p-3 rounded-tag border transition-all text-xs font-medium ${
+                isPremium === val ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
               }`}
             >
               <span className="text-base">{icon}</span>
@@ -112,8 +112,8 @@ export default function EditorSettingsPanel({
       </div>
 
       {/* Metadata */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <div className="surface p-5">
+        <h3 className="font-serif text-[14px] text-foreground mb-3 flex items-center gap-2">
           <Palette className="w-4 h-4 text-primary" /> Metadata
         </h3>
         <div className="space-y-3">
@@ -153,10 +153,10 @@ export default function EditorSettingsPanel({
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {tags.map(tag => (
-                  <span key={tag} className="flex items-center gap-0.5 text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
+                  <span key={tag} className="flex items-center gap-0.5 text-[10px] bg-secondary px-2 py-0.5 rounded-tag text-muted-foreground">
                     #{tag}
                     <button onClick={() => setTags(prev => prev.filter(t => t !== tag))}>
-                      <X className="w-2.5 h-2.5 hover:text-loss" />
+                      <X className="w-2.5 h-2.5 hover:text-foreground" />
                     </button>
                   </span>
                 ))}
@@ -171,8 +171,8 @@ export default function EditorSettingsPanel({
 
       {/* Danger zone */}
       {onDeleteAll && (
-        <div className="bg-card border border-border rounded-2xl p-5">
-          <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+        <div className="surface p-5">
+          <h3 className="font-serif text-[14px] text-foreground mb-2 flex items-center gap-2">
             <Trash2 className="w-4 h-4 text-destructive" /> Clear All
           </h3>
           <p className="text-xs text-muted-foreground mb-3">Clear all content and start fresh.</p>
