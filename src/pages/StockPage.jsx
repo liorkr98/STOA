@@ -131,7 +131,7 @@ export default function StockPage() {
             aria-pressed={isWatched}
             aria-label={isWatched ? `Remove ${ticker} from watchlist` : `Add ${ticker} to watchlist`}
             title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
               isWatched
                 ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                 : "bg-card text-muted-foreground border-border hover:text-amber-600 hover:border-amber-200"
@@ -142,7 +142,7 @@ export default function StockPage() {
           </button>
           <button
             onClick={() => navigate(`/editor?ticker=${ticker}`)}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
           >
             <PenLine className="w-3.5 h-3.5" /> Write Report on {ticker}
           </button>
@@ -155,7 +155,7 @@ export default function StockPage() {
           {/* Left: name + badges */}
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-2xl font-bold">{ticker}</h1>
+              <h1 className="text-2xl font-medium">{ticker}</h1>
               {quote.exchange && (
                 <Badge variant="secondary" className="text-[10px]">{quote.exchange}</Badge>
               )}
@@ -171,8 +171,8 @@ export default function StockPage() {
 
           {/* Right: price */}
           <div className="text-right">
-            <div className="text-3xl font-bold">${fmtNum(quote.price)}</div>
-            <div className={`flex items-center justify-end gap-1 text-sm font-semibold mt-0.5 ${directionColor}`}>
+            <div className="text-3xl font-medium">${fmtNum(quote.price)}</div>
+            <div className={`flex items-center justify-end gap-1 text-sm font-medium mt-0.5 ${directionColor}`}>
               {isUp ? <TrendingUp className="w-4 h-4" /> : isDown ? <TrendingDown className="w-4 h-4" /> : null}
               {isUp ? "+" : ""}{fmtNum(quote.change)} ({isUp ? "+" : ""}{fmtNum(quote.changePct)}%)
             </div>
@@ -196,7 +196,7 @@ export default function StockPage() {
           ].map(stat => (
             <div key={stat.label}>
               <p className="text-[10px] text-muted-foreground mb-0.5">{stat.label}</p>
-              <p className="text-sm font-semibold">{stat.value}</p>
+              <p className="text-sm font-medium">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -231,7 +231,7 @@ export default function StockPage() {
         <div className="space-y-4">
           {/* Company Profile */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-sm mb-3">Company Profile</h3>
+            <h3 className="font-medium text-sm mb-3">Company Profile</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {fundamentals?.description || "No description available."}
             </p>
@@ -240,7 +240,7 @@ export default function StockPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Company Details */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="font-semibold text-sm mb-3">Company Details</h3>
+              <h3 className="font-medium text-sm mb-3">Company Details</h3>
               {[
                 { label: "Sector",    value: fundamentals?.sector },
                 { label: "Industry",  value: fundamentals?.industry },
@@ -266,7 +266,7 @@ export default function StockPage() {
 
             {/* Key Metrics */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="font-semibold text-sm mb-3">Key Metrics</h3>
+              <h3 className="font-medium text-sm mb-3">Key Metrics</h3>
               {[
                 { label: "P/E Ratio (TTM)",    value: fmtNum(fundamentals?.pe) },
                 { label: "Forward P/E",        value: fmtNum(fundamentals?.forwardPE) },
@@ -283,7 +283,7 @@ export default function StockPage() {
               ].map(row => (
                 <div key={row.label} className="flex justify-between py-2 border-b border-border/50 last:border-0 text-sm">
                   <span className="text-muted-foreground">{row.label}</span>
-                  <span className="font-semibold">{row.value}</span>
+                  <span className="font-medium">{row.value}</span>
                 </div>
               ))}
             </div>
@@ -354,7 +354,7 @@ function ErrorScreen({ message, onBack }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 text-center">
       <div className="bg-loss/5 border border-loss/20 rounded-xl p-8 inline-block">
-        <p className="font-semibold text-loss mb-2">Failed to load data</p>
+        <p className="font-medium text-loss mb-2">Failed to load data</p>
         <p className="text-sm text-muted-foreground mb-4">{message}</p>
         <button onClick={onBack} className="text-sm text-primary hover:underline">← Go Back</button>
       </div>

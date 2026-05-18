@@ -11,8 +11,8 @@ import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 const RANK_REWARDS = [
   { label: "500 AI Credits/mo", color: "bg-amber-50 text-amber-700 border-amber-200" },
-  { label: "250 AI Credits/mo", color: "bg-slate-100 text-slate-600 border-slate-200" },
-  { label: "100 AI Credits/mo", color: "bg-orange-50 text-orange-600 border-orange-200" },
+  { label: "250 AI Credits/mo", color: "bg-secondary text-muted-foreground border-border" },
+  { label: "100 AI Credits/mo", color: "bg-accent/10 text-accent border-accent/30" },
 ];
 
 function SkeletonRow() {
@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
       <div className="flex items-center gap-3 mb-6">
         <Trophy className="w-6 h-6 text-amber-500" />
         <div>
-          <h1 className="text-2xl font-bold">Top Researchers Leaderboard</h1>
+          <h1 className="text-2xl font-medium">Top Researchers Leaderboard</h1>
           <p className="text-sm text-muted-foreground">Ranked by prediction accuracy</p>
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function LeaderboardPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Star className="w-4 h-4 text-amber-500" />
-            <h2 className="font-bold text-sm">Top Researchers by Tier</h2>
+            <h2 className="font-medium text-sm">Top Researchers by Tier</h2>
             <span className="text-xs text-muted-foreground">Ranked by badge level · likes · yield</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -124,7 +124,7 @@ export default function LeaderboardPage() {
                   <div className="relative">
                     {analyst.picture
                       ? <img src={analyst.picture} alt={analyst.full_name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: tier?.border }} />
-                      : <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2" style={{ background: '#fff', borderColor: tier?.border, color: tier?.color }}>
+                      : <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium border-2" style={{ background: '#fff', borderColor: tier?.border, color: tier?.color }}>
                           {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
                         </div>
                     }
@@ -132,17 +132,17 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* Name */}
-                  <p className="text-xs font-bold truncate w-full" style={{ color: tier?.color }}>
+                  <p className="text-xs font-medium truncate w-full" style={{ color: tier?.color }}>
                     {analyst.full_name || analyst.email?.split("@")[0]}
                   </p>
 
                   {/* Tier badge */}
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-tag" style={{ background: '#fff', color: tier?.color, border: `1px solid ${tier?.border}` }}>
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-tag" style={{ background: '#fff', color: tier?.color, border: `1px solid ${tier?.border}` }}>
                     {tier?.label}
                   </span>
 
                   {/* Likes & Yield */}
-                  <div className="flex items-center gap-2 text-[10px] font-semibold" style={{ color: tier?.color }}>
+                  <div className="flex items-center gap-2 text-[10px] font-medium" style={{ color: tier?.color }}>
                     <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{analyst._totalLikes}</span>
                     {yield_ != null && (
                       <span className="flex items-center gap-0.5">
@@ -183,7 +183,7 @@ export default function LeaderboardPage() {
       ) : qualifiedAnalysts.length === 0 ? (
         <div className="text-center py-16">
           <Trophy className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-base font-semibold text-muted-foreground mb-2">Leaderboard populates as researchers resolve predictions.</h2>
+          <h2 className="text-base font-medium text-muted-foreground mb-2">Leaderboard populates as researchers resolve predictions.</h2>
           <p className="text-sm text-muted-foreground mb-4">A researcher needs at least {MIN_RESOLVED} resolved predictions to qualify.</p>
           <button onClick={() => navigate("/editor")}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
@@ -225,18 +225,18 @@ export default function LeaderboardPage() {
               return (
                 <button key={analyst.id} onClick={() => navigate(analystHref(analyst))}
                   className="w-full flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left">
-                  <span className="text-lg font-bold w-8 text-center flex-shrink-0">
-                    {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-semibold">#{rank}</span>}
+                  <span className="text-lg font-medium w-8 text-center flex-shrink-0">
+                    {rank <= 3 ? RANK_MEDALS[rank - 1] : <span className="text-sm text-muted-foreground font-medium">#{rank}</span>}
                   </span>
                   {analyst.picture
                     ? <img src={analyst.picture} alt={analyst.full_name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
-                    : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                    : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
                         {(analyst.full_name || analyst.email || "?")[0].toUpperCase()}
                       </div>
                   }
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
+                      <p className="font-medium text-sm truncate">{analyst.full_name || analyst.email?.split("@")[0]}</p>
                       <AccuracyTierBadge tierData={tier} />
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{analyst.tagline || "Researcher"}</p>
@@ -244,7 +244,7 @@ export default function LeaderboardPage() {
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     {metric === "accuracy" && (
                       <>
-                        <span className={`text-sm font-bold ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>
+                        <span className={`text-sm font-medium ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>
                           {accPct.toFixed(1)}%
                         </span>
                         <span className="text-[10px] text-muted-foreground">Accuracy</span>
@@ -252,19 +252,19 @@ export default function LeaderboardPage() {
                     )}
                     {metric === "likes" && (
                       <>
-                        <span className="text-sm font-bold text-destructive">{totalLikes}</span>
+                        <span className="text-sm font-medium text-destructive">{totalLikes}</span>
                         <span className="text-[10px] text-muted-foreground">Total Likes</span>
                       </>
                     )}
                     {metric === "views" && (
                       <>
-                        <span className="text-sm font-bold">{totalViews}</span>
+                        <span className="text-sm font-medium">{totalViews}</span>
                         <span className="text-[10px] text-muted-foreground">Total Views</span>
                       </>
                     )}
                     {metric === "yield" && (
                       <>
-                        <span className={`text-sm font-bold ${(yieldMap[analyst.email] ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                        <span className={`text-sm font-medium ${(yieldMap[analyst.email] ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
                           {yieldMap[analyst.email] != null ? (yieldMap[analyst.email] >= 0 ? "+" : "") + yieldMap[analyst.email].toFixed(1) + "%" : "—"}
                         </span>
                         <span className="text-[10px] text-muted-foreground">Avg Yield</span>
@@ -274,7 +274,7 @@ export default function LeaderboardPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-tag border ${reward.color}`}>⚡ {reward.label}</span>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-tag border ${reward.color}`}>⚡ {reward.label}</span>
                           </TooltipTrigger>
                           <TooltipContent side="left" className="text-xs max-w-[180px]">
                             Top researchers earn monthly AI credits for template generation, fact checker & AI assistant.

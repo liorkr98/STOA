@@ -125,7 +125,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
                     <button key={cap} onClick={() => toggleCap(cap)}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-tag border transition-colors text-left ${active ? "bg-primary/10 border-primary/40 text-primary" : "border-border hover:border-primary/40"}`}>
                       <div>
-                        <span className="text-sm font-semibold">{cap} Cap</span>
+                        <span className="text-sm font-medium">{cap} Cap</span>
                         <span className="text-xs text-muted-foreground ml-2">{desc}</span>
                       </div>
                       {active && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
@@ -164,7 +164,7 @@ export default function FeedCustomizer({ onClose, onApply }) {
                 </div>
               )}
               {/* Popular suggestions */}
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Popular</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
               <div className="flex flex-wrap gap-1.5">
                 {POPULAR_TICKERS.filter(t => !(prefs.tickers || []).includes(t)).map(t => (
                   <button key={t} onClick={() => addTicker(t)}

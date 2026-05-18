@@ -125,7 +125,7 @@ function Section({ title, icon: Icon, children, defaultOpen = true }) {
       >
         <div className="flex items-center gap-2">
           <Icon className="w-3.5 h-3.5 text-primary" />
-          <span className="text-xs font-semibold">{title}</span>
+          <span className="text-xs font-medium">{title}</span>
         </div>
         {open ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
       </button>
@@ -215,7 +215,7 @@ export default function DesignPanel({
             value={customHex}
             onChange={e => handleHexChange(e.target.value)}
             placeholder="#1d4ed8"
-            className="flex-1 text-xs font-mono border border-border rounded-lg px-2 py-1.5 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+            className="flex-1 text-xs font-display border border-border rounded-lg px-2 py-1.5 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
             maxLength={7}
           />
           <input
@@ -242,7 +242,7 @@ export default function DesignPanel({
               }`}
             >
               <div className="text-left">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">{f.label}</div>
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">{f.label}</div>
                 <div style={f.style} className="text-sm text-foreground">{f.sample}</div>
               </div>
               {font === f.id && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
@@ -264,8 +264,8 @@ export default function DesignPanel({
                   : "border-border hover:border-primary/30 text-muted-foreground"
               }`}
             >
-              <span className="text-xs font-mono tracking-tighter mb-1.5 opacity-60">{l.preview}</span>
-              <span className="text-xs font-semibold">{l.label}</span>
+              <span className="text-xs font-display tracking-tighter mb-1.5 opacity-60">{l.preview}</span>
+              <span className="text-xs font-medium">{l.label}</span>
               <span className="text-[9px] opacity-60 mt-0.5">{l.desc}</span>
             </button>
           ))}
@@ -276,7 +276,7 @@ export default function DesignPanel({
       <Section title="Brand Identity" icon={Building2} defaultOpen={false}>
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1.5 block">
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1.5 block">
               Brand / Firm Name
             </label>
             <input
@@ -288,7 +288,7 @@ export default function DesignPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1.5 block">
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1.5 block">
               Logo URL
             </label>
             <input
@@ -305,7 +305,7 @@ export default function DesignPanel({
             )}
           </div>
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold mb-1.5 block">
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1.5 block">
               Report Footer / Disclaimer
             </label>
             <textarea

@@ -115,17 +115,17 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
       >
         <div className="flex items-start justify-between mb-2">
           <div>
-            <span className="font-mono font-medium text-sm tracking-wide">{stock.symbol}</span>
-            {isWatched && <span className="ml-1.5 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-tag">Watched</span>}
+            <span className="font-display font-medium text-sm tracking-wide">{stock.symbol}</span>
+            {isWatched && <span className="ml-1.5 text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-tag">Watched</span>}
           </div>
-          <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-semibold">{stock.exchange}</span>
+          <span className="text-[9px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-medium">{stock.exchange}</span>
         </div>
         <p className="text-[11px] text-muted-foreground truncate mb-3 leading-snug">{stock.name}</p>
         {stock.price != null ? (
           <div className="flex items-center justify-between">
             <p className="text-base font-medium tabular-nums">${Number(stock.price).toFixed(2)}</p>
             {stock.change != null && (
-              <span className={`text-[11px] font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50 border border-green-100" : "text-red-600 bg-red-50 border border-red-100"}`}>
+              <span className={`text-[11px] font-medium flex items-center gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50 border border-green-100" : "text-red-600 bg-red-50 border border-red-100"}`}>
                 {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                 {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
               </span>
@@ -138,8 +138,8 @@ function StockCard({ stock, isWatched, onToggleWatch, onClick }) {
         )}
         {fmtCap(stock.mktCap) && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Mkt Cap</span>
-            <span className="text-xs font-bold text-foreground tabular-nums">{fmtCap(stock.mktCap)}</span>
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Mkt Cap</span>
+            <span className="text-xs font-medium text-foreground tabular-nums">{fmtCap(stock.mktCap)}</span>
           </div>
         )}
       </div>
@@ -170,23 +170,23 @@ function WatchlistRow({ stock, onRemove, onClick, isLoading }) {
       className="flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all group"
     >
       <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #0A1A3F, #1E3A8A)" }}>
-        <span className="text-[10px] font-medium text-white font-mono">{stock.symbol?.slice(0, 2)}</span>
+        <span className="text-[10px] font-medium text-white font-display">{stock.symbol?.slice(0, 2)}</span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-mono font-bold text-sm">{stock.symbol}</span>
+          <span className="font-display font-medium text-sm">{stock.symbol}</span>
           <span className="text-xs text-muted-foreground truncate hidden sm:block">{stock.name}</span>
         </div>
       </div>
       {hasPrice ? (
         <>
-          <span className="text-sm font-bold tabular-nums">${Number(stock.price).toFixed(2)}</span>
+          <span className="text-sm font-medium tabular-nums">${Number(stock.price).toFixed(2)}</span>
           {fmtCap(stock.mktCap) && (
-            <span className="hidden md:inline text-[11px] font-semibold text-muted-foreground tabular-nums" title="Market capitalization">
+            <span className="hidden md:inline text-[11px] font-medium text-muted-foreground tabular-nums" title="Market capitalization">
               {fmtCap(stock.mktCap)}
             </span>
           )}
-          <span className={`text-xs font-bold w-16 text-right flex items-center justify-end gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+          <span className={`text-xs font-medium w-16 text-right flex items-center justify-end gap-0.5 px-2 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{Number(stock.change).toFixed(2)}%
           </span>
@@ -318,7 +318,7 @@ export default function StocksPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-4">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/50">Live Market Data</span>
+            <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">Live Market Data</span>
           </div>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
@@ -333,11 +333,11 @@ export default function StocksPage() {
                   const up = (q.change ?? 0) >= 0;
                   return (
                     <div key={q.symbol} className="rounded-xl px-4 py-2.5 border border-white/10 bg-white/5 min-w-[80px]">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-white/40 mb-0.5">{q.symbol}</p>
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-white/40 mb-0.5">{q.symbol}</p>
                       <p className="text-base font-medium text-white tabular-nums">
                         {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
                       </p>
-                      <p className={`text-[11px] font-bold flex items-center gap-0.5 mt-0.5 ${up ? "text-green-400" : "text-red-400"}`}>
+                      <p className={`text-[11px] font-medium flex items-center gap-0.5 mt-0.5 ${up ? "text-green-400" : "text-red-400"}`}>
                         {up ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                         {up ? "+" : ""}{q.change?.toFixed(2)}%
                       </p>
@@ -358,7 +358,7 @@ export default function StocksPage() {
               <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm leading-tight">My Watchlist</h2>
+              <h2 className="font-medium text-sm leading-tight">My Watchlist</h2>
               <span className="text-[11px] text-muted-foreground">{watchlist.length} stocks tracked</span>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function StocksPage() {
             )}
             <button
               onClick={() => setShowAddInput(v => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all"
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl border transition-all"
               style={{ borderColor: "hsl(var(--accent)/0.4)", color: "hsl(var(--accent))", background: "hsl(var(--accent)/0.08)" }}
             >
               <Plus className="w-3 h-3" /> Add ticker
@@ -390,7 +390,7 @@ export default function StocksPage() {
               onChange={e => setAddInput(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === "Enter" && handleAddManual()}
               placeholder="e.g. NVDA, AAPL, BTC-USD"
-              className="max-w-xs font-mono text-sm"
+              className="max-w-xs font-display text-sm"
               autoFocus
             />
             <Button size="sm" onClick={handleAddManual} disabled={!addInput.trim()}>Add</Button>
@@ -403,7 +403,7 @@ export default function StocksPage() {
             <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: "hsl(42 96% 45% / 0.1)" }}>
               <Star className="w-6 h-6 text-amber-500" />
             </div>
-            <p className="text-sm font-semibold text-foreground mb-1">Your watchlist is empty</p>
+            <p className="text-sm font-medium text-foreground mb-1">Your watchlist is empty</p>
             <p className="text-xs text-muted-foreground">Star any stock below or type a ticker above to track it</p>
           </div>
         ) : watchlistLoading && watchlistData.length === 0 ? (
@@ -431,7 +431,7 @@ export default function StocksPage() {
       {/* ── Market section header ── */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-semibold text-sm flex items-center gap-2">
+          <h2 className="font-medium text-sm flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
             {loading
               ? "Loading stocks..."
@@ -459,7 +459,7 @@ export default function StocksPage() {
               <button
                 key={ex}
                 onClick={() => setExchange(ex)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
                   exchange === ex
                     ? "text-white shadow"
                     : "text-muted-foreground hover:text-foreground"

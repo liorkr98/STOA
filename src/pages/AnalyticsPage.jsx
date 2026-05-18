@@ -29,10 +29,10 @@ function StatCard({ icon: Icon, label, value, sub, color = "text-primary", trend
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
         <Icon className={`w-4 h-4 ${color}`} />
       </div>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className={`text-2xl font-medium ${color}`}>{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
       {trend != null && (
-        <div className={`flex items-center gap-0.5 text-xs font-semibold mt-0.5 ${trend >= 0 ? "text-gain" : "text-loss"}`}>
+        <div className={`flex items-center gap-0.5 text-xs font-medium mt-0.5 ${trend >= 0 ? "text-gain" : "text-loss"}`}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           {trend >= 0 ? "+" : ""}{trend.toFixed(1)}% yield
         </div>
@@ -45,13 +45,13 @@ function OutcomeBadge({ outcome }) {
   const cfg = {
     hit:     { cls: "bg-gain/10 text-gain border-gain/20",          icon: CheckCircle2, label: "Hit" },
     near:    { cls: "bg-primary/10 text-primary border-primary/20", icon: TrendingUp,   label: "Near" },
-    partial: { cls: "bg-amber-50 text-amber-600 border-amber-200",  icon: Minus,        label: "Partial" },
+    partial: { cls: "bg-accent/10 text-accent border-accent/30",  icon: Minus,        label: "Partial" },
     miss:    { cls: "bg-loss/10 text-loss border-loss/20",          icon: XCircle,      label: "Miss" },
     pending: { cls: "bg-secondary text-muted-foreground border-border", icon: Clock,    label: "Pending" },
   }[outcome] || { cls: "bg-secondary text-muted-foreground border-border", icon: Clock, label: outcome };
   const Icon = cfg.icon;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
       <Icon className="w-3 h-3" />{cfg.label}
     </span>
   );
@@ -61,11 +61,11 @@ function ActionBadge({ action }) {
   const cfg = {
     Long:  { cls: "bg-gain/10 text-gain border-gain/20",          icon: TrendingUp },
     Short: { cls: "bg-loss/10 text-loss border-loss/20",          icon: TrendingDown },
-    Hold:  { cls: "bg-amber-50 text-amber-600 border-amber-200",  icon: Minus },
+    Hold:  { cls: "bg-accent/10 text-accent border-accent/30",  icon: Minus },
   }[action] || { cls: "bg-secondary text-muted-foreground border-border", icon: Minus };
   const Icon = cfg.icon;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-tag border ${cfg.cls}`}>
       <Icon className="w-3 h-3" />{action}
     </span>
   );
@@ -217,11 +217,11 @@ export default function AnalyticsPage() {
           <button onClick={goBack} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
-          <h1 className="text-2xl font-bold">Prediction Analytics</h1>
+          <h1 className="text-2xl font-medium">Prediction Analytics</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Live performance data across all published analyst calls</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-gain/10 border border-gain/20 text-gain rounded-tag">
+          <span className="pill-primary">
             <Activity className="w-3 h-3" /> Live
           </span>
         </div>
@@ -244,7 +244,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard icon={Hash}       label="Total Calls"    value={stats.total}                   color="text-foreground" />
             <StatCard icon={CheckCircle2} label="Hit Rate"     value={`${stats.hitRate.toFixed(1)}%`} color="text-gain"    sub={`${stats.hits} hits · ${stats.near} near · ${stats.partial} partial`} />
-            <StatCard icon={Clock}       label="Pending"       value={stats.pending}                  color="text-amber-500" sub="Active predictions" />
+            <StatCard icon={Clock}       label="Pending"       value={stats.pending}                  color="text-accent" sub="Active predictions" />
             <StatCard icon={TrendingUp}  label="Avg Yield"     value={pct(stats.avgYield)}            color={stats.avgYield >= 0 ? "text-gain" : "text-loss"} sub="Across resolved calls" />
           </div>
 
@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
             <StatCard icon={Flame}    label="Resolved"    value={stats.resolved}                                     color="text-primary"         sub={`${((stats.resolved/Math.max(stats.total,1))*100).toFixed(0)}% of all calls`} />
             <StatCard icon={XCircle}  label="Misses"      value={stats.misses}                                        color="text-loss"            sub={`${((stats.misses/Math.max(stats.resolved,1))*100).toFixed(0)}% miss rate`} />
             <StatCard icon={Calendar} label="Avg Hold"    value={`${stats.avgDays.toFixed(0)}d`}                     color="text-muted-foreground" sub="Average days to resolve" />
-            <StatCard icon={Award}    label="Analysts"    value={analysts.length}                                     color="text-purple-500"      sub="With active track record" />
+            <StatCard icon={Award}    label="Analysts"    value={analysts.length}                                     color="text-accent"          sub="With active track record" />
           </div>
 
           {/* Charts row */}
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
             {/* Outcome distribution pie */}
             {stats.outcomeCounts.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-4">Outcome Distribution</h3>
+                <h3 className="font-medium text-sm mb-4">Outcome Distribution</h3>
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width={140} height={140}>
                     <PieChart>
@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
                       <div key={o.name} className="flex items-center gap-2 text-xs">
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: o.color }} />
                         <span className="text-muted-foreground">{o.name}</span>
-                        <span className="font-bold ml-auto">{o.value}</span>
+                        <span className="font-medium ml-auto">{o.value}</span>
                       </div>
                     ))}
                   </div>
@@ -286,7 +286,7 @@ export default function AnalyticsPage() {
             {/* By action */}
             {stats.byAction.some(a => a.count > 0) && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-4">Calls by Direction</h3>
+                <h3 className="font-medium text-sm mb-4">Calls by Direction</h3>
                 <ResponsiveContainer width="100%" height={140}>
                   <BarChart data={stats.byAction} barSize={28}>
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -304,7 +304,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {stats.monthlyVolume.length > 1 && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-4">Monthly Call Volume</h3>
+                <h3 className="font-medium text-sm mb-4">Monthly Call Volume</h3>
                 <ResponsiveContainer width="100%" height={140}>
                   <AreaChart data={stats.monthlyVolume}>
                     <defs>
@@ -324,16 +324,16 @@ export default function AnalyticsPage() {
 
             {stats.topTickers.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-4">Most Covered Tickers</h3>
+                <h3 className="font-medium text-sm mb-4">Most Covered Tickers</h3>
                 <div className="space-y-2">
                   {stats.topTickers.map((t, i) => (
                     <div key={t.ticker} className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                      <span className="text-xs font-bold text-foreground font-mono w-14">{t.ticker}</span>
+                      <span className="text-xs font-medium text-foreground font-display w-14">{t.ticker}</span>
                       <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
                         <div className="h-full bg-primary rounded-full" style={{ width: `${(t.count / stats.topTickers[0].count) * 100}%` }} />
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground w-6 text-right">{t.count}</span>
+                      <span className="text-xs font-medium text-muted-foreground w-6 text-right">{t.count}</span>
                     </div>
                   ))}
                 </div>
@@ -359,7 +359,7 @@ export default function AnalyticsPage() {
             <div className="flex gap-1">
               {["All","Long","Short","Hold"].map(a => (
                 <button key={a} onClick={() => setActionFilter(a)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all ${actionFilter === a ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40 bg-card"}`}>
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all ${actionFilter === a ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40 bg-card"}`}>
                   {a}
                 </button>
               ))}
@@ -367,7 +367,7 @@ export default function AnalyticsPage() {
             <div className="flex gap-1">
               {["All","hit","near","partial","miss","pending"].map(o => (
                 <button key={o} onClick={() => setOutcomeFilter(o)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all capitalize ${outcomeFilter === o ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40 bg-card"}`}>
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all capitalize ${outcomeFilter === o ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40 bg-card"}`}>
                   {OUTCOME_LABELS[o] || o}
                 </button>
               ))}
@@ -378,7 +378,7 @@ export default function AnalyticsPage() {
           {/* Table */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary text-[10px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border">
+            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary text-[10px] font-medium text-muted-foreground uppercase tracking-wide border-b border-border">
               {[
                 { label: "Ticker",    key: "prediction_ticker",   span: 2 },
                 { label: "Direction", key: "prediction_action",   span: 2 },
@@ -413,7 +413,7 @@ export default function AnalyticsPage() {
                     onClick={() => navigate(`/report?id=${r.id}`)}
                     className="grid grid-cols-12 gap-2 px-4 py-3 w-full text-left hover:bg-secondary/60 transition-colors">
                     <div className="col-span-2 flex items-center">
-                      <span className="text-sm font-bold font-mono text-foreground">{r.prediction_ticker || "—"}</span>
+                      <span className="text-sm font-medium font-display text-foreground">{r.prediction_ticker || "—"}</span>
                     </div>
                     <div className="col-span-2 flex items-center">
                       <ActionBadge action={r.prediction_action} />
@@ -422,15 +422,15 @@ export default function AnalyticsPage() {
                       <span className="text-xs text-muted-foreground truncate">{r.author_name || r.created_by?.split("@")[0] || "—"}</span>
                     </div>
                     <div className="col-span-1 flex items-center">
-                      <span className="text-xs font-mono">{price(locked)}</span>
+                      <span className="text-xs font-display">{price(locked)}</span>
                     </div>
                     <div className="col-span-1 flex items-center">
-                      <span className="text-xs font-mono text-muted-foreground">{price(target)}</span>
+                      <span className="text-xs font-display text-muted-foreground">{price(target)}</span>
                     </div>
                     <div className="col-span-1 flex items-center gap-1">
-                      <span className="text-xs font-mono">{price(resolved)}</span>
+                      <span className="text-xs font-display">{price(resolved)}</span>
                       {directedMove != null && (
-                        <span className={`text-[9px] font-bold ${directedMove >= 0 ? "text-gain" : "text-loss"}`}>
+                        <span className={`text-[9px] font-medium ${directedMove >= 0 ? "text-gain" : "text-loss"}`}>
                           {directedMove >= 0 ? "+" : ""}{directedMove.toFixed(1)}%
                         </span>
                       )}
@@ -453,7 +453,7 @@ export default function AnalyticsPage() {
       {activeTab === "analysts" && (
         <div className="space-y-3">
           {/* Header row */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-secondary rounded-xl text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-secondary rounded-xl text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
             <div className="col-span-1">#</div>
             <div className="col-span-3">Analyst</div>
             <div className="col-span-2">Accuracy</div>
@@ -471,31 +471,31 @@ export default function AnalyticsPage() {
                 onClick={() => navigate(analystHref(a))}
                 className="grid grid-cols-12 gap-2 px-4 py-3 w-full text-left bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all">
                 <div className="col-span-1 flex items-center">
-                  <span className="text-base">{i < 3 ? medals[i] : <span className="text-xs font-bold text-muted-foreground">#{i+1}</span>}</span>
+                  <span className="text-base">{i < 3 ? medals[i] : <span className="text-xs font-medium text-muted-foreground">#{i+1}</span>}</span>
                 </div>
                 <div className="col-span-3 flex items-center gap-2.5">
                   {a.picture
                     ? <img src={a.picture} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
                     : null}
-                  <div className={`w-8 h-8 rounded-full bg-primary/10 items-center justify-center text-sm font-bold text-primary flex-shrink-0 ${a.picture ? 'hidden' : 'flex'}`}>
+                  <div className={`w-8 h-8 rounded-full bg-primary/10 items-center justify-center text-sm font-medium text-primary flex-shrink-0 ${a.picture ? 'hidden' : 'flex'}`}>
                     {(a.full_name || "?")[0]}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-semibold truncate">{a.full_name || a.email?.split("@")[0]}</p>
+                      <p className="text-sm font-medium truncate">{a.full_name || a.email?.split("@")[0]}</p>
                       <AccuracyTierBadge tierData={tier} />
                     </div>
                     {a.tagline && <p className="text-[10px] text-muted-foreground truncate">{a.tagline}</p>}
                   </div>
                 </div>
                 <div className="col-span-2 flex items-center">
-                  <span className={`text-sm font-bold ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>
+                  <span className={`text-sm font-medium ${accPct >= 80 ? "text-gain" : accPct >= 60 ? "text-accent" : "text-muted-foreground"}`}>
                     {accPct.toFixed(1)}%
                   </span>
                 </div>
                 <div className="col-span-2 flex items-center">
                   {computed.avgYield != null
-                    ? <span className={`text-sm font-bold flex items-center gap-0.5 ${computed.avgYield >= 0 ? "text-gain" : "text-loss"}`}>
+                    ? <span className={`text-sm font-medium flex items-center gap-0.5 ${computed.avgYield >= 0 ? "text-gain" : "text-loss"}`}>
                         {computed.avgYield >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                         {fmtYield(computed.avgYield)}
                       </span>
@@ -503,7 +503,7 @@ export default function AnalyticsPage() {
                   }
                 </div>
                 <div className="col-span-2 flex items-center">
-                  <span className="text-sm font-semibold text-foreground">{fmtHitRate(computed.hitRate)}</span>
+                  <span className="text-sm font-medium text-foreground">{fmtHitRate(computed.hitRate)}</span>
                 </div>
                 <div className="col-span-2 flex items-center">
                   <span className="text-sm text-muted-foreground">{computed.totalCalls > 0 ? computed.totalCalls : "—"}</span>

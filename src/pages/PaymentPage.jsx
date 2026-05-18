@@ -60,7 +60,7 @@ function SuccessScreen({ amount }) {
   return (
     <div className="max-w-sm mx-auto px-4 py-16 text-center">
       <CheckCircle2 className="w-12 h-12 text-gain mx-auto mb-4" />
-      <h2 className="text-xl font-bold mb-2">Deposit successful</h2>
+      <h2 className="text-xl font-medium mb-2">Deposit successful</h2>
       {amount && <p className="text-3xl font-medium text-primary mb-1">${amount.toFixed(2)}</p>}
       <p className="text-sm text-muted-foreground mb-6">Funds are available in your wallet immediately.</p>
       <div className="flex gap-2 justify-center">

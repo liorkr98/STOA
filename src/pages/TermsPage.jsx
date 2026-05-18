@@ -23,7 +23,7 @@ const SECTIONS = [
 function SectionBlock({ id, title, children }) {
   return (
     <div id={id} className="mb-10 scroll-mt-24">
-      <h2 className="text-xl font-bold mb-4 text-foreground">{title}</h2>
+      <h2 className="text-xl font-medium mb-4 text-foreground">{title}</h2>
       <div className="text-sm text-foreground/80 leading-relaxed space-y-3">{children}</div>
     </div>
   );
@@ -74,11 +74,11 @@ export default function TermsPage() {
         {/* Sidebar */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-24 bg-secondary rounded-xl p-4 border border-border">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">On This Page</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">On This Page</p>
             <nav className="space-y-1">
               {SECTIONS.map(s => (
                 <a key={s.id} href={`#${s.id}`}
-                  className={`block text-xs py-1.5 px-2 rounded-lg transition-colors truncate ${active === s.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`block text-xs py-1.5 px-2 rounded-lg transition-colors truncate ${active === s.id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>
                   {s.title}
                 </a>
               ))}
@@ -98,7 +98,7 @@ export default function TermsPage() {
 
           <SectionBlock id="disclaimer" title="3. Not Financial Advice">
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <p className="font-bold text-red-700 mb-2">CRITICAL DISCLAIMER</p>
+              <p className="font-medium text-red-700 mb-2">CRITICAL DISCLAIMER</p>
               <p className="text-red-800">Nothing published on STOA — including analyst reports, predictions, price targets, ratings, or any other content — constitutes financial advice, investment recommendations, or an offer to buy or sell securities. All content is for informational and educational purposes only. You should consult a licensed financial advisor before making investment decisions. STOA, its employees, and affiliated analysts are not responsible for investment decisions made based on platform content.</p>
             </div>
           </SectionBlock>
@@ -147,7 +147,7 @@ export default function TermsPage() {
 
           <SectionBlock id="liability" title="11. Limitation of Liability">
             <div className="bg-secondary rounded-xl p-4 border border-border">
-              <p className="font-bold mb-2">TO THE MAXIMUM EXTENT PERMITTED BY LAW, STOA SHALL NOT BE LIABLE FOR:</p>
+              <p className="font-medium mb-2">TO THE MAXIMUM EXTENT PERMITTED BY LAW, STOA SHALL NOT BE LIABLE FOR:</p>
               {["Investment losses resulting from following analyst content", "Inaccuracies in analyst track records or scores", "Platform downtime or data loss", "Actions of third-party analysts"].map((item, i) => <p key={i}>• {item}</p>)}
               <p className="mt-3">STOA's total liability for any claim shall not exceed the subscription fees paid by you in the 12 months prior to the claim.</p>
             </div>

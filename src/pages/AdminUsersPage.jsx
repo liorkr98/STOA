@@ -129,7 +129,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold">Admin — Users</h1>
+          <h1 className="text-xl font-medium">Admin — Users</h1>
           <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-tag border border-border"><span className="font-display">{sorted.length}</span> users</span>
         </div>
         <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export default function AdminUsersPage() {
                 <Icon className={`w-4 h-4 ${s.color}`} />
                 <span className="text-xs text-muted-foreground">{s.label}</span>
               </div>
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value.toLocaleString()}</p>
+              <p className={`text-2xl font-medium ${s.color}`}>{s.value.toLocaleString()}</p>
             </div>
           );
         })}
@@ -178,7 +178,7 @@ export default function AdminUsersPage() {
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap select-none"
+                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap select-none"
                   >
                     <div className="flex items-center gap-1">
                       {col.label}
@@ -194,7 +194,7 @@ export default function AdminUsersPage() {
                   {/* User */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 overflow-hidden">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 overflow-hidden">
                         {u.picture
                           ? <img src={u.picture} alt={u.full_name} className="w-full h-full object-cover" />
                           : (u.full_name || u.email || "U")[0].toUpperCase()

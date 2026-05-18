@@ -6,36 +6,36 @@ import { useNavigate } from "react-router-dom";
 const STEPS = [
   {
     icon: Sparkles,
-    color: "text-violet-500",
-    bg: "bg-violet-50",
+    color: "text-accent",
+    bg: "bg-accent/10",
     title: "You're now a researcher!",
     subtitle: "Welcome to the creator program",
     body: "As a STOA researcher, you publish research reports that investors can read, follow, and subscribe to. Your track record is built automatically — every prediction is verified against real prices.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-gradient-to-br from-violet-50 to-blue-50 p-4 text-center">
         <div className="text-4xl mb-1">🏆</div>
-        <div className="text-sm font-bold">Your researcher journey starts today</div>
+        <div className="text-sm font-medium">Your researcher journey starts today</div>
         <div className="text-xs text-muted-foreground mt-1">Publish your first report to get on the leaderboard</div>
       </div>
     ),
   },
   {
     icon: PenLine,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Write Reports",
     subtitle: "Your research, your voice",
     body: "Use the Editor to write structured reports. Add heading, paragraphs, bullet lists, callout boxes, and embedded stock charts. The AI assistant can help you research, draft, and fact-check.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3 space-y-1.5">
         {[
-          { type: "Heading",     color: "bg-blue-100 text-blue-700" },
+          { type: "Heading",     color: "bg-primary/10 text-primary" },
           { type: "Paragraph",  color: "bg-secondary text-muted-foreground" },
-          { type: "Stock Chart",color: "bg-green-100 text-green-700" },
-          { type: "Prediction", color: "bg-amber-100 text-amber-700" },
+          { type: "Stock Chart",color: "bg-primary/10 text-primary" },
+          { type: "Prediction", color: "bg-accent/10 text-accent" },
         ].map((b, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${b.color}`}>{b.type}</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${b.color}`}>{b.type}</span>
           </div>
         ))}
       </div>
@@ -43,33 +43,33 @@ const STEPS = [
   },
   {
     icon: Lock,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
+    color: "text-accent",
+    bg: "bg-accent/10",
     title: "Predictions are Price-Locked",
     subtitle: "No backdating, ever",
     body: "When you add a prediction (LONG/SHORT/NEUTRAL), the live market price is fetched and frozen at publish time from multiple data sources. This makes your track record tamper-proof and trustworthy.",
     visual: (
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <div className="mt-4 rounded-xl border border-accent/30 bg-accent/10 p-3">
         <div className="flex items-center gap-2 mb-2">
-          <Lock className="w-4 h-4 text-amber-600" />
-          <span className="text-xs font-bold text-amber-800">Price locked at publish</span>
+          <Lock className="w-4 h-4 text-accent" />
+          <span className="text-xs font-medium text-accent">Price locked at publish</span>
         </div>
         <div className="space-y-1 text-xs">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Ticker</span>
-            <span className="font-bold">$NVDA</span>
+            <span className="font-medium">$NVDA</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Direction</span>
-            <span className="font-bold text-green-700">LONG</span>
+            <span className="font-medium text-primary">LONG</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Lock price</span>
-            <span className="font-bold">$124.60</span>
+            <span className="font-medium">$124.60</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Source</span>
-            <span className="font-bold text-blue-600">Finnhub real-time</span>
+            <span className="font-medium text-blue-600">Finnhub real-time</span>
           </div>
         </div>
       </div>
@@ -77,23 +77,23 @@ const STEPS = [
   },
   {
     icon: Trophy,
-    color: "text-green-500",
-    bg: "bg-green-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Build Your Track Record",
     subtitle: "Accuracy earns reputation",
     body: "Your score is computed from win rate (Wilson-adjusted), profit factor, and alpha vs benchmark. The leaderboard rewards researchers with the most accurate predictions — not just the most popular.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-2">Score breakdown</div>
+        <div className="text-[10px] text-muted-foreground font-medium uppercase mb-2">Score breakdown</div>
         <div className="space-y-2">
           {[
             { label: "Win rate (adjusted)", pct: 68, color: "bg-green-500" },
             { label: "Profit factor",       pct: 45, color: "bg-blue-500" },
-            { label: "Alpha vs S&P 500",    pct: 30, color: "bg-violet-500" },
+            { label: "Alpha vs S&P 500",    pct: 30, color: "bg-accent/10" },
           ].map((m, i) => (
             <div key={i}>
               <div className="flex justify-between text-[10px] mb-0.5">
-                <span>{m.label}</span><span className="font-bold">{m.pct}%</span>
+                <span>{m.label}</span><span className="font-medium">{m.pct}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div className={`h-full ${m.color} rounded-full`} style={{ width: `${m.pct}%` }} />
@@ -106,8 +106,8 @@ const STEPS = [
   },
   {
     icon: Palette,
-    color: "text-rose-500",
-    bg: "bg-rose-50",
+    color: "text-primary",
+    bg: "bg-primary/10",
     title: "Customise Your Profile",
     subtitle: "Your brand, your page",
     body: "Your public researcher profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links — it's your creator landing page.",
@@ -115,8 +115,8 @@ const STEPS = [
       <div className="mt-4 rounded-xl overflow-hidden border border-border">
         <div className="h-8" style={{ background: "linear-gradient(135deg,#0A1A3F,#1E3A8A)" }} />
         <div className="bg-card px-3 pb-3">
-          <div className="w-10 h-10 rounded-full bg-violet-100 border-2 border-card -mt-5 mb-1 flex items-center justify-center text-sm font-bold text-violet-700">A</div>
-          <div className="text-xs font-bold">Your Name</div>
+          <div className="w-10 h-10 rounded-full bg-accent/10 border-2 border-card -mt-5 mb-1 flex items-center justify-center text-sm font-medium text-accent">A</div>
+          <div className="text-xs font-medium">Your Name</div>
           <div className="text-[10px] text-muted-foreground">Your tagline here</div>
           <div className="flex gap-1 mt-1.5">
             {["Tech", "AI", "Macro"].map(s => (
@@ -129,8 +129,8 @@ const STEPS = [
   },
   {
     icon: DollarSign,
-    color: "text-emerald-500",
-    bg: "bg-emerald-50",
+    color: "text-accent",
+    bg: "bg-primary/10",
     title: "Earn from Your Research",
     subtitle: "Premium reports & subscriptions",
     body: "Set any report as Premium (paid). Investors pay directly from their wallet. You can also offer monthly subscriptions for exclusive research. STOA takes a 10% platform fee — the rest is yours.",
@@ -143,7 +143,7 @@ const STEPS = [
         ].map((r, i) => (
           <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs">
             <span>{r.type}</span>
-            <span className="font-semibold text-emerald-600">{r.earn}</span>
+            <span className="font-medium text-accent">{r.earn}</span>
           </div>
         ))}
       </div>

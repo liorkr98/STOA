@@ -79,14 +79,14 @@ function WatchItem({ entry, live }) {
     >
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center">
-          <span className="text-[9px] font-mono font-medium text-primary">{ticker?.slice(0, 2)}</span>
+          <span className="text-[9px] font-display font-medium text-primary">{ticker?.slice(0, 2)}</span>
         </div>
-        <span className="text-xs font-mono font-bold group-hover:text-primary transition-colors">{ticker}</span>
+        <span className="text-xs font-display font-medium group-hover:text-primary transition-colors">{ticker}</span>
       </div>
       {live?.price != null ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+          <span className="text-xs font-medium tabular-nums">${live.price.toFixed(2)}</span>
+          <span className={`text-[11px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-tag ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
@@ -121,20 +121,20 @@ function ReportRow({ report, index }) {
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
+        <p className="font-medium text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-[10px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
           {report.stock_ticker && (
-            <span className="text-[10px] font-mono font-bold text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
+            <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
           )}
           {dir && (
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
+            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
           )}
         </div>
       </div>
       <div className="shrink-0 text-right">
         {!isPending ? (
-          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
+          <span className={`text-[11px] font-medium px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
             {isHit ? "Hit ✓" : "Miss ✗"}
           </span>
         ) : (
@@ -159,20 +159,20 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
       className="flex items-center gap-3 py-2.5 px-2 hover:bg-secondary/50 rounded-xl transition-colors cursor-pointer group"
       onClick={() => navigate(analystHref(analyst))}
     >
-      <span className="text-xs font-bold w-5 text-center shrink-0 text-muted-foreground">{MEDALS[rank] || rank}</span>
-      <div className="w-9 h-9 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+      <span className="text-xs font-medium w-5 text-center shrink-0 text-muted-foreground">{MEDALS[rank] || rank}</span>
+      <div className="w-9 h-9 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-medium text-primary shrink-0 overflow-hidden">
         {analyst.picture ? <img src={analyst.picture} alt={name} className="w-full h-full object-cover" /> : name[0]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{name}</p>
-        <span className={`text-[10px] font-bold ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
+        <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{name}</p>
+        <span className={`text-[10px] font-medium ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
           {acc.toFixed(1)}% accuracy
         </span>
       </div>
       {currentUserEmail && currentUserEmail !== analyst.email && (
         <button
           onClick={e => { e.stopPropagation(); onFollow(analyst); }}
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-tag border transition-all shrink-0 ${
+          className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border transition-all shrink-0 ${
             following
               ? "border-green-300 text-green-700 bg-green-50"
               : "border-primary/30 text-primary hover:bg-primary/5"
@@ -333,7 +333,7 @@ export default function InvestorHome() {
           <div className="relative">
             {avatarUrl(user)
               ? <img src={avatarUrl(user)} alt={displayName} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
-              : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-bold text-white">
+              : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-medium text-white">
                   {displayName[0].toUpperCase()}
                 </div>
             }
@@ -343,7 +343,7 @@ export default function InvestorHome() {
           {/* Info */}
           <div className="flex-1 min-w-[200px]">
             <span className="eyebrow">Investor Hub</span>
-            <h1 className="text-2xl font-bold text-foreground mt-1.5 mb-1">
+            <h1 className="text-2xl font-medium text-foreground mt-1.5 mb-1">
               {greeting}, {displayName.split(" ")[0]}
             </h1>
             <p className="text-sm text-muted-foreground mb-3">Your personalised research intelligence overview.</p>
@@ -412,7 +412,7 @@ export default function InvestorHome() {
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-5">
               <span className="w-2 h-2 rounded-full bg-gain animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Live Market Pulse</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Live Market Pulse</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
               {indexQuotes.map(q => {
@@ -423,7 +423,7 @@ export default function InvestorHome() {
                     <p className="text-2xl font-medium tracking-tight tabular-nums">
                       {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
                     </p>
-                    <p className={`text-[12px] font-bold mt-0.5 flex items-center gap-1 ${up ? "text-green-400" : "text-red-400"}`}>
+                    <p className={`text-[12px] font-medium mt-0.5 flex items-center gap-1 ${up ? "text-green-400" : "text-red-400"}`}>
                       {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {up ? "+" : ""}{q.change?.toFixed(2)}%
                     </p>
@@ -439,7 +439,7 @@ export default function InvestorHome() {
                     <button
                       key={t}
                       onClick={() => navigate(`/stock?ticker=${t}`)}
-                      className="text-[11px] font-mono font-bold px-2 py-1 rounded-lg border border-white/15 text-white/70 hover:bg-white/10 hover:text-white transition-all"
+                      className="text-[11px] font-display font-medium px-2 py-1 rounded-lg border border-white/15 text-white/70 hover:bg-white/10 hover:text-white transition-all"
                     >
                       {t}
                     </button>
@@ -465,7 +465,7 @@ export default function InvestorHome() {
                   <Star className="w-4 h-4" style={{ color: "hsl(42 96% 45%)" }} />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-sm leading-tight">My Watchlist</h2>
+                  <h2 className="font-medium text-sm leading-tight">My Watchlist</h2>
                   <span className="text-[11px] text-muted-foreground">{watchlist.length} stocks</span>
                 </div>
               </div>
@@ -502,7 +502,7 @@ export default function InvestorHome() {
                   <Users className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-sm leading-tight">From Researchers You Follow</h2>
+                  <h2 className="font-medium text-sm leading-tight">From Researchers You Follow</h2>
                   <span className="text-[11px] text-muted-foreground">{followedReports.length} recent reports</span>
                 </div>
               </div>
@@ -535,7 +535,7 @@ export default function InvestorHome() {
                     <Crown className="w-4 h-4" style={{ color: "hsl(var(--accent))" }} />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-sm leading-tight">From Your Subscriptions</h2>
+                    <h2 className="font-medium text-sm leading-tight">From Your Subscriptions</h2>
                     <span className="text-[11px] text-muted-foreground">{mySubscriptions.length} active plans</span>
                   </div>
                 </div>
@@ -553,16 +553,16 @@ export default function InvestorHome() {
                       to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                     >
-                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-medium text-primary shrink-0 overflow-hidden">
                         {sub.analyst_avatar
                           ? <img src={sub.analyst_avatar} alt={name} className="w-full h-full object-cover" />
                           : name[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold truncate max-w-[80px] group-hover:text-primary transition-colors">{name}</p>
+                        <p className="text-[11px] font-medium truncate max-w-[80px] group-hover:text-primary transition-colors">{name}</p>
                         <p className="text-[9px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
                       </div>
-                      <span className="text-[9px] font-bold text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag">Active</span>
+                      <span className="text-[9px] font-medium text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag">Active</span>
                     </Link>
                   );
                 })}
@@ -589,7 +589,7 @@ export default function InvestorHome() {
                     <Lock className="w-4 h-4 text-amber-600" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-sm leading-tight">Reports You've Unlocked</h2>
+                    <h2 className="font-medium text-sm leading-tight">Reports You've Unlocked</h2>
                     <span className="text-[11px] text-muted-foreground">{purchasedReports.length} premium reports</span>
                   </div>
                 </div>
@@ -611,7 +611,7 @@ export default function InvestorHome() {
               the first thing the user sees after the header. Used to sit
               at the very bottom, which defeated the point of "quick" access. */}
           <section className="surface p-5">
-            <h2 className="font-semibold text-sm mb-3">Quick Access</h2>
+            <h2 className="font-medium text-sm mb-3">Quick Access</h2>
             <div className="space-y-1">
               {[
                 { icon: BarChart3, label: "Markets & Stocks", to: "/stocks" },
@@ -640,7 +640,7 @@ export default function InvestorHome() {
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "hsl(42 96% 45% / 0.12)" }}>
                   <Trophy className="w-3.5 h-3.5" style={{ color: "hsl(42 96% 45%)" }} />
                 </div>
-                <h2 className="font-semibold text-sm">Top Researchers</h2>
+                <h2 className="font-medium text-sm">Top Researchers</h2>
               </div>
               <Link to="/leaderboard" className="text-xs text-primary hover:underline">See all</Link>
             </div>
@@ -666,10 +666,10 @@ export default function InvestorHome() {
           <section className="surface p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
-                  <Flame className="w-3.5 h-3.5 text-orange-500" />
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Flame className="w-3.5 h-3.5 text-accent" />
                 </div>
-                <h2 className="font-semibold text-sm">Hot Predictions</h2>
+                <h2 className="font-medium text-sm">Hot Predictions</h2>
               </div>
               <Link to="/feed" className="text-xs text-primary hover:underline">More</Link>
             </div>
@@ -688,14 +688,14 @@ export default function InvestorHome() {
                       className="w-full text-left flex items-center gap-2.5 py-2 hover:bg-secondary/40 rounded-lg px-1 transition-colors group"
                     >
                       {dir && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${directionColor(dir)}`}>{dir}</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${directionColor(dir)}`}>{dir}</span>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{r.title}</p>
-                        {r.stock_ticker && <p className="text-[10px] font-mono font-bold text-primary/70">{r.stock_ticker}</p>}
+                        {r.stock_ticker && <p className="text-[10px] font-display font-medium text-primary/70">{r.stock_ticker}</p>}
                       </div>
                       {isResolved && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                           {isHit ? "HIT" : "MISS"}
                         </span>
                       )}
@@ -714,19 +714,19 @@ export default function InvestorHome() {
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
         <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
         <div className="relative z-10 max-w-sm">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "hsl(var(--accent))" }}>Have a market view?</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: "hsl(var(--accent))" }}>Have a market view?</span>
           <h3 className="text-xl font-medium text-white mt-1.5 mb-2">Become a Researcher</h3>
           <p className="text-white/55 text-sm leading-relaxed mb-5">
             Publish research, build a verified track record, and monetize your insights on the platform.
           </p>
           <div className="flex gap-3">
             <Link to="/become-analyst">
-              <button className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))", color: "#0A1A3F" }}>
+              <button className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))", color: "#0A1A3F" }}>
                 Get Started Free
               </button>
             </Link>
             <Link to="/leaderboard">
-              <button className="px-5 py-2.5 rounded-xl font-bold text-sm border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all">
+              <button className="px-5 py-2.5 rounded-xl font-medium text-sm border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all">
                 View Top Researchers
               </button>
             </Link>

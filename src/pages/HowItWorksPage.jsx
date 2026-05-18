@@ -11,7 +11,7 @@ const STEPS = [
 export default function HowItWorksPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">How It Works</h1>
+      <h1 className="text-3xl font-medium mb-2">How It Works</h1>
       <p className="text-muted-foreground mb-10">STOA brings transparency to financial research through verified predictions.</p>
       <div className="space-y-6">
         {STEPS.map((step, i) => {
@@ -22,7 +22,7 @@ export default function HowItWorksPage() {
                 <Icon className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">{step.title}</h3>
+                <h3 className="font-medium mb-1">{step.title}</h3>
                 <p className="text-sm text-muted-foreground">{step.desc}</p>
               </div>
             </div>

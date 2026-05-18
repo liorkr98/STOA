@@ -13,7 +13,7 @@ const FEATURES = [
 export default function FeaturesPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">Features</h1>
+      <h1 className="text-3xl font-medium mb-2">Features</h1>
       <p className="text-muted-foreground mb-10">Everything you need to follow, analyze, and create financial research.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {FEATURES.map((f) => {
@@ -23,7 +23,7 @@ export default function FeaturesPage() {
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
                 <Icon className="w-4.5 h-4.5 text-primary" />
               </div>
-              <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
+              <h3 className="font-medium text-sm mb-1">{f.title}</h3>
               <p className="text-xs text-muted-foreground">{f.desc}</p>
             </div>
           );

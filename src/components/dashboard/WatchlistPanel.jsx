@@ -220,7 +220,7 @@ export default function WatchlistPanel({ reports = [] }) {
           onChange={e => setInput(e.target.value.toUpperCase())}
           onKeyDown={e => e.key === "Enter" && addTicker()}
           placeholder="Add ticker (e.g. NVDA)"
-          className="h-8 text-xs font-mono"
+          className="h-8 text-xs font-display"
         />
         <Button size="sm" className="h-8 px-3 shrink-0 gap-1" onClick={addTicker}>
           <Plus className="w-3.5 h-3.5" />Add

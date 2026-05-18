@@ -24,17 +24,17 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
+      {/* KPIs — audience metrics are not market positions; use primary/accent */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <AnalyticsKPICard icon="👥" label="Total Followers" value={totalFollowers} sub="All time" color="text-blue-600" />
-        <AnalyticsKPICard icon="💎" label="Active Subscribers" value={activeSubs.length} sub="Paying" color="text-green-600" />
-        <AnalyticsKPICard icon="🔄" label="Free → Paid Rate" value={`${convRate}%`} sub="Conversion" color={parseFloat(convRate) >= 5 ? "text-green-600" : "text-amber-600"} />
-        <AnalyticsKPICard icon="📈" label="Follower Growth" value={`+${newFollowersThisMonth}`} sub="This month" color="text-purple-600" />
+        <AnalyticsKPICard icon="👥" label="Total Followers" value={totalFollowers} sub="All time" color="text-primary" />
+        <AnalyticsKPICard icon="💎" label="Active Subscribers" value={activeSubs.length} sub="Paying" color="text-accent" />
+        <AnalyticsKPICard icon="🔄" label="Free → Paid Rate" value={`${convRate}%`} sub="Conversion" color="text-primary" />
+        <AnalyticsKPICard icon="📈" label="Follower Growth" value={`+${newFollowersThisMonth}`} sub="This month" color="text-primary" />
       </div>
 
       {/* Followers Table */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm mb-4">Your Audience</h3>
+      <div className="surface p-5">
+        <h3 className="font-medium text-sm mb-4">Your Audience</h3>
         {follows.length === 0 ? (
           <div className="text-center py-10">
             <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
@@ -46,9 +46,9 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Follower</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Following Since</th>
-                  <th className="pb-2 text-[11px] font-semibold text-muted-foreground">Status</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Follower</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Following Since</th>
+                  <th className="pb-2 text-[11px] font-medium text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -66,7 +66,7 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
                     <tr key={f.id} className="hover:bg-secondary/40 transition-colors">
                       <td className="py-2.5">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary overflow-hidden flex-shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary overflow-hidden flex-shrink-0">
                             {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : name[0]?.toUpperCase()}
                           </div>
                           <span className="font-medium truncate max-w-[180px]">{name}</span>
@@ -75,9 +75,9 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
                       <td className="py-2.5 text-muted-foreground text-xs">{format(new Date(f.created_date), "MMM d, yyyy")}</td>
                       <td className="py-2.5">
                         {isSub ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-green-50 text-green-700 border border-green-200">Subscriber</span>
+                          <span className="pill-accent">Subscriber</span>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-tag bg-secondary text-muted-foreground border border-border">Follower</span>
+                          <span className="pill">Follower</span>
                         )}
                       </td>
                     </tr>
@@ -90,28 +90,34 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
         )}
       </div>
 
-      {/* Growth Funnel */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm mb-4">Audience Funnel</h3>
+      {/* Growth Funnel — uses primary-blue gradient at varying opacity (audience
+          isn't a market gain, so no green) */}
+      <div className="surface p-5">
+        <h3 className="font-medium text-sm mb-4">Audience Funnel</h3>
         <div className="space-y-2">
           {funnelData.map((level, i) => {
             const width = Math.max(20, 100 - i * 18);
+            // Last (revenue) step gets gold accent; everything else is a
+            // graduated primary-blue.
+            const opacities = ["1", "0.85", "0.7", "1"];
+            const useAccent = level.isLast;
             return (
               <div key={level.label} className="flex items-center gap-3">
                 <div className="w-28 text-right text-xs text-muted-foreground">{level.label}</div>
                 <div className="flex-1 flex items-center gap-2">
                   <div
-                    className="h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white transition-all"
-                    style={{
-                      width: `${width}%`,
-                      background: ["#2563eb", "#3b82f6", "#22c55e", "#16a34a"][i],
-                    }}
+                    className={`h-8 rounded-sm flex items-center justify-center font-medium text-sm transition-all ${
+                      useAccent
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                    style={{ width: `${width}%`, opacity: useAccent ? 1 : opacities[i] }}
                   >
-                    {level.value}
+                    <span className="font-display">{level.value}</span>
                   </div>
                 </div>
                 {!level.isLast && (
-                  <div className="w-14 text-[10px] text-muted-foreground">{level.pct}%</div>
+                  <div className="w-14 text-[10px] text-muted-foreground font-display">{level.pct}%</div>
                 )}
               </div>
             );

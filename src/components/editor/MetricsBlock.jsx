@@ -64,7 +64,7 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
     <div className="group relative rounded-xl border border-border overflow-hidden my-2">
       {/* Header */}
       <div className="flex items-center justify-between bg-secondary px-4 py-2 border-b border-border">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
           Key Financial Metrics
         </span>
         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -100,11 +100,11 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
                   {row.label}
                 </p>
-                <p className="text-base font-bold text-foreground leading-tight">
+                <p className="text-base font-medium text-foreground leading-tight">
                   {row.value}
                 </p>
                 {row.change && (
-                  <p className={`text-xs font-semibold mt-0.5 ${isPos ? "text-gain" : isNeg ? "text-loss" : "text-muted-foreground"}`}>
+                  <p className={`text-xs font-medium mt-0.5 ${isPos ? "text-gain" : isNeg ? "text-loss" : "text-muted-foreground"}`}>
                     {row.change}
                   </p>
                 )}
@@ -123,7 +123,7 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
         <div className="border-t border-border bg-secondary/50 p-3 space-y-3">
           {/* Live fetch */}
           <div>
-            <p className="text-[10px] text-muted-foreground mb-1.5 font-semibold">Auto-fill from ticker</p>
+            <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">Auto-fill from ticker</p>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
@@ -139,7 +139,7 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
               <button
                 onClick={handleFetch}
                 disabled={fetching || !ticker.trim()}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-white disabled:opacity-50 flex items-center gap-1.5"
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-white disabled:opacity-50 flex items-center gap-1.5"
               >
                 {fetching ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                 {fetching ? "Fetching…" : "Fetch"}
@@ -152,11 +152,11 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
           <div>
             <p className="text-[10px] text-muted-foreground mb-1.5">
               Or edit manually:{" "}
-              <code className="bg-card px-1 rounded font-mono">Label | Value | Change</code>
+              <code className="bg-card px-1 rounded font-display">Label | Value | Change</code>
               {" "}— one metric per line
             </p>
             <textarea
-              className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-1 focus:ring-primary resize-none font-mono"
+              className="w-full text-xs border border-border rounded-lg px-3 py-2 bg-card focus:outline-none focus:ring-1 focus:ring-primary resize-none font-display"
               rows={Math.max(4, rows.length + 1)}
               value={block.content || ""}
               onChange={e => onChange({ ...block, content: e.target.value })}

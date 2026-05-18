@@ -38,7 +38,7 @@ export default function SignIn() {
       {/* Left branding panel */}
       <div className="hidden lg:flex flex-col justify-center px-12 w-5/12 bg-primary text-white">
         <StoaLogo size={32} textSize="text-2xl" light className="mb-8" />
-        <h2 className="text-3xl font-bold leading-tight mb-4">
+        <h2 className="text-3xl font-medium leading-tight mb-4">
           Transparent finance.<br />Verified predictions.
         </h2>
         <p className="text-primary-foreground/80 text-sm mb-8">
@@ -51,7 +51,7 @@ export default function SignIn() {
             { value: "12,400+", label: "Active followers" },
           ].map(s => (
             <div key={s.label} className="bg-white/10 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold">{s.value}</p>
+              <p className="text-xl font-medium">{s.value}</p>
               <p className="text-xs text-primary-foreground/70">{s.label}</p>
             </div>
           ))}
@@ -62,7 +62,7 @@ export default function SignIn() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8"><StoaLogo /></div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">Welcome back</h1>
+          <h1 className="text-2xl font-medium text-foreground mb-1">Welcome back</h1>
           <p className="text-sm text-muted-foreground mb-6">Sign in to your account</p>
 
           <Button onClick={handleGoogle} variant="outline" className="w-full gap-2 mb-4">

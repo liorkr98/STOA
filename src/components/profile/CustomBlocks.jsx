@@ -164,7 +164,7 @@ function TextEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Section title (optional, e.g. 'My methodology')"
-        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
+        className="w-full text-sm font-medium border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <textarea
         value={block.content || ""}
@@ -186,14 +186,14 @@ function ImageEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Title (optional)"
-        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
+        className="w-full text-sm font-medium border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <input
         type="url"
         value={block.url || ""}
         onChange={e => onChange({ ...block, url: e.target.value })}
         placeholder="Image URL (e.g. https://i.imgur.com/...)"
-        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-mono"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-display"
       />
       <input
         type="text"
@@ -226,7 +226,7 @@ function LinksEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Section title (e.g. 'Find me elsewhere')"
-        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
+        className="w-full text-sm font-medium border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <div className="space-y-1.5">
         {links.map((link, idx) => {
@@ -248,7 +248,7 @@ function LinksEditor({ block, onChange }) {
                 value={link.url || ""}
                 onChange={e => updateLink(idx, { url: e.target.value })}
                 placeholder="https://…"
-                className="flex-1 text-xs border border-border rounded px-2 py-1 bg-card focus:outline-none focus:border-primary font-mono"
+                className="flex-1 text-xs border border-border rounded px-2 py-1 bg-card focus:outline-none focus:border-primary font-display"
               />
               <button
                 onClick={() => removeLink(idx)}
@@ -263,7 +263,7 @@ function LinksEditor({ block, onChange }) {
       </div>
       <button
         onClick={addLink}
-        className="w-full text-xs font-semibold py-1.5 rounded-lg border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1"
+        className="w-full text-xs font-medium py-1.5 rounded-lg border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1"
       >
         <Plus className="w-3 h-3" /> Add link
       </button>
@@ -279,14 +279,14 @@ function ChartEditor({ block, onChange }) {
         value={block.title || ""}
         onChange={e => onChange({ ...block, title: e.target.value })}
         placeholder="Title (e.g. 'My top pick this month')"
-        className="w-full text-sm font-bold border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
+        className="w-full text-sm font-medium border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent"
       />
       <input
         type="text"
         value={block.ticker || ""}
         onChange={e => onChange({ ...block, ticker: e.target.value.toUpperCase() })}
         placeholder="Ticker (e.g. NVDA, AAPL, BTC-USD)"
-        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-mono"
+        className="w-full text-sm border border-dashed border-accent/50 rounded-tag px-3 py-1.5 bg-accent/5 focus:outline-none focus:border-accent font-display"
       />
       <p className="text-[10px] text-muted-foreground">Shows live price + % change. Links to the full stock page.</p>
     </div>

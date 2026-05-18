@@ -63,7 +63,7 @@ function FinTable({ title, rows, statements }) {
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden mb-4">
       <div className="px-5 py-3 border-b border-border bg-secondary/30">
-        <h3 className="font-semibold text-sm">{title}</h3>
+        <h3 className="font-medium text-sm">{title}</h3>
         <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
           {cols.map((s, i) => (
             <span key={i}>{s.endDate?.fmt || `Year ${i}`}</span>

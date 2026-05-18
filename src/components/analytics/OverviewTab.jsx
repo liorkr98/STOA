@@ -59,21 +59,22 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
 
   return (
     <div className="space-y-6">
-      {/* KPI Row */}
+      {/* KPI Row — analytics aren't market positions; use primary/accent palette */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <AnalyticsKPICard icon="💰" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-green-600" />
-        <AnalyticsKPICard icon="👥" label="Subscribers" value={activeSubs.length} sub="Active paying" color="text-blue-600" />
-        <AnalyticsKPICard icon="👁" label="Total Views" value={totalLikes > 0 ? totalLikes : "—"} sub="Likes as proxy" color="text-purple-600" />
-        <AnalyticsKPICard icon="❤️" label="Engagement" value={engagement} sub="Likes + poll votes" color="text-pink-600" />
-        <AnalyticsKPICard icon="🎯" label="Accuracy" value={accuracy ? `${accuracy}%` : "—"} sub="On resolved calls" color={accuracy >= 60 ? "text-green-600" : "text-amber-600"} />
+        <AnalyticsKPICard icon="💰" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-accent" />
+        <AnalyticsKPICard icon="👥" label="Subscribers" value={activeSubs.length} sub="Active paying" color="text-primary" />
+        <AnalyticsKPICard icon="👁" label="Total Views" value={totalLikes > 0 ? totalLikes : "—"} sub="Likes as proxy" color="text-primary" />
+        <AnalyticsKPICard icon="❤️" label="Engagement" value={engagement} sub="Likes + poll votes" color="text-primary" />
+        {/* Accuracy IS a track-record signal — gain is acceptable when high */}
+        <AnalyticsKPICard icon="🎯" label="Accuracy" value={accuracy ? `${accuracy}%` : "—"} sub="On resolved calls" color={accuracy >= 60 ? "text-gain" : "text-foreground"} />
       </div>
 
       {/* MRR Chart */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm mb-4">Monthly Recurring Revenue</h3>
+      <div className="surface p-5">
+        <h3 className="font-medium text-sm mb-4">Monthly Recurring Revenue</h3>
         {!hasMRR ? (
           <div className="text-center py-8">
-            <p className="text-2xl font-bold text-muted-foreground/30 mb-2">$0</p>
+            <p className="text-2xl font-medium text-muted-foreground/30 mb-2">$0</p>
             <p className="text-sm text-muted-foreground">Publish premium reports to start earning</p>
             <div className="h-1 mt-4 w-full border-t-2 border-dashed border-border" />
           </div>
@@ -82,15 +83,15 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
             <AreaChart data={mrrChart}>
               <defs>
                 <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
               <Tooltip formatter={v => [`$${v}`, "MRR"]} />
-              <Area type="monotone" dataKey="MRR" stroke="#2563eb" strokeWidth={2} fill="url(#mrrGrad)" />
+              <Area type="monotone" dataKey="MRR" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#mrrGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -99,33 +100,33 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
       {/* Two charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Followers growth */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-4">Followers Growth (weekly)</h3>
+        <div className="surface p-5">
+          <h3 className="font-medium text-sm mb-4">Followers Growth (weekly)</h3>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={followersChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="week" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="followers" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="followers" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Engagement per report */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-4">Engagement per Report</h3>
+        <div className="surface p-5">
+          <h3 className="font-medium text-sm mb-4">Engagement per Report</h3>
           {publishedReports.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">No published reports yet</div>
           ) : (
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={engagementChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="likes" fill="#ec4899" radius={[3, 3, 0, 0]} name="Likes" />
-                <Bar dataKey="votes" fill="#8b5cf6" radius={[3, 3, 0, 0]} name="Votes" />
+                <Bar dataKey="likes" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} name="Likes" />
+                <Bar dataKey="votes" fill="hsl(var(--gold))" radius={[3, 3, 0, 0]} name="Votes" />
               </BarChart>
             </ResponsiveContainer>
           )}

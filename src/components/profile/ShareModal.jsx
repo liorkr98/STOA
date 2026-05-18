@@ -93,7 +93,7 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
             value={shareUrl}
             readOnly
             onFocus={e => e.target.select()}
-            className="flex-1 text-xs bg-secondary border border-border rounded-tag px-3 py-2 font-mono outline-none focus:border-primary"
+            className="flex-1 text-xs bg-secondary border border-border rounded-tag px-3 py-2 font-display outline-none focus:border-primary"
           />
           <button
             onClick={copyLink}

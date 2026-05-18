@@ -136,14 +136,14 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-medium text-sm">${ticker}</span>
+            <span className="font-display font-medium text-sm">${ticker}</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{tf}</span>
           </div>
           <p className="text-[10px] text-muted-foreground truncate">{name}</p>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="font-mono font-bold text-sm">${last.toFixed(2)}</p>
-          <p className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <p className="font-display font-medium text-sm">${last.toFixed(2)}</p>
+          <p className={`text-[10px] font-medium flex items-center justify-end gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{change.toFixed(2)}%
           </p>

@@ -45,7 +45,7 @@ function Section({ title, children, defaultOpen = true }) {
   return (
     <div className="mb-8">
       <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full mb-4 group">
-        <h2 className="text-lg font-semibold group-hover:text-primary transition-colors">{title}</h2>
+        <h2 className="text-lg font-medium group-hover:text-primary transition-colors">{title}</h2>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
       {open && children}
@@ -57,7 +57,7 @@ export default function CalculationsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold mb-2">Scoring & Calculations</h1>
+        <h1 className="text-3xl font-medium mb-2">Scoring & Calculations</h1>
         <p className="text-muted-foreground">How STOA calculates analyst accuracy scores using a Modified Elo engine. Fully transparent and verifiable.</p>
         <div className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-xl text-xs text-primary font-medium">
           <Activity className="w-3.5 h-3.5" />
@@ -76,9 +76,9 @@ export default function CalculationsPage() {
               { step: "3", title: "Display score = (Elo − 600) / 8", desc: "Maps the 600–1400 Elo range onto a 0–100 display scale. 1000 Elo = 50 pts. 1400 Elo = 100 pts. Requires many consistent wins to reach top tiers." },
             ].map(s => (
               <div key={s.step} className="flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{s.step}</div>
+                <div className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-medium">{s.step}</div>
                 <div>
-                  <p className="text-sm font-semibold">{s.title}</p>
+                  <p className="text-sm font-medium">{s.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
                 </div>
               </div>
@@ -86,7 +86,7 @@ export default function CalculationsPage() {
           </div>
           <div className="flex items-start gap-2 bg-secondary border border-border rounded-xl px-4 py-3">
             <Info className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground font-mono">Δ Elo = K × (Actual − 0.5)  where Actual = 1 (win) or 0 (loss)</p>
+            <p className="text-xs text-muted-foreground font-display">Δ Elo = K × (Actual − 0.5)  where Actual = 1 (win) or 0 (loss)</p>
           </div>
         </div>
       </Section>
@@ -95,18 +95,18 @@ export default function CalculationsPage() {
       <Section title="Modified K-Factor — The Core Innovation">
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4 mb-4">
           <p className="text-sm text-muted-foreground">Standard Elo treats all wins equally. We weight K by three multipliers so that bold, high-alpha, long-timeframe calls matter more:</p>
-          <div className="bg-secondary rounded-xl px-4 py-3 font-mono text-xs text-center">
+          <div className="bg-secondary rounded-xl px-4 py-3 font-display text-xs text-center">
             K_modified = K_base(16) × α_mult × boldness_mult × timeframe_mult
           </div>
 
           {/* Alpha multiplier table */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Alpha Multiplier (excess return vs SPY benchmark, annualized)</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Alpha Multiplier (excess return vs SPY benchmark, annualized)</p>
             <div className="grid grid-cols-3 gap-1.5">
               {K_ALPHA.map(row => (
                 <div key={row.alpha} className="bg-secondary rounded-lg px-3 py-2 text-center">
                   <p className="text-[10px] text-muted-foreground">{row.alpha}</p>
-                  <p className={`text-sm font-bold ${row.color}`}>{row.mult}</p>
+                  <p className={`text-sm font-medium ${row.color}`}>{row.mult}</p>
                 </div>
               ))}
             </div>
@@ -114,14 +114,14 @@ export default function CalculationsPage() {
 
           {/* Boldness */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Boldness Multiplier</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Boldness Multiplier</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-gain/10 border border-gain/20 rounded-lg px-3 py-2">
-                <p className="font-semibold text-gain">×1.3 Bold call</p>
+                <p className="font-medium text-gain">×1.3 Bold call</p>
                 <p className="text-muted-foreground mt-0.5">Target move ≥ 2× timeframe noise floor (e.g. ≥4% for SHORT)</p>
               </div>
               <div className="bg-secondary border border-border rounded-lg px-3 py-2">
-                <p className="font-semibold text-muted-foreground">×0.5 Weak call</p>
+                <p className="font-medium text-muted-foreground">×0.5 Weak call</p>
                 <p className="text-muted-foreground mt-0.5">Sub-noise move — anti-spam filter. HOLD calls get ×0.8.</p>
               </div>
             </div>
@@ -137,18 +137,18 @@ export default function CalculationsPage() {
             <thead className="bg-secondary">
               <tr>
                 {["Bucket", "Range", "HOLD Success Window", "Bold Noise Threshold", "K Timeframe Mult"].map(h => (
-                  <th key={h} className="px-3 py-2.5 text-left font-semibold text-muted-foreground">{h}</th>
+                  <th key={h} className="px-3 py-2.5 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {TIMEFRAMES.map((row, i) => (
                 <tr key={row.key} className={i % 2 === 0 ? "bg-card" : "bg-secondary/40"}>
-                  <td className="px-3 py-2.5 font-semibold">{row.label}</td>
+                  <td className="px-3 py-2.5 font-medium">{row.label}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{row.range}</td>
                   <td className="px-3 py-2.5 text-primary font-medium">{row.holdWindow}</td>
                   <td className="px-3 py-2.5">{row.boldNoise}</td>
-                  <td className="px-3 py-2.5 font-bold text-foreground">{row.kmult}</td>
+                  <td className="px-3 py-2.5 font-medium text-foreground">{row.kmult}</td>
                 </tr>
               ))}
             </tbody>
@@ -168,7 +168,7 @@ export default function CalculationsPage() {
               <span className="text-2xl">{t.icon}</span>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className={`font-bold text-sm ${t.color}`}>{t.tier}</span>
+                  <span className={`font-medium text-sm ${t.color}`}>{t.tier}</span>
                   <span className="text-xs text-muted-foreground">Score {t.min}–{t.max} · Elo {t.elo}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{t.desc}</p>
@@ -185,16 +185,16 @@ export default function CalculationsPage() {
             <thead className="bg-secondary">
               <tr>
                 {["Call", "Elo Delta", "Display Score", "Note"].map(h => (
-                  <th key={h} className="px-3 py-2.5 text-left font-semibold text-muted-foreground">{h}</th>
+                  <th key={h} className="px-3 py-2.5 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {EXAMPLES.map((r, i) => (
                 <tr key={i} className={i % 2 === 0 ? "bg-card" : "bg-secondary/40"}>
-                  <td className="px-3 py-2.5 font-mono">{r.call}</td>
-                  <td className="px-3 py-2.5 font-semibold text-primary">{r.elo_delta}</td>
-                  <td className="px-3 py-2.5 font-bold">{r.score}</td>
+                  <td className="px-3 py-2.5 font-display">{r.call}</td>
+                  <td className="px-3 py-2.5 font-medium text-primary">{r.elo_delta}</td>
+                  <td className="px-3 py-2.5 font-medium">{r.score}</td>
                   <td className="px-3 py-2.5 text-muted-foreground italic">{r.note}</td>
                 </tr>
               ))}
@@ -214,9 +214,9 @@ export default function CalculationsPage() {
                 <div className="flex items-start gap-3">
                   <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${tier.color}`} />
                   <div>
-                    <p className="text-sm font-semibold mb-1">{tier.title}</p>
+                    <p className="text-sm font-medium mb-1">{tier.title}</p>
                     <p className="text-xs text-foreground/80 mb-1.5">{tier.desc}</p>
-                    <p className="text-[11px] text-muted-foreground font-mono bg-white/50 rounded-lg px-3 py-1.5 inline-block">{tier.example}</p>
+                    <p className="text-[11px] text-muted-foreground font-display bg-white/50 rounded-lg px-3 py-1.5 inline-block">{tier.example}</p>
                   </div>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function CalculationsPage() {
             ].map(r => (
               <div key={r.sector} className="bg-secondary rounded-lg px-3 py-2 flex justify-between">
                 <span className="font-medium">{r.sector}</span>
-                <span className="text-primary font-bold">{r.bonus}</span>
+                <span className="text-primary font-medium">{r.bonus}</span>
               </div>
             ))}
           </div>
@@ -250,8 +250,8 @@ export default function CalculationsPage() {
 
       {/* Transparency */}
       <div className="bg-secondary border border-border rounded-2xl p-5 text-sm text-muted-foreground">
-        <p className="font-semibold text-foreground mb-2">Transparency commitment</p>
-        <p>All scoring logic is open, documented here, and applied consistently. No analyst pays to improve their score. Scores update automatically when predictions are resolved. Source: <span className="font-mono text-xs">lib/accuracyScore.js</span>.</p>
+        <p className="font-medium text-foreground mb-2">Transparency commitment</p>
+        <p>All scoring logic is open, documented here, and applied consistently. No analyst pays to improve their score. Scores update automatically when predictions are resolved. Source: <span className="font-display text-xs">lib/accuracyScore.js</span>.</p>
       </div>
     </div>
   );

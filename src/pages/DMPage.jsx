@@ -150,12 +150,12 @@ export default function DMPage() {
       <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl mb-4">
         {other.picture
           ? <img src={other.picture} alt={displayName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-          : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary flex-shrink-0">
+          : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary flex-shrink-0">
               {displayName[0]}
             </div>
         }
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">{displayName}</p>
+          <p className="font-medium text-sm">{displayName}</p>
           {other.tagline && <p className="text-xs text-muted-foreground truncate">{other.tagline}</p>}
         </div>
         <Link
@@ -182,7 +182,7 @@ export default function DMPage() {
               {!isMe && (
                 other.picture
                   ? <img src={other.picture} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mb-1" />
-                  : <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0 mb-1">
+                  : <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0 mb-1">
                       {displayName[0]}
                     </div>
               )}

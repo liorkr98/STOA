@@ -47,7 +47,7 @@ export default function NewsroomPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Newsroom
         </button>
         <p className="text-xs text-muted-foreground mb-2">{open.date}</p>
-        <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "Lora, Georgia, serif" }}>{open.title}</h1>
+        <h1 className="text-2xl font-medium mb-4" style={{ fontFamily: "Lora, Georgia, serif" }}>{open.title}</h1>
         <p className="text-base text-foreground/85 leading-relaxed whitespace-pre-line">{open.body}</p>
       </div>
     );
@@ -55,7 +55,7 @@ export default function NewsroomPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "Lora, Georgia, serif" }}>Newsroom</h1>
+      <h1 className="text-3xl font-medium mb-2" style={{ fontFamily: "Lora, Georgia, serif" }}>Newsroom</h1>
       <p className="text-muted-foreground mb-8">Latest news and updates from STOA.</p>
       <div className="space-y-4">
         {NEWS.map((item, i) => (
@@ -67,7 +67,7 @@ export default function NewsroomPage() {
           >
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground mb-1">{item.date}</p>
-              <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors">{item.title}</h3>
+              <h3 className="font-medium text-base mb-2 group-hover:text-primary transition-colors">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.excerpt}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />

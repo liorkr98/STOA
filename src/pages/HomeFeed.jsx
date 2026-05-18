@@ -312,7 +312,7 @@ export default function HomeFeed() {
           {/* Page title + FOMO counter */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-lg font-bold text-foreground">Research Feed</h1>
+              <h1 className="text-lg font-medium text-foreground">Research Feed</h1>
               {!loading && (
                 <p className="text-xs text-muted-foreground">
                   {totalReports} reports{newSinceLastVisit > 0 ? ` · ` : ""}
@@ -391,7 +391,7 @@ export default function HomeFeed() {
                 // to go.
                 <div className="text-center py-16">
                   <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-semibold text-foreground">No researchers to show yet</p>
+                  <p className="font-medium text-foreground">No researchers to show yet</p>
                   <p className="text-sm text-muted-foreground mt-1 mb-4">
                     Researchers will appear here as the platform grows.
                   </p>
@@ -414,7 +414,7 @@ export default function HomeFeed() {
               ) : (
                 <div className="text-center py-16">
                   <Search className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-semibold text-foreground">No reports match your current filters</p>
+                  <p className="font-medium text-foreground">No reports match your current filters</p>
                   <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back soon</p>
                   {prefActiveCount > 0 && (
                     <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={clearPrefs}>Clear Filters</Button>

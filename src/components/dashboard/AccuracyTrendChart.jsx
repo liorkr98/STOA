@@ -22,9 +22,9 @@ export default function AccuracyTrendChart() {
     <div className="bg-card border border-border rounded-2xl p-5 mb-6">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-sm">Performance Trend</h2>
+          <h2 className="font-medium text-sm">Performance Trend</h2>
           <p className="text-xs text-muted-foreground">
-            Current: <span className={isAccuracy ? "text-primary font-semibold" : "text-amber-600 font-semibold"}>
+            Current: <span className={isAccuracy ? "text-primary font-medium" : "text-amber-600 font-medium"}>
               {isAccuracy ? `${currentVal}%` : `+${currentVal}%`}
             </span>
             <span className="ml-2 text-muted-foreground/60">vs S&P 500: +12%</span>

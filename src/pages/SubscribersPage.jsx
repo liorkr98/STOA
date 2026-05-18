@@ -17,17 +17,17 @@ function AnalystCard({ entry, type, onUnfollow, onUnsubscribe }) {
   return (
     <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 hover:border-primary/30 transition-all">
       <Link to={`/analyst?id=${entry.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-10 h-10 rounded-full bg-primary/10 border border-border flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 overflow-hidden">
+        <div className="w-10 h-10 rounded-full bg-primary/10 border border-border flex items-center justify-center text-sm font-medium text-primary flex-shrink-0 overflow-hidden">
           {entry.avatar
             ? <img src={entry.avatar} alt={entry.name} className="w-full h-full object-cover" />
             : (entry.name?.[0] || "A").toUpperCase()
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{entry.name || "Researcher"}</p>
+          <p className="font-medium text-sm truncate">{entry.name || "Researcher"}</p>
           <div className="flex items-center gap-2 mt-0.5">
             {entry.accuracy != null && (
-              <span className="flex items-center gap-0.5 text-[11px] text-gain font-semibold">
+              <span className="flex items-center gap-0.5 text-[11px] text-gain font-medium">
                 <BadgeCheck className="w-3 h-3" />{entry.accuracy.toFixed(1)}%
               </span>
             )}
@@ -131,7 +131,7 @@ export default function SubscribersPage() {
       <div className="flex items-center gap-3 mb-6">
         <Star className="w-5 h-5 text-primary" />
         <div>
-          <h1 className="text-xl font-bold">My Connections</h1>
+          <h1 className="text-xl font-medium">My Connections</h1>
           <p className="text-sm text-muted-foreground">Manage subscriptions and followed researchers</p>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function SubscribersPage() {
             >
               <Icon className="w-4 h-4" />
               {t.label}
-              <span className={`text-xs px-1.5 py-0 rounded-tag font-semibold ${tab === t.key ? "bg-primary text-white" : "bg-border text-muted-foreground"}`}>
+              <span className={`text-xs px-1.5 py-0 rounded-tag font-medium ${tab === t.key ? "bg-primary text-white" : "bg-border text-muted-foreground"}`}>
                 {count}
               </span>
             </button>
@@ -174,15 +174,15 @@ export default function SubscribersPage() {
       {tab === "subscribers" && subscribers.length > 0 && (
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4 flex gap-6">
           <div className="text-center">
-            <p className="text-xl font-bold text-primary">{subscribers.length}</p>
+            <p className="text-xl font-medium text-primary">{subscribers.length}</p>
             <p className="text-xs text-muted-foreground">Subscriptions</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-primary">{subscribers.filter(s => s.plan?.dm).length}</p>
+            <p className="text-xl font-medium text-primary">{subscribers.filter(s => s.plan?.dm).length}</p>
             <p className="text-xs text-muted-foreground">With DM Access</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-amber-600">
+            <p className="text-xl font-medium text-amber-600">
               ${subscribers.reduce((sum, s) => sum + (s.plan?.price || 0), 0).toFixed(0)}
             </p>
             <p className="text-xs text-muted-foreground">Total/mo</p>

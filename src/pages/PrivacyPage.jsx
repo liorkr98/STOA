@@ -21,7 +21,7 @@ const SECTIONS = [
 function SectionBlock({ id, title, children }) {
   return (
     <div id={id} className="mb-10 scroll-mt-24">
-      <h2 className="text-xl font-bold mb-4 text-foreground">{title}</h2>
+      <h2 className="text-xl font-medium mb-4 text-foreground">{title}</h2>
       <div className="text-sm text-foreground/80 leading-relaxed space-y-3">{children}</div>
     </div>
   );
@@ -68,11 +68,11 @@ export default function PrivacyPage() {
         {/* Sidebar */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-24 bg-secondary rounded-xl p-4 border border-border">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">On This Page</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">On This Page</p>
             <nav className="space-y-1">
               {SECTIONS.map(s => (
                 <a key={s.id} href={`#${s.id}`}
-                  className={`block text-xs py-1.5 px-2 rounded-lg transition-colors truncate ${active === s.id ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`block text-xs py-1.5 px-2 rounded-lg transition-colors truncate ${active === s.id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>
                   {s.title}
                 </a>
               ))}

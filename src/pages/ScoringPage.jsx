@@ -43,7 +43,7 @@ export default function ScoringPage() {
 
       {/* Section 1: Elo System */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-3">Accuracy Score (Elo-Based)</h2>
+        <h2 className="text-2xl font-medium mb-3">Accuracy Score (Elo-Based)</h2>
         <p className="text-muted-foreground mb-6 leading-relaxed">
           STOA uses a modified Elo rating system — the same system used to rank chess players — to calculate researcher accuracy. Every prediction outcome updates the researcher's Elo rating dynamically.
         </p>
@@ -55,21 +55,21 @@ export default function ScoringPage() {
           ].map((item, i) => (
             <div key={i} className="bg-secondary rounded-xl p-4 text-center border border-border">
               <div className={`text-2xl font-medium mb-1 ${item.color}`}>{item.val}</div>
-              <div className="text-sm font-semibold text-foreground mb-1">{item.label}</div>
+              <div className="text-sm font-medium text-foreground mb-1">{item.label}</div>
               <div className="text-xs text-muted-foreground">{item.desc}</div>
             </div>
           ))}
         </div>
-        <div className="bg-slate-50 border border-border rounded-xl p-4">
-          <p className="text-xs font-mono text-muted-foreground mb-1">Score Formula</p>
-          <p className="font-mono text-sm text-foreground">Accuracy Score (%) = (Elo Rating − 600) ÷ 8</p>
+        <div className="bg-secondary border border-border rounded-xl p-4">
+          <p className="text-xs font-display text-muted-foreground mb-1">Score Formula</p>
+          <p className="font-display text-sm text-foreground">Accuracy Score (%) = (Elo Rating − 600) ÷ 8</p>
           <p className="text-xs text-muted-foreground mt-2">Example: Elo 1400 → Score = (1400 − 600) / 8 = 100%</p>
         </div>
       </div>
 
       {/* Section 2: Outcomes */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-6">Prediction Outcomes</h2>
+        <h2 className="text-2xl font-medium mb-6">Prediction Outcomes</h2>
         <div className="space-y-3">
           {OUTCOMES.map((o, i) => {
             const Icon = o.icon;
@@ -88,7 +88,7 @@ export default function ScoringPage() {
 
       {/* Section 3: Yield Calculation */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-3">How Yield Is Calculated</h2>
+        <h2 className="text-2xl font-medium mb-3">How Yield Is Calculated</h2>
         <p className="text-muted-foreground mb-6">Average yield measures the actual return on resolved predictions.</p>
         <div className="space-y-3 mb-6">
           {[
@@ -96,9 +96,9 @@ export default function ScoringPage() {
             { label: "SHORT prediction", formula: "Yield = ((Lock Price − Resolved Price) / Lock Price) × 100%", example: "Lock $100 → Resolve $82 = +18.0%" },
             { label: "Average Yield", formula: "Avg Yield = Sum of all resolved yields ÷ Number of resolved predictions", example: null },
           ].map((item, i) => (
-            <div key={i} className="bg-slate-50 border border-border rounded-xl p-4">
-              <p className="text-xs font-semibold text-muted-foreground mb-1">{item.label}</p>
-              <p className="font-mono text-sm text-foreground">{item.formula}</p>
+            <div key={i} className="bg-secondary border border-border rounded-xl p-4">
+              <p className="text-xs font-medium text-muted-foreground mb-1">{item.label}</p>
+              <p className="font-display text-sm text-foreground">{item.formula}</p>
               {item.example && <p className="text-xs text-muted-foreground mt-1">e.g. {item.example}</p>}
             </div>
           ))}
@@ -110,7 +110,7 @@ export default function ScoringPage() {
 
       {/* Section 4: Tiers */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-6">Researcher Tiers & Badges</h2>
+        <h2 className="text-2xl font-medium mb-6">Researcher Tiers & Badges</h2>
         <div className="space-y-3">
           {TIERS.map((tier, i) => (
             <div key={i} style={{ background: tier.bg, border: `1px solid ${tier.border}`, borderRadius: 12, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }}>
@@ -129,7 +129,7 @@ export default function ScoringPage() {
 
       {/* Section 5: Streak */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-3">Win Streaks 🔥</h2>
+        <h2 className="text-2xl font-medium mb-3">Win Streaks 🔥</h2>
         <p className="text-muted-foreground leading-relaxed">
           A win streak is the number of <strong>consecutive HIT or NEAR HIT predictions</strong>. Streaks are displayed on researcher profiles and feed cards to show current momentum. Streaks reset on any MISS or PARTIAL outcome.
         </p>
@@ -137,18 +137,18 @@ export default function ScoringPage() {
 
       {/* Section 6: Leaderboard */}
       <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-3">Leaderboard Ranking</h2>
+        <h2 className="text-2xl font-medium mb-3">Leaderboard Ranking</h2>
         <p className="text-muted-foreground leading-relaxed mb-4">
           Rankings are calculated based on <strong>Accuracy Score (primary)</strong>, then by <strong>Total Resolved Calls (secondary tiebreaker)</strong>. Researchers need at least <strong>3 resolved predictions</strong> to appear in the leaderboard.
         </p>
-        <Link to="/leaderboard" className="inline-flex items-center gap-2 text-sm text-primary font-semibold hover:underline">
+        <Link to="/leaderboard" className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline">
           View Leaderboard →
         </Link>
       </div>
 
       {/* Section 7: Fairness */}
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 mb-8">
-        <h2 className="text-2xl font-bold mb-3">Fairness & Transparency</h2>
+        <h2 className="text-2xl font-medium mb-3">Fairness & Transparency</h2>
         <div className="space-y-3 text-sm text-foreground/80 leading-relaxed">
           <p>✅ All scores are calculated by algorithm, not manually set by any human.</p>
           <p>✅ Researchers cannot edit or delete predictions after locking — all calls are immutable.</p>
@@ -156,7 +156,7 @@ export default function ScoringPage() {
           <p>✅ Scores reflect only resolved predictions with actual price data.</p>
         </div>
         <div className="mt-4">
-          <Link to="/analytics" className="inline-flex items-center gap-2 text-sm text-primary font-semibold hover:underline">
+          <Link to="/analytics" className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline">
             View Analytics Dashboard →
           </Link>
         </div>

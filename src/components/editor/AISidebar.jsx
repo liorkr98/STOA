@@ -274,7 +274,7 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             value={topic}
             onChange={e => setTopic(e.target.value.toUpperCase())}
             placeholder={mode === "elite" ? "Ticker e.g. NVDA, AAPL, TSLA..." : "e.g. NVIDIA, Tesla, Bitcoin..."}
-            className="mb-4 font-mono"
+            className="mb-4 font-display"
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             autoFocus
           />

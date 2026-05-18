@@ -901,7 +901,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                       <FolderOpen className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Drafts</span>
                       {drafts.length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-medium rounded-full flex items-center justify-center">
                           {drafts.length}
                         </span>
                       )}
@@ -936,7 +936,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium truncate flex items-center gap-1.5">
                                   {d.title || "Untitled Draft"}
-                                  {isCurrent && <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
+                                  {isCurrent && <span className="text-[8px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
                               </div>
@@ -1016,13 +1016,13 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                     {brandName && <span style={{ fontSize: 9, fontWeight: 700, color: themeObj?.text, opacity: 0.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{brandName}</span>}
                   </div>
                 )}
-                <h2 style={{ color: accentColor }} className="text-2xl font-bold mb-2">{title || "Your Report Title"}</h2>
+                <h2 style={{ color: accentColor }} className="text-2xl font-medium mb-2">{title || "Your Report Title"}</h2>
                 {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
                 <div className="space-y-3">
                   {blocks.slice(0, 5).filter(b => b.content || b.type === "divider").map((b, i) => (
                     <div key={i}>
-                      {b.type === "heading" && <h3 style={{ color: accentColor }} className="text-xl font-bold">{b.content}</h3>}
-                      {b.type === "heading2" && <h4 style={{ color: accentColor }} className="text-lg font-semibold">{b.content}</h4>}
+                      {b.type === "heading" && <h3 style={{ color: accentColor }} className="text-xl font-medium">{b.content}</h3>}
+                      {b.type === "heading2" && <h4 style={{ color: accentColor }} className="text-lg font-medium">{b.content}</h4>}
                       {b.type === "text" && <p className="text-sm leading-relaxed">{b.content?.slice(0, 200)}{b.content?.length > 200 ? "..." : ""}</p>}
                       {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{(b.content || "").split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
                       {b.type === "quote" && <blockquote style={{ borderLeftColor: accentColor }} className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
@@ -1092,7 +1092,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
               {(brandName || brandLogo) && (
                 <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border" dir="ltr">
                   {brandLogo && <img src={brandLogo} alt={brandName} className="h-7 object-contain" onError={e => e.currentTarget.style.display = "none"} />}
-                  {brandName && <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{brandName}</span>}
+                  {brandName && <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{brandName}</span>}
                 </div>
               )}
 
@@ -1103,7 +1103,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                 placeholder="Report title..."
                 rows={1}
                 dir={isRTL ? "rtl" : "ltr"}
-                className="w-full text-3xl md:text-4xl font-bold text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
+                className="w-full text-3xl md:text-4xl font-medium text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
                 style={{ fontFamily: fontObj?.style?.fontFamily, color: accentColor !== "#1d4ed8" ? accentColor : undefined }}
                 onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
               />
@@ -1197,7 +1197,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                                       key={key}
                                       onClick={() => updateBlock(block.id, { blockAlign: key === "full" ? undefined : key })}
                                       title={title}
-                                      className={`text-[9px] font-mono px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                                      className={`text-[9px] font-display px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
                                     >
                                       {label}
                                     </button>
@@ -1245,7 +1245,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
                         <DropdownMenuItem onClick={() => addBlock(bt.type)} className="cursor-pointer">
                           <Icon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
                           {bt.label}
-                          <span className="ml-auto text-[10px] text-muted-foreground font-mono">{bt.shortcut}</span>
+                          <span className="ml-auto text-[10px] text-muted-foreground font-display">{bt.shortcut}</span>
                         </DropdownMenuItem>
                       </React.Fragment>
                     );
@@ -1279,7 +1279,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
             <div className="space-y-3">
               {/* Publish card */}
               <div className="bg-card border border-border rounded-xl p-3">
-                <h3 className="text-xs font-semibold mb-2 flex items-center gap-2">
+                <h3 className="text-xs font-medium mb-2 flex items-center gap-2">
                   <Send className="w-3 h-3 text-primary" /> Publish
                 </h3>
                 <div className="space-y-2">
@@ -1339,7 +1339,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
               {/* Stats */}
               <div className="bg-secondary/50 border border-border rounded-xl p-3">
-                <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Stats</h3>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Stats</h3>
                 <div className="space-y-1.5">
                   {[
                     { label: "Words", value: <span className={wordCountColor}>{wordCount}</span> },
@@ -1358,7 +1358,7 @@ Report:"""${fullText.slice(0, 3000)}"""`,
 
               {/* Tips */}
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-                <h3 className="text-xs font-semibold text-primary mb-1.5 flex items-center gap-1">
+                <h3 className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> Tips
                 </h3>
                 <ul className="space-y-1 text-[10px] text-muted-foreground">

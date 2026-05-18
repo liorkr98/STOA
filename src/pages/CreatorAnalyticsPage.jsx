@@ -58,7 +58,7 @@ function Trend({ value }) {
   if (value == null) return <span className="text-[11px] text-muted-foreground">—</span>;
   const up = value >= 0;
   return (
-    <span className={`flex items-center gap-0.5 text-[11px] font-semibold ${up ? "text-green-500" : "text-red-500"}`}>
+    <span className={`flex items-center gap-0.5 text-[11px] font-medium ${up ? "text-primary" : "text-loss"}`}>
       {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
       {fmtPct(value)} from last period
     </span>
@@ -70,7 +70,7 @@ function KPICard({ label, value, trend, icon: Icon, iconBg, children }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>
             {Icon && <Icon className="w-3.5 h-3.5 text-white" />}
@@ -96,7 +96,7 @@ function SectionCard({ title, subtitle, action, children }) {
     <div className="bg-card border border-border rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-sm">{title}</h3>
+          <h3 className="font-medium text-sm">{title}</h3>
           {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
         {action}
@@ -113,7 +113,7 @@ const ChartTooltip = ({ active, payload, label }) => {
     <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
       <p className="text-muted-foreground mb-1">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color }} className="font-semibold">
+        <p key={i} style={{ color: p.color }} className="font-medium">
           {p.name}: {typeof p.value === "number" ? p.value.toLocaleString() : p.value}
         </p>
       ))}
@@ -230,7 +230,7 @@ export default function CreatorAnalyticsPage() {
       date: s.created_date,
       amount: `+$${s.price || 29}`,
       status: s.status === "active" ? "active" : "expired",
-      statusColor: s.status === "active" ? "text-green-600" : "text-muted-foreground",
+      statusColor: s.status === "active" ? "text-primary" : "text-muted-foreground",
     }));
     const txnEvents = transactions.slice(0, 20).map(t => ({
       id: `txn-${t.id}`,
@@ -240,7 +240,7 @@ export default function CreatorAnalyticsPage() {
       date: t.created_date,
       amount: t.amount ? `+$${t.amount}` : "+$—",
       status: "completed",
-      statusColor: "text-green-600",
+      statusColor: "text-primary",
     }));
     return [...subEvents, ...txnEvents]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -298,7 +298,7 @@ export default function CreatorAnalyticsPage() {
               <button
                 key={r.label}
                 onClick={() => setRange(r.label)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${range === r.label ? "bg-card shadow text-foreground border border-border" : "text-muted-foreground hover:text-foreground"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${range === r.label ? "bg-card shadow text-foreground border border-border" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {r.label}
               </button>
@@ -307,7 +307,7 @@ export default function CreatorAnalyticsPage() {
           <button onClick={() => setRefreshKey(k => k + 1)} className="p-2 rounded-xl border border-border bg-card hover:bg-secondary transition-colors" title="Refresh">
             <RefreshCw className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-semibold transition-colors">
+          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-medium transition-colors">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
         </div>
@@ -322,12 +322,12 @@ export default function CreatorAnalyticsPage() {
           <div className="relative z-10">
             <div className="flex items-center gap-1.5 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">Live Update</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-white/50">Live Update</span>
             </div>
             <p className="text-white/60 text-xs mb-1.5">{format(new Date(), "MMM d, yyyy")}</p>
             {scoring.total > 0 ? (
               <>
-                <p className="text-white text-base font-bold leading-snug mb-1">
+                <p className="text-white text-base font-medium leading-snug mb-1">
                   Prediction accuracy
                 </p>
                 <p className="text-3xl font-medium tabular-nums" style={{ color: "hsl(var(--accent))" }}>
@@ -338,7 +338,7 @@ export default function CreatorAnalyticsPage() {
               </>
             ) : (
               <>
-                <p className="text-white text-base font-bold leading-snug mb-1">
+                <p className="text-white text-base font-medium leading-snug mb-1">
                   {published.length > 0 ? "Keep publishing!" : "Start publishing reports"}
                 </p>
                 <p className="text-3xl font-medium" style={{ color: "hsl(var(--accent))" }}>
@@ -348,7 +348,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-white/40 text-[11px] mt-1">Total published to date</p>
               </>
             )}
-            <Link to="/analyst" className="flex items-center gap-1 text-[11px] font-semibold mt-3 hover:opacity-80 transition-opacity" style={{ color: "hsl(var(--accent))" }}>
+            <Link to="/analyst" className="flex items-center gap-1 text-[11px] font-medium mt-3 hover:opacity-80 transition-opacity" style={{ color: "hsl(var(--accent))" }}>
               See statistics <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -385,7 +385,7 @@ export default function CreatorAnalyticsPage() {
             title="Transactions"
             subtitle="Recent subscriber & unlock activity"
             action={
-              <button className="text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5">
+              <button className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5">
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             }
@@ -404,11 +404,11 @@ export default function CreatorAnalyticsPage() {
                       {tx.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{tx.title}</p>
+                      <p className="text-sm font-medium truncate">{tx.title}</p>
                       <p className="text-[10px] text-muted-foreground">{tx.sub}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`text-xs font-bold ${tx.statusColor}`}>{tx.amount}</p>
+                      <p className={`text-xs font-medium ${tx.statusColor}`}>{tx.amount}</p>
                       <p className="text-[10px] text-muted-foreground capitalize">{tx.status}</p>
                     </div>
                   </div>
@@ -426,7 +426,7 @@ export default function CreatorAnalyticsPage() {
             action={
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" />Views</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-400 inline-block" />Likes</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary/10 inline-block" />Likes</span>
               </div>
             }
           >
@@ -479,7 +479,7 @@ export default function CreatorAnalyticsPage() {
                     <div key={o.name} className="flex items-center gap-2 text-xs">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: o.color }} />
                       <span className="text-muted-foreground flex-1">{o.name}</span>
-                      <span className="font-bold">{o.value}</span>
+                      <span className="font-medium">{o.value}</span>
                     </div>
                   ))}
                 </div>
@@ -510,7 +510,7 @@ export default function CreatorAnalyticsPage() {
               <div className="text-center py-8 border border-dashed border-border rounded-xl">
                 <FileText className="w-7 h-7 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground mb-2">No published reports yet</p>
-                <Link to="/editor"><button className="text-xs font-semibold text-primary hover:underline">Write your first report</button></Link>
+                <Link to="/editor"><button className="text-xs font-medium text-primary hover:underline">Write your first report</button></Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -525,12 +525,12 @@ export default function CreatorAnalyticsPage() {
                       className="w-full text-left group"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold truncate max-w-[60%] group-hover:text-primary transition-colors">
+                        <span className="text-xs font-medium truncate max-w-[60%] group-hover:text-primary transition-colors">
                           {r.title}
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           {r.prediction_outcome && r.prediction_outcome !== "pending" && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-tag ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-primary" : isMiss ? "bg-loss/10 text-loss" : "bg-accent/10 text-accent"}`}>
                               {isHit ? "HIT" : isMiss ? "MISS" : (r.prediction_outcome || "").toUpperCase()}
                             </span>
                           )}
@@ -550,7 +550,7 @@ export default function CreatorAnalyticsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-muted-foreground">♥ {r.likes || 0}</span>
-                        {r.is_premium && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-tag">Premium</span>}
+                        {r.is_premium && <span className="text-[9px] font-medium text-accent bg-accent/10 border border-accent/30 px-1.5 py-0.5 rounded-tag">Premium</span>}
                         <span className="text-[10px] text-muted-foreground ml-auto">{format(new Date(r.created_date), "MMM d")}</span>
                       </div>
                     </button>
@@ -567,7 +567,7 @@ export default function CreatorAnalyticsPage() {
             title="Active Subscribers"
             subtitle={`${activeSubs.length} paying subscribers`}
             action={
-              <span className="text-[10px] font-bold text-gain bg-gain/10 border border-gain/20 px-2 py-0.5 rounded-tag">
+              <span className="text-[10px] font-medium text-gain bg-gain/10 border border-gain/20 px-2 py-0.5 rounded-tag">
                 ${mrr}/mo
               </span>
             }
@@ -582,16 +582,16 @@ export default function CreatorAnalyticsPage() {
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {activeSubs.map(sub => (
                   <div key={sub.id} className="flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-secondary/50 transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary shrink-0 overflow-hidden">
                       {sub.analyst_avatar
                         ? <img src={sub.analyst_avatar} alt="" className="w-full h-full object-cover" />
                         : (sub.subscriber_email?.[0] || "?").toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{sub.subscriber_email?.split("@")[0]}</p>
+                      <p className="text-xs font-medium truncate">{sub.subscriber_email?.split("@")[0]}</p>
                       <p className="text-[10px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
                     </div>
-                    <span className="text-xs font-bold text-green-600 shrink-0">${sub.price || 29}</span>
+                    <span className="text-xs font-medium text-primary shrink-0">${sub.price || 29}</span>
                   </div>
                 ))}
               </div>
@@ -603,30 +603,30 @@ export default function CreatorAnalyticsPage() {
         <div className="lg:col-span-3 flex flex-col gap-5">
           {/* Revenue Projector */}
           <div className="bg-card border border-border rounded-2xl p-5 flex-1">
-            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" /> Revenue Projector
+            <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-accent" /> Revenue Projector
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide block mb-1">Price ($/mo)</label>
+                <label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1">Price ($/mo)</label>
                 <input
                   type="number"
                   value={subPrice}
                   onChange={e => setSubPrice(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide block mb-1">
+                <label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1">
                   Target subs: <span className="text-foreground">{targetSubs}</span>
                 </label>
                 <input type="range" min={1} max={200} value={targetSubs} onChange={e => setTargetSubs(+e.target.value)} className="w-full accent-primary" />
               </div>
               <div className="grid grid-cols-3 gap-1.5 pt-1">
                 {[
-                  { label: "MRR", value: `$${projMRR.toLocaleString()}`, color: "text-green-600", bg: "bg-green-50" },
-                  { label: "Annual", value: `$${(projAnnual/1000).toFixed(0)}k`, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Net", value: `$${projNet.toLocaleString()}`, color: "text-purple-600", bg: "bg-purple-50" },
+                  { label: "MRR", value: `$${projMRR.toLocaleString()}`, color: "text-primary", bg: "bg-primary/10" },
+                  { label: "Annual", value: `$${(projAnnual/1000).toFixed(0)}k`, color: "text-primary", bg: "bg-primary/10" },
+                  { label: "Net", value: `$${projNet.toLocaleString()}`, color: "text-accent", bg: "bg-accent/10" },
                 ].map(s => (
                   <div key={s.label} className={`${s.bg} rounded-xl p-2 text-center border border-border/40`}>
                     <p className={`text-sm font-medium ${s.color}`}>{s.value}</p>
@@ -649,7 +649,7 @@ export default function CreatorAnalyticsPage() {
                 Unlock advanced insights, audience demographics, and revenue tools.
               </p>
               <Link to="/editor">
-                <button className="w-full py-2 rounded-xl font-bold text-xs transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent)/0.8))", color: "#1a1050" }}>
+                <button className="w-full py-2 rounded-xl font-medium text-xs transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent)/0.8))", color: "#1a1050" }}>
                   Write a Premium Report
                 </button>
               </Link>
@@ -700,10 +700,10 @@ export default function CreatorAnalyticsPage() {
             {[
               { label: "Total Calls",  value: scoring.total || 0,                            color: "text-foreground" },
               { label: "Hit Rate",     value: scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "—", color: "text-primary" },
-              { label: "Avg Yield",    value: formatYield(avgYield),                          color: avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-green-600" : "text-red-500" },
-              { label: "Hits",         value: scoring.hits || 0,                              color: "text-green-600" },
-              { label: "Misses",       value: scoring.misses || 0,                            color: "text-red-500" },
-              { label: "Pending",      value: (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) > 0 ? (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) : 0, color: "text-amber-500" },
+              { label: "Avg Yield",    value: formatYield(avgYield),                          color: avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-primary" : "text-loss" },
+              { label: "Hits",         value: scoring.hits || 0,                              color: "text-primary" },
+              { label: "Misses",       value: scoring.misses || 0,                            color: "text-loss" },
+              { label: "Pending",      value: (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) > 0 ? (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) : 0, color: "text-accent" },
             ].map(s => (
               <div key={s.label} className="bg-secondary rounded-xl p-3 text-center">
                 <p className={`text-xl font-medium ${s.color} tabular-nums`}>{s.value}</p>

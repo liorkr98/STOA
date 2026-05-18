@@ -51,7 +51,7 @@ const CREATOR_STATS = [
 
 export default function AppFooter() {
   return (
-    <footer className="mt-12 border-t border-border bg-slate-950 text-slate-300">
+    <footer className="mt-12 border-t border-border bg-slate-950 text-muted-foreground">
       {/* Creator value strip */}
       <div className="border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-6 py-5">
@@ -74,12 +74,12 @@ export default function AppFooter() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
             <StoaLogo size={28} textSize="text-base" light className="mb-3" />
-            <p className="text-xs leading-relaxed mb-3 text-slate-400">
+            <p className="text-xs leading-relaxed mb-3 text-muted-foreground">
               The platform for independent financial researchers. Publish research, lock predictions, build a verified track record.
             </p>
             <Link
               to="/editor"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
               style={{ color: "#E8CC6E" }}
             >
               <PenLine className="w-3.5 h-3.5" />
@@ -89,13 +89,13 @@ export default function AppFooter() {
 
           {FOOTER_COLS.map((col) => (
             <div key={col.label}>
-              <p className="text-xs font-semibold mb-3 uppercase tracking-wider text-slate-200">{col.label}</p>
+              <p className="text-xs font-medium mb-3 uppercase tracking-wider text-slate-200">{col.label}</p>
               <ul className="space-y-2">
                 {col.links.map((link) => (
                   <li key={link.path}>
                     <Link
                       to={link.path}
-                      className="text-xs text-slate-400 hover:text-slate-100 transition-colors"
+                      className="text-xs text-muted-foreground hover:text-slate-100 transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -107,8 +107,8 @@ export default function AppFooter() {
         </div>
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-800">
-          <p className="text-xs text-slate-400">© 2026 STOA. All rights reserved.</p>
-          <p className="text-xs text-slate-400 italic">Not financial advice. Always do your own research.</p>
+          <p className="text-xs text-muted-foreground">© 2026 STOA. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground italic">Not financial advice. Always do your own research.</p>
         </div>
       </div>
     </footer>
