@@ -193,7 +193,7 @@ export default function AnalystOnboarding({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-sm surface overflow-hidden">
+      <div className="relative w-full max-w-sm surface overflow-hidden" style={{ background: "hsl(var(--card))" }}>
         <button
           onClick={() => finish(null)}
           className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-secondary transition-colors z-10"

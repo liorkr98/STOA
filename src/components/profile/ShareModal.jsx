@@ -77,6 +77,7 @@ export default function ShareModal({ open, onClose, url, title = "Check this out
     >
       <div
         className="surface p-5 w-full max-w-sm"
+        style={{ background: "hsl(var(--card))" }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">

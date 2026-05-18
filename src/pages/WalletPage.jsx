@@ -296,7 +296,7 @@ export default function WalletPage() {
       {/* Withdraw modal */}
       {showWithdraw && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowWithdraw(false)}>
-          <div className="surface p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="surface p-6 w-full max-w-sm" style={{ background: "hsl(var(--card))" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-tag flex items-center justify-center bg-primary">
                 <ArrowUpRight className="w-5 h-5 text-primary-foreground" />

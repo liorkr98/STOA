@@ -739,7 +739,8 @@ export default function ReportView() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
              onClick={() => !deleting && setShowDeleteDialog(false)}>
           <div onClick={(e) => e.stopPropagation()}
-               className="surface max-w-md w-full p-6">
+               className="surface max-w-md w-full p-6"
+               style={{ background: "hsl(var(--card))" }}>
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-5 h-5 text-loss" />
               <h3 className="text-lg font-bold">Delete this report?</h3>

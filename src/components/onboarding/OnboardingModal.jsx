@@ -27,7 +27,7 @@ export default function OnboardingModal({ onComplete }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="surface w-full max-w-[420px] overflow-hidden">
+      <div className="surface w-full max-w-[420px] overflow-hidden" style={{ background: "hsl(var(--card))" }}>
         {/* Progress dots */}
         <div className="flex justify-center gap-2 pt-5 pb-4">
           {DOTS.map(d => (
