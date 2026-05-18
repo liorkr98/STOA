@@ -39,10 +39,10 @@ function FeaturedHero({ report, userMap, hasEngagement }) {
   return (
     <Link
       to={`/report?id=${report.id}`}
-      className="block bg-card border border-border rounded-2xl p-6 mb-5 hover:shadow-md transition-all group no-underline"
+      className="block surface surface-interactive p-6 mb-5 group no-underline"
     >
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+        <span className="text-[10px] font-medium uppercase tracking-widest text-primary">
           Featured Analysis
         </span>
         <div className="flex-1 h-px bg-border" />
@@ -50,7 +50,7 @@ function FeaturedHero({ report, userMap, hasEngagement }) {
           {hasEngagement ? "Top Rated This Week" : "Latest"}
         </span>
       </div>
-      <h2 className="text-xl font-bold leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif">
+      <h2 className="text-xl leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif font-medium">
         {report.title}
       </h2>
       {report.excerpt && (
@@ -59,20 +59,20 @@ function FeaturedHero({ report, userMap, hasEngagement }) {
         </p>
       )}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary overflow-hidden flex-shrink-0">
+        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary overflow-hidden flex-shrink-0">
           {authorAvatar
             ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
             : authorName[0]?.toUpperCase()}
         </div>
         <span className="text-xs font-medium text-foreground">{authorName}</span>
         {report.prediction_action && (
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
-            report.prediction_action === "Long" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${
+            report.prediction_action === "Long" ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
           }`}>
             {report.prediction_action}{report.prediction_ticker ? ` · ${report.prediction_ticker}` : ""}
           </span>
         )}
-        <span className="text-xs text-muted-foreground ml-auto">{report.likes || 0} likes</span>
+        <span className="text-xs text-muted-foreground ml-auto"><span className="font-display">{report.likes || 0}</span> likes</span>
       </div>
     </Link>
   );
@@ -317,7 +317,7 @@ export default function HomeFeed() {
                 <p className="text-xs text-muted-foreground">
                   {totalReports} reports{newSinceLastVisit > 0 ? ` · ` : ""}
                   {newSinceLastVisit > 0 && (
-                    <span className="text-red-500 font-semibold">{newSinceLastVisit} new since your last visit</span>
+                    <span className="text-primary font-medium"><span className="font-display">{newSinceLastVisit}</span> new since your last visit</span>
                   )}
                 </p>
               )}
@@ -333,7 +333,7 @@ export default function HomeFeed() {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border ${activeTab === tab.id ? "bg-primary text-white border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-tag text-sm font-medium whitespace-nowrap transition-colors border ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}{count != null && count > 0 ? ` (${count})` : ""}
@@ -350,7 +350,7 @@ export default function HomeFeed() {
             <span className="text-xs text-muted-foreground">{totalReports} reports</span>
             <button
               onClick={() => setShowFilters(true)}
-              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${prefActiveCount > 0 ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-tag border text-xs font-medium transition-colors ${prefActiveCount > 0 ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Customize{prefActiveCount > 0 ? ` · ${prefActiveCount}` : ""}
@@ -361,7 +361,7 @@ export default function HomeFeed() {
           {prefActiveCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
               {(feedPrefs.sectors || []).map(s => (
-                <span key={s} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
+                <span key={s} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
                   {s} <button onClick={() => setFeedPrefs(p => { const upd = {...p, sectors: p.sectors.filter(x=>x!==s)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
                 </span>
               ))}
@@ -450,7 +450,7 @@ export default function HomeFeed() {
                 <div ref={loadMoreRef} className="py-2" />
                 {hasMore && (
                   <div className="flex justify-center py-4">
-                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <div className="w-5 h-5 border border-primary/30 border-t-primary rounded-full animate-spin" />
                   </div>
                 )}
               </>

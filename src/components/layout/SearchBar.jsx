@@ -75,15 +75,15 @@ export default function SearchBar() {
       )}
 
       {open && hasResults && (
-        <div className="absolute top-full mt-1 w-full bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-80 overflow-y-auto">
+        <div className="absolute top-full mt-1 w-full surface z-50 overflow-hidden max-h-80 overflow-y-auto">
 
           {stocks.length > 0 && (
             <>
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-secondary/50">Stocks</div>
+              <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 bg-secondary/50">Stocks</div>
               {stocks.map(s => (
                 <button key={s.symbol} onClick={() => go(`/stock?ticker=${s.symbol}`)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors text-left">
-                  <span className="font-mono font-bold text-sm w-14 flex-shrink-0">{s.symbol}</span>
+                  <span className="font-display font-medium text-sm w-14 flex-shrink-0">{s.symbol}</span>
                   <span className="text-sm text-muted-foreground flex-1 truncate">{s.shortname || s.longname || s.symbol}</span>
                   <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{s.exchange}</span>
                 </button>
@@ -93,7 +93,7 @@ export default function SearchBar() {
 
           {analysts.length > 0 && (
             <>
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-secondary/50">Analysts</div>
+              <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 bg-secondary/50">Analysts</div>
               {analysts.map(analyst => (
                 <button key={analyst.id} onClick={() => go(analystHref(analyst))}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors text-left">
@@ -114,7 +114,7 @@ export default function SearchBar() {
 
           {reports.length > 0 && (
             <>
-              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-secondary/50">Reports</div>
+              <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 bg-secondary/50">Reports</div>
               {reports.map(report => (
                 <button key={report.id} onClick={() => go(`/report?id=${report.id}`)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors text-left">

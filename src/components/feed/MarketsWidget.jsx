@@ -30,10 +30,10 @@ function WatchlistItem({ entry, live }) {
   return (
     <Link
       to={`/stock?ticker=${ticker}`}
-      className="flex items-center justify-between py-1.5 group hover:bg-secondary/50 rounded px-1 transition-colors"
+      className="flex items-center justify-between py-1.5 group hover:bg-secondary/50 rounded-tag px-1 transition-colors"
     >
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-xs font-mono font-bold text-foreground group-hover:text-primary transition-colors">
+        <span className="text-xs font-display font-medium text-foreground group-hover:text-primary transition-colors">
           {ticker}
         </span>
         {entry.name && entry.name !== ticker && (
@@ -47,8 +47,8 @@ function WatchlistItem({ entry, live }) {
       </div>
       {live?.price != null ? (
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[10px] font-semibold tabular-nums flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <span className="text-xs font-medium tabular-nums font-display">${live.price.toFixed(2)}</span>
+          <span className={`text-[10px] font-medium tabular-nums font-display flex items-center gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
@@ -146,16 +146,16 @@ export default function MarketsWidget() {
   }, []);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-4">
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Markets</h3>
+    <div className="surface p-4">
+      <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Markets</h3>
       <div ref={containerRef} className="tradingview-widget-container" />
 
       {/* Watchlist section */}
       {watchlist.length > 0 ? (
-        <div className="mt-3 pt-3 border-t border-border">
+        <div className="mt-3 pt-3 border-t border-border/60">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+            <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <Star className="w-3 h-3 text-accent fill-accent" />
               My Watchlist
             </span>
             <div className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export default function MarketsWidget() {
           </div>
         </div>
       ) : (
-        <div className="mt-3 pt-3 border-t border-border">
+        <div className="mt-3 pt-3 border-t border-border/60">
           <Link
             to="/stocks"
             className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors"

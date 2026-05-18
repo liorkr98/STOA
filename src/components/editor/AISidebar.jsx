@@ -204,20 +204,20 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
         width: 340,
         userSelect: dragging ? "none" : "auto",
       }}
-      className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+      className="surface overflow-hidden"
     >
       {/* Drag handle header */}
       <div
         onMouseDown={handleMouseDown}
-        className={`flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex items-center justify-between px-4 py-3 border-b border-border/60 bg-secondary/40 select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         <div className="flex items-center gap-2 pointer-events-none">
           <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
           <Sparkles className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm">AI Research Assistant</span>
+          <span className="font-serif text-[14px] text-foreground">AI Research Assistant</span>
           {credits != null && (
-            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-              credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"
+            <span className={`text-[10px] font-medium font-display px-1.5 py-0.5 rounded-tag flex items-center gap-0.5 ${
+              credits <= 0 ? "bg-loss/10 text-loss" : credits <= 10 ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"
             }`}>
               <Coins className="w-2.5 h-2.5" /> {credits}
             </span>
@@ -286,7 +286,7 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
           )}
 
           {credits != null && credits <= 0 && topic.trim() && (
-            <div className="mb-2 px-3 py-2 bg-loss/8 border border-loss/20 rounded-lg text-[10px] text-loss flex items-center gap-1.5">
+            <div className="mb-2 px-3 py-2 bg-loss/10 border border-loss/20 rounded-tag text-[10px] text-loss flex items-center gap-1.5">
               <Coins className="w-3 h-3 flex-shrink-0" />
               No AI credits remaining. Top up in your <a href="/wallet" className="underline ml-0.5">Wallet</a>.
             </div>
@@ -312,7 +312,7 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             </p>
           )}
 
-          <div className="mt-4 pt-3 border-t border-border">
+          <div className="mt-4 pt-3 border-t border-border/60">
             <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag to report</p>
             <p className="text-[10px] text-muted-foreground">
               Generate above to populate your report, or drag this panel anywhere on screen.

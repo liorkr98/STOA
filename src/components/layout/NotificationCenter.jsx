@@ -5,14 +5,14 @@ import { base44 } from "@/api/base44Client";
 import { formatDistanceToNow } from "date-fns";
 
 const TYPE_CONFIG = {
-  hit:     { icon: CheckCircle2,  color: "text-gain",      bg: "bg-gain/10" },
-  near:    { icon: CheckCircle2,  color: "text-gain",      bg: "bg-gain/10" },
-  partial: { icon: TrendingUp,    color: "text-amber-500", bg: "bg-amber-50" },
-  miss:    { icon: XCircle,       color: "text-loss",      bg: "bg-loss/10" },
-  report:  { icon: FileText,      color: "text-primary",   bg: "bg-primary/10" },
-  follow:  { icon: UserPlus,      color: "text-primary",   bg: "bg-primary/10" },
-  like:    { icon: Heart,         color: "text-rose-500",  bg: "bg-rose-50" },
-  comment: { icon: MessageCircle, color: "text-violet-500",bg: "bg-violet-50" },
+  hit:     { icon: CheckCircle2,  color: "text-gain",        bg: "bg-gain/10" },
+  near:    { icon: CheckCircle2,  color: "text-gain",        bg: "bg-gain/10" },
+  partial: { icon: TrendingUp,    color: "text-accent",      bg: "bg-accent/10" },
+  miss:    { icon: XCircle,       color: "text-loss",        bg: "bg-loss/10" },
+  report:  { icon: FileText,      color: "text-primary",     bg: "bg-primary/10" },
+  follow:  { icon: UserPlus,      color: "text-primary",     bg: "bg-primary/10" },
+  like:    { icon: Heart,         color: "text-primary",     bg: "bg-primary/10" },
+  comment: { icon: MessageCircle, color: "text-primary",     bg: "bg-primary/10" },
 };
 
 export default function NotificationCenter() {
@@ -88,7 +88,7 @@ export default function NotificationCenter() {
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-loss text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] font-medium font-display rounded-full flex items-center justify-center">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -97,9 +97,9 @@ export default function NotificationCenter() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
-              <span className="font-semibold text-sm">Notifications</span>
+          <div className="absolute right-0 top-full mt-2 w-80 surface z-50 overflow-hidden">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60">
+              <span className="font-serif text-[14px] text-foreground">Notifications</span>
               <div className="flex items-center gap-2 ml-auto">
                 {unread > 0 && (
                   <button onClick={markAllRead} className="text-xs text-primary hover:underline">Mark all read</button>

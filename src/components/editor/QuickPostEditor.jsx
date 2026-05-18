@@ -70,14 +70,14 @@ export default function QuickPostEditor({
 
   return (
     <div className="max-w-xl mx-auto mt-6">
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-        <h2 className="text-base font-semibold flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-500" /> Quick Post
+      <div className="surface p-5 space-y-3">
+        <h2 className="font-serif text-[16px] text-foreground flex items-center gap-2">
+          <Zap className="w-4 h-4 text-accent" /> Quick Post
         </h2>
 
         <textarea
           placeholder="What's your market take? Use $TICKER to tag stocks..."
-          className="w-full border border-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-background"
+          className="w-full border border-border rounded-tag p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-background"
           rows={4}
           value={title}
           onChange={e => setTitle(e.target.value)}
@@ -86,12 +86,10 @@ export default function QuickPostEditor({
         {/* Image & Chart attachments */}
         <div className="flex gap-2">
           {!quickImage ? (
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
-              padding: "8px 12px", border: "1px dashed #e2e8f0", borderRadius: 8,
-              fontSize: 13, color: "#6b7280", width: "fit-content" }}>
-              <ImageIcon style={{ width: 15, height: 15 }} />
+            <label className="flex items-center gap-2 cursor-pointer px-3 py-2 border border-dashed border-border rounded-tag text-[13px] text-muted-foreground w-fit hover:text-foreground hover:border-primary/40 transition-colors">
+              <ImageIcon className="w-[15px] h-[15px]" />
               Add image
-              <input type="file" accept="image/*" style={{ display: "none" }}
+              <input type="file" accept="image/*" className="hidden"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
@@ -100,24 +98,22 @@ export default function QuickPostEditor({
                 }} />
             </label>
           ) : (
-            <div style={{ position: "relative" }}>
-              <img src={quickImage} style={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 8 }} alt="attachment" />
+            <div className="relative">
+              <img src={quickImage} className="w-full max-h-60 object-cover rounded-tag" alt="attachment" />
               <button onClick={() => setQuickImage(null)}
-                style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.5)",
-                  color: "white", border: "none", borderRadius: "50%", width: 24, height: 24,
-                  cursor: "pointer", fontSize: 14, lineHeight: "24px", textAlign: "center" }}>
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white border-0 text-sm leading-6 text-center cursor-pointer">
                 ×
               </button>
             </div>
           )}
           
           {!quickChart ? (
-            <button onClick={() => setQuickChart("AAPL")} className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors flex items-center gap-1">
+            <button onClick={() => setQuickChart("AAPL")} className="text-xs text-primary border border-primary/40 rounded-tag px-3 py-1.5 hover:bg-primary/10 transition-colors flex items-center gap-1">
               <BarChart3 className="w-3.5 h-3.5" /> Add chart
             </button>
           ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg">
-              <span className="text-xs font-semibold text-primary">${quickChart}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-tag">
+              <span className="text-xs font-medium font-display text-primary">${quickChart}</span>
               <button onClick={() => setQuickChart(null)} className="text-primary hover:text-primary/70">
                 <X className="w-3 h-3" />
               </button>
@@ -133,27 +129,38 @@ export default function QuickPostEditor({
         {/* Short prediction toggle */}
         <button
           onClick={() => setQuickShowPrediction(p => !p)}
-          className="text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors"
+          className="text-xs text-primary border border-primary/40 rounded-tag px-3 py-1.5 hover:bg-primary/10 transition-colors"
         >
           {quickShowPrediction ? "▾ Hide Prediction" : "+ Short-term Prediction"}
         </button>
 
         {quickShowPrediction && (
-          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: 12 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {["BUY","SELL","HOLD"].map(action => (
-                <button key={action} onClick={() => setQuickAction(action)}
-                  style={{ padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    background: quickAction === action ? (action==="BUY"?"#16a34a":action==="SELL"?"#dc2626":"#f59e0b") : "#fff",
-                    color: quickAction === action ? "#fff" : "#374151",
-                    border: "1px solid " + (action==="BUY"?"#16a34a":action==="SELL"?"#dc2626":"#f59e0b") }}>
-                  {action}
-                </button>
-              ))}
+          <div className="bg-secondary/50 border border-border rounded-tag p-3">
+            <div className="flex gap-2 flex-wrap items-center">
+              {["BUY","SELL","HOLD"].map(action => {
+                const isActive = quickAction === action;
+                const tone = action === "BUY"
+                  ? "bg-gain/10 text-gain border-gain/30"
+                  : action === "SELL"
+                  ? "bg-loss/10 text-loss border-loss/30"
+                  : "bg-secondary text-muted-foreground border-border";
+                return (
+                  <button key={action} onClick={() => setQuickAction(action)}
+                    className={`px-3 py-1 rounded-sm text-xs font-medium border transition-colors ${
+                      isActive
+                        ? action === "BUY" ? "bg-gain text-white border-gain"
+                          : action === "SELL" ? "bg-loss text-white border-loss"
+                          : "bg-foreground text-background border-foreground"
+                        : tone
+                    }`}>
+                    {action}
+                  </button>
+                );
+              })}
               <input placeholder="$TICKER" value={quickTicker} onChange={e => setQuickTicker(e.target.value.toUpperCase())}
-                style={{ width: 80, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13 }} />
+                className="w-20 px-2 py-1 border border-border rounded-sm text-[13px] font-display bg-background" />
               <select value={quickTimeframe} onChange={e => setQuickTimeframe(e.target.value)}
-                style={{ padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13 }}>
+                className="px-2 py-1 border border-border rounded-sm text-[13px] bg-background">
                 <option value="2h">2 hours</option>
                 <option value="4h">4 hours</option>
                 <option value="1d">1 day</option>
@@ -162,7 +169,7 @@ export default function QuickPostEditor({
                 <option value="1w">1 week</option>
               </select>
               <input placeholder="Target $" value={quickTarget} onChange={e => setQuickTarget(e.target.value)}
-                style={{ width: 90, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13 }} />
+                className="w-[90px] px-2 py-1 border border-border rounded-sm text-[13px] font-display bg-background" />
             </div>
           </div>
         )}

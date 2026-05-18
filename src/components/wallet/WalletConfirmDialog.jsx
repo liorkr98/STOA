@@ -62,12 +62,12 @@ export default function WalletConfirmDialog({
       onClick={onClose}
     >
       <div
-        className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-xl overflow-hidden"
+        className="surface w-full max-w-sm overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h3 className="font-bold text-base flex items-center gap-2">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border/60">
+          <h3 className="font-serif text-[16px] text-foreground flex items-center gap-2">
             <Wallet className="w-4 h-4 text-primary" />
             {title}
           </h3>
@@ -79,15 +79,15 @@ export default function WalletConfirmDialog({
         <div className="p-5">
           {/* Item */}
           {itemLabel && (
-            <div className="bg-secondary/50 border border-border rounded-xl p-3 mb-4 text-xs text-foreground">
+            <div className="bg-secondary/50 border border-border rounded-tag p-3 mb-4 text-xs text-foreground">
               {itemLabel}
             </div>
           )}
 
           {/* Cost */}
           <div className="flex items-baseline justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Amount</span>
-            <span className="text-2xl font-extrabold">${amountUSD.toFixed(2)}</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Amount</span>
+            <span className="text-2xl font-medium font-display">${amountUSD.toFixed(2)}</span>
           </div>
 
           {/* Wallet balance transition */}
@@ -96,18 +96,18 @@ export default function WalletConfirmDialog({
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="bg-secondary/30 border border-border rounded-xl p-3 space-y-2">
+            <div className="bg-secondary/30 border border-border rounded-tag p-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Wallet balance</span>
-                <span className="font-mono font-bold">${balance.toFixed(2)}</span>
+                <span className="font-display font-medium">${balance.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">This purchase</span>
-                <span className="font-mono font-bold text-red-600">-${amountUSD.toFixed(2)}</span>
+                <span className="font-display font-medium text-muted-foreground">-${amountUSD.toFixed(2)}</span>
               </div>
-              <div className="border-t border-border pt-2 flex items-center justify-between">
+              <div className="border-t border-border/60 pt-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Balance after</span>
-                <span className={`font-mono font-bold ${insufficient ? "text-red-600" : "text-foreground"}`}>
+                <span className={`font-display font-medium ${insufficient ? "text-loss" : "text-foreground"}`}>
                   ${newBalance.toFixed(2)}
                 </span>
               </div>
@@ -116,20 +116,21 @@ export default function WalletConfirmDialog({
 
           {/* Insufficient → top up CTA */}
           {!loading && insufficient && (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="mt-4 p-3 bg-accent/10 border border-accent/30 rounded-tag">
               <div className="flex items-start gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-bold text-amber-900">Not enough in wallet</p>
-                  <p className="text-xs text-amber-800">
-                    You need ${(amountUSD - balance).toFixed(2)} more. Deposit funds first.
+                  <p className="text-sm font-medium text-foreground">Not enough in wallet</p>
+                  <p className="text-xs text-muted-foreground">
+                    You need <span className="font-display">${(amountUSD - balance).toFixed(2)}</span> more. Deposit funds first.
                   </p>
                 </div>
               </div>
               <Button
                 size="sm"
                 onClick={() => navigate("/pay?mode=deposit")}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0 gap-1.5"
+                className="cta-gold w-full gap-1.5"
+                style={{ borderRadius: 6 }}
               >
                 Top up wallet <ArrowRight className="w-3.5 h-3.5" />
               </Button>

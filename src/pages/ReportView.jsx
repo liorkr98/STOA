@@ -26,15 +26,18 @@ import useGoBack from "@/hooks/useGoBack";
 import { avatarUrl } from "@/lib/avatarUrl";
 
 // ─── Claim type config ───────────────────────────────────────────────────────
+// Verified states share the gain palette; disputed/misleading share loss/muted.
+// Opinion and Unverified stay neutral (foreground / muted) since they aren't
+// market sentiment signals — they're editorial classifications.
 const TYPE_CONFIG = {
   Fact:             { icon: CheckCircle2,       color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Verified Fact" },
-  Opinion:          { icon: MessageSquareQuote, color: "text-blue-600",    bg: "bg-blue-50 border-blue-200",        label: "Opinion" },
+  Opinion:          { icon: MessageSquareQuote, color: "text-primary",     bg: "bg-primary/10 border-primary/20",   label: "Opinion" },
   Misleading:       { icon: AlertTriangle,      color: "text-loss",        bg: "bg-loss/10 border-loss/20",         label: "Potentially Misleading" },
-  Unverified:       { icon: Info,               color: "text-amber-600",   bg: "bg-amber-50 border-amber-200",      label: "Unverified" },
-  "Yahoo-Verified": { icon: TrendingUp,         color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200",  label: "Yahoo Finance Verified" },
-  "Yahoo-Disputed": { icon: AlertTriangle,      color: "text-orange-600",  bg: "bg-orange-50 border-orange-200",    label: "Disputed by Yahoo Finance" },
-  "SEC-Verified":   { icon: CheckCircle2,       color: "text-violet-700",  bg: "bg-violet-50 border-violet-200",   label: "SEC Filing Verified" },
-  "SEC-Disputed":   { icon: AlertTriangle,      color: "text-red-700",     bg: "bg-red-50 border-red-200",         label: "Disputed by SEC Filing" },
+  Unverified:       { icon: Info,               color: "text-muted-foreground", bg: "bg-muted border-border",       label: "Unverified" },
+  "Yahoo-Verified": { icon: TrendingUp,         color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Yahoo Finance Verified" },
+  "Yahoo-Disputed": { icon: AlertTriangle,      color: "text-accent",      bg: "bg-accent/10 border-accent/30",     label: "Disputed by Yahoo Finance" },
+  "SEC-Verified":   { icon: CheckCircle2,       color: "text-primary",     bg: "bg-primary/10 border-primary/20",   label: "SEC Filing Verified" },
+  "SEC-Disputed":   { icon: AlertTriangle,      color: "text-loss",        bg: "bg-loss/10 border-loss/20",         label: "Disputed by SEC Filing" },
 };
 
 // ─── Community Notes under Opinion claims ────────────────────────────────────
@@ -712,9 +715,9 @@ export default function ReportView() {
               }
               base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
             }}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground"}`}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-primary" : "text-muted-foreground"}`}
           >
-            <Heart className={`w-4 h-4 ${liked ? "fill-loss" : ""}`} /> {likeCount}
+            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} /> <span className="font-display">{likeCount}</span>
           </button>
           <ShareMenu title={report.title} reportId={report.id} />
           {(isAuthor || (!isPremium)) && (
@@ -784,7 +787,7 @@ export default function ReportView() {
 
       <div className="mb-8">
         {report.is_content_deleted ? (
-          <div className="surface p-6 text-center">
+          <div className="surface p-6 text-center mb-0">
             <Trash2 className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
               The author has deleted this report's content. The locked prediction
@@ -814,17 +817,15 @@ export default function ReportView() {
             )}
 
             {/* Paywall card */}
-            <div className="relative rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 mt-0">
+            <div className="surface-premium p-6 mt-0 relative">
               {/* Premium badge */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm tracking-wide uppercase">
-                  Premium Report
-                </span>
+                <span className="badge-founding">Premium Report</span>
               </div>
 
               <div className="text-center pt-2">
-                <Lock className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-                <h3 className="font-bold text-lg mb-1">Full Analysis Locked</h3>
+                <Lock className="w-8 h-8 text-accent mx-auto mb-3" />
+                <h3 className="font-serif text-[20px] text-foreground mb-1">Full Analysis Locked</h3>
                 <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
                   Get the complete research: valuation model, price target, catalysts, risks, and analyst conviction.
                 </p>
@@ -840,7 +841,7 @@ export default function ReportView() {
                     { icon: Lock, label: "Locked prediction" },
                   ].map(({ icon: Icon, label }) => (
                     <div key={label} className="flex items-center gap-1.5 text-xs text-foreground/80">
-                      <Icon className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <Icon className="w-3.5 h-3.5 text-accent shrink-0" />
                       <span>{label}</span>
                     </div>
                   ))}
@@ -849,19 +850,20 @@ export default function ReportView() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
                     onClick={() => setShowUnlockDialog(true)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white gap-2 px-6 shadow-md"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-6"
                     size="lg"
+                    style={{ borderRadius: 6 }}
                   >
                     <Lock className="w-4 h-4" />
-                    Unlock for ${report.price || 4.99}
+                    Unlock for <span className="font-display">${report.price || 4.99}</span>
                   </Button>
                   <Button
-                    variant="outline"
                     onClick={() => setShowSubDialog(true)}
-                    className="border-amber-300 gap-2 px-6"
+                    className="cta-gold gap-2 px-6"
                     size="lg"
+                    style={{ borderRadius: 6 }}
                   >
-                    Subscribe · $9/mo
+                    Subscribe . $9/mo
                   </Button>
                 </div>
 
@@ -872,7 +874,7 @@ export default function ReportView() {
             </div>
 
             {/* Analyst trust bar */}
-            <div className="mt-4 flex items-center gap-3 p-3 bg-secondary rounded-xl border border-border">
+            <div className="mt-4 flex items-center gap-3 p-3 bg-secondary rounded-tag border border-border">
               {authorAvatar
                 ? <img src={authorAvatar} alt={authorName} className="w-9 h-9 rounded-full object-cover border border-border" />
                 : <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">{(authorName[0] || "A").toUpperCase()}</div>
@@ -921,9 +923,9 @@ export default function ReportView() {
 
       {/* More from this analyst */}
       {moreReports.length > 0 && (
-        <div className="mt-10 pt-8 border-t border-border">
+        <div className="mt-10 pt-8 border-t border-border/60">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm">More from {authorName}</h3>
+            <h3 className="font-serif text-[14px] text-foreground">More from {authorName}</h3>
             <button
               onClick={() => navigate(`/analyst?id=${report.created_by}`)}
               className="flex items-center gap-1 text-xs text-primary hover:underline"
@@ -936,11 +938,11 @@ export default function ReportView() {
               <button
                 key={r.id}
                 onClick={() => navigate(`/report?id=${r.id}`)}
-                className="w-full text-left flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/40 transition-all group"
+                className="w-full text-left flex items-start gap-3 p-3 surface surface-interactive group"
               >
                 {r.prediction_direction && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
-                    r.prediction_direction === "LONG" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-tag border shrink-0 mt-0.5 ${
+                    r.prediction_direction === "LONG" ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
                   }`}>
                     {r.prediction_direction}
                   </span>
