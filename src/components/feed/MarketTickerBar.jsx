@@ -22,7 +22,9 @@ function fmt(price, symbol) {
   return price.toFixed(2);
 }
 
-function Sparkline({ closes, isUp }) {
+// Sparkline color comes from the parent via `currentColor`, which lets us
+// drive it from text-gain / text-loss tokens instead of inlining hex.
+function Sparkline({ closes }) {
   if (!closes || closes.length < 4) return null;
   const W = 52, H = 20, pad = 1;
   const min = Math.min(...closes);
@@ -33,7 +35,6 @@ function Sparkline({ closes, isUp }) {
     const y = (H - pad) - ((v - min) / range) * (H - pad * 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
-  const color = isUp ? "#16a34a" : "#dc2626";
   const fillId = `sf-${Math.random().toString(36).slice(2)}`;
   const lastPt = closes.map((v, i) => ({
     x: pad + (i / (closes.length - 1)) * (W - pad * 2),
@@ -47,15 +48,15 @@ function Sparkline({ closes, isUp }) {
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="inline-block shrink-0">
       <defs>
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={fillPath} fill={`url(#${fillId})`} />
       <polyline
         points={pts}
         fill="none"
-        stroke={color}
+        stroke="currentColor"
         strokeWidth="1.4"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -69,17 +70,21 @@ function TickerItem({ item }) {
   return (
     <div className="flex items-center gap-2.5 px-5 border-r border-border/30 shrink-0 h-11">
       <div className="flex flex-col justify-center leading-none">
-        <span className="text-[11px] font-bold text-foreground">{item.label}</span>
+        <span className="text-[11px] font-medium text-foreground">{item.label}</span>
         {item.price != null && (
-          <span className="text-[10px] text-muted-foreground mt-0.5">{fmt(item.price, item.symbol)}</span>
+          <span className="text-[10px] text-muted-foreground mt-0.5 font-display">
+            {fmt(item.price, item.symbol)}
+          </span>
         )}
       </div>
-      {item.change != null && (
-        <span className={`text-[10px] font-semibold tabular-nums shrink-0 ${isUp ? "text-green-600" : "text-red-500"}`}>
-          {isUp ? "+" : ""}{item.change.toFixed(2)}%
-        </span>
-      )}
-      <Sparkline closes={item.closes} isUp={isUp} />
+      <span className={`shrink-0 inline-flex items-center gap-1 ${isUp ? "text-gain" : "text-loss"}`}>
+        {item.change != null && (
+          <span className="text-[10px] font-medium font-display">
+            {isUp ? "+" : ""}{item.change.toFixed(2)}%
+          </span>
+        )}
+        <Sparkline closes={item.closes} />
+      </span>
     </div>
   );
 }
@@ -123,8 +128,8 @@ export default function MarketTickerBar() {
       <div className="border-b border-border bg-card/80 h-11 flex items-center gap-6 px-4 overflow-hidden">
         {TICKERS.map(t => (
           <div key={t.symbol} className="flex items-center gap-2 shrink-0 animate-pulse">
-            <div className="h-3 w-14 bg-muted rounded" />
-            <div className="h-3 w-8 bg-muted/60 rounded" />
+            <div className="h-3 w-14 bg-muted rounded-tag" />
+            <div className="h-3 w-8 bg-muted/60 rounded-tag" />
           </div>
         ))}
       </div>

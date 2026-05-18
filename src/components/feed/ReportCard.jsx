@@ -3,7 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { differenceInHours } from "date-fns";
-import { Lock, MessageCircle, Heart, Share2, Bookmark, CreditCard, TrendingUp, TrendingDown, Minus, Eye, CheckCircle, XCircle, AlertCircle, Flame, Radio } from "lucide-react";
+import {
+  Lock, MessageCircle, Heart, Share2, Bookmark, CreditCard,
+  TrendingUp, TrendingDown, Minus, Eye, CheckCircle, XCircle,
+  AlertCircle, Flame, Radio,
+} from "lucide-react";
 import AccuracyTierBadge from "./AccuracyTierBadge";
 import { computeAnalystTier } from "@/lib/analystTier";
 import InlineFollowButton from "./InlineFollowButton";
@@ -15,16 +19,14 @@ import TickerTag from "./TickerTag";
 import ShareMenu from "./ShareMenu";
 import { getAnalystSlug } from "@/lib/analystSlug";
 
+// Monthly subscription price — mirrors AnalystProfilePage.
+const SUBSCRIPTION_PRICE_USD = 9;
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 // Parse a date string as UTC even when the server omits the trailing "Z".
-// Without this, "2026-05-15 13:00:00" gets parsed as local time, producing
-// a timezone-sized offset between "now" and "just-published" timestamps
-// (e.g. a post made seconds ago can show as "3h ago" for users east of UTC).
 function parseUtcDate(s) {
   if (!s) return null;
-  // ISO with explicit zone (Z or ±HH:MM) → safe to parse as-is
   if (/Z|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
-  // SQL-style "YYYY-MM-DD HH:MM:SS[.ms]" → coerce to ISO + Z
   if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) return new Date(s.replace(" ", "T") + "Z");
   return new Date(s);
 }
@@ -66,36 +68,31 @@ function getPostsThisWeek(email, allReports) {
 function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
   if (!action) return null;
   const upside = calcUpside(action, lockPrice, targetPrice);
-  const cfg = {
-    Long:  { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0', Icon: TrendingUp },
-    Short: { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca', Icon: TrendingDown },
-    Hold:  { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', Icon: Minus },
-  }[action] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', Icon: Minus };
+  const isLong = action === "Long";
+  const isShort = action === "Short";
+  const Icon = isLong ? TrendingUp : isShort ? TrendingDown : Minus;
+  const tone = isLong
+    ? "bg-gain/10 text-gain border-gain/20"
+    : isShort
+    ? "bg-loss/10 text-loss border-loss/20"
+    : "bg-secondary text-foreground border-border";
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:10 }}>
-      <span style={{
-        display:'inline-flex', alignItems:'center', gap:6,
-        padding:'8px 14px', borderRadius:8,
-        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
-        fontSize:13, fontWeight:700,
-      }}>
-        <cfg.Icon size={13} /> {action} ${ticker}
+    <div className="flex items-center gap-2 flex-wrap mb-2.5">
+      <span className={`inline-flex items-center gap-1.5 rounded-tag border px-3 py-1.5 text-[13px] font-medium ${tone}`}>
+        <Icon size={13} /> {action} ${ticker}
         {targetPrice && !isLocked && (
-          <span style={{ fontWeight:600 }}>→ ${targetPrice}</span>
+          <span className="font-display ml-0.5">→ ${targetPrice}</span>
         )}
         {isLocked && (
-          <span style={{ display:'flex', alignItems:'center', gap:3, opacity:0.7, fontSize:11 }}>
+          <span className="inline-flex items-center gap-1 opacity-70 text-[11px] ml-0.5">
             <Lock size={11} /> Target hidden
           </span>
         )}
       </span>
       {upside && !isLocked && (
-        <span style={{
-          fontSize:12, fontWeight:700,
-          color: action === 'Long' ? '#16a34a' : '#dc2626',
-        }}>
-          {action === 'Long' ? '+' : '-'}{Math.abs(upside)}% {action === 'Long' ? 'upside' : 'downside'}
+        <span className={`text-[12px] font-medium font-display ${isLong ? "text-gain" : "text-loss"}`}>
+          {isLong ? "+" : "-"}{Math.abs(upside)}% {isLong ? "upside" : "downside"}
         </span>
       )}
     </div>
@@ -104,35 +101,23 @@ function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
 
 function OutcomeBadge({ outcome, lockPrice, resolvedPrice, action }) {
   const pnl = calcPnL(action, lockPrice, resolvedPrice);
-  if (outcome === 'hit' || outcome === 'near') {
+  if (outcome === "hit" || outcome === "near") {
     return (
-      <span style={{
-        display:'inline-flex', alignItems:'center', gap:4,
-        background:'#16a34a', color:'#fff', fontSize:12, fontWeight:700,
-        padding:'4px 10px', borderRadius:6,
-      }}>
-        <CheckCircle size={11} /> HIT{pnl != null ? ` +${pnl}%` : ""}
+      <span className="inline-flex items-center gap-1 rounded-tag bg-gain/10 text-gain border border-gain/20 px-2.5 py-0.5 text-[12px] font-medium">
+        <CheckCircle size={11} /> HIT{pnl != null ? <span className="font-display ml-0.5">+{pnl}%</span> : null}
       </span>
     );
   }
-  if (outcome === 'miss') {
+  if (outcome === "miss") {
     return (
-      <span style={{
-        display:'inline-flex', alignItems:'center', gap:4,
-        background:'#dc2626', color:'#fff', fontSize:12, fontWeight:700,
-        padding:'4px 10px', borderRadius:6,
-      }}>
+      <span className="inline-flex items-center gap-1 rounded-tag bg-loss/10 text-loss border border-loss/20 px-2.5 py-0.5 text-[12px] font-medium">
         <XCircle size={11} /> MISS
       </span>
     );
   }
-  if (outcome === 'partial') {
+  if (outcome === "partial") {
     return (
-      <span style={{
-        display:'inline-flex', alignItems:'center', gap:4,
-        background:'#d97706', color:'#fff', fontSize:12, fontWeight:700,
-        padding:'4px 10px', borderRadius:6,
-      }}>
+      <span className="inline-flex items-center gap-1 rounded-tag bg-muted text-foreground border border-border px-2.5 py-0.5 text-[12px] font-medium">
         <AlertCircle size={11} /> PARTIAL
       </span>
     );
@@ -148,14 +133,11 @@ function PnLBadge({ action, lockPrice, targetPrice }) {
   return (
     <span
       title={extHours ? "Posted during extended-hours trading (pre/post-market). Lock price may move at the open." : undefined}
-      style={{
-        fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6,
-        background: isPos ? '#f0fdf4' : '#fef2f2',
-        color: isPos ? '#16a34a' : '#dc2626',
-        border: `1px solid ${isPos ? '#bbf7d0' : '#fecaca'}`,
-      }}
+      className={`rounded-tag border px-2 py-0.5 text-[11px] font-medium font-display ${
+        isPos ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
+      }`}
     >
-      {isPos ? '+' : '-'}{Math.abs(pnl)}% target{extHours ? ' (ext)' : ''}
+      {isPos ? "+" : "-"}{Math.abs(pnl)}% target{extHours ? " (ext)" : ""}
     </span>
   );
 }
@@ -179,10 +161,6 @@ function QuickPoll({ reportId }) {
       .catch(() => setVotes([]));
   }, [reportId, isAuthenticated, user?.email]);
 
-  // Voting allows changing your answer — tap a different option to switch.
-  // If a Vote record already exists for this user we UPDATE it; otherwise
-  // CREATE. Optimistic UI applies the new state immediately and rolls back
-  // on failure. Tapping the option you already picked is a no-op.
   const handleVote = async (e, direction) => {
     e.stopPropagation();
     if (!isAuthenticated || !user || submitting) return;
@@ -192,7 +170,6 @@ function QuickPoll({ reportId }) {
     const prevVotes = votes;
     const prevMyVote = myVote;
 
-    // Optimistic: swap or insert
     setMyVote(direction);
     setVotes(prev => {
       const list = prev || [];
@@ -213,7 +190,6 @@ function QuickPoll({ reportId }) {
         setVotes(prev => prev.map(v => String(v.id).startsWith("tmp_") ? created : v));
       }
     } catch {
-      // Roll back to pre-tap state
       setVotes(prevVotes);
       setMyVote(prevMyVote);
     } finally {
@@ -222,32 +198,32 @@ function QuickPoll({ reportId }) {
   };
 
   const opts = [
-    { id: 'long',    label: 'Long' },
-    { id: 'short',   label: 'Short' },
-    { id: 'neutral', label: 'Neutral' },
+    { id: "long",    label: "Long" },
+    { id: "short",   label: "Short" },
+    { id: "neutral", label: "Neutral" },
   ];
 
   const total = (votes || []).length;
   const pct = (id) => total > 0 ? Math.round((votes || []).filter(v => v.vote === id).length / total * 100) : 0;
 
   return (
-    <div onClick={e => e.stopPropagation()} style={{ background:'#f8fafc', borderRadius:8, padding:'10px 12px', marginBottom:10 }}>
-      <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:8 }}>Do you agree with this call?</p>
+    <div onClick={e => e.stopPropagation()} className="rounded-tag border border-border/60 bg-secondary/60 px-3 py-2.5 mb-2.5">
+      <p className="text-[12px] font-medium text-foreground mb-2">Do you agree with this call?</p>
       {!myVote ? (
-        <div style={{ display:'flex', gap:6 }}>
+        <div className="flex gap-1.5">
           {opts.map(o => (
-            <button key={o.id} onClick={e => handleVote(e, o.id)} disabled={submitting || !isAuthenticated} style={{
-              flex:1, fontSize:12, fontWeight:600, padding:'6px 0',
-              borderRadius:6, border:'1px solid #e2e8f0', background:'#fff',
-              color:'#475569', cursor: isAuthenticated ? 'pointer' : 'default',
-              transition:'all 150ms ease', opacity: submitting ? 0.6 : 1,
-            }}>
+            <button
+              key={o.id}
+              onClick={e => handleVote(e, o.id)}
+              disabled={submitting || !isAuthenticated}
+              className="flex-1 rounded-sm border border-border bg-background text-muted-foreground text-[12px] font-medium py-1.5 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-60"
+            >
               {o.label}
             </button>
           ))}
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+        <div className="flex flex-col gap-1.5">
           {opts.map(o => {
             const isMine = myVote === o.id;
             return (
@@ -257,26 +233,26 @@ function QuickPoll({ reportId }) {
                 onClick={e => handleVote(e, o.id)}
                 disabled={submitting || !isAuthenticated}
                 title={isMine ? "Your current pick" : "Tap to change your vote"}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  background: 'transparent', border: 'none', padding: '2px 0',
-                  cursor: isMine || submitting ? 'default' : 'pointer',
-                  opacity: submitting ? 0.6 : 1,
-                  textAlign: 'left', width: '100%',
-                }}
+                className="flex items-center gap-2 bg-transparent border-none p-0 w-full text-left disabled:opacity-60"
+                style={{ cursor: isMine || submitting ? "default" : "pointer" }}
               >
-                <span style={{ fontSize:10, width:64, color: isMine ? '#2563eb' : '#64748b', fontWeight: isMine ? 700 : 500, flexShrink:0 }}>
-                  {isMine ? '✓ ' : ''}{o.label}
+                <span className={`text-[10px] w-16 shrink-0 ${isMine ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  {isMine ? "✓ " : ""}{o.label}
                 </span>
-                <div style={{ flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden' }}>
-                  <div style={{ height:'100%', borderRadius:3, width:`${pct(o.id)}%`, background: isMine ? '#2563eb' : '#94a3b8', transition:'width 400ms ease' }} />
+                <div className="flex-1 h-1.5 bg-muted rounded-tag overflow-hidden">
+                  <div
+                    className={`h-full transition-[width] duration-300 ${isMine ? "bg-primary" : "bg-muted-foreground/40"}`}
+                    style={{ width: `${pct(o.id)}%` }}
+                  />
                 </div>
-                <span style={{ fontSize:10, fontWeight:700, width:28, textAlign:'right', color: isMine ? '#2563eb' : '#64748b' }}>{pct(o.id)}%</span>
+                <span className={`text-[10px] font-medium font-display w-7 text-right ${isMine ? "text-primary" : "text-muted-foreground"}`}>
+                  {pct(o.id)}%
+                </span>
               </button>
             );
           })}
-          <p style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>
-            {total} vote{total !== 1 ? 's' : ''} · tap another option to change your vote
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            <span className="font-display">{total}</span> vote{total !== 1 ? "s" : ""} · tap another option to change your vote
           </p>
         </div>
       )}
@@ -290,13 +266,10 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const [liked, setLiked] = useState(() => isReportLiked(report.id, user?.email));
   const [likeCount, setLikeCount] = useState(report.likes || 0);
   const [saved, setSaved] = useState(() => isReportSaved(report.id));
-  const [hovered, setHovered] = useState(false);
-  const [showPaywallModal, setShowPaywallModal] = useState(false);
   const navigate = useNavigate();
 
   const authorUser    = userMap[report.created_by] || {};
   const authorName    = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
-  // Avatar: prefer report-baked field, fallback to user's uploaded/auth picture
   const authorAvatar  = report.author_avatar || avatarUrl(authorUser);
   const authorEmail   = report.created_by || "";
   const isPremium     = report.is_premium || false;
@@ -314,7 +287,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   const targetPrice   = report.prediction_target_price;
   const resolvedPrice = report.prediction_resolved_price;
   const outcome       = report.prediction_outcome;
-  const isPending     = !outcome || outcome === 'pending';
+  const isPending     = !outcome || outcome === "pending";
 
   const winStreak    = report.author_win_streak || 0;
   const postsThisWk  = getPostsThisWeek(authorEmail, allReports);
@@ -323,13 +296,13 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
     ? report.tickers
     : (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
 
+  const subscribePrice = authorUser.subscription_price || SUBSCRIPTION_PRICE_USD;
+
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!isAuthenticated || !user) return;
-    // Guard: prevent double-like (check persisted state for this user)
     const alreadyLiked = isReportLiked(report.id, user.email);
     if (alreadyLiked && !liked) {
-      // State drifted (e.g. stale render) — sync and bail
       setLiked(true);
       return;
     }
@@ -345,7 +318,6 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
       setLikeCount(newCount);
       setReportLiked(report.id, true, user.email);
       await base44.entities.Report.update(report.id, { likes: newCount });
-      // Notify the author (don't notify self-likes)
       if (authorEmail && authorEmail !== user.email) {
         base44.entities.Notification.create({
           user_email: authorEmail,
@@ -378,13 +350,9 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
   };
 
   // Use the actual user record's full_name (looked up via userMap by email)
-  // — NOT report.author_name. report.author_name falls back to "Researcher"
-  // for old/un-baked reports, which collapsed many authors into the same
-  // "researcher" slug. The slug-based URL alone isn't enough when two
-  // users share the same name (e.g. two "Lior Krisi" accounts) — they'd
-  // both resolve to the same /analyst/lior-krisi page. So we also pass
-  // the unique email as a `?u=` disambiguator query param. The profile
-  // page prefers that param over the slug when present.
+  // — NOT report.author_name. The slug-based URL alone isn't enough when two
+  // users share the same name, so we also pass the unique email as a `?u=`
+  // disambiguator query param.
   const slug =
     getAnalystSlug({ ...(authorUser || {}), email: authorEmail }) ||
     (authorEmail || "").split("@")[0].toLowerCase();
@@ -399,57 +367,33 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
       `}</style>
       <div
         onClick={() => navigate(`/report?id=${report.id}`)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          background: '#ffffff',
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-          padding: 20,
-          boxShadow: hovered
-            ? '0 4px 12px rgba(0,0,0,0.10)'
-            : '0 1px 3px rgba(0,0,0,0.06)',
-          transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
-          transition: 'all 200ms ease',
-          cursor: 'pointer',
-          position: 'relative',
-          marginBottom: 12,
-        }}
+        className="surface surface-interactive p-5 mb-3 relative"
       >
         {/* Premium badge */}
         {isPremium && (
-          <span style={{
-            position:'absolute', top:12, left:12,
-            display:'inline-flex', alignItems:'center', gap:4,
-            background:'#d97706', color:'#fff', fontSize:10, fontWeight:700,
-            padding:'2px 8px', borderRadius:10, letterSpacing:'0.04em',
-          }}>
+          <span className="badge-founding absolute top-3 left-3">
             <Lock size={9} /> PREMIUM
           </span>
         )}
 
         {/* ── HEADER ROW ── */}
-        <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:12, marginTop: isPremium ? 22 : 0 }}>
+        <div className={`flex items-start gap-2.5 mb-3 ${isPremium ? "mt-5" : ""}`}>
           {/* Avatar */}
-          <Link to={profileHref} onClick={e => e.stopPropagation()} style={{ flexShrink:0 }}>
-            <div style={{
-              width:40, height:40, borderRadius:'50%', border:'2px solid #e2e8f0',
-              background:'#dbeafe', display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:14, fontWeight:700, color:'#2563eb', overflow:'hidden', cursor:'pointer',
-            }}>
+          <Link to={profileHref} onClick={e => e.stopPropagation()} className="shrink-0">
+            <div className="w-10 h-10 rounded-full border border-border/60 bg-secondary flex items-center justify-center text-[14px] font-medium text-primary overflow-hidden cursor-pointer">
               {authorAvatar
-                ? <img src={authorAvatar} alt={authorName} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
                 : authorName[0]?.toUpperCase()}
             </div>
           </Link>
 
           {/* Name + badges */}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <Link
                 to={profileHref}
                 onClick={e => e.stopPropagation()}
-                style={{ fontSize:14, fontWeight:700, color:'#0f172a', textDecoration:'none' }}
+                className="font-serif text-[15px] text-foreground no-underline"
               >
                 {authorName}
               </Link>
@@ -462,14 +406,10 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                 return <AccuracyTierBadge tierData={td} />;
               })()}
 
-              {/* Win streak */}
+              {/* Win streak — gold accent, achievement signal (not market sentiment) */}
               {winStreak >= 3 && (
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap:3,
-                  background:'#fff7ed', color:'#c2410c', fontSize:10, fontWeight:700,
-                  padding:'2px 7px', borderRadius:10,
-                }}>
-                  <Flame size={10} /> {winStreak}
+                <span className="inline-flex items-center gap-1 rounded-tag bg-accent/15 text-accent border border-accent/30 px-1.5 py-0.5 text-[10px] font-medium">
+                  <Flame size={10} /> <span className="font-display">{winStreak}</span>
                 </span>
               )}
 
@@ -481,19 +421,19 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               />
 
               {postsThisWk > 0 && (
-                <span style={{ fontSize:11, color:'#94a3b8' }}>{postsThisWk} posts this week</span>
+                <span className="text-[11px] text-muted-foreground">
+                  <span className="font-display">{postsThisWk}</span> posts this week
+                </span>
               )}
             </div>
 
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3 }}>
-              <span style={{ fontSize:12, color:'#94a3b8' }}>{timeAgo(publishedDate)}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[12px] text-muted-foreground">{timeAgo(publishedDate)}</span>
               {isLive && (
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap:4,
-                  background:'#ef4444', color:'#fff', fontSize:10, fontWeight:700,
-                  padding:'2px 7px', borderRadius:10,
-                  animation:'livePulse 2s infinite',
-                }}>
+                <span
+                  className="inline-flex items-center gap-1 rounded-tag bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{ animation: "livePulse 2s infinite" }}
+                >
                   <Radio size={9} /> LIVE
                 </span>
               )}
@@ -501,7 +441,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           </div>
 
           {/* Right: outcome or P&L badge */}
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+          <div className="flex flex-col items-end gap-1 shrink-0">
             {!isPending && (
               <OutcomeBadge
                 outcome={outcome}
@@ -528,58 +468,43 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         )}
 
         {/* ── TITLE ── */}
-        <h3 style={{
-          fontSize:17, fontWeight:700, color:'#0f172a', lineHeight:1.4,
-          marginBottom:8, display:'-webkit-box', WebkitLineClamp:2,
-          WebkitBoxOrient:'vertical', overflow:'hidden',
-        }}>
+        <h3 className="font-serif text-[17px] text-foreground leading-snug mb-2 line-clamp-2">
           {report.title}
         </h3>
 
         {/* ── EXCERPT ── */}
         {report.excerpt && (
-          <div style={{ marginBottom:10, position:'relative' }}>
-            <p style={{
-              fontSize:14, color:'#475569', lineHeight:1.6,
-              display:'-webkit-box', WebkitLineClamp:3,
-              WebkitBoxOrient:'vertical', overflow:'hidden',
-              filter: isLocked ? 'blur(3px)' : 'none',
-              userSelect: isLocked ? 'none' : 'auto',
-              pointerEvents: isLocked ? 'none' : 'auto',
-            }}>
+          <div className="mb-2.5 relative">
+            <p
+              className="text-[14px] text-muted-foreground leading-relaxed line-clamp-3"
+              style={{
+                filter: isLocked ? "blur(3px)" : "none",
+                userSelect: isLocked ? "none" : "auto",
+                pointerEvents: isLocked ? "none" : "auto",
+              }}
+            >
               {report.excerpt}
             </p>
             {isLocked && (
               <div
                 onClick={e => e.stopPropagation()}
-                style={{
-                  position:'absolute', inset:0,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                }}
+                className="absolute inset-0 flex items-center justify-center"
               >
-                <div style={{
-                  background:'rgba(255,255,255,0.95)', borderRadius:10,
-                  border:'1px solid #e2e8f0', padding:'16px 18px', textAlign:'center',
-                  boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
-                }}>
-                  <Lock size={22} color="#d97706" style={{ marginBottom:6, display:'block', margin:'0 auto 6px' }} />
-                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', marginBottom:10 }}>
+                <div className="surface px-4 py-3 text-center">
+                  <Lock size={20} className="text-accent mx-auto mb-1.5" />
+                  <p className="text-[12px] font-medium text-foreground mb-2.5">
                     Choose your access option
                   </p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  <div className="flex flex-col gap-2">
                     <button
                       onClick={e => {
                         e.stopPropagation();
                         navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}&analystEmail=${authorEmail}`);
                       }}
-                      style={{
-                        fontSize:12, fontWeight:700, background:'#2563eb', color:'#fff',
-                        borderRadius:6, padding:'6px 14px', textDecoration:'none', display:'inline-flex',
-                        alignItems:'center', justifyContent:'center', gap:'6px',
-                        width:'100%', boxSizing:'border-box', border:'none', cursor:'pointer',
-                      }}
+                      className="cta-gold w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5"
+                      style={{ borderRadius: 6 }}
                     >
-                      <CreditCard size={14} /> Subscribe to {authorName}
+                      <CreditCard size={14} /> Subscribe . ${subscribePrice}/mo
                     </button>
                     {isPremium && report.price && (
                       <button
@@ -587,13 +512,10 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                           e.stopPropagation();
                           navigate(`/pay?mode=report&price=${report.price}&title=${encodeURIComponent(report.title)}&analyst=${encodeURIComponent(authorName)}`);
                         }}
-                        style={{
-                          fontSize:12, fontWeight:700, background:'#059669', color:'#fff',
-                          borderRadius:6, padding:'6px 14px', border:'none', cursor:'pointer',
-                          width:'100%',
-                        }}
+                        className="w-full bg-primary text-primary-foreground text-[12px] font-medium px-3.5 py-1.5 hover:bg-primary/90 transition-colors"
+                        style={{ borderRadius: 6 }}
                       >
-                        Buy This Report — ${report.price}
+                        Buy This Report — <span className="font-display">${report.price}</span>
                       </button>
                     )}
                   </div>
@@ -612,11 +534,11 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         {tickers.length > 0 && (
           <div
             onClick={e => e.stopPropagation()}
-            style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10, alignItems:'center' }}
+            className="flex flex-wrap gap-1.5 mb-2.5 items-center"
           >
             {tickers.map(t => <TickerTag key={t} ticker={t} />)}
             {report.industry && (
-              <span style={{ fontSize:10, fontWeight:600, color:'#64748b', background:'#f1f5f9', border:'1px solid #e2e8f0', borderRadius:4, padding:'2px 6px' }}>
+              <span className="rounded-tag border border-border bg-secondary text-muted-foreground text-[10px] font-medium px-1.5 py-0.5">
                 {report.industry}
               </span>
             )}
@@ -624,55 +546,44 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         )}
 
         {/* ── FOOTER ── */}
-        <div style={{
-          display:'flex', alignItems:'center', gap:12,
-          paddingTop:12, borderTop:'1px solid #f1f5f9', marginTop:4,
-        }}>
-          <span style={{ display:'flex', alignItems:'center', gap:4, fontSize:13, fontWeight:600, color:'#94a3b8', pointerEvents:'none' }}>
-            <Eye size={13} /> {report.views || 0}
+        <div className="flex items-center gap-3 pt-3 border-t border-border/60 mt-1">
+          <span className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground pointer-events-none">
+            <Eye size={13} /> <span className="font-display">{report.views || 0}</span>
           </span>
+
           <button
             onClick={handleLike}
-            style={{
-              display:'flex', alignItems:'center', gap:5,
-              fontSize:13, fontWeight:600, background:'none', border:'none',
-              color: liked ? '#ef4444' : '#94a3b8', cursor:'pointer',
-              transition:'color 150ms ease',
-            }}
+            className={`inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium cursor-pointer transition-colors ${
+              liked ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <Heart size={15} fill={liked ? '#ef4444' : 'none'} color={liked ? '#ef4444' : '#94a3b8'} />
-            {likeCount}
+            <Heart size={15} fill={liked ? "currentColor" : "none"} />
+            <span className="font-display">{likeCount}</span>
           </button>
 
           <button
             onClick={e => { e.stopPropagation(); navigate(`/report?id=${report.id}#comments`); }}
-            style={{
-              display:'flex', alignItems:'center', gap:5,
-              fontSize:13, fontWeight:600, background:'none', border:'none',
-              color:'#94a3b8', cursor:'pointer', transition:'color 150ms ease',
-            }}
+            className="inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <MessageCircle size={15} />
             Comment
           </button>
 
           {isPremium && report.price && (
-            <span style={{ fontSize:12, fontWeight:700, color:'#d97706' }}>${report.price}</span>
+            <span className="text-[12px] font-medium text-accent font-display">${report.price}</span>
           )}
 
           <button
             onClick={handleSave}
-            style={{
-              display:'flex', alignItems:'center', gap:5,
-              fontSize:13, fontWeight:600, background:'none', border:'none',
-              color: saved ? '#f59e0b' : '#94a3b8', cursor:'pointer', transition:'color 150ms ease',
-            }}
+            className={`inline-flex items-center gap-1 bg-transparent border-none text-[13px] font-medium cursor-pointer transition-colors ${
+              saved ? "text-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <Bookmark size={15} fill={saved ? '#f59e0b' : 'none'} color={saved ? '#f59e0b' : '#94a3b8'} />
+            <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
             Save
           </button>
 
-          <span onClick={e => e.stopPropagation()} style={{ marginLeft:'auto' }}>
+          <span onClick={e => e.stopPropagation()} className="ml-auto">
             <ShareMenu title={report.title} reportId={report.id} />
           </span>
         </div>

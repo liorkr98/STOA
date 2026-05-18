@@ -13,10 +13,10 @@ const FILTERS = [
 
 export default function QuickFilterRow({ active, onChange }) {
   return (
-    <div style={{
-      display:'flex', gap:8, overflowX:'auto', padding:'12px 0',
-      scrollbarWidth:'none', msOverflowStyle:'none',
-    }}>
+    <div
+      className="qfr flex gap-2 overflow-x-auto py-3"
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+    >
       <style>{`.qfr::-webkit-scrollbar{display:none}`}</style>
       {FILTERS.map(f => {
         const isActive = active === f.id;
@@ -24,19 +24,11 @@ export default function QuickFilterRow({ active, onChange }) {
           <button
             key={f.id}
             onClick={() => onChange(f.id)}
-            style={{
-              padding:'6px 14px',
-              borderRadius:20,
-              fontSize:12,
-              fontWeight:600,
-              whiteSpace:'nowrap',
-              border: isActive ? '1px solid #2563eb' : '1px solid #e2e8f0',
-              background: isActive ? '#2563eb' : '#f1f5f9',
-              color: isActive ? '#ffffff' : '#64748b',
-              cursor:'pointer',
-              transition:'all 150ms ease',
-              flexShrink:0,
-            }}
+            className={`shrink-0 whitespace-nowrap rounded-tag border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary text-muted-foreground border-border hover:bg-secondary/70 hover:text-foreground"
+            }`}
           >
             {f.label}
           </button>

@@ -2,14 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { TrendingUp, Trophy } from "lucide-react";
-import AccuracyTierBadge from "./AccuracyTierBadge";
+import { TrendingUp, Trophy, Flame, Zap } from "lucide-react";
 import { analystHref } from "@/lib/analystSlug";
-import { computeAnalystStats } from "@/lib/analystStats";
 import { computeScore } from "@/lib/scoringEngine";
 
 const TIME_PERIODS = ["All Time", "This Month", "This Week"];
-const RANK_MEDALS  = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const RANK_MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const RANK_REWARDS = {
   1: { label: "500 AI Credits/mo" },
   2: { label: "250 AI Credits/mo" },
@@ -18,12 +16,12 @@ const RANK_REWARDS = {
 
 function SkeletonRow() {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0' }}>
-      <div style={{ width:16, height:16, borderRadius:4, background:'#e2e8f0' }} />
-      <div style={{ width:32, height:32, borderRadius:'50%', background:'#e2e8f0' }} />
-      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
-        <div style={{ width:80, height:10, borderRadius:4, background:'#e2e8f0' }} />
-        <div style={{ width:55, height:8, borderRadius:4, background:'#e2e8f0' }} />
+    <div className="flex items-center gap-2 py-1.5">
+      <div className="h-4 w-4 rounded-tag shimmer" />
+      <div className="h-8 w-8 rounded-full shimmer" />
+      <div className="flex-1 flex flex-col gap-1">
+        <div className="h-2.5 w-20 rounded-tag shimmer" />
+        <div className="h-2 w-14 rounded-tag shimmer" />
       </div>
     </div>
   );
@@ -69,7 +67,6 @@ export default function Leaderboard() {
       .catch(() => {});
   }, [isAuthenticated, user]);
 
-  // Compute new scores from reports for each analyst
   const analystScores = React.useMemo(() => {
     const map = {};
     qualifiedAnalysts.forEach(a => {
@@ -113,123 +110,121 @@ export default function Leaderboard() {
   };
 
   return (
-    <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:16 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12 }}>
-        <Trophy size={15} color="#d97706" />
-        <span style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>Top Researchers</span>
+    <div className="surface p-4">
+      <div className="flex items-center gap-1.5 mb-3">
+        <Trophy size={15} className="text-accent" />
+        <span className="font-serif text-[14px] text-foreground">Top Researchers</span>
       </div>
 
       {/* Period tabs */}
-      <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
-        {TIME_PERIODS.map(p => (
-          <button key={p} onClick={() => setPeriod(p)} style={{
-            padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700,
-            cursor:'pointer', transition:'all 150ms ease',
-            border: period === p ? '1px solid #2563eb' : '1px solid #e2e8f0',
-            background: period === p ? '#2563eb' : '#f8fafc',
-            color: period === p ? '#fff' : '#64748b',
-          }}>
-            {p}
-          </button>
-        ))}
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        {TIME_PERIODS.map(p => {
+          const isActive = period === p;
+          return (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-tag border px-2.5 py-0.5 text-[10px] font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              {p}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        <div className="flex flex-col gap-2">
           <SkeletonRow /><SkeletonRow /><SkeletonRow />
         </div>
       ) : sorted.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'16px 0' }}>
-          <p style={{ fontSize:12, color:'#94a3b8', marginBottom:6 }}>Leaderboard populates as researchers resolve predictions.</p>
-          <Link to="/editor" style={{ fontSize:12, color:'#2563eb', fontWeight:600 }}>Start Writing →</Link>
+        <div className="text-center py-4">
+          <p className="text-[12px] text-muted-foreground mb-1.5">
+            Leaderboard populates as researchers resolve predictions.
+          </p>
+          <Link to="/editor" className="text-[12px] text-primary font-medium no-underline">
+            Start Writing →
+          </Link>
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+        <div className="flex flex-col">
           {sorted.slice(0, 8).map((analyst, index) => {
             const rank = index + 1;
-            const accPct = analyst.accuracy_score || 0;
             const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
             const isFollowing = followedEmails.includes(analyst.email);
             const reward = RANK_REWARDS[rank];
+            const s = analystScores[analyst.email] || {};
 
             return (
               <div
                 key={analyst.id}
                 onClick={() => navigate(analystHref(analyst))}
-                style={{
-                  display:'flex', alignItems:'center', gap:8,
-                  padding:'8px 6px', borderRadius:8, cursor:'pointer',
-                  transition:'background 150ms ease',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                className="flex items-center gap-2 px-1.5 py-2 rounded-tag cursor-pointer hover:bg-secondary/60 transition-colors"
               >
-                <span style={{ fontSize:12, fontWeight:700, width:18, textAlign:'center', flexShrink:0 }}>
-                  {RANK_MEDALS[rank] || <span style={{ color:'#94a3b8' }}>{rank}</span>}
+                <span className="w-4.5 text-center shrink-0 text-[12px] font-medium text-muted-foreground">
+                  {RANK_MEDALS[rank] || rank}
                 </span>
 
-                <div style={{
-                  width:32, height:32, borderRadius:'50%', overflow:'hidden',
-                  background:'#dbeafe', flexShrink:0,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:12, fontWeight:700, color:'#2563eb',
-                }}>
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-secondary shrink-0 flex items-center justify-center text-[12px] font-medium text-primary">
                   {(analyst.profile_picture_url || analyst.picture)
-                    ? <img src={analyst.profile_picture_url || analyst.picture} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    ? <img src={analyst.profile_picture_url || analyst.picture} alt={name} className="w-full h-full object-cover" />
                     : analyst.avatar
-                      ? <img src={analyst.avatar} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      ? <img src={analyst.avatar} alt={name} className="w-full h-full object-cover" />
                       : name[0]}
                 </div>
 
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:12, fontWeight:600, color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</p>
-                  <div style={{ display:'flex', alignItems:'center', gap:4, flexWrap:'wrap' }}>
-                    {(() => {
-                      const s = analystScores[analyst.email] || {};
-                      return s.rawWR != null ? (
-                        <span style={{ fontSize:10, fontWeight:700, color: s.rawWR >= 0.6 ? '#16a34a' : s.rawWR >= 0.45 ? '#d97706' : '#dc2626' }}>
-                          {(s.rawWR * 100).toFixed(0)}% WR
-                        </span>
-                      ) : null;
-                    })()}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-foreground truncate">{name}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {s.rawWR != null && (
+                      <span className="text-[10px] font-medium text-muted-foreground font-display">
+                        {(s.rawWR * 100).toFixed(0)}% WR
+                      </span>
+                    )}
                     {analyst.win_streak >= 2 && (
-                      <span style={{ fontSize:9, fontWeight:700, color:'#c2410c' }}>🔥{analyst.win_streak}</span>
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-accent">
+                        <Flame size={9} className="inline" />
+                        <span className="font-display">{analyst.win_streak}</span>
+                      </span>
                     )}
                     {reward && (
-                      <span style={{ fontSize:9, color:'#d97706', fontWeight:600 }}>⚡ {reward.label.split(' ')[0]} cr.</span>
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-accent">
+                        <Zap size={9} className="inline" />
+                        {reward.label.split(" ")[0]} cr.
+                      </span>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
-                  {(() => {
-                    const s = analystScores[analyst.email] || {};
-                    return s.profitFactor != null ? (
-                      <div style={{ fontSize:10, fontWeight:700, color: s.profitFactor >= 2 ? '#16a34a' : s.profitFactor >= 1 ? '#d97706' : '#dc2626' }}>
-                        {s.profitFactor.toFixed(1)}x PF
-                      </div>
-                    ) : s.avgReturn != null ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:2, fontSize:10, fontWeight:700, color: s.avgReturn >= 0 ? '#16a34a' : '#dc2626' }}>
-                        <TrendingUp size={10} />
-                        {s.avgReturn >= 0 ? '+' : ''}{s.avgReturn.toFixed(1)}%
-                      </div>
-                    ) : null;
-                  })()}
-                  <span style={{ fontSize:9, fontWeight:700, color:'#2563eb' }}>
-                    {(analystScores[analyst.email] || {}).score ?? '—'}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {s.profitFactor != null ? (
+                    <div className="text-[10px] font-medium text-foreground font-display">
+                      {s.profitFactor.toFixed(1)}x PF
+                    </div>
+                  ) : s.avgReturn != null ? (
+                    <div className={`flex items-center gap-0.5 text-[10px] font-medium font-display ${
+                      s.avgReturn >= 0 ? "text-gain" : "text-loss"
+                    }`}>
+                      <TrendingUp size={10} />
+                      {s.avgReturn >= 0 ? "+" : ""}{s.avgReturn.toFixed(1)}%
+                    </div>
+                  ) : null}
+                  <span className="text-[9px] font-medium text-primary font-display">
+                    {s.score ?? "—"}
                   </span>
                   {isAuthenticated && user?.email !== analyst.email && (
                     <button
                       onClick={e => handleFollow(e, analyst)}
-                      style={{
-                        fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:4, cursor:'pointer',
-                        transition:'all 150ms ease',
-                        border: isFollowing ? '1px solid #16a34a' : '1px solid #2563eb',
-                        background: isFollowing ? '#f0fdf4' : 'transparent',
-                        color: isFollowing ? '#16a34a' : '#2563eb',
-                      }}
+                      className={`rounded-tag border text-[9px] font-medium px-2 py-0.5 transition-colors ${
+                        isFollowing
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-transparent text-primary border-primary/60 hover:bg-primary/10"
+                      }`}
                     >
-                      {isFollowing ? '✓' : 'Follow'}
+                      {isFollowing ? "✓" : "Follow"}
                     </button>
                   )}
                 </div>
@@ -239,8 +234,8 @@ export default function Leaderboard() {
         </div>
       )}
 
-      <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid #e2e8f0' }}>
-        <Link to="/leaderboard" style={{ fontSize:11, color:'#2563eb', fontWeight:600, textDecoration:'none' }}>
+      <div className="mt-3 pt-3 border-t border-border/60">
+        <Link to="/leaderboard" className="text-[11px] text-primary font-medium no-underline">
           View Full Leaderboard →
         </Link>
       </div>
