@@ -165,7 +165,16 @@ export default function BecomeAnalystPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 -mt-12 pb-16">
-        <div className="surface-premium p-6 mb-5">
+        {/* `surface-premium` defaults to a near-transparent glass background,
+            which works for cards floating over the page background. But this
+            card is pulled UP by -mt-12 so its top 48px overlaps the dark navy
+            hero banner — with a translucent fill the banner bled straight
+            through, making the header icon + "Become a Researcher" title sit
+            on top of the navy gradient. Inline style overrides the glass fill
+            with the opaque theme card color so the gradient border + top-edge
+            highlight still work, but the banner can't bleed through anymore.
+            Same fix as AnalystProfilePage's profile header card. */}
+        <div className="surface-premium p-6 mb-5" style={{ background: "hsl(var(--card))" }}>
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-2">
