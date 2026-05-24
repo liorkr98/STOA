@@ -9,6 +9,11 @@ import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Avatar } from "@/components/AnalystCard";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import AISidebar from "@/components/editor/AISidebar";
+import AIChat from "@/components/editor/AIChat";
+import TemplatesPanel from "@/components/editor/TemplatesPanel";
+import DesignPanel from "@/components/editor/DesignPanel";
 
 const AUTOSAVE_MS = 1500;
 
@@ -530,6 +535,14 @@ export default function ReportEditor() {
   const [aiOpen, setAiOpen] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [monetized, setMonetized] = useState(true);
+  // Restored from backup: floating AISidebar (report skeleton generator)
+  // and AIChat (conversational), plus Templates + Design panels.
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [designOpen, setDesignOpen] = useState(false);
+  const [reportTheme, setReportTheme] = useState("default");
+  const [reportFont, setReportFont] = useState("inter");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -750,6 +763,16 @@ export default function ReportEditor() {
 
         <span className="vr" style={{ height: 18 }}/>
 
+        {/* Templates + Design panel buttons — restored from backup */}
+        <button className="btn btn-ghost btn-sm" onClick={() => setTemplatesOpen(true)}>
+          Templates
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setDesignOpen(true)}>
+          Design
+        </button>
+
+        <span className="vr" style={{ height: 18 }}/>
+
         <button className="btn btn-ghost btn-sm" onClick={() => setPreviewOpen(true)}>
           <Eye size={13} strokeWidth={1.55}/> Preview
         </button>
@@ -889,20 +912,81 @@ export default function ReportEditor() {
               </>)}
             </div>
 
+            {/* ── Drag-and-drop block list — restored from backup ──
+                @hello-pangea/dnd wraps the block list so users can reorder
+                by dragging the grip handle on each block. Reordering keeps
+                insertion zones outside the drag context so they still
+                respond to clicks. */}
+            <DragDropContext
+              onDragEnd={(result) => {
+                if (!result.destination) return;
+                if (result.destination.index === result.source.index) return;
+                setBlocks((prev) => {
+                  const next = Array.from(prev);
+                  const [moved] = next.splice(result.source.index, 1);
+                  next.splice(result.destination.index, 0, moved);
+                  return next;
+                });
+              }}
+            >
+              <Droppable droppableId="editor-blocks">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    style={{ display: "flex", flexDirection: "column", gap: 0 }}
+                  >
+                    {blocks.map((b, i) => (
+                      <Draggable key={b.id} draggableId={String(b.id)} index={i}>
+                        {(dragProvided, snapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            style={{
+                              ...dragProvided.draggableProps.style,
+                              background: snapshot.isDragging ? "var(--bg-soft)" : undefined,
+                              borderRadius: snapshot.isDragging ? 6 : undefined,
+                            }}
+                          >
+                            <InsertionZone onAdd={() => { setSlashAt(i); setSlashOpen(true); }}/>
+                            <div style={{ position: "relative" }}>
+                              {/* Drag grip — left of block, only visible on hover */}
+                              <div
+                                {...dragProvided.dragHandleProps}
+                                title="Drag to reorder"
+                                style={{
+                                  position: "absolute", left: -64, top: 10,
+                                  width: 18, height: 22, borderRadius: 4,
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  color: "var(--text-meta)", cursor: "grab",
+                                  opacity: 0.4,
+                                }}
+                              >
+                                <svg width="9" height="14" viewBox="0 0 9 14" fill="currentColor">
+                                  <circle cx="2" cy="2" r="1"/><circle cx="7" cy="2" r="1"/>
+                                  <circle cx="2" cy="7" r="1"/><circle cx="7" cy="7" r="1"/>
+                                  <circle cx="2" cy="12" r="1"/><circle cx="7" cy="12" r="1"/>
+                                </svg>
+                              </div>
+                              <EditorBlockWrap
+                                block={b}
+                                active={activeBlockId === b.id}
+                                setActive={() => setActiveBlockId(b.id)}
+                                onShowSlash={() => { setSlashAt(i + 1); setSlashOpen(true); }}
+                                onChange={(patch) => updateBlock(b.id, patch)}
+                                onDelete={() => deleteBlock(b.id)}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {blocks.map((b, i) => (
-                <React.Fragment key={b.id}>
-                  <InsertionZone onAdd={() => { setSlashAt(i); setSlashOpen(true); }}/>
-                  <EditorBlockWrap
-                    block={b}
-                    active={activeBlockId === b.id}
-                    setActive={() => setActiveBlockId(b.id)}
-                    onShowSlash={() => { setSlashAt(i + 1); setSlashOpen(true); }}
-                    onChange={(patch) => updateBlock(b.id, patch)}
-                    onDelete={() => deleteBlock(b.id)}
-                  />
-                </React.Fragment>
-              ))}
               <InsertionZone
                 onAdd={() => { setSlashAt(blocks.length); setSlashOpen(true); }}
                 persistent
@@ -978,28 +1062,28 @@ export default function ReportEditor() {
               flex: 1, overflowY: "auto", padding: 20,
               display: "flex", flexDirection: "column", gap: 16,
             }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                {[
-                  "📊  Pull comp table",
-                  "📈  Add chart",
-                  "🧮  Sanity-check model",
-                  "⚖  Make me a bear case",
-                ].map((t) => (
-                  <button key={t} style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 10px", fontSize: 11.5,
-                    background: "var(--bg-soft)",
-                    border: "0.5px solid var(--border-rgba)",
-                    borderRadius: 6, color: "var(--text-mute)",
-                    textAlign: "left", cursor: "pointer",
-                  }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
+              {/* Two power tools — restored from backup */}
+              <button
+                onClick={() => setAiSidebarOpen(true)}
+                className="btn btn-gold"
+                style={{ width: "100%", justifyContent: "flex-start", gap: 10 }}
+              >
+                <Zap size={13} strokeWidth={1.7}/>
+                Generate report skeleton
+              </button>
+              <button
+                onClick={() => setAiChatOpen(true)}
+                className="btn btn-ghost"
+                style={{ width: "100%", justifyContent: "flex-start", gap: 10 }}
+              >
+                <Zap size={13} strokeWidth={1.7} style={{ color: "var(--gold-hex)" }}/>
+                Open AI chat
+              </button>
+
+              <div className="hr"/>
 
               <div style={{ fontSize: 12, color: "var(--text-mute)", lineHeight: 1.5 }}>
-                Ask the co-analyst about fundamentals, technicals, comp set sanity-checks, or drop a paragraph for review. Cited claims are pinned to the source.
+                The skeleton generator drafts a full institutional-style report from a ticker. The chat answers questions, sanity-checks claims, and drops snippets into the editor.
               </div>
             </div>
 
@@ -1083,6 +1167,96 @@ export default function ReportEditor() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Floating AI panels — restored from backup ── */}
+      <AISidebar
+        isOpen={aiSidebarOpen}
+        onClose={() => setAiSidebarOpen(false)}
+        onGenerate={(generated) => {
+          // The generator returns [{type: "heading"|"text"|"bullets", content}]
+          // Convert to my editor's block shape and append before the last block.
+          const newBlocks = (generated || []).map((g) => {
+            const type = g.type === "heading" ? "h"
+              : g.type === "bullets" ? "p"   // bullets render as multi-line paragraph
+              : "p";
+            return { id: newId(), type, text: g.content || "" };
+          });
+          if (!newBlocks.length) return;
+          setBlocks((prev) => [...prev, ...newBlocks]);
+          setAiSidebarOpen(false);
+          toast.success(`Added ${newBlocks.length} block${newBlocks.length === 1 ? "" : "s"} from AI.`);
+        }}
+      />
+      {aiChatOpen && (
+        <AIChat
+          reportContent={blocks.map((b) => b.text || "").join("\n\n")}
+          onInsertBlock={(block) => {
+            // AIChat returns {type, content} → convert and append
+            const type = block.type === "heading" ? "h" : "p";
+            setBlocks((prev) => [...prev, { id: newId(), type, text: block.content || "" }]);
+          }}
+        />
+      )}
+
+      {/* ── Templates + Design panels — restored from backup ── */}
+      {templatesOpen && (
+        <TemplatesPanel
+          onClose={() => setTemplatesOpen(false)}
+          onSelectTemplate={(templateBlocks) => {
+            // Replace the editor body with the template's block sequence.
+            // Each template block is {id, type, content, ...}. Adapt to my shape.
+            const adapted = (templateBlocks || []).map((b) => ({
+              id: newId(),
+              type: b.type === "heading" ? "h"
+                : b.type === "text" ? "p"
+                : b.type === "bullets" ? "p"
+                : b.type === "quote" ? "pullquote"
+                : b.type === "callout" ? "p"
+                : b.type === "thesis" ? "bullbear"
+                : b.type === "metrics" ? "metrics"
+                : "p",
+              text: b.content || "",
+              data: b.data,
+            }));
+            if (adapted.length) {
+              setBlocks(adapted);
+              toast.success(`Applied template (${adapted.length} blocks).`);
+            }
+            setTemplatesOpen(false);
+          }}
+        />
+      )}
+      {designOpen && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setDesignOpen(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(10,26,63,0.32)",
+            backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 40,
+          }}
+        >
+          <div className="surface" style={{
+            background: "var(--bg)", maxWidth: 520, width: "100%",
+            maxHeight: "90vh", overflow: "auto", padding: 24,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+              <h3 className="t-title" style={{ fontSize: 18, margin: 0 }}>Design</h3>
+              <div style={{ flex: 1 }}/>
+              <button onClick={() => setDesignOpen(false)} className="btn btn-ghost btn-sm">
+                Close <X size={12} strokeWidth={1.7}/>
+              </button>
+            </div>
+            <DesignPanel
+              theme={reportTheme}
+              font={reportFont}
+              onThemeChange={setReportTheme}
+              onFontChange={setReportFont}
+            />
           </div>
         </div>
       )}

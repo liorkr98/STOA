@@ -10,8 +10,13 @@ import { toast } from "sonner";
 import TrackChart from "@/components/charts/TrackChart";
 import LockedPredictionCard from "@/components/PredictionCard";
 import SubscribeCTA from "@/components/SubscribeCTA";
+import ShareModal from "@/components/profile/ShareModal";
+import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
+import { CustomBlocksSection } from "@/components/profile/CustomBlocks";
+import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
+import TierProgressBar from "@/components/analyst/TierProgressBar";
 import { computeAvgYield } from "@/lib/yieldCalc";
-import { computeScore } from "@/lib/scoringEngine";
+import { computeAnalystTier } from "@/lib/analystTier";
 import { subscribeAnalyst } from "@/lib/walletService";
 
 // ── Direction → tag class helper ─────────────────────────────────────────────
@@ -33,7 +38,7 @@ function predictionToCall(p) {
   const change = entry && exit ? ((exit - entry) / entry) * 100 * (p.direction === "Short" ? -1 : 1) : 0;
   const created = p.created_date ? new Date(p.created_date) : new Date();
   return {
-    id: p.id?.toString().slice(0, 6) || "p",
+    id: p.id?.toString()?.slice(0, 6) || "p",
     ticker: p.ticker,
     dir: (p.direction || "LONG").toUpperCase(),
     entry, target, exit,
@@ -417,6 +422,8 @@ export default function AnalystProfilePage() {
   const [tab, setTab] = useState("track");
   const [subscribed, setSubscribed] = useState(false);
   const [subBusy, setSubBusy] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showWalletConfirm, setShowWalletConfirm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -494,10 +501,18 @@ export default function AnalystProfilePage() {
     catch { return null; }
   }, [reports]);
 
-  const handleSubscribe = async () => {
+  // Open the wallet-confirm dialog rather than subscribing directly. The
+  // dialog shows current balance + cost + new balance and only fires the
+  // actual subscribe call once the user confirms.
+  const handleSubscribe = () => {
     if (!isAuthenticated) { navigate("/signin"); return; }
     if (!analyst) return;
     if (subscribed) { toast.info("Manage subscriptions on the Wallet page."); return; }
+    setShowWalletConfirm(true);
+  };
+
+  const confirmSubscribe = async () => {
+    if (!analyst) return;
     setSubBusy(true);
     try {
       await subscribeAnalyst(analyst.email, analyst.monthly_price || 9);
@@ -505,6 +520,7 @@ export default function AnalystProfilePage() {
       toast.success(`Subscribed to ${analyst.full_name || "researcher"}.`);
     } catch (e) {
       toast.error(e?.message || "Subscribe failed");
+      throw e;
     } finally {
       setSubBusy(false);
     }
@@ -629,7 +645,12 @@ export default function AnalystProfilePage() {
                 <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => navigate("/dm")}>
                   <MessageSquare size={13} strokeWidth={1.6}/> Message
                 </button>
-                <button className="btn btn-ghost btn-sm" style={{ width: 38, padding: 0 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: 38, padding: 0 }}
+                  onClick={() => setShowShare(true)}
+                  aria-label="Share profile"
+                >
                   <Share2 size={13} strokeWidth={1.6}/>
                 </button>
               </div>
@@ -698,7 +719,24 @@ export default function AnalystProfilePage() {
           )}
           {tab === "research" && <ResearchTab reports={reports} navigate={navigate}/>}
           {tab === "predictions" && <PredictionsTab open={openCalls} resolved={resolvedCalls} analyst={analyst}/>}
-          {tab === "about" && <AboutTab analyst={analyst}/>}
+          {tab === "about" && (
+            <>
+              <AboutTab analyst={analyst}/>
+              {/* Custom researcher blocks — restored from backup (CustomBlocks).
+                  CustomBlocksSection renders text / link-tree / image / chart
+                  blocks saved on the analyst's profile_config. Read-only here
+                  since this page is the public view. */}
+              <div style={{ marginTop: 20 }}>
+                <CustomBlocksSection
+                  blocks={(() => {
+                    try { return JSON.parse(analyst.profile_config || "{}").custom_blocks || []; }
+                    catch { return []; }
+                  })()}
+                  isEditMode={false}
+                />
+              </div>
+            </>
+          )}
         </main>
 
         <aside style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -712,8 +750,41 @@ export default function AnalystProfilePage() {
             onSubscribe={handleSubscribe}
           />
           <SentimentBreakdown sentiment={sentiment}/>
+
+          {/* Tier progress + achievements — restored from backup */}
+          {(() => {
+            const tierData = computeAnalystTier ? computeAnalystTier(analyst) : null;
+            return tierData ? (
+              <div className="surface" style={{ padding: 22 }}>
+                <div className="t-eyebrow" style={{ marginBottom: 12 }}>Tier progress</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <AccuracyTierBadge accuracy={analyst.accuracy_score || 0}/>
+                </div>
+                <TierProgressBar tier={tierData}/>
+              </div>
+            ) : null;
+          })()}
         </aside>
       </div>
+
+      {/* ── Modals ── */}
+      <ShareModal
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        url={typeof window !== "undefined" ? window.location.href : ""}
+        title={`${analyst.full_name || "Researcher"} on Stoa`}
+        description={analyst.tagline || analyst.bio?.split("\n")[0] || ""}
+      />
+      <WalletConfirmDialog
+        open={showWalletConfirm}
+        onClose={() => setShowWalletConfirm(false)}
+        onConfirm={async () => { await confirmSubscribe(); setShowWalletConfirm(false); }}
+        title={`Subscribe to ${(analyst.full_name || "researcher").split(" ")[0]}`}
+        amountUSD={price}
+        itemLabel={`${analyst.full_name || analyst.email} · monthly subscription`}
+        showSplit
+        confirmLabel={subBusy ? "Subscribing…" : `Confirm · $${price}/mo`}
+      />
     </div>
   );
 }

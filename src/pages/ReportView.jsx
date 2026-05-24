@@ -9,6 +9,12 @@ import { setMeta, injectJsonLd } from "@/lib/seo";
 import { toast } from "sonner";
 import { subscribeAnalyst } from "@/lib/walletService";
 import { Avatar } from "@/components/AnalystCard";
+import ShareModal from "@/components/profile/ShareModal";
+import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
+import FactChecker from "@/components/report/FactChecker";
+import CommentsSection from "@/components/report/CommentsSection";
+import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
+import ExportPDFButton from "@/components/report/ExportPDFButton";
 
 /**
  * ReportView — long-form research reading view (v3 rebuild).
@@ -30,6 +36,8 @@ export default function ReportView() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showWalletConfirm, setShowWalletConfirm] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   const [author, setAuthor] = useState(null);
@@ -166,14 +174,21 @@ export default function ReportView() {
     base44.entities.Report.update(report.id, { likes: newCount }).catch(() => {});
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     if (!currentUser) { navigate("/signin"); return; }
     if (subscribed) return;
+    setShowWalletConfirm(true);
+  };
+
+  const confirmSubscribe = async () => {
     try {
       await subscribeAnalyst(report.created_by, author?.monthly_price || 9);
       setSubscribed(true);
       toast.success("Subscribed.");
-    } catch (e) { toast.error(e?.message || "Subscribe failed"); }
+    } catch (e) {
+      toast.error(e?.message || "Subscribe failed");
+      throw e;
+    }
   };
 
   // ── Derived ─────────────────────────────────────────────────────────────
@@ -229,7 +244,8 @@ export default function ReportView() {
               <Bookmark size={13} strokeWidth={1.6} style={{ fill: saved ? "var(--primary-blue)" : "transparent" }}/>
               {saved ? "Saved" : "Save"}
             </button>
-            <button className="btn btn-ghost btn-sm">
+            <ExportPDFButton report={report} blocks={blocks}/>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} aria-label="Share report">
               <Share2 size={13} strokeWidth={1.6}/> Share
             </button>
           </div>
@@ -362,6 +378,28 @@ export default function ReportView() {
           )}
         </div>
 
+        {/* ── Prediction trajectory chart — restored from backup.
+            Shows entry → live → target over the timeframe window for any
+            report with a locked prediction. */}
+        {report.prediction_ticker && report.prediction_entry_price && (
+          <div style={{ margin: "32px 0" }}>
+            <PredictionTrajectoryChart report={report}/>
+          </div>
+        )}
+
+        {/* ── Fact-checker — restored from backup.
+            Claude + Yahoo Finance + SEC EDGAR claim classification:
+            Verified Fact, Opinion, Misleading, Unverified, Yahoo/SEC. */}
+        <div style={{ margin: "32px 0" }}>
+          <FactChecker
+            reportContent={blocks.map((b) => b.content || b.text || "").join("\n\n")}
+            content={report.content}
+            reportId={report.id}
+            reportTitle={report.title}
+            onJumpToClaim={() => {}}
+          />
+        </div>
+
         {/* ── Reactions row ── */}
         <div style={{
           display: "flex", alignItems: "center", gap: 12,
@@ -420,6 +458,15 @@ export default function ReportView() {
             </p>
           </div>
         )}
+
+        {/* ── Discussion / Comments — restored from backup ── */}
+        <div style={{ marginTop: 40 }}>
+          <CommentsSection
+            reportId={report.id}
+            reportAuthorEmail={report.created_by}
+            reportTitle={report.title}
+          />
+        </div>
       </article>
 
       {/* ── More from analyst ── */}
@@ -496,6 +543,25 @@ export default function ReportView() {
           </div>
         </div>
       )}
+
+      {/* ── Modals (Share + Wallet confirm) ── */}
+      <ShareModal
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        url={typeof window !== "undefined" ? window.location.href : ""}
+        title={report.title}
+        description={report.excerpt || `${authorName} on Stoa`}
+      />
+      <WalletConfirmDialog
+        open={showWalletConfirm}
+        onClose={() => setShowWalletConfirm(false)}
+        onConfirm={async () => { await confirmSubscribe(); setShowWalletConfirm(false); }}
+        title={`Subscribe to ${authorName.split(" ")[0]}`}
+        amountUSD={price}
+        itemLabel={`${authorName} · monthly subscription`}
+        showSplit
+        confirmLabel={`Confirm · $${price}/mo`}
+      />
     </div>
   );
 }

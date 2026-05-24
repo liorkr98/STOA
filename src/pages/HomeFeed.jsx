@@ -192,11 +192,16 @@ export default function HomeFeed() {
   const navigate = useNavigate();
 
   const [activeSector, setActiveSector] = useState("all");
-  const [view, setView] = useState("feed"); // feed | analysts
+  // Views: trending (default), following (authed only), subscriptions (authed
+  // only), analysts (grid). Following + Subscriptions restored from backup.
+  const [view, setView] = useState("trending");
   const [reports, setReports] = useState([]);
   const [topAnalysts, setTopAnalysts] = useState([]);
   const [userMap, setUserMap] = useState({});
   const [loading, setLoading] = useState(true);
+  // Following + Subscription state — restored from backup
+  const [followedEmails, setFollowedEmails] = useState(new Set());
+  const [subscribedEmails, setSubscribedEmails] = useState(new Set());
 
   useEffect(() => {
     base44.entities.Report.filter({ status: "published" }, "-created_date", 200)
@@ -217,10 +222,25 @@ export default function HomeFeed() {
       .catch(() => {});
   }, []);
 
-  const filteredReports = useMemo(
-    () => reports.filter((r) => sectorMatch(r, activeSector)).slice(0, 30),
-    [reports, activeSector]
-  );
+  // Follows + subscriptions, so Following/Subscriptions tabs can filter
+  // the feed to people the current user actually cares about.
+  useEffect(() => {
+    if (!isAuthenticated || !user?.email) return;
+    Promise.all([
+      base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100).catch(() => []),
+      base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100).catch(() => []),
+    ]).then(([follows, subs]) => {
+      setFollowedEmails(new Set((follows || []).map((f) => f.analyst_email)));
+      setSubscribedEmails(new Set((subs || []).map((s) => s.analyst_email)));
+    });
+  }, [isAuthenticated, user?.email]);
+
+  const filteredReports = useMemo(() => {
+    let next = reports.filter((r) => sectorMatch(r, activeSector));
+    if (view === "following") next = next.filter((r) => followedEmails.has(r.created_by));
+    if (view === "subscriptions") next = next.filter((r) => subscribedEmails.has(r.created_by));
+    return next.slice(0, 30);
+  }, [reports, activeSector, view, followedEmails, subscribedEmails]);
 
   const leaderboard = useMemo(() => topAnalysts.slice(0, 6), [topAnalysts]);
 
@@ -251,7 +271,11 @@ export default function HomeFeed() {
               background: "var(--bg-elev)",
             }}>
               {[
-                { id: "feed", label: "Research feed" },
+                { id: "trending", label: "Trending" },
+                ...(isAuthenticated ? [
+                  { id: "following", label: "Following" },
+                  { id: "subscriptions", label: "Subscriptions" },
+                ] : []),
                 { id: "analysts", label: "Researchers" },
               ].map((v) => (
                 <button
@@ -423,7 +447,7 @@ export default function HomeFeed() {
             </div>
           )}
 
-          {!loading && view === "feed" && (
+          {!loading && view !== "analysts" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {filteredReports.length === 0 ? (
                 <div className="surface" style={{ padding: 60, textAlign: "center" }}>

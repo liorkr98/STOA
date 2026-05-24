@@ -10,6 +10,9 @@ import { Avatar } from "@/components/AnalystCard";
 import TrackChart from "@/components/charts/TrackChart";
 import LockedPredictionCard from "@/components/PredictionCard";
 import { loadMyWallet } from "@/lib/walletService";
+import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
+import TwitsPanel from "@/components/dashboard/TwitsPanel";
+import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 
 // ── Map Prediction entity → LockedPredictionCard call shape ──────────────────
 function predToCall(p) {
@@ -27,7 +30,7 @@ function predToCall(p) {
     ? ((exit - entry) / entry) * 100 * (p.direction === "Short" ? -1 : 1) : 0;
   const created = p.created_date ? new Date(p.created_date) : new Date();
   return {
-    id: p.id?.toString().slice(0, 6) || "p",
+    id: p.id?.toString()?.slice(0, 6) || "p",
     ticker: p.ticker,
     dir: (p.direction || "LONG").toUpperCase(),
     entry, target, exit,
@@ -664,10 +667,25 @@ export default function AnalystDashboard() {
           </div>
         )}
         {!loading && section === "audience" && <Audience subscribers={subscribers}/>}
-        {!loading && section === "earnings" && <Earnings wallet={wallet} lifetime={lifetime}/>}
-        {!loading && (section === "analytics" || section === "settings") && (
-          <Placeholder name={section}/>
+        {!loading && section === "earnings" && (
+          <>
+            <Earnings wallet={wallet} lifetime={lifetime}/>
+            {/* Revenue Insights — restored from backup */}
+            <div style={{ marginTop: 22 }}>
+              <RevenueInsightsPanel/>
+            </div>
+          </>
         )}
+        {!loading && section === "analytics" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+            <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 8px" }}>Analytics</h1>
+            {/* Twits + Watchlist + Revenue Insights — restored from backup */}
+            <TwitsPanel currentUser={user}/>
+            <WatchlistPanel reports={myReports}/>
+            <RevenueInsightsPanel/>
+          </div>
+        )}
+        {!loading && section === "settings" && <Placeholder name={section}/>}
       </main>
     </div>
   );
