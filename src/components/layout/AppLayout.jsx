@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Sun, Moon, Monitor } from "lucide-react";
+import { Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "@/lib/ThemeContext";
 import { avatarUrl } from "@/lib/avatarUrl";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ import { base44 } from "@/api/base44Client";
 import AIChat from "@/components/editor/AIChat";
 import InvestorOnboarding, { shouldShowInvestorOnboarding, markInvestorOnboardingDone } from "@/components/onboarding/InvestorOnboarding";
 import AnalystOnboarding, { shouldShowAnalystOnboarding, markAnalystOnboardingDone } from "@/components/onboarding/AnalystOnboarding";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 // Map every top-level route to a human-readable tab title.
 // Pages that call setMeta() themselves (ReportView, AnalystProfilePage, etc.)
@@ -78,6 +80,7 @@ export default function AppLayout() {
   const [walletBalance, setWalletBalance] = useState(null);
   const [showInvestorOnboarding, setShowInvestorOnboarding] = useState(false);
   const [showAnalystOnboarding, setShowAnalystOnboarding] = useState(false);
+  const [showFirstVisit, setShowFirstVisit] = useState(false);
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
   const NAV_ITEMS = isAuthenticated && isAnalyst ? NAV_ANALYST : NAV_INVESTOR;
 
@@ -119,6 +122,16 @@ export default function AppLayout() {
       if (shouldShowInvestorOnboarding(user)) setShowInvestorOnboarding(true);
     }
   }, [isAuthenticated, user, isAnalyst]);
+
+  // First-visit OnboardingModal — restored from backup. Triggers for anonymous
+  // visitors and authed investors who haven't seen the welcome + interest-picker
+  // flow yet. Authed users still get the role-aware InvestorOnboarding /
+  // AnalystOnboarding tour above; this is the lightweight intro overlay.
+  useEffect(() => {
+    if (isAnalyst) return;
+    if (localStorage.getItem("stoa_onboarded") === "true") return;
+    setShowFirstVisit(true);
+  }, [isAnalyst]);
 
   // Poll wallet balance for header chip
   useEffect(() => {
@@ -369,7 +382,7 @@ export default function AppLayout() {
       </header>
 
       {/* Page content */}
-      <main id="main-content" role="main" className="flex-1" tabIndex={-1}>
+      <main id="main-content" role="main" className="flex-1" tabIndex={-1} style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}>
         <Outlet />
       </main>
 
@@ -378,12 +391,19 @@ export default function AppLayout() {
       {/* Global AI analyst — available on every page except the editor (which has its own) */}
       {!["/editor"].includes(location.pathname) && <AIChat />}
 
+      {/* Mobile bottom nav — investor surfaces. Hidden on the editor (which
+          replaces the whole shell) and on the public landing page. */}
+      {!["/editor"].includes(location.pathname) && <MobileBottomNav />}
+
       {/* Onboarding flows — shown once for new users */}
       {showInvestorOnboarding && (
         <InvestorOnboarding onClose={() => { setShowInvestorOnboarding(false); markInvestorOnboardingDone(); }} />
       )}
       {showAnalystOnboarding && (
         <AnalystOnboarding onClose={() => { setShowAnalystOnboarding(false); markAnalystOnboardingDone(); }} />
+      )}
+      {showFirstVisit && !showInvestorOnboarding && !showAnalystOnboarding && (
+        <OnboardingModal onComplete={() => setShowFirstVisit(false)} />
       )}
     </div>
   );

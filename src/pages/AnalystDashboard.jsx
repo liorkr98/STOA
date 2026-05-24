@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, PenLine, Lock, FileText, Users, BarChart3, Wallet as WalletIcon,
   Settings as SettingsIcon, TrendingUp, Plus, ArrowRight, MoreHorizontal,
+  MessageCircle,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -13,6 +14,7 @@ import { loadMyWallet } from "@/lib/walletService";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 import TwitsPanel from "@/components/dashboard/TwitsPanel";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
+import DashboardDMs from "@/components/dashboard/DashboardDMs";
 
 // ── Map Prediction entity → LockedPredictionCard call shape ──────────────────
 function predToCall(p) {
@@ -49,6 +51,7 @@ const NAV = [
   { id: "predictions",  icon: Lock,         label: "Predictions" },
   { id: "publications", icon: FileText,     label: "Publications" },
   { id: "audience",     icon: Users,        label: "Audience" },
+  { id: "messages",     icon: MessageCircle,label: "Messages" },
   { id: "analytics",    icon: BarChart3,    label: "Analytics" },
   { id: "earnings",     icon: WalletIcon,   label: "Earnings" },
   { id: "settings",     icon: SettingsIcon, label: "Settings" },
@@ -667,6 +670,15 @@ export default function AnalystDashboard() {
           </div>
         )}
         {!loading && section === "audience" && <Audience subscribers={subscribers}/>}
+        {!loading && section === "messages" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div>
+              <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 4px" }}>Messages</h1>
+              <p className="t-meta">Private threads with your subscribers.</p>
+            </div>
+            <DashboardDMs subscribers={subscribers} currentUser={user}/>
+          </div>
+        )}
         {!loading && section === "earnings" && (
           <>
             <Earnings wallet={wallet} lifetime={lifetime}/>
