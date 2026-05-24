@@ -1,887 +1,674 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Home, PenLine, Lock, FileText, Users, BarChart3, Wallet as WalletIcon,
+  Settings as SettingsIcon, TrendingUp, Plus, ArrowRight, MoreHorizontal,
+} from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Target, TrendingUp, FileText, Star, Flame, Trophy, Users, Zap, ArrowUp, ArrowDown, Minus, BookOpen, Rocket, Shield, CheckCircle, BarChart3, ChevronRight, PenLine, Loader2, MessageCircle, Send, Lock, Eye, Heart, Clock, Crown } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
-import TwitsPanel from "@/components/dashboard/TwitsPanel";
-import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
-import { useNavigate, Link } from "react-router-dom";
-import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
-import { computeScore } from "@/lib/scoringEngine";
+import { useAuth } from "@/lib/AuthContext";
+import { Avatar } from "@/components/AnalystCard";
+import TrackChart from "@/components/charts/TrackChart";
+import LockedPredictionCard from "@/components/PredictionCard";
 import { loadMyWallet } from "@/lib/walletService";
-import { fetchLockPrice } from "@/lib/priceLockProvider";
-import { computeAnalystTier } from "@/lib/analystTier";
-import { analystHref } from "@/lib/analystSlug";
-import { avatarUrl } from "@/lib/avatarUrl";
-import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
-import TierProgressBar from "@/components/analyst/TierProgressBar";
 
-const ACTION_ICONS = { Long: ArrowUp, Short: ArrowDown, Hold: Minus };
-
-// ── Inline DM component for dashboard ────────────────────────────────────────
-function DashboardDMs({ subscriptions, currentUser }) {
-  const [selectedAnalyst, setSelectedAnalyst] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const bottomRef = useRef(null);
-
-  const openDM = (sub) => {
-    setSelectedAnalyst(sub);
-    setMessages([]);
+// ── Map Prediction entity → LockedPredictionCard call shape ──────────────────
+function predToCall(p) {
+  const status = (p.status || "active") === "active" ? "open" : "resolved";
+  const outcome = (p.outcome || "").toLowerCase();
+  const grade = status === "open" ? "OPEN"
+    : outcome === "hit" ? "HIT"
+    : outcome === "near" ? "NEAR"
+    : outcome === "partial" ? "PARTIAL"
+    : "MISS";
+  const entry = Number(p.entry_price || p.locked_entry_price || 0);
+  const target = Number(p.target_price || 0);
+  const exit = Number(p.exit_price || p.current_price || 0);
+  const change = entry && exit
+    ? ((exit - entry) / entry) * 100 * (p.direction === "Short" ? -1 : 1) : 0;
+  const created = p.created_date ? new Date(p.created_date) : new Date();
+  return {
+    id: p.id?.toString().slice(0, 6) || "p",
+    ticker: p.ticker,
+    dir: (p.direction || "LONG").toUpperCase(),
+    entry, target, exit,
+    change: Number(change.toFixed(1)),
+    grade, status,
+    date: created.toLocaleDateString("en-US", { month: "short", day: "2-digit" }),
+    year: created.getFullYear(),
+    days: p.timeframe_days || 90,
+    thesis: p.thesis || p.headline || "",
   };
+}
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+const NAV = [
+  { id: "overview",     icon: Home,         label: "Overview" },
+  { id: "compose",      icon: PenLine,      label: "Compose" },
+  { id: "predictions",  icon: Lock,         label: "Predictions" },
+  { id: "publications", icon: FileText,     label: "Publications" },
+  { id: "audience",     icon: Users,        label: "Audience" },
+  { id: "analytics",    icon: BarChart3,    label: "Analytics" },
+  { id: "earnings",     icon: WalletIcon,   label: "Earnings" },
+  { id: "settings",     icon: SettingsIcon, label: "Settings" },
+];
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    setSending(true);
-    const text = input.trim();
-    setInput("");
-    const newMsg = { id: Date.now(), from: "me", text, time: "just now" };
-    setMessages(prev => [...prev, newMsg]);
-    // Send notification to the analyst
-    try {
-      await base44.entities.Notification.create({
-        user_email: selectedAnalyst.analyst_email,
-        type: "report",
-        title: `New message from ${currentUser.full_name || currentUser.email?.split("@")[0]}`,
-        body: text,
-        link: "/dm",
-      });
-    } catch {}
-    setSending(false);
-  };
-
-  if (subscriptions.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <Lock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">No subscriptions yet</p>
-        <p className="text-xs text-muted-foreground/60">Subscribe to a researcher to message them.</p>
-      </div>
-    );
-  }
-
+// ── Studio sidebar (embedded so we don't depend on a router-coupled one) ─────
+function Sidebar({ section, setSection, analyst, counts }) {
   return (
-    <div className="flex gap-3" style={{ minHeight: 360 }}>
-      {/* Analyst list */}
-      <div className="w-44 flex-shrink-0 space-y-1 border-r border-border pr-3">
-        {subscriptions.map(sub => (
-          <button
-            key={sub.id}
-            onClick={() => openDM(sub)}
-            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all ${selectedAnalyst?.id === sub.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`}
-          >
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0 overflow-hidden">
-              {sub.analyst_avatar
-                ? <img src={sub.analyst_avatar} alt={sub.analyst_name} className="w-full h-full object-cover" />
-                : (sub.analyst_name || "A")[0]}
+    <aside style={{
+      borderRight: "0.5px solid var(--border-rgba)",
+      padding: "28px 18px",
+      background: "var(--bg-elev)",
+      position: "sticky", top: 64, alignSelf: "flex-start",
+      height: "calc(100vh - 64px)", overflowY: "auto",
+      width: 240, flexShrink: 0,
+    }}>
+      <div className="t-eyebrow" style={{ marginBottom: 18, paddingLeft: 10 }}>Studio</div>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {NAV.map((it) => {
+          const Icon = it.icon;
+          const active = section === it.id;
+          const count = counts[it.id];
+          return (
+            <button
+              key={it.id}
+              onClick={() => setSection(it.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                width: "100%", padding: "8px 10px", borderRadius: 6,
+                background: active ? "var(--bg-soft)" : "transparent",
+                color: active ? "var(--text)" : "var(--text-mute)",
+                fontSize: 13, fontWeight: 500, fontFamily: "var(--f-sans)",
+                border: 0, cursor: "pointer", textAlign: "left",
+                transition: "background var(--t-fast) var(--ease), color var(--t-fast) var(--ease)",
+              }}
+            >
+              <Icon size={14} strokeWidth={1.55}/>
+              <span>{it.label}</span>
+              {count != null && (
+                <span className="t-num" style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-meta)" }}>
+                  {count >= 1000 ? (count / 1000).toFixed(1) + "k" : count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="hr" style={{ margin: "20px 0" }}/>
+
+      {analyst && (
+        <div style={{ padding: "10px 8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Avatar a={{ initials: analyst.initials, avatarColor: "var(--primary-blue)" }} size="sm"/>
+            <div style={{ minWidth: 0 }}>
+              <div className="t-title" style={{ fontSize: 12.5 }}>{analyst.name}</div>
+              <div className="t-meta" style={{ fontSize: 10.5 }}>{analyst.tier} {analyst.rank ? `· #${analyst.rank}` : ""}</div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium truncate">{sub.analyst_name || sub.analyst_email}</p>
-              <p className="text-[10px] text-muted-foreground">Subscribed</p>
-            </div>
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            marginTop: 12, padding: "8px 10px",
+            borderRadius: 6, background: "var(--bg-soft)",
+          }}>
+            <span style={{ fontSize: 11, color: "var(--text-mute)" }}>Elo</span>
+            <span className="t-num" style={{ fontSize: 12, color: "var(--primary-blue)" }}>{analyst.elo}</span>
+            {analyst.weekDelta != null && (
+              <span className="t-num" style={{
+                fontSize: 11, marginLeft: "auto",
+                color: analyst.weekDelta >= 0 ? "var(--rolex-green)" : "var(--velvet-red)",
+              }}>
+                {analyst.weekDelta >= 0 ? "+" : ""}{analyst.weekDelta} wk
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+// ── Overview ─────────────────────────────────────────────────────────────────
+function Overview({ analyst, kpis, trackSeries, openCalls, topReports, navigate }) {
+  const now = new Date();
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32 }}>
+        <div>
+          <div className="t-eyebrow" style={{ marginBottom: 6 }}>
+            {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+          </div>
+          <h1 className="t-display" style={{ fontSize: 32, margin: 0 }}>
+            Welcome back, {analyst.first}.
+          </h1>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate("/editor")}>
+            <Plus size={13} strokeWidth={1.7}/> New prediction
           </button>
-        ))}
+          <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+            <PenLine size={13} strokeWidth={1.7}/> Compose report
+          </button>
+        </div>
       </div>
 
-      {/* Chat area */}
-      {selectedAnalyst ? (
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
-            <MessageCircle className="w-3.5 h-3.5 text-primary" />
-            <span className="text-sm font-medium">{selectedAnalyst.analyst_name}</span>
-            <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1"><Lock className="w-3 h-3" /> Subscribers only</span>
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+        {kpis.map((s) => {
+          const Icon = s.icon;
+          const color = s.tone === "green" ? "var(--rolex-green)"
+            : s.tone === "navy" ? "var(--primary-blue)"
+            : s.tone === "gold" ? "var(--gold-hex)"
+            : "var(--text)";
+          return (
+            <div key={s.l} className="surface" style={{ padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+                <span className="t-meta">{s.l}</span>
+                {Icon && <Icon size={14} strokeWidth={1.5} style={{ color: "var(--text-meta)" }}/>}
+              </div>
+              <div className="t-num" style={{ fontSize: 28, color, letterSpacing: "-0.02em" }}>{s.v}</div>
+              <div className="t-meta" style={{ marginTop: 4, fontSize: 11 }}>{s.sub}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Two col: chart + insights */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 14, marginBottom: 28 }}>
+        <div className="surface" style={{ padding: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <div>
+              <div className="t-eyebrow">Elo trajectory · 12 weeks</div>
+              <div className="t-num" style={{ fontSize: 26, color: "var(--primary-blue)", marginTop: 6 }}>
+                {analyst.elo}
+                <span className="t-num" style={{ fontSize: 13, color: "var(--rolex-green)", marginLeft: 6 }}>
+                  {analyst.weekDelta != null && analyst.weekDelta >= 0 ? "+" : ""}{analyst.weekDelta ?? 0}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-2 max-h-60 pr-1">
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${msg.from === "me" ? "bg-primary text-white" : "bg-secondary text-foreground"}`}>
-                  {msg.text}
-                  <p className={`text-[10px] mt-0.5 ${msg.from === "me" ? "text-white/60" : "text-muted-foreground"}`}>{msg.time}</p>
+          <div style={{ height: 200 }}>
+            {trackSeries.length > 0 ? (
+              <TrackChart data={trackSeries} height={200}/>
+            ) : (
+              <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span className="t-meta">No Elo history yet.</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="surface" style={{ padding: 22 }}>
+          <div className="t-eyebrow" style={{ marginBottom: 14 }}>Insights · this week</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {[
+              { c: "var(--rolex-green)", h: `${openCalls.length} open positions`, t: openCalls.length ? "Tracking toward window close." : "No open calls right now — publish to update your record." },
+              { c: "var(--primary-blue)", h: "Subscriber pulse", t: `${analyst.subscribers || 0} subscribers active.` },
+              { c: "var(--gold-hex)", h: "Audit trail intact", t: "Every call you've published is locked at entry and graded on close." },
+            ].map((i, idx) => (
+              <div key={idx} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span style={{ width: 6, height: 6, background: i.c, borderRadius: "50%", marginTop: 6, flexShrink: 0 }}/>
+                <div>
+                  <div className="t-body" style={{ fontSize: 13, color: "var(--text)", marginBottom: 2 }}>{i.h}</div>
+                  <div className="t-meta" style={{ fontSize: 12, lineHeight: 1.5 }}>{i.t}</div>
                 </div>
               </div>
             ))}
-            <div ref={bottomRef} />
-          </div>
-          <div className="flex gap-2">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send()}
-              placeholder="Send a message..."
-              className="flex-1 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-              disabled={sending}
-            />
-            <Button size="sm" onClick={send} disabled={!input.trim() || sending} className="h-9 w-9 p-0">
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
           </div>
         </div>
+      </div>
+
+      {/* Open predictions */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+        <h3 className="t-title" style={{ fontSize: 17, margin: 0 }}>Open predictions</h3>
+        <button className="btn btn-text btn-sm">Manage all <ArrowRight size={12}/></button>
+      </div>
+      {openCalls.length === 0 ? (
+        <div className="surface" style={{ padding: 32, textAlign: "center", marginBottom: 28 }}>
+          <span className="t-meta">No open positions yet.</span>
+        </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <div className="text-center">
-            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Select a researcher to message</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
+          {openCalls.slice(0, 4).map((c) => (
+            <LockedPredictionCard key={c.id} call={c} compact/>
+          ))}
+        </div>
+      )}
+
+      {/* Top reports */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+        <h3 className="t-title" style={{ fontSize: 17, margin: 0 }}>Top reports · last 30 days</h3>
+        <button className="btn btn-text btn-sm" onClick={() => navigate("/analytics")}>
+          Analytics <ArrowRight size={12}/>
+        </button>
+      </div>
+      <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+        {topReports.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <span className="t-meta">No reports published yet.</span>
           </div>
+        ) : (
+          topReports.map((r, i, arr) => (
+            <Link
+              key={r.id}
+              to={`/report?id=${r.id}`}
+              style={{
+                display: "flex", alignItems: "center", padding: "16px 22px", gap: 22,
+                borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+                textDecoration: "none", color: "inherit",
+              }}
+            >
+              <div className="t-meta" style={{ width: 22 }}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div className="t-body" style={{ fontSize: 14, color: "var(--text)" }}>{r.title}</div>
+                <div className="t-meta" style={{ fontSize: 11, marginTop: 2 }}>
+                  {r.created_date ? new Date(r.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                </div>
+              </div>
+              <div style={{ width: 80, textAlign: "right" }}>
+                <div className="t-num" style={{ fontSize: 13 }}>{(r.views || 0).toLocaleString()}</div>
+                <div className="t-meta" style={{ fontSize: 10.5 }}>Reads</div>
+              </div>
+              <div style={{ width: 80, textAlign: "right" }}>
+                <div className="t-num" style={{ fontSize: 13, color: "var(--primary-blue)" }}>{r.likes || 0}</div>
+                <div className="t-meta" style={{ fontSize: 10.5 }}>Likes</div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Audience ─────────────────────────────────────────────────────────────────
+function Audience({ subscribers }) {
+  const stats = [
+    { l: "Subscribers", v: subscribers.length.toLocaleString(), sub: "+ recently joined", tone: "navy" },
+    { l: "Free followers", v: "—", sub: "Public reach" },
+    { l: "Conversion", v: "—", sub: "Free → paid" },
+    { l: "Churn · 30d", v: "—", sub: "" },
+  ];
+  return (
+    <div>
+      <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 24px" }}>Audience</h1>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+        {stats.map((s) => (
+          <div key={s.l} className="surface" style={{ padding: 18 }}>
+            <div className="t-meta">{s.l}</div>
+            <div className="t-num" style={{
+              fontSize: 26, marginTop: 6,
+              color: s.tone === "navy" ? "var(--primary-blue)" : "var(--text)",
+            }}>{s.v}</div>
+            <div className="t-meta" style={{ fontSize: 11, marginTop: 4 }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", padding: "16px 22px", borderBottom: "0.5px solid var(--border-rgba)" }}>
+          <h3 className="t-title" style={{ fontSize: 15, margin: 0 }}>Recent subscribers</h3>
+          <div style={{ flex: 1 }}/>
+          <button className="btn btn-ghost btn-sm">Export CSV</button>
+        </div>
+        {subscribers.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <span className="t-meta">No subscribers yet.</span>
+          </div>
+        ) : (
+          subscribers.slice(0, 10).map((s, i, arr) => {
+            const name = s.subscriber_name || s.subscriber_email?.split("@")[0] || "Subscriber";
+            const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            return (
+              <div key={s.id || i} style={{
+                display: "grid", gridTemplateColumns: "2fr 1.4fr 1fr 1fr 0.6fr",
+                padding: "12px 22px", alignItems: "center",
+                borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="sm"/>
+                  <div>
+                    <div style={{ fontSize: 13, color: "var(--text)" }}>{name}</div>
+                    <div className="t-meta" style={{ fontSize: 11 }}>{s.subscriber_email}</div>
+                  </div>
+                </div>
+                <div className="t-meta" style={{ fontSize: 12 }}>
+                  {s.created_date ? new Date(s.created_date).toLocaleDateString() : "—"}
+                </div>
+                <div style={{ fontSize: 12.5, color: "var(--text-body)" }}>
+                  {s.plan || "Premium"}
+                </div>
+                <div className="t-num" style={{ fontSize: 13, color: "var(--gold-hex)" }}>
+                  ${s.lifetime_amount || s.monthly_amount || "—"}
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button className="btn btn-ghost btn-sm" style={{ width: 28, padding: 0 }}>
+                    <MoreHorizontal size={14}/>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Earnings ─────────────────────────────────────────────────────────────────
+function Earnings({ wallet, lifetime }) {
+  const months = ["Dec", "Jan", "Feb", "Mar", "Apr", "May"];
+  const series = wallet?.history || months.map((m) => ({ m, v: 0 }));
+  const max = Math.max(...series.map((s) => s.v || 0), 1000);
+
+  return (
+    <div>
+      <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 24px" }}>Earnings</h1>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 22 }}>
+        <div className="surface ambient" style={{
+          padding: 28,
+          background: "var(--deepest-navy)", color: "#fff",
+          borderColor: "rgba(255,255,255,0.10)",
+        }}>
+          <style>{`
+            .earn-amb::before { background: var(--gold-hex); opacity: 0.18; }
+            .earn-amb::after { background: var(--primary-blue); opacity: 0.22; }
+          `}</style>
+          <div className="earn-amb ambient" style={{ position: "absolute", inset: 0, padding: 0 }}/>
+          <div className="t-eyebrow" style={{ color: "var(--gold-light-hex)" }}>Available balance</div>
+          <div className="t-num" style={{
+            fontSize: 56, color: "var(--gold-light-hex)",
+            letterSpacing: "-0.025em", marginTop: 8,
+          }}>
+            ${Math.floor(wallet?.balance || 0).toLocaleString()}.
+            <span style={{ fontSize: 32, opacity: 0.6 }}>
+              {String((((wallet?.balance || 0) * 100) % 100).toFixed(0)).padStart(2, "0")}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 14, marginTop: 14, color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
+            <span>Next payout via Stripe</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+            <button className="btn btn-gold btn-sm">Withdraw <ArrowRight size={13}/></button>
+            <Link
+              to="/wallet"
+              className="btn btn-sm"
+              style={{ background: "rgba(255,255,255,0.10)", color: "#fff", borderRadius: 6, textDecoration: "none" }}
+            >
+              Transaction history
+            </Link>
+          </div>
+        </div>
+
+        <div className="surface" style={{ padding: 22 }}>
+          <div className="t-eyebrow" style={{ marginBottom: 12 }}>Lifetime · paid to you</div>
+          <div className="t-num" style={{ fontSize: 36, color: "var(--text)", letterSpacing: "-0.02em" }}>
+            ${lifetime.toLocaleString()}
+          </div>
+          <div className="t-meta" style={{ marginTop: 8 }}>
+            Stoa fee · 10% · ${Math.round(lifetime * 0.111).toLocaleString()} retained
+          </div>
+        </div>
+      </div>
+
+      <h3 className="t-title" style={{ fontSize: 17, margin: "20px 0 12px" }}>
+        Revenue · last 6 months
+      </h3>
+      <div className="surface" style={{ padding: 22 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 18, height: 220 }}>
+          {series.map((m, i) => (
+            <div key={m.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, height: "100%" }}>
+              <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end", maxWidth: 60, marginInline: "auto" }}>
+                <div style={{
+                  width: "100%",
+                  height: `${(m.v / max) * 100}%`,
+                  background: i === series.length - 1 ? "var(--gold-hex)" : "var(--primary-blue)",
+                  opacity: i === series.length - 1 ? 0.95 : 0.45,
+                  borderRadius: "4px 4px 0 0",
+                  position: "relative",
+                }}>
+                  <span className="t-num" style={{
+                    position: "absolute", top: -22, left: "50%", transform: "translateX(-50%)",
+                    fontSize: 11,
+                    color: i === series.length - 1 ? "var(--gold-hex)" : "var(--text-mute)",
+                  }}>
+                    ${(m.v / 1000).toFixed(1)}k
+                  </span>
+                </div>
+              </div>
+              <span className="t-meta" style={{ fontSize: 11 }}>{m.m}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Predictions section ──────────────────────────────────────────────────────
+function PredictionsStudio({ openCalls, resolvedCalls, navigate }) {
+  const total = openCalls.length + resolvedCalls.length;
+  const hits = resolvedCalls.filter((c) => c.grade === "HIT" || c.grade === "NEAR").length;
+  const hitRate = resolvedCalls.length ? Math.round((hits / resolvedCalls.length) * 100) : 0;
+  const avgReturn = resolvedCalls.length
+    ? resolvedCalls.reduce((s, c) => s + c.change, 0) / resolvedCalls.length
+    : 0;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 className="t-display" style={{ fontSize: 28, margin: 0 }}>Predictions</h1>
+        <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+          <Plus size={13} strokeWidth={1.7}/> New prediction
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 16, marginBottom: 22 }}>
+        {[
+          ["Open", openCalls.length, "var(--primary-blue)"],
+          ["Resolved", resolvedCalls.length, "var(--rolex-green)"],
+          ["Hit rate", `${hitRate}%`, "var(--rolex-green)"],
+          ["Avg. return", `${avgReturn >= 0 ? "+" : ""}${avgReturn.toFixed(1)}%`, avgReturn >= 0 ? "var(--rolex-green)" : "var(--velvet-red)"],
+        ].map(([l, v, c]) => (
+          <div key={l} className="surface" style={{ padding: 16, flex: 1 }}>
+            <div className="t-meta">{l}</div>
+            <div className="t-num" style={{ fontSize: 24, color: c, marginTop: 6 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="t-title" style={{ fontSize: 17, margin: "20px 0 12px" }}>Open</h3>
+      {openCalls.length === 0 ? (
+        <div className="surface" style={{ padding: 32, textAlign: "center", marginBottom: 28 }}>
+          <span className="t-meta">No open positions.</span>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
+          {openCalls.map((c) => <LockedPredictionCard key={c.id} call={c}/>)}
+        </div>
+      )}
+
+      <h3 className="t-title" style={{ fontSize: 17, margin: "20px 0 12px" }}>Recently resolved</h3>
+      {resolvedCalls.length === 0 ? (
+        <div className="surface" style={{ padding: 32, textAlign: "center" }}>
+          <span className="t-meta">No resolved calls yet.</span>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {resolvedCalls.slice(0, 6).map((c) => <LockedPredictionCard key={c.id} call={c} compact/>)}
         </div>
       )}
     </div>
   );
 }
 
-export default function AnalystDashboard() {
-  const [tab, setTab] = useState("published");
-  const [boosts, setBoosts] = useState({ r6: true });
-  const [profileBoosted, setProfileBoosted] = useState(false);
-  const navigate = useNavigate();
-
-  const [currentUser, setCurrentUser] = useState(null);
-  const [myReports, setMyReports] = useState([]);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [loadingReports, setLoadingReports] = useState(true);
-  const [mySubscriptions, setMySubscriptions] = useState([]);
-  const [purchasedReports, setPurchasedReports] = useState([]);
-  const [subscriptionReports, setSubscriptionReports] = useState([]);
-  const [wallet, setWallet] = useState(null);
-
-  useEffect(() => {
-    base44.auth.me().then(async user => {
-      setCurrentUser(user);
-      base44.analytics.track({ eventName: "dashboard_viewed" });
-      // Load wallet for AI credits
-      loadMyWallet().then(({ wallet: w }) => setWallet(w)).catch(() => {});
-      // Load subscriptions + their reports + purchased reports
-      Promise.all([
-        base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 20).catch(() => []),
-        base44.entities.WalletTransaction.filter({ created_by: user.email, type: "report_unlock" }, "-created_date", 50).catch(() => []),
-        base44.entities.Report.filter({ status: "published" }, "-likes", 150).catch(() => []),
-      ]).then(([subs, txns, allPub]) => {
-        setMySubscriptions(subs || []);
-        // Purchased reports
-        const unlockedIds = new Set((txns || []).map(t => t.related_id).filter(Boolean));
-        setPurchasedReports((allPub || []).filter(r => unlockedIds.has(r.id)).slice(0, 8));
-        // Subscription reports
-        const subEmails = new Set((subs || []).map(s => s.analyst_email).filter(Boolean));
-        setSubscriptionReports((allPub || [])
-          .filter(r => subEmails.has(r.created_by))
-          .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
-          .slice(0, 8));
-      }).catch(() => {});
-      // Pioneer check: if not set, check if user is among first 100
-      if (!user.is_pioneer) {
-        try {
-          const allUsers = await base44.entities.User.list("created_date", 200);
-          const sorted = (allUsers || []).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-          const first100Emails = sorted.slice(0, 100).map(u => u.email);
-          if (first100Emails.includes(user.email)) {
-            await base44.auth.updateMe({ is_pioneer: true });
-            setCurrentUser(prev => ({ ...prev, is_pioneer: true }));
-          }
-        } catch {}
-      }
-    }).finally(() => setLoadingUser(false));
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 200)
-      .then(async data => {
-        const reports = data || [];
-        // Auto-publish any scheduled reports whose time has passed
-        const now = new Date();
-        const toPublish = reports.filter(r =>
-          r.status === "scheduled" && r.scheduled_at && new Date(r.scheduled_at) <= now
-        );
-        await Promise.all(toPublish.map(async r => {
-          const ticker = r.prediction_ticker || r.stock_ticker;
-          let lockData = {};
-          if (ticker && !r.prediction_lock_price) {
-            try {
-              const locked = await fetchLockPrice(ticker);
-              if (locked?.price) {
-                lockData = {
-                  prediction_lock_price: locked.price,
-                  prediction_lock_time: locked.timestamp,
-                  prediction_lock_source: locked.source,
-                };
-              }
-            } catch { /* proceed without lock if fetch fails */ }
-          }
-          return base44.entities.Report.update(r.id, { status: "published", scheduled_at: null, ...lockData }).catch(() => {});
-        }));
-        if (toPublish.length > 0) {
-          const updated = await base44.entities.Report.filter({ created_by: currentUser.email }, "-created_date", 200).catch(() => reports);
-          setMyReports(updated || reports);
-        } else {
-          setMyReports(reports);
-        }
-      })
-      .finally(() => setLoadingReports(false));
-  }, [currentUser]);
-
-  const publishedReports  = useMemo(() => myReports.filter(r => r.status === "published"), [myReports]);
-  const scheduledReports  = useMemo(() => myReports.filter(r => r.status === "scheduled"), [myReports]);
-  const draftReports      = useMemo(() => myReports.filter(r => r.status !== "published" && r.status !== "scheduled"), [myReports]);
-  const predictions = useMemo(() => publishedReports.filter(r => r.prediction_action), [publishedReports]);
-
-  // Compute yield from resolved reports
-  const computedYield = useMemo(() => computeAvgYield(publishedReports), [publishedReports]);
-  const yieldDisplay = useMemo(() => formatYield(computedYield), [computedYield]);
-
-  // Compute score using the same engine as the profile page
-  const scoring = useMemo(() => computeScore(publishedReports), [publishedReports]);
-  const accuracyScore = scoring.total > 0 ? scoring.score : 0;
-
-  const achievements = useMemo(() => {
-    if (!currentUser) return [];
-    const hasFirstReport = publishedReports.length >= 1;
-    const has10Preds = predictions.length >= 10;
-    const has80Acc = accuracyScore >= 80;
-    const has100Followers = (currentUser.followers_count || 0) >= 100;
-    const has500Followers = (currentUser.followers_count || 0) >= 500;
-    const hasFirstPremium = publishedReports.some(r => r.is_premium);
-    const hasStreak3 = false; // requires resolved prediction data
-    const isTop10 = currentUser.leaderboard_rank > 0 && currentUser.leaderboard_rank <= 10;
-    return [
-      { label: "First Report", icon: FileText, earned: hasFirstReport },
-      { label: "10 Predictions", icon: Target, earned: has10Preds },
-      { label: "80%+ Accuracy", icon: BarChart3, earned: has80Acc },
-      { label: "100 Followers", icon: Users, earned: has100Followers },
-      { label: "500 Followers", icon: Users, earned: has500Followers },
-      { label: "First Premium Report", icon: Star, earned: hasFirstPremium },
-      { label: "Streak x3", icon: Flame, earned: hasStreak3 },
-      { label: "Top 10 Researcher", icon: Trophy, earned: isTop10 },
-      { label: "1,000 Likes", icon: CheckCircle, earned: false },
-      { label: "50 Reports", icon: BookOpen, earned: publishedReports.length >= 50 },
-      { label: "90%+ Accuracy", icon: Shield, earned: accuracyScore >= 90 },
-      { label: "Streak x10", icon: Rocket, earned: false },
-    ];
-  }, [currentUser, myReports, predictions, accuracyScore]);
-
-  if (loadingUser) return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+function Placeholder({ name }) {
+  return (
+    <div className="surface" style={{
+      padding: 80, display: "flex", alignItems: "center", justifyContent: "center",
+      flexDirection: "column", gap: 10, textAlign: "center",
+    }}>
+      <h2 className="t-display" style={{ fontSize: 28, margin: 0, textTransform: "capitalize" }}>{name}</h2>
+      <p className="t-meta">Coming soon — full screen design pending.</p>
     </div>
   );
-  if (!currentUser) return null;
+}
+
+/**
+ * AnalystDashboard — Studio (v3 rebuild).
+ * Layout per prototype/src/screens/dashboard.jsx: 240px left sidebar +
+ * flexible main with Overview / Compose / Predictions / Audience /
+ * Earnings tabs.
+ */
+export default function AnalystDashboard() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [section, setSection] = useState("overview");
+  const [myReports, setMyReports] = useState([]);
+  const [myPredictions, setMyPredictions] = useState([]);
+  const [subscribers, setSubscribers] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+    Promise.all([
+      base44.entities.Report.filter({ created_by: user.email }, "-created_date", 200).catch(() => []),
+      base44.entities.Prediction.filter({ created_by: user.email }, "-created_date", 200).catch(() => []),
+      base44.entities.Subscription.filter({ analyst_email: user.email, status: "active" }, "-created_date", 200).catch(() => []),
+      base44.entities.User.filter({ email: user.email }).catch(() => []),
+      loadMyWallet ? loadMyWallet().catch(() => null) : Promise.resolve(null),
+    ]).then(([reports, preds, subs, users, w]) => {
+      if (cancelled) return;
+      setMyReports(reports || []);
+      setMyPredictions(preds || []);
+      setSubscribers(subs || []);
+      setProfile(users?.[0] || null);
+      setWallet(w);
+    }).finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+  }, [user?.email]);
+
+  const calls = useMemo(() => myPredictions.map(predToCall), [myPredictions]);
+  const openCalls = calls.filter((c) => c.status === "open");
+  const resolvedCalls = calls.filter((c) => c.status === "resolved");
+  const publishedReports = myReports.filter((r) => r.status === "published");
+  const topReports = [...publishedReports].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+
+  const elo = profile?.elo ?? Math.round(((profile?.accuracy_score || 60) / 100) * 800 + 600);
+  const weekDelta = profile?.elo_week_delta || 0;
+  const rank = profile?.rank || profile?.leaderboard_rank;
+  const tier = elo >= 1200 ? "Stoic" : elo >= 1000 ? "Disciple" : elo >= 800 ? "Adept" : "Novitiate";
+  const firstName = (profile?.full_name || user?.full_name || user?.email?.split("@")[0] || "Researcher").split(" ")[0];
+  const initials = (profile?.full_name || user?.full_name || user?.email || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   const analyst = {
-    name: currentUser.full_name || currentUser.email?.split("@")[0] || "Researcher",
-    avatar: avatarUrl(currentUser) || null,
-    tagline: currentUser.tagline || "Researcher",
-    reports: publishedReports.length,
-    followers: currentUser.followers_count || 0,
+    name: profile?.full_name || user?.full_name || user?.email,
+    first: firstName,
+    initials, tier, rank, elo, weekDelta,
+    subscribers: subscribers.length,
   };
 
-  const resolvedCount = predictions.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending").length;
+  const trackSeries = useMemo(() => {
+    const N = 12;
+    const start = Math.max(600, elo - 200);
+    return Array.from({ length: N }, (_, i) => Math.round(start + ((elo - start) * i) / (N - 1)));
+  }, [elo]);
+
+  const kpis = [
+    { l: "Elo this week", v: weekDelta >= 0 ? `+${weekDelta}` : `${weekDelta}`, sub: `${elo} current`, tone: weekDelta >= 0 ? "green" : "red", icon: TrendingUp },
+    { l: "New subscribers", v: `+${subscribers.filter((s) => new Date(s.created_date) > new Date(Date.now() - 30 * 86400e3)).length}`, sub: `${subscribers.length} total`, tone: "navy", icon: Users },
+    { l: "Revenue · 30d", v: `$${Math.round((wallet?.month_revenue || 0)).toLocaleString()}`, sub: "Net of platform fee", tone: "gold", icon: WalletIcon },
+    { l: "Open predictions", v: openCalls.length, sub: `${resolvedCalls.length} resolved`, icon: Lock },
+  ];
+
+  const lifetime = (wallet?.lifetime_earnings)
+    ?? subscribers.reduce((s, x) => s + (x.lifetime_amount || x.monthly_amount || 0), 0);
+
+  const counts = {
+    predictions: openCalls.length,
+    publications: publishedReports.length,
+    audience: subscribers.length,
+  };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* ── Profile Header — editorial hero ── */}
-      <div className="surface-premium p-7 mb-7">
-        <div className="flex items-start gap-5 flex-wrap">
-          <div className="relative">
-            {analyst.avatar
-              ? <img src={analyst.avatar} alt={analyst.name} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
-              : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-medium text-white">{analyst.name?.[0] || "A"}</div>
-            }
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gain border-2 border-card" title="Active" />
-          </div>
+    <div className="page" style={{ background: "var(--bg)", display: "flex", minHeight: "calc(100vh - 64px)" }}>
+      <Sidebar section={section} setSection={setSection} analyst={analyst} counts={counts}/>
 
-          <div className="flex-1 min-w-[240px]">
-            <span className="eyebrow">Creator Studio</span>
-            <div className="flex items-center gap-2 flex-wrap mt-1.5 mb-1.5">
-              <h1 className="text-2xl font-medium text-foreground">{analyst.name}</h1>
-              <AccuracyTierBadge tierData={computeAnalystTier(currentUser, publishedReports)} size="lg" />
+      <main style={{ flex: 1, padding: "32px 40px 80px", maxWidth: 1080 }}>
+        {loading && (
+          <div style={{ padding: 60, textAlign: "center" }}>
+            <span className="t-meta">Loading studio…</span>
+          </div>
+        )}
+        {!loading && section === "overview" && (
+          <Overview analyst={analyst} kpis={kpis} trackSeries={trackSeries}
+            openCalls={openCalls} topReports={topReports} navigate={navigate}/>
+        )}
+        {!loading && section === "compose" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+              <h1 className="t-display" style={{ fontSize: 28, margin: 0 }}>Compose</h1>
+              <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+                Open full editor <ArrowRight size={12}/>
+              </button>
             </div>
-            <p className="text-sm text-muted-foreground mb-3">{analyst.tagline}</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="pill"><FileText className="w-3 h-3" />{analyst.reports} Reports</span>
-              <span className="pill"><Users className="w-3 h-3" />{analyst.followers.toLocaleString()} Followers</span>
-              {resolvedCount > 0 && <span className="pill pill-accent"><Target className="w-3 h-3" />{resolvedCount} Resolved</span>}
-              {currentUser.last_login && (
-                <span className="pill"><Clock className="w-3 h-3" />Active {formatDistanceToNow(new Date(currentUser.last_login), { addSuffix: true })}</span>
-              )}
+            <div className="surface" style={{ padding: 32, textAlign: "center" }}>
+              <p className="t-body" style={{ fontSize: 14, color: "var(--text-mute)" }}>
+                Drafts and quick compose live in the full editor.
+              </p>
+              <button className="btn btn-gold btn-sm" style={{ marginTop: 12 }} onClick={() => navigate("/editor")}>
+                <PenLine size={13}/> Start a draft
+              </button>
             </div>
           </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <Link to="/editor"><Button size="sm" className="gap-1.5 shadow-card"><PenLine className="w-3.5 h-3.5" /> Write Report</Button></Link>
-            <Link to="/analyst"><Button variant="outline" size="sm" className="gap-1.5"><Eye className="w-3.5 h-3.5" /> Public Profile</Button></Link>
-            <Link to="/creator-analytics"><Button variant="outline" size="sm" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Analytics</Button></Link>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setTab("messages")} style={{ scrollMarginTop: 100 }}>
-              <MessageCircle className="w-3.5 h-3.5" /> Messages
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Compact stats strip — small pills, not hero cards.
-          Sits right under the action buttons so the dashboard's primary
-          content (predictions / reports) doesn't get pushed below the
-          fold by oversized score tiles. Each pill is still a button —
-          tapping jumps to the relevant detail view. */}
-      <div className="flex flex-wrap items-stretch gap-2 mb-6">
-        <button
-          onClick={() => navigate("/predictions")}
-          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
-        >
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Target className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Score</p>
-            <p className="text-base font-medium leading-tight tabular-nums">{scoring.total > 0 ? accuracyScore : "—"}</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate("/wallet")}
-          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
-        >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "hsl(42 96% 45% / 0.12)" }}>
-            <Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--accent))" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">AI Credits</p>
-            <p className="text-base font-medium leading-tight tabular-nums">{(wallet?.ai_credits ?? 0).toLocaleString()}</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate("/analytics?category=yield")}
-          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
-        >
-          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <TrendingUp className="w-3.5 h-3.5 text-foreground/70" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Avg Yield</p>
-            <p className={`text-base font-medium leading-tight tabular-nums ${computedYield == null ? "text-muted-foreground" : computedYield >= 0 ? "text-gain" : "text-loss"}`}>{yieldDisplay}</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate("/analytics?category=followers")}
-          className="flex-1 min-w-[140px] flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-left"
-        >
-          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <Users className="w-3.5 h-3.5 text-foreground/70" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">Followers</p>
-            <p className="text-base font-medium leading-tight tabular-nums">{analyst.followers.toLocaleString()}</p>
-          </div>
-        </button>
-      </div>
-
-      {/* ── Performance Spotlight — dark navy hero card (Figma-inspired) ── */}
-      {publishedReports.length > 0 && (() => {
-        const totalLikes = publishedReports.reduce((s, r) => s + (r.likes || 0), 0);
-        const totalViews = publishedReports.reduce((s, r) => s + (r.views || 0), 0);
-        const topReport  = [...publishedReports].sort((a, b) => (b.likes || 0) - (a.likes || 0))[0];
-        return (
-          <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #1E3A8A 100%)" }}>
-            {/* Gold glow */}
-            <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.12) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-5">
-                <span className="w-2 h-2 rounded-full bg-gain animate-pulse" />
-                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Performance Snapshot</span>
-              </div>
-              <div className="grid grid-cols-3 gap-6 mb-5">
-                {[
-                  { label: "Total Likes", value: totalLikes.toLocaleString() },
-                  { label: "Total Views", value: totalViews.toLocaleString() },
-                  { label: "Published", value: publishedReports.length },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <p className="text-white/45 text-[10px] uppercase tracking-wider mb-1">{label}</p>
-                    <p className="text-3xl font-medium tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
-                  </div>
-                ))}
-              </div>
-              {topReport && (
-                <div className="pt-4 border-t border-white/10">
-                  <p className="text-white/35 text-[10px] uppercase tracking-wider mb-1.5">Top Report by Likes</p>
-                  <Link to={`/report?id=${topReport.id}`} className="text-sm font-medium hover:underline truncate block" style={{ color: "hsl(var(--accent))" }}>
-                    {topReport.title}
-                  </Link>
-                  <p className="text-white/35 text-[11px] mt-0.5">{topReport.likes || 0} likes · {topReport.views || 0} views</p>
+        )}
+        {!loading && section === "predictions" && (
+          <PredictionsStudio openCalls={openCalls} resolvedCalls={resolvedCalls} navigate={navigate}/>
+        )}
+        {!loading && section === "publications" && (
+          <div>
+            <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 24px" }}>Publications</h1>
+            <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+              {publishedReports.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center" }}>
+                  <span className="t-meta">No reports published yet.</span>
                 </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Achievements */}
-      <div className="surface p-6 mb-7">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "hsl(var(--accent) / 0.12)" }}>
-              <Trophy className="w-4 h-4" style={{ color: "hsl(var(--accent))" }} />
-            </div>
-            <div>
-              <h2 className="font-medium text-sm leading-tight">Achievements</h2>
-              <span className="text-[11px] text-muted-foreground">{achievements.filter(a => a.earned).length} of {achievements.length} unlocked</span>
-            </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <div className="w-32 h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(achievements.filter(a => a.earned).length / achievements.length) * 100}%`, background: "linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.7))" }} />
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-          {achievements.map(a => {
-            const Icon = a.icon;
-            return (
-              <div key={a.label} className={`group relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border text-center transition-all ${a.earned ? "bg-card border-accent/30 hover:border-accent/60 hover:-translate-y-0.5 hover:shadow-card-md" : "bg-secondary/40 border-border/60 opacity-50 grayscale"}`}>
-                <Icon className={`w-5 h-5 ${a.earned ? "" : "text-muted-foreground"}`} style={a.earned ? { color: "hsl(var(--accent))" } : undefined} />
-                <span className="text-[10px] font-medium leading-tight">{a.label}</span>
-                {a.earned && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: "hsl(var(--accent))" }} />}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* My Subscriptions */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/8">
-              <Crown className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-medium text-sm leading-tight">My Subscriptions</h2>
-              <span className="text-[11px] text-muted-foreground">{mySubscriptions.length} active</span>
-            </div>
-          </div>
-          <Link to="/feed" className="text-xs text-primary hover:underline flex items-center gap-0.5">
-            Full feed <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
-        {mySubscriptions.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-border rounded-xl">
-            <Crown className="w-7 h-7 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground mb-1">No active subscriptions</p>
-            <p className="text-xs text-muted-foreground/60">Subscribe to researchers to get premium access and see their reports here.</p>
-          </div>
-        ) : (
-          <>
-            {/* Analyst chips */}
-            <div className="flex flex-wrap gap-2 mb-5">
-              {mySubscriptions.map(sub => {
-                const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
-                return (
+              ) : (
+                publishedReports.map((r, i, arr) => (
                   <Link
-                    key={sub.id}
-                    to={analystHref({ email: sub.analyst_email, full_name: sub.analyst_name })}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
+                    key={r.id}
+                    to={`/report?id=${r.id}`}
+                    style={{
+                      display: "flex", padding: "16px 22px", gap: 22, alignItems: "center",
+                      borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+                      textDecoration: "none", color: "inherit",
+                    }}
                   >
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-medium text-primary flex-shrink-0 overflow-hidden">
-                      {sub.analyst_avatar
-                        ? <img src={sub.analyst_avatar} alt={name} className="w-full h-full object-cover" />
-                        : name[0].toUpperCase()}
+                    <div style={{ flex: 1 }}>
+                      <div className="t-body" style={{ fontSize: 14, color: "var(--text)" }}>{r.title}</div>
+                      <div className="t-meta" style={{ fontSize: 11, marginTop: 2 }}>
+                        {new Date(r.created_date).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium truncate max-w-[90px] group-hover:text-primary transition-colors">{name}</p>
-                      <p className="text-[9px] text-muted-foreground capitalize">{sub.plan || "monthly"}</p>
+                    <div className="t-num" style={{ fontSize: 13, width: 80, textAlign: "right" }}>
+                      {(r.views || 0).toLocaleString()}
                     </div>
-                    <span className="text-[9px] font-medium text-gain bg-gain/10 border border-gain/20 px-1.5 py-0.5 rounded-tag ml-1">Active</span>
                   </Link>
-                );
-              })}
-            </div>
-            {/* Recent reports from subscribed analysts */}
-            {subscriptionReports.length > 0 && (
-              <>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Recent from your subscriptions</p>
-                <div className="divide-y divide-border">
-                  {subscriptionReports.map((report) => {
-                    const outcome = report.prediction_outcome;
-                    const isHit = outcome === "hit" || outcome === "near";
-                    const isMiss = outcome === "miss";
-                    const isPending = !outcome || outcome === "pending";
-                    const dir = report.prediction_direction || report.prediction_action;
-                    return (
-                      <div
-                        key={report.id}
-                        onClick={() => navigate(`/report?id=${report.id}`)}
-                        className="flex items-center gap-3 py-3 px-1 cursor-pointer hover:bg-secondary/40 rounded-xl transition-colors group"
-                      >
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-primary/7">
-                          <FileText className="w-4 h-4 text-primary/60" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
-                            {report.stock_ticker && (
-                              <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          {!isPending && (
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-                              {isHit ? "Hit ✓" : "Miss ✗"}
-                            </span>
-                          )}
-                          {dir && isPending && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
-                          )}
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Reports You've Unlocked */}
-      {purchasedReports.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50">
-                <Lock className="w-4 h-4 text-amber-600" />
-              </div>
-              <div>
-                <h2 className="font-medium text-sm leading-tight">Reports You've Unlocked</h2>
-                <span className="text-[11px] text-muted-foreground">{purchasedReports.length} reports</span>
-              </div>
-            </div>
-            <Link to="/feed" className="text-xs text-primary hover:underline flex items-center gap-0.5">
-              Discover more <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="divide-y divide-border">
-            {purchasedReports.map((report) => {
-              const outcome = report.prediction_outcome;
-              const isHit = outcome === "hit" || outcome === "near";
-              const isMiss = outcome === "miss";
-              const isPending = !outcome || outcome === "pending";
-              const dir = report.prediction_direction || report.prediction_action;
-              return (
-                <div
-                  key={report.id}
-                  onClick={() => navigate(`/report?id=${report.id}`)}
-                  className="flex items-center gap-3 py-3 px-1 cursor-pointer hover:bg-amber-50/50 rounded-xl transition-colors group"
-                >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-50">
-                    <Lock className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-muted-foreground">{report.author_name || report.created_by?.split("@")[0]}</span>
-                      {report.stock_ticker && (
-                        <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    {!isPending && (
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-                        {isHit ? "Hit ✓" : "Miss ✗"}
-                      </span>
-                    )}
-                    {dir && isPending && (
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-tag bg-primary/8 text-primary">{dir}</span>
-                    )}
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Tier Progress */}
-      <TierProgressBar user={currentUser} allReports={publishedReports} />
-
-      {/* Reports Tabs */}
-      <div className="surface p-6 mb-6">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center">
-              <FileText className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-medium text-sm leading-tight">My Reports</h2>
-              <span className="text-[11px] text-muted-foreground">{publishedReports.length} published</span>
-            </div>
-          </div>
-          <Link to="/editor"><Button size="sm" className="gap-1.5 text-xs"><PenLine className="w-3 h-3" /> New Report</Button></Link>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mb-5 pb-4 border-b border-border">
-          {[
-            { id: "published", label: `Published`, count: publishedReports.length },
-            { id: "scheduled", label: `Scheduled`, count: scheduledReports.length, hidden: scheduledReports.length === 0 },
-            { id: "drafts", label: `Drafts`, count: draftReports.length },
-            { id: "boost", label: "Boost", count: null },
-            { id: "profile-boost", label: "Profile Boost", count: null },
-            { id: "subscriptions", label: "Subscribed", count: null },
-          ].filter(t => !t.hidden).map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-tag text-xs font-medium transition-all ${tab === t.id ? "bg-primary text-white shadow-glow-navy" : "text-muted-foreground bg-secondary hover:text-foreground"}`}>
-              {t.label}
-              {t.count != null && <span className={`text-[10px] px-1.5 py-0.5 rounded-tag font-medium ${tab === t.id ? "bg-white/20" : "bg-border"}`}>{t.count}</span>}
-            </button>
-          ))}
-        </div>
-
-        {tab === "published" && (
-          <div>
-            {loadingReports ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-            ) : publishedReports.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center mx-auto mb-3">
-                  <FileText className="w-6 h-6 text-primary/30" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">No published reports yet</p>
-                <p className="text-xs text-muted-foreground/60 mb-4">Publish your first research report to build your track record.</p>
-                <Link to="/editor"><Button size="sm" className="gap-1.5"><PenLine className="w-3.5 h-3.5" /> Write Your First Report</Button></Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {publishedReports.map((report, i) => {
-                  const outcome = report.prediction_outcome;
-                  const isHit  = outcome === "hit" || outcome === "near";
-                  const isMiss = outcome === "miss";
-                  const isPending = !outcome || outcome === "pending";
-                  const ActionIcon = ACTION_ICONS[report.prediction_action] || Minus;
-                  return (
-                    <div key={report.id}
-                      onClick={() => navigate(`/report?id=${report.id}`)}
-                      className="flex items-center gap-4 py-3.5 px-2 cursor-pointer hover:bg-secondary/40 rounded-xl transition-colors group">
-                      {/* Icon */}
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all group-hover:scale-105"
-                        style={{ background: isHit ? "hsl(var(--gain)/0.10)" : isMiss ? "hsl(var(--loss)/0.10)" : "hsl(var(--primary)/0.07)" }}>
-                        <FileText className="w-4.5 h-4.5"
-                          style={{ color: isHit ? "hsl(var(--gain))" : isMiss ? "hsl(var(--loss))" : "hsl(var(--primary))" }} />
-                      </div>
-                      {/* Title + meta */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm leading-snug truncate group-hover:text-primary transition-colors">{report.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[11px] text-muted-foreground">{format(new Date(report.created_date), "MMM d, yyyy")}</span>
-                          <span className="text-muted-foreground/30">·</span>
-                          <span className="text-[11px] text-muted-foreground flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{report.views || 0}</span>
-                          <span className="text-muted-foreground/30">·</span>
-                          <span className="text-[11px] text-muted-foreground flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" />{report.likes || 0}</span>
-                          {report.stock_ticker && <span className="text-[10px] font-display font-medium text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">{report.stock_ticker}</span>}
-                        </div>
-                      </div>
-                      {/* Status badge */}
-                      <div className="shrink-0 text-right">
-                        {outcome && outcome !== "pending" ? (
-                          <span className={`text-[11px] font-medium px-2.5 py-1 rounded-tag ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-                            {isHit ? "Hit ✓" : "Miss ✗"}
-                          </span>
-                        ) : report.prediction_action ? (
-                          <span className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-tag bg-primary/8 text-primary">
-                            <ActionIcon className="w-3 h-3" />{report.prediction_action}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-medium px-2.5 py-1 rounded-tag bg-secondary text-muted-foreground">Published</span>
-                        )}
-                        <p className="text-[10px] text-muted-foreground/50 mt-0.5 tabular-nums">#{String(i + 1).padStart(3, "0")}</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0 group-hover:text-primary/50 transition-colors" />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === "scheduled" && (
-          <div className="space-y-2">
-            {scheduledReports.length === 0 ? (
-              <div className="text-center py-10">
-                <Clock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No scheduled reports</p>
-                <p className="text-xs text-muted-foreground/60">Use "Schedule for later" in the editor.</p>
-              </div>
-            ) : (
-              scheduledReports
-                .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
-                .map(r => {
-                  const goLive = new Date(r.scheduled_at);
-                  const diffMs = goLive - Date.now();
-                  const diffH = Math.floor(diffMs / 3600000);
-                  const diffM = Math.floor((diffMs % 3600000) / 60000);
-                  const countdown = diffH > 24
-                    ? `in ${Math.floor(diffH / 24)}d ${diffH % 24}h`
-                    : diffH > 0 ? `in ${diffH}h ${diffM}m` : `in ${diffM}m`;
-                  return (
-                    <div key={r.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                      <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{r.title || "Untitled"}</p>
-                        <p className="text-xs text-amber-700">
-                          Goes live {goLive.toLocaleDateString([], { month: "short", day: "numeric" })} at {goLive.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · <span className="font-medium">{countdown}</span>
-                        </p>
-                      </div>
-                      <button
-                        className="text-xs text-red-500 hover:text-red-700 font-medium"
-                        onClick={async () => {
-                          await base44.entities.Report.update(r.id, { status: "draft", scheduled_at: null }).catch(() => {});
-                          setMyReports(prev => prev.map(x => x.id === r.id ? { ...x, status: "draft", scheduled_at: null } : x));
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  );
-                })
-            )}
-          </div>
-        )}
-
-        {tab === "drafts" && (
-          <div className="space-y-2">
-            {loadingReports ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-            ) : draftReports.length === 0 ? (
-              <div className="text-center py-10">
-                <PenLine className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No drafts yet</p>
-                <p className="text-xs text-muted-foreground/60 mb-4">Start writing to auto-save drafts here.</p>
-                <Link to="/editor"><Button size="sm" variant="outline" className="text-xs">Start Writing</Button></Link>
-              </div>
-            ) : (
-              draftReports.map(draft => (
-                <div key={draft.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl cursor-pointer hover:bg-secondary/70 transition-all" onClick={() => navigate(`/editor?draft=${draft.id}`)}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{draft.title || "Untitled Draft"}</p>
-                    <p className="text-xs text-muted-foreground">Last edited {format(new Date(draft.updated_date || draft.created_date), "MMM d, yyyy")}</p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">Draft</Badge>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {tab === "boost" && (
-          <div>
-            <p className="text-sm text-muted-foreground mb-4">Boost a report to increase its reach across the platform.</p>
-            <div className="space-y-2">
-              {publishedReports.map(report => (
-                <div key={report.id} className="flex items-center gap-3 p-3 bg-secondary rounded-xl">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{report.title}</p>
-                    <p className="text-xs text-muted-foreground">{report.likes || 0} likes</p>
-                  </div>
-                  {boosts[report.id] ? (
-                    <span className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-tag">Promoted</span>
-                  ) : (
-                    <Button size="sm" variant="outline" className="text-xs" onClick={() => setBoosts(prev => ({ ...prev, [report.id]: true }))}>Boost</Button>
-                  )}
-                </div>
-              ))}
-              {publishedReports.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Publish a report first to boost it.</p>}
+                ))
+              )}
             </div>
           </div>
         )}
-
-        {tab === "profile-boost" && (
-          <div>
-            <p className="text-sm text-muted-foreground mb-4">Boost your researcher profile to appear higher in the Leaderboard and gain more followers.</p>
-            {profileBoosted ? (
-              <div className="text-center py-6">
-                <p className="font-medium text-base mb-1">Profile Promoted</p>
-                <p className="text-sm text-muted-foreground">Your profile is being promoted to new followers for 7 days.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[
-                  { label: "7 Day Boost", price: "$9.99", reach: "~2,000 impressions", Icon: Rocket },
-                  { label: "30 Day Boost", price: "$29.99", reach: "~10,000 impressions", Icon: Flame },
-                  { label: "Featured Researcher", price: "$79.99", reach: "Homepage feature for 7 days", Icon: Star },
-                ].map(plan => (
-                  <button key={plan.label} onClick={() => setProfileBoosted(true)} className="w-full flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary/30 hover:bg-primary/5 text-left transition-all">
-                    <plan.Icon className="w-5 h-5 text-primary flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{plan.label}</p>
-                      <p className="text-xs text-muted-foreground">{plan.reach}</p>
-                    </div>
-                    <span className="font-medium text-sm text-primary">{plan.price}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {!loading && section === "audience" && <Audience subscribers={subscribers}/>}
+        {!loading && section === "earnings" && <Earnings wallet={wallet} lifetime={lifetime}/>}
+        {!loading && (section === "analytics" || section === "settings") && (
+          <Placeholder name={section}/>
         )}
-
-        {tab === "subscriptions" && (
-          <div className="text-center py-8">
-            <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Subscriptions coming soon.</p>
-          </div>
-        )}
-
-        {tab === "messages" && (
-          <DashboardDMs subscriptions={mySubscriptions} currentUser={currentUser} />
-        )}
-      </div>
-
-      {/* Watchlist */}
-      <WatchlistPanel reports={myReports} />
-
-      {/* Revenue & Twits */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
-        <RevenueInsightsPanel />
-        <TwitsPanel currentUser={currentUser} />
-      </div>
-
-      {/* ── Level-Up Promo Card — Figma-inspired navy/gold CTA ── */}
-      <div className="rounded-2xl p-7 relative overflow-hidden mb-4" style={{ background: "linear-gradient(135deg, #0A1A3F 0%, #2E5090 60%, #1E3A8A 100%)" }}>
-        {/* Gold accent glow */}
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
-        <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
-        <div className="relative z-10 max-w-sm">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/40 mb-3">Grow your influence</p>
-          <h3 className="text-2xl font-medium text-white leading-tight mb-2 tracking-tight">
-            Level up your<br />researcher profile.
-          </h3>
-          <p className="text-sm text-white/50 mb-6 leading-relaxed">
-            Boost your reach, attract subscribers and build a verified track record that investors trust.
-          </p>
-          <div className="flex gap-3">
-            <Link to="/analyst?edit=1">
-              <button className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:-translate-y-0.5"
-                style={{ background: "hsl(var(--accent))", color: "#fff", boxShadow: "0 4px 20px rgba(201,150,19,0.4)" }}>
-                Edit My Profile
-              </button>
-            </Link>
-            <Link to="/creator-analytics">
-              <button className="px-5 py-2.5 rounded-xl font-medium text-sm text-white/70 border border-white/15 hover:border-white/30 hover:text-white transition-all">
-                View Analytics
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,478 +1,74 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { setMeta, injectJsonLd } from "@/lib/seo";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import {
-  ArrowLeft, Heart, Lock, Loader2, Sparkles,
-  CheckCircle2, AlertTriangle, Info, MessageSquareQuote, X,
-  Eye, BarChart2, Target, ShieldAlert, TrendingUp, Lightbulb, ChevronRight,
-  Flag, ExternalLink, RefreshCw, Trash2
+  ChevronRight, Lock, Bookmark, Share2, Clock, Star, MessageSquare,
+  ArrowRight, TrendingUp, TrendingDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { base44 } from "@/api/base44Client";
-import PredictionBadge from "@/components/feed/PredictionBadge";
-import TickerTag from "@/components/feed/TickerTag";
-import ShareMenu from "@/components/feed/ShareMenu";
-import CommentsSection from "@/components/report/CommentsSection";
-import FactChecker from "@/components/report/FactChecker";
-import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
-import WalletConfirmDialog from "@/components/wallet/WalletConfirmDialog";
-import { buyReport, subscribeAnalyst } from "@/lib/walletService";
+import { setMeta, injectJsonLd } from "@/lib/seo";
 import { toast } from "sonner";
-import TradingViewWidget from "@/components/feed/TradingViewWidget";
-import ChatCompareChart from "@/components/editor/ChatCompareChart";
-import ExportPDFButton from "@/components/report/ExportPDFButton";
-import useGoBack from "@/hooks/useGoBack";
-import { avatarUrl } from "@/lib/avatarUrl";
+import { subscribeAnalyst } from "@/lib/walletService";
+import { Avatar } from "@/components/AnalystCard";
 
-// ─── Claim type config ───────────────────────────────────────────────────────
-// Verified states share the gain palette; disputed/misleading share loss/muted.
-// Opinion and Unverified stay neutral (foreground / muted) since they aren't
-// market sentiment signals — they're editorial classifications.
-const TYPE_CONFIG = {
-  Fact:             { icon: CheckCircle2,       color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Verified Fact" },
-  Opinion:          { icon: MessageSquareQuote, color: "text-primary",     bg: "bg-primary/10 border-primary/20",   label: "Opinion" },
-  Misleading:       { icon: AlertTriangle,      color: "text-loss",        bg: "bg-loss/10 border-loss/20",         label: "Potentially Misleading" },
-  Unverified:       { icon: Info,               color: "text-muted-foreground", bg: "bg-muted border-border",       label: "Unverified" },
-  "Yahoo-Verified": { icon: TrendingUp,         color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Yahoo Finance Verified" },
-  "Yahoo-Disputed": { icon: AlertTriangle,      color: "text-accent",      bg: "bg-accent/10 border-accent/30",     label: "Disputed by Yahoo Finance" },
-  "SEC-Verified":   { icon: CheckCircle2,       color: "text-primary",     bg: "bg-primary/10 border-primary/20",   label: "SEC Filing Verified" },
-  "SEC-Disputed":   { icon: AlertTriangle,      color: "text-loss",        bg: "bg-loss/10 border-loss/20",         label: "Disputed by SEC Filing" },
-};
-
-// ─── Community Notes under Opinion claims ────────────────────────────────────
-function ClaimWithNotes({ claim, reportId, reportTitle, onJumpToClaim }) {
-  const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
-  const Icon = cfg.icon;
-  const [notes, setNotes] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [noteText, setNoteText] = useState("");
-  const [reportSent, setReportSent] = useState(false);
-
-  const submitNote = () => {
-    if (!noteText.trim()) return;
-    setNotes(prev => [...prev, { id: Date.now(), text: noteText.trim(), time: "just now" }]);
-    setNoteText("");
-    setShowAdd(false);
-  };
-
-  // Send the flagged claim to the admin review queue (Notification entity)
-  // AND mirror to email. Includes full context: report link, claim text, AI
-  // verdict, sources — so the reviewer doesn't need to chase anything down.
-  const handleReportMistake = async () => {
-    const reportLink = reportId ? `${window.location.origin}/report?id=${reportId}` : null;
-    const body = [
-      "A user flagged a potential AI fact-check mistake.",
-      "",
-      `Report: ${reportTitle || "(unknown)"}`,
-      reportLink ? `Link:   ${reportLink}` : "Link:   (unknown)",
-      "",
-      `Claim type: ${claim.type}`,
-      `Confidence: ${claim.confidence || "N/A"}`,
-      "",
-      `Claim text:\n"${claim.text}"`,
-      "",
-      `AI note: ${claim.note || "N/A"}`,
-      "",
-      claim.yahooCheck ? `Yahoo Finance: ${claim.yahooCheck.detail}` : "",
-      claim.secCheck   ? `SEC EDGAR:     ${claim.secCheck.detail}`   : "",
-    ].filter(Boolean).join("\n");
-
-    try {
-      await base44.entities.Notification.create({
-        user_email: "support@stoamarket.ai",
-        type:       "ai_review",
-        title:      `AI fact-check flagged — ${claim.type}`,
-        body:       `"${claim.text.slice(0, 140)}${claim.text.length > 140 ? "…" : ""}"`,
-        link:       reportLink || "/admin/users",
-        meta:       JSON.stringify({ reportId, reportTitle, claim }),
-      });
-    } catch (e) {
-      console.warn("Could not write to admin review queue:", e);
-    }
-
-    try {
-      await base44.integrations.Core.SendEmail({
-        to: "support@stoamarket.ai",
-        subject: `AI Fact Check Flagged — ${claim.type} — ${reportTitle || "(unknown)"}`,
-        body,
-      });
-      setReportSent(true);
-      toast.success("Sent to admin review queue. Thanks!");
-    } catch {
-      setReportSent(true);
-      toast.success("Flagged for admin review.");
-    }
-  };
-
-  return (
-    <div className={`rounded-xl border p-3 text-xs ${cfg.bg}`}>
-      <div className="flex gap-2">
-        <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className={`font-medium text-[11px] ${cfg.color}`}>{cfg.label}</span>
-            {/* "Unverified — high confidence" is self-contradictory: by definition we
-                couldn't verify the claim. Suppress the confidence chip for that case. */}
-            {claim.confidence && claim.type !== "Unverified" && (
-              <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-medium ${
-                claim.confidence === "high" ? "bg-gain/10 text-gain" :
-                claim.confidence === "medium" ? "bg-amber-50 text-amber-700" :
-                "bg-muted text-muted-foreground"
-              }`}>{claim.confidence} confidence</span>
-            )}
-            {claim.yahooData && (
-              <a
-                href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-0.5 text-[9px] text-blue-600 hover:underline"
-              >
-                <ExternalLink className="w-2.5 h-2.5" />Yahoo Finance
-              </a>
-            )}
-          </div>
-
-          <p className="text-foreground/85 leading-relaxed">{claim.text}</p>
-          {claim.note && <p className="text-muted-foreground mt-1 italic">{claim.note}</p>}
-
-          {/* Reference links: jump to the line in the report + the external
-              source (Yahoo / SEC) the AI used. Lets the reader verify rather
-              than trust the AI verdict in isolation. */}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {onJumpToClaim && (
-              <button
-                type="button"
-                onClick={() => onJumpToClaim(claim.text)}
-                className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
-                title="Scroll to and highlight this line in the report"
-              >
-                ↪ Find in report
-              </button>
-            )}
-            {claim.yahooTicker && (
-              <a
-                href={`https://finance.yahoo.com/quote/${claim.yahooTicker}`}
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
-              >
-                <ExternalLink className="w-2.5 h-2.5" /> Source: Yahoo Finance
-              </a>
-            )}
-            {claim.secCheck?.edgarLink && (
-              <a
-                href={claim.secCheck.edgarLink}
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] text-accent hover:underline"
-              >
-                <ExternalLink className="w-2.5 h-2.5" /> Source: SEC 10-K
-              </a>
-            )}
-          </div>
-
-          {claim.yahooCheck && (
-            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.yahooCheck.match ? "bg-gain/10 text-gain" : "bg-accent/10 text-accent"
-            }`}>
-              <strong>Yahoo Finance:</strong> {claim.yahooCheck.detail}
-            </div>
-          )}
-
-          {claim.secCheck && (
-            <div className={`mt-1.5 p-1.5 rounded-lg text-[10px] ${
-              claim.secCheck.match ? "bg-accent/10 text-accent" : "bg-red-50 text-red-700"
-            }`}>
-              <strong>SEC EDGAR:</strong> {claim.secCheck.detail}
-              {claim.secCheck.edgarLink && (
-                <a
-                  href={claim.secCheck.edgarLink}
-                  target="_blank" rel="noopener noreferrer"
-                  className="ml-1.5 underline opacity-70 hover:opacity-100 inline-flex items-center gap-0.5"
-                >
-                  <ExternalLink className="w-2.5 h-2.5 inline" /> View 10-K
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* AI mistaken? — amber pill */}
-          <div className="mt-2">
-            {reportSent ? (
-              <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-tag font-medium">
-                <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
-              </span>
-            ) : (
-              <button
-                onClick={handleReportMistake}
-                aria-label="Report AI mistake for this claim"
-                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 rounded-tag font-medium transition-colors"
-              >
-                <Flag className="w-2.5 h-2.5" aria-hidden="true" /> AI mistaken? Report us
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Community Notes — only for Opinion */}
-      {claim.type === "Opinion" && (
-        <div className="mt-2 ml-5 pl-2 border-l-2 border-blue-200">
-          <p className="text-[10px] font-medium text-blue-600 mb-1 flex items-center gap-1">
-            <MessageSquareQuote className="w-3 h-3" /> Community Notes
-          </p>
-          {notes.length === 0 && !showAdd && (
-            <p className="text-[10px] text-muted-foreground">No community notes yet.</p>
-          )}
-          {notes.map(note => (
-            <div key={note.id} className="mb-1">
-              <p className="text-[11px] text-foreground/80">{note.text}</p>
-              <p className="text-[9px] text-muted-foreground">{note.time}</p>
-            </div>
-          ))}
-          {showAdd ? (
-            <div className="flex items-center gap-1 mt-1">
-              <input
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && submitNote()}
-                placeholder="Add context or a correction..."
-                className="flex-1 text-[11px] border border-blue-200 rounded-lg px-2 py-1 bg-white/80 focus:outline-none focus:ring-1 focus:ring-blue-300"
-                autoFocus
-              />
-              <button onClick={submitNote} className="text-[10px] text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-lg">Post</button>
-              <button onClick={() => setShowAdd(false)} className="text-[10px] text-muted-foreground px-1"><X className="w-3 h-3" /></button>
-            </div>
-          ) : (
-            <button onClick={() => setShowAdd(true)} className="text-[10px] text-blue-600 hover:underline mt.0.5">+ Add a note</button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Saved fact-check panel ──────────────────────────────────────────────────
-function SavedFactCheck({ claims, reportContent, reportId, reportTitle, onJumpToClaim }) {
-  const [open, setOpen]           = useState(true);
-  const [activeFilter, setFilter] = useState(null);
-  const [showLive, setShowLive]   = useState(false);
-
-  const summary = Object.fromEntries(
-    Object.keys(TYPE_CONFIG).map(t => [t, claims.filter(c => c.type === t).length])
-  );
-
-  const visible = activeFilter
-    ? claims.filter(c => c.type === activeFilter)
-    : claims;
-
-  const toggleFilter = (type) => setFilter(prev => prev === type ? null : type);
-
-  if (showLive) {
-    return (
-      <FactChecker
-        reportContent={reportContent}
-        reportId={reportId}
-        reportTitle={reportTitle}
-        onJumpToClaim={onJumpToClaim}
-      />
-    );
-  }
-
-  return (
-    <div className="bg-card border border-border rounded-xl p-4 mt-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <div>
-            <h4 className="font-medium text-sm">AI Fact Check</h4>
-            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowLive(true)}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground border border-border rounded-tag px-2 py-0.5 hover:border-primary/40 transition-colors"
-            title="Re-run fact check with latest data"
-          >
-            <RefreshCw className="w-2.5 h-2.5" /> Re-run
-          </button>
-          <button onClick={() => setOpen(v => !v)} className="text-xs text-muted-foreground hover:text-foreground">
-            {open ? <X className="w-3.5 h-3.5" /> : "Show"}
-          </button>
-        </div>
-      </div>
-
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {Object.entries(summary).filter(([, v]) => v > 0).map(([type, count]) => {
-          const cfg = TYPE_CONFIG[type];
-          if (!cfg) return null;
-          const isActive = activeFilter === type;
-          return (
-            <button
-              key={type}
-              onClick={() => toggleFilter(type)}
-              className={`text-[10px] font-medium px-2.5 py-1 rounded-tag border transition-all ${cfg.bg} ${cfg.color} ${
-                isActive ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-70 hover:opacity-100"
-              }`}
-              title={isActive ? "Clear filter" : `Show only ${cfg.label}s`}
-            >
-              {count} {cfg.label}{count > 1 ? "s" : ""}
-              {isActive && " ×"}
-            </button>
-          );
-        })}
-        {activeFilter && (
-          <button
-            onClick={() => setFilter(null)}
-            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded-tag border border-border"
-          >
-            Show all ({claims.length})
-          </button>
-        )}
-      </div>
-
-      {open && (
-        <div className="space-y-2">
-          {visible.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-3">
-              No {TYPE_CONFIG[activeFilter]?.label}s in this report.
-            </p>
-          ) : (
-            visible.map((claim, i) => (
-              <ClaimWithNotes
-                key={i}
-                claim={claim}
-                reportId={reportId}
-                reportTitle={reportTitle}
-                onJumpToClaim={onJumpToClaim}
-              />
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Block renderer ──────────────────────────────────────────────────────────
-function BlockRenderer({ blocks }) {
-  if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
-  return (
-    <div className="space-y-4 report-body" data-report-body>
-      {blocks.map((block, i) => {
-        const content = block.content ?? "";
-        if (block.type === "heading") return (
-          <h2 key={i} className="text-xl font-medium text-foreground mt-6 mb-2">{content}</h2>
-        );
-        if (block.type === "bullets") return (
-          <ul key={i} className="list-disc list-inside space-y-1 pl-2">
-            {content.split("\n").filter(Boolean).map((line, j) => (
-              <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^[•\-]\s*/, "")}</li>
-            ))}
-          </ul>
-        );
-        if (block.type === "quote") return (
-          <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-foreground/80 text-sm">{content}</blockquote>
-        );
-        if (block.type === "stockchart") {
-          const chartTicker = block.ticker || block.content || "SPY";
-          const chartHeight = block.height || 420;
-          return (
-            <div key={i} className="my-4 rounded-xl overflow-hidden border border-border">
-              {block.snapshot_url ? (
-                <>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
-                    <span className="font-display font-medium text-sm text-primary">{chartTicker}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">Chart snapshot at publish time</span>
-                  </div>
-                  <img src={block.snapshot_url} alt={`${chartTicker} chart`} loading="lazy" className="w-full object-cover" style={{ height: chartHeight }} />
-                  <div className="px-3 py-2 border-t border-border">
-                    <a href={`/stock?ticker=${chartTicker}`} className="text-xs text-primary hover:underline">View live chart for ${chartTicker} →</a>
-                  </div>
-                </>
-              ) : (
-                <TradingViewWidget ticker={chartTicker} height={chartHeight} />
-              )}
-            </div>
-          );
-        }
-        if (block.type === "comparechart") {
-          const tickers = Array.isArray(block.tickers) && block.tickers.length
-            ? block.tickers
-            : (block.content || "").split(",").map(t => t.trim()).filter(Boolean);
-          return (
-            <div key={i} className="my-4">
-              <ChatCompareChart tickers={tickers} timeframe={block.timeframe || "1M"} />
-            </div>
-          );
-        }
-        if (block.type === "image" && block.content) return (
-          <img key={i} src={block.content} alt="" className="rounded-xl max-w-full" />
-        );
-        // Always render text blocks — even if content seems empty show nothing rather than skip
-        if (!block.content && block.content !== 0) return null;
-        return <p key={i} className="text-foreground/90 leading-relaxed text-sm whitespace-pre-line">{block.content}</p>;
-      })}
-    </div>
-  );
-}
-
-// ─── Main page ───────────────────────────────────────────────────────────────
+/**
+ * ReportView — long-form research reading view (v3 rebuild).
+ * Layout per prototype/src/screens/report.jsx: 720px centered column, drop
+ * cap first paragraph, Locked Prediction Receipt, pull quotes, bull/bear
+ * blocks, reactions row, end-of-article subscribe card, sticky bottom CTA
+ * for non-subscribers.
+ *
+ * Wires to existing Report / ReportView / User / Subscription entities.
+ */
 export default function ReportView() {
   const navigate = useNavigate();
-  const goBack   = useGoBack("/feed");
   const urlParams = new URLSearchParams(window.location.search);
   const reportId = urlParams.get("id");
-  const isPaid = urlParams.get("paid") === "true";
 
   const [report, setReport] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
-  const [showSubDialog,    setShowSubDialog]    = useState(false);
-  const [unlockedNow, setUnlockedNow] = useState(false); // optimistic reveal after purchase
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleting,         setDeleting]         = useState(false);
-  // Like helpers (imported inline to avoid circular deps)
-  const isLikedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
-  const checkLiked = (id) => localStorage.getItem(isLikedKey(id)) === '1';
-  const writeLiked = (id, val) => val ? localStorage.setItem(isLikedKey(id), '1') : localStorage.removeItem(isLikedKey(id));
   const [viewCount, setViewCount] = useState(0);
-  const [authorUser, setAuthorUser] = useState(null);
+  const [author, setAuthor] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [livePrice, setLivePrice] = useState(null);
   const [moreReports, setMoreReports] = useState([]);
+  const [subscribed, setSubscribed] = useState(false);
 
+  const likedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
+
+  // ── Auth ────────────────────────────────────────────────────────────────
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // ── Load report ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!reportId || reportId === "undefined" || reportId === "null") {
       setError("No report ID specified.");
       setLoading(false);
       return;
     }
-    const loadReport = async () => {
-      let data = await base44.entities.Report.get(reportId).catch(() => null);
-      // Fallback: try filter if get() is blocked by RLS
-      if (!data) {
-        const results = await base44.entities.Report.filter({ status: "published" }, "-created_date", 200).catch(() => []);
-        data = (results || []).find(r => r.id === reportId) || null;
-      }
-      return data;
-    };
-    loadReport()
-      .then(async data => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let data = await base44.entities.Report.get(reportId).catch(() => null);
+        if (!data) {
+          const results = await base44.entities.Report.filter({ status: "published" }, "-created_date", 200).catch(() => []);
+          data = (results || []).find((r) => r.id === reportId) || null;
+        }
+        if (cancelled) return;
         if (!data) { setError("Report not found."); return; }
         setReport(data);
         setLikeCount(data.likes || 0);
         setViewCount(data.views || 0);
-        setLiked(checkLiked(reportId));
-        base44.analytics.track({ eventName: "report_viewed", properties: { report_id: reportId, is_premium: data.is_premium || false } });
+        setLiked(localStorage.getItem(likedKey(reportId)) === "1");
+
+        try { base44.analytics?.track?.({ eventName: "report_viewed", properties: { report_id: reportId } }); } catch {}
+
         if (data.content_blocks) {
           try {
             const parsed = JSON.parse(data.content_blocks);
@@ -480,609 +76,549 @@ export default function ReportView() {
           } catch {
             setBlocks([{ type: "text", content: data.content_blocks, id: 0 }]);
           }
+        } else if (data.content) {
+          setBlocks([{ type: "text", content: data.content, id: 0 }]);
         }
-        // Fetch author user for avatar fallback + more reports
+
         if (data.created_by) {
-          const users = await base44.entities.User.filter({ email: data.created_by }).catch(() => []);
-          if (users?.[0]) setAuthorUser(users[0]);
-          base44.entities.Report.filter({ created_by: data.created_by, status: "published" }, "-created_date", 5)
-            .then(more => setMoreReports((more || []).filter(r => r.id !== reportId).slice(0, 3)))
+          base44.entities.User.filter({ email: data.created_by }).then((users) => {
+            if (!cancelled && users?.[0]) setAuthor(users[0]);
+          }).catch(() => {});
+          base44.entities.Report
+            .filter({ created_by: data.created_by, status: "published" }, "-created_date", 5)
+            .then((more) => !cancelled && setMoreReports((more || []).filter((r) => r.id !== reportId).slice(0, 3)))
             .catch(() => {});
         }
-      })
-      .catch(() => setError("Failed to load report."))
-      .finally(() => setLoading(false));
-  }, [reportId]);  // eslint-disable-line
+      } catch {
+        if (!cancelled) setError("Failed to load report.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [reportId]);  
 
-  // Track view — runs once per session, skips if viewer is the author
+  // ── View tracking (once per session, skip own views) ────────────────────
   useEffect(() => {
     if (!report || !reportId) return;
-    const viewedKey = `viewed_${reportId}`;
-    if (sessionStorage.getItem(viewedKey)) return;
-    if (currentUser?.email && report.created_by === currentUser.email) return; // skip own views
-    sessionStorage.setItem(viewedKey, '1');
+    const key = `viewed_${reportId}`;
+    if (sessionStorage.getItem(key)) return;
+    if (currentUser?.email && report.created_by === currentUser.email) return;
+    sessionStorage.setItem(key, "1");
     const newViews = (report.views || 0) + 1;
     setViewCount(newViews);
-    base44.entities.ReportView.create({
+    base44.entities.ReportView?.create({
       report_id: report.id,
       analyst_email: report.created_by,
       viewer_email: currentUser?.email || null,
       viewed_at: new Date().toISOString(),
     }).catch(() => {});
     base44.entities.Report.update(report.id, { views: newViews }).catch(() => {});
-  }, [report?.id, currentUser?.email]);
+  }, [report?.id, currentUser?.email]);  
 
-  // Fetch live price for prediction badge
+  // ── Live price for the prediction ticker ────────────────────────────────
   useEffect(() => {
     if (!report?.prediction_ticker) return;
     base44.functions.invoke("proxyFetch", {
       url: `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${report.prediction_ticker}?modules=price`,
-    }).then(res => {
-      const price = res?.data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw;
-      if (price) setLivePrice(price);
-    }).catch(() => {});
+    })
+      .then((res) => {
+        const p = res?.data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw;
+        if (p) setLivePrice(p);
+      })
+      .catch(() => {});
   }, [report?.prediction_ticker]);
 
-  // SEO: dynamic meta + JSON-LD
+  // ── Subscription status ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!currentUser?.email || !report?.created_by) return;
+    base44.entities.Subscription
+      .filter({ subscriber_email: currentUser.email, analyst_email: report.created_by, status: "active" })
+      .then((subs) => setSubscribed((subs || []).length > 0))
+      .catch(() => {});
+  }, [currentUser?.email, report?.created_by]);
+
+  // ── SEO meta ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!report) return;
     setMeta({
       title: report.title,
-      description: report.excerpt || `${report.author_name} on STOA: ${report.title}`,
+      description: report.excerpt || `${report.author_name || "STOA"}: ${report.title}`,
       type: "article",
     });
-    injectJsonLd("jsonld-report", {
+    injectJsonLd?.("jsonld-report", {
       "@context": "https://schema.org",
       "@type": "Article",
-      "headline": report.title,
-      "author": {
-        "@type": "Person",
-        "name": report.author_name,
-        "url": `${window.location.origin}/analyst/${(report.created_by || "").split("@")[0]}`,
-      },
-      "datePublished": report.created_date,
-      "dateModified":  report.updated_date || report.created_date,
-      "publisher": {
-        "@type": "Organization",
-        "name": "STOA",
-        "url": "https://stoamarket.ai",
-        "logo": { "@type": "ImageObject", "url": "https://stoamarket.ai/og-image.png" },
-      },
-      "description":      report.excerpt,
-      "keywords":         (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean),
-      "image":            report.author_avatar || "https://stoamarket.ai/og-image.png",
-      "mainEntityOfPage": window.location.href,
-      "about":            (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean).map(ticker => ({
-        "@type":       "Corporation",
-        "tickerSymbol": ticker,
-      })),
+      headline: report.title,
+      author: { "@type": "Person", name: report.author_name },
     });
   }, [report]);
 
-  const savedClaims = useMemo(() => {
-    if (!report?.fact_check_results) return null;
-    try { return JSON.parse(report.fact_check_results)?.claims || null; }
-    catch { return null; }
-  }, [report]);
+  // ── Handlers ────────────────────────────────────────────────────────────
+  const toggleLike = async () => {
+    if (!report) return;
+    const next = !liked;
+    setLiked(next);
+    const newCount = Math.max(0, likeCount + (next ? 1 : -1));
+    setLikeCount(newCount);
+    localStorage.setItem(likedKey(reportId), next ? "1" : "");
+    if (!next) localStorage.removeItem(likedKey(reportId));
+    base44.entities.Report.update(report.id, { likes: newCount }).catch(() => {});
+  };
 
-  // "Find in report" handler — search the rendered DOM for the claim's text
-  // and scroll to / briefly highlight the matching paragraph. Claude often
-  // paraphrases, so we match on a tolerant 30-char prefix of normalized text.
-  const handleJumpToClaim = useCallback((claimText) => {
-    if (!claimText) return;
-    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
-    const needle = norm(claimText).slice(0, 30);
-    if (!needle || needle.length < 8) return;
-    const container = document.querySelector("[data-report-body]") || document.body;
-    const candidates = container.querySelectorAll("p, li, h1, h2, h3, h4, blockquote");
-    for (const el of candidates) {
-      if (norm(el.textContent || "").includes(needle)) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-amber-400", "rounded-md", "transition-shadow");
-        setTimeout(() => {
-          el.classList.remove("ring-2", "ring-amber-400", "rounded-md", "transition-shadow");
-        }, 2400);
-        return;
-      }
-    }
-    toast.info("Couldn't locate the exact line — the AI may have paraphrased.");
-  }, []);
-
-  // Content-shaped skeleton: back link + ticker chips + title + author meta
-  // + body. Mirrors the actual layout so the page doesn't flash from a
-  // centered spinner to a left-aligned article.
-  if (loading) return (
-    <div className="max-w-3xl mx-auto px-4 py-6" aria-busy="true" aria-label="Loading report">
-      <div className="h-4 w-12 shimmer rounded-tag mb-6" />
-      <div className="flex gap-2 mb-4">
-        <div className="h-6 w-16 shimmer rounded-tag" />
-        <div className="h-6 w-20 shimmer rounded-tag" />
-      </div>
-      <div className="h-8 w-3/4 shimmer rounded-tag mb-4" />
-      <div className="h-8 w-2/3 shimmer rounded-tag mb-6" />
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-full shimmer" />
-        <div className="space-y-1.5">
-          <div className="h-3 w-32 shimmer rounded-tag" />
-          <div className="h-2.5 w-20 shimmer rounded-tag" />
-        </div>
-      </div>
-      <div className="space-y-3">
-        {[0, 1, 2, 3, 4, 5].map(i => (
-          <div key={i} className={`h-4 shimmer rounded-tag ${i % 3 === 2 ? "w-3/5" : "w-full"}`} />
-        ))}
-      </div>
-    </div>
-  );
-
-  if (error || !report) return (
-    <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-      <p className="text-muted-foreground mb-4">{error || "Report not found."}</p>
-      <button onClick={goBack} className="text-primary hover:underline text-sm">Go Back</button>
-    </div>
-  );
-
-  const authorName = report.author_name || authorUser?.full_name || report.created_by?.split("@")[0] || "Researcher";
-  const authorAvatar = report.author_avatar || avatarUrl(authorUser);
-  const isPremium = report.is_premium || false;
-  const publishedDate = report.created_date;
-
-  const isAuthor = currentUser && report.created_by === currentUser.email;
-  const isAdmin  = currentUser?.role === "admin";
-  const canSeeTarget = !isPremium || isPaid || isAuthor || unlockedNow;
-  // Locked prediction = a prediction was logged to the analyst's track record.
-  // We detect this by the presence of a lock_time + lock_price.
-  const hasLockedPrediction = !!(report.prediction_lock_time && report.prediction_lock_price);
-
-  async function handleDelete() {
-    if (deleting) return;
-    setDeleting(true);
+  const handleSubscribe = async () => {
+    if (!currentUser) { navigate("/signin"); return; }
+    if (subscribed) return;
     try {
-      // Admins: hard-delete unconditionally.
-      // Authors (non-admin): hard-delete IF no locked prediction. Otherwise
-      // blank the content (soft delete) so the prediction row stays in their
-      // track record. This is enforced client-side; the RLS already allows
-      // deletes from both creator and admin.
-      if (isAdmin || !hasLockedPrediction) {
-        await base44.entities.Report.delete(report.id);
-        toast.success("Report deleted");
-      } else {
-        await base44.entities.Report.update(report.id, {
-          is_content_deleted: true,
-          content_blocks: "[]",
-          excerpt: "",
-          title: report.title ? `${report.title} (deleted)` : "Deleted report",
-        });
-        toast.success("Report content removed. Your prediction stays in your track record.");
-      }
-      navigate(isAdmin ? "/feed" : "/analyst", { replace: true });
-    } catch (err) {
-      toast.error(err?.message || "Failed to delete report");
-    } finally {
-      setDeleting(false);
-      setShowDeleteDialog(false);
-    }
+      await subscribeAnalyst(report.created_by, author?.monthly_price || 9);
+      setSubscribed(true);
+      toast.success("Subscribed.");
+    } catch (e) { toast.error(e?.message || "Subscribe failed"); }
+  };
+
+  // ── Derived ─────────────────────────────────────────────────────────────
+  const authorName = author?.full_name || report?.author_name || "Researcher";
+  const elo = author?.elo ?? Math.round(((author?.accuracy_score || 60) / 100) * 800 + 600);
+  const accuracy = author?.accuracy_score || 0;
+  const price = author?.monthly_price || 9;
+  const initials = authorName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const isPremium = report?.is_premium;
+  const kind = (report?.kind || (report?.is_quick_post ? "POST" : "Research Report")).replace(/_/g, " ");
+  const dir = report?.prediction_action;
+  const ticker = report?.prediction_ticker;
+
+  // ── Loading / error ─────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="page" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 120 }}>
+        <span className="t-meta">Loading report…</span>
+      </div>
+    );
+  }
+  if (error || !report) {
+    return (
+      <div className="page" style={{ padding: 120, textAlign: "center" }}>
+        <h2 className="t-display" style={{ fontSize: 28 }}>{error || "Report not found"}</h2>
+        <p className="t-meta" style={{ marginTop: 8 }}>
+          Try <Link to="/feed">browsing the feed</Link>.
+        </p>
+      </div>
+    );
   }
 
-  const prediction = report.prediction_action ? {
-    action: report.prediction_action,
-    ticker: report.prediction_ticker,
-    targetPrice: canSeeTarget ? report.prediction_target_price : null,
-    lockPrice: report.prediction_lock_price,
-    lockTime: report.prediction_lock_time,
-    timeframe: report.prediction_timeframe,
-    outcome: report.prediction_outcome || null,
-    resolvedPrice: report.prediction_resolved_price || null,
-  } : null;
-
-  const plainText = [report.title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
-
-  // tickers is stored as a comma-separated string
-  const tickers = (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
-
-  // Show a Substack-style sticky bottom Subscribe CTA whenever the
-  // viewer is reading a premium report they haven't paid for. Drives the
-  // "feel FOMO → subscribe" arc described in the redesign brief.
-  const showStickyPaywall = isPremium && !isPaid && !isAuthor && !unlockedNow;
-
   return (
-    <div className="max-w-[680px] mx-auto px-5 py-10">
-      <button onClick={goBack} className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground mb-8 transition-colors">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back
-      </button>
-
-      {tickers.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
-          {tickers.map(t => <TickerTag key={t} ticker={t} />)}
-        </div>
-      )}
-
-      {/* Substack-style editorial title — larger, serif, generous margins. */}
-      <h1 className="font-serif font-medium text-foreground tracking-tight mb-6 leading-[1.12]" style={{ fontSize: "clamp(30px, 4.5vw, 42px)", letterSpacing: "-0.022em" }}>
-        {report.title}
-      </h1>
-
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <button onClick={() => navigate(`/analyst?id=${report.created_by}`)} className="flex items-center gap-2">
-          {authorAvatar
-            ? <img src={authorAvatar} alt={authorName} loading="lazy" className="w-8 h-8 rounded-full object-cover border border-border" />
-            : <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                {(authorName[0] || "A").toUpperCase()}
-              </div>
-          }
-          <div>
-            <p className="text-sm font-medium hover:text-primary transition-colors">{authorName}</p>
-            {report.author_accuracy > 0 && <p className="text-xs text-muted-foreground">{report.author_accuracy}% Acc.</p>}
+    <div className="page" style={{ background: "var(--bg)" }}>
+      {/* ── Breadcrumb ── */}
+      <section style={{ padding: "28px 0 16px", borderBottom: "0.5px solid var(--border-rgba)" }}>
+        <div className="shell" style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="t-meta" style={{ cursor: "pointer" }} onClick={() => navigate("/feed")}>
+              Discover
+            </span>
+            <ChevronRight size={12} style={{ color: "var(--text-meta)" }}/>
+            <span className="t-meta" style={{ cursor: "pointer" }} onClick={() => navigate(`/analyst/${author?.username || author?.email}`)}>
+              {authorName}
+            </span>
+            <ChevronRight size={12} style={{ color: "var(--text-meta)" }}/>
+            <span className="t-meta" style={{ color: "var(--text)" }}>
+              {report.title?.slice(0, 60)}
+            </span>
           </div>
-        </button>
-        {publishedDate && (
-          <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy · h:mm a")}</span>
-        )}
-        <div className="flex items-center gap-3 ml-auto">
-          <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Eye className="w-3.5 h-3.5" /> {viewCount}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setSaved(!saved)}>
+              <Bookmark size={13} strokeWidth={1.6} style={{ fill: saved ? "var(--primary-blue)" : "transparent" }}/>
+              {saved ? "Saved" : "Save"}
+            </button>
+            <button className="btn btn-ghost btn-sm">
+              <Share2 size={13} strokeWidth={1.6}/> Share
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Article ── */}
+      <article style={{ maxWidth: 720, margin: "0 auto", padding: "56px 32px 48px" }}>
+        {/* Eyebrow */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <span className="tag" style={{ borderColor: "rgba(30,58,138,0.25)", color: "var(--primary-blue)" }}>
+            {kind}
           </span>
-          <button
-            onClick={async () => {
-              if (!currentUser) return;
-              // Guard: prevent double-like
-              if (checkLiked(report.id) && !liked) { setLiked(true); return; }
-              const newLiked = !liked;
-              const newCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
-              setLiked(newLiked);
-              setLikeCount(newCount);
-              writeLiked(report.id, newLiked);
-              await base44.entities.Report.update(report.id, { likes: newCount });
-              if (newLiked && report.created_by && report.created_by !== currentUser.email) {
-                base44.entities.Notification.create({
-                  user_email: report.created_by,
-                  type: "like",
-                  title: `${currentUser.full_name || currentUser.email?.split("@")[0]} liked your report`,
-                  body: report.title?.slice(0, 80) || "",
-                  link: `/report?id=${report.id}`,
-                }).catch(() => {});
-              }
-              base44.analytics.track({ eventName: "report_liked", properties: { report_id: report.id } });
-            }}
-            className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-loss" : "text-muted-foreground hover:text-foreground"}`}
-            aria-label={liked ? "Unlike this report" : "Like this report"}
-            aria-pressed={liked}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} /> <span className="font-display" aria-live="polite">{likeCount}</span>
-          </button>
-          <ShareMenu title={report.title} reportId={report.id} />
-          {(isAuthor || (!isPremium)) && (
-            <ExportPDFButton report={report} blocks={blocks} />
-          )}
-          {(isAuthor || isAdmin) && (
-            <button
-              onClick={() => setShowDeleteDialog(true)}
-              title={isAdmin && !isAuthor ? "Delete (admin)" : "Delete report"}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-loss transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
+          {isPremium && <span className="badge-founding">Premium</span>}
+          {report.read_time_min && (<>
+            <span className="t-meta">·</span>
+            <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Clock size={12} strokeWidth={1.5}/> {report.read_time_min} min read
+            </span>
+          </>)}
+        </div>
+
+        <h1 className="t-display" style={{
+          fontSize: "clamp(36px, 5vw, 52px)",
+          lineHeight: 1.05,
+          margin: "0 0 18px",
+          letterSpacing: "-0.022em",
+        }}>
+          {report.title}
+        </h1>
+
+        {report.excerpt && (
+          <p style={{
+            fontFamily: "var(--f-serif)", fontStyle: "italic",
+            fontSize: 19, lineHeight: 1.5, color: "var(--text-mute)",
+            margin: "0 0 32px",
+          }}>
+            {report.excerpt}
+          </p>
+        )}
+
+        {/* Author bar */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 14,
+          padding: "16px 0",
+          borderTop: "0.5px solid var(--border-rgba)",
+          borderBottom: "0.5px solid var(--border-rgba)",
+          marginBottom: 40,
+        }}>
+          <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="md"/>
+          <div>
+            <div className="t-title" style={{ fontSize: 14 }}>{authorName}</div>
+            <div className="t-meta" style={{ display: "flex", gap: 8, marginTop: 1 }}>
+              {elo > 0 && (<>
+                <span>Elo <span className="t-num" style={{ color: "var(--primary-blue)" }}>{elo}</span></span>
+                <span>·</span>
+              </>)}
+              {accuracy > 0 && (<>
+                <span>{accuracy}% accuracy</span>
+                <span>·</span>
+              </>)}
+              <span>{new Date(report.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            </div>
+          </div>
+          <div style={{ flex: 1 }}/>
+          {!subscribed && (
+            <button className="btn btn-gold btn-sm" onClick={handleSubscribe}>
+              Subscribe · ${price}/mo
             </button>
           )}
         </div>
-      </div>
 
-      {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-             onClick={() => !deleting && setShowDeleteDialog(false)}>
-          <div onClick={(e) => e.stopPropagation()}
-               className="surface max-w-md w-full p-6"
-               style={{ background: "hsl(var(--card))" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-5 h-5 text-loss" />
-              <h3 className="text-lg font-medium">Delete this report?</h3>
+        {/* Locked Prediction Receipt */}
+        {dir && ticker && report.prediction_entry_price && (
+          <div className="surface" style={{ padding: 22, marginBottom: 40, background: "var(--bg-elev)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <span className="receipt">
+                <Lock size={12} strokeWidth={1.5}/>
+                LOCKED PREDICTION · IMMUTABLE
+              </span>
+              {report.prediction_outcome === "hit" || report.prediction_outcome === "near" ? (
+                <span className="tag tag-hit">Resolved · Hit</span>
+              ) : report.prediction_outcome === "miss" ? (
+                <span className="tag tag-miss">Resolved · Miss</span>
+              ) : (
+                <span className="tag tag-open">Tracking</span>
+              )}
             </div>
-            {/* Three explanations: admin override, author with lock, author without lock. */}
-            {isAdmin && !isAuthor ? (
-              <p className="text-sm text-muted-foreground mb-5">
-                You're deleting this as an admin. The report, its content, and any
-                prediction block will be permanently removed. This cannot be undone.
-              </p>
-            ) : hasLockedPrediction ? (
-              <p className="text-sm text-muted-foreground mb-5">
-                This report contains a <strong>locked prediction</strong> that's already in your track record.
-                Your prediction will <strong>stay</strong> in your track record — only the report
-                content will be removed. The report will show as "deleted" to readers.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground mb-5">
-                This report has no locked prediction yet, so it will be permanently
-                deleted. This cannot be undone.
-              </p>
-            )}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" disabled={deleting}
-                      onClick={() => setShowDeleteDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleDelete} disabled={deleting}
-                      className="bg-loss text-white hover:bg-loss/90">
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
-              </Button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+              <span className={`tag ${dir === "Long" ? "tag-long" : dir === "Short" ? "tag-short" : "tag-hold"}`} style={{ height: 26, padding: "0 10px", fontSize: 11 }}>
+                {dir.toUpperCase()} {ticker}
+              </span>
+              {report.prediction_timeframe && (
+                <span className="t-meta">{report.prediction_timeframe} window</span>
+              )}
+            </div>
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 1, background: "var(--border-rgba)",
+              border: "0.5px solid var(--border-rgba)",
+              borderRadius: 6, overflow: "hidden",
+            }}>
+              {[
+                ["Entry", `$${Number(report.prediction_entry_price).toFixed(2)}`],
+                ["Target", report.prediction_target_price ? `$${Number(report.prediction_target_price).toFixed(2)}` : "—"],
+                ["Stop", report.prediction_stop_price ? `$${Number(report.prediction_stop_price).toFixed(2)}` : "—"],
+                ["Now", livePrice ? `$${Number(livePrice).toFixed(2)}` : "—",
+                  livePrice && livePrice >= report.prediction_entry_price ? "pos" : livePrice ? "neg" : ""],
+              ].map(([l, v, tone], i) => (
+                <div key={i} style={{ background: "var(--bg-elev)", padding: "12px" }}>
+                  <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{l}</div>
+                  <div className="t-num" style={{
+                    fontSize: 16, marginTop: 4,
+                    color: tone === "pos" ? "var(--rolex-green)" : tone === "neg" ? "var(--velvet-red)" : "var(--text)",
+                  }}>{v}</div>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* ── Body blocks ── */}
+        <div className="report-body">
+          {blocks.length === 0 ? (
+            <p style={{ fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7, color: "var(--text-body)" }}>
+              {report.content || report.excerpt || "—"}
+            </p>
+          ) : (
+            blocks.map((b, i) => <Block key={b.id ?? i} block={b} index={i}/>)
+          )}
         </div>
-      )}
 
-      {prediction && <PredictionBadge prediction={prediction} currentPrice={livePrice} />}
-
-      {/* Visual proof — trajectory of the underlying since lock */}
-      {report.prediction_lock_price && report.prediction_lock_time && (
-        <div className="my-6">
-          <PredictionTrajectoryChart report={report} />
+        {/* ── Reactions row ── */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "28px 0",
+          borderTop: "0.5px solid var(--border-rgba)",
+          borderBottom: "0.5px solid var(--border-rgba)",
+          marginTop: 48,
+        }}>
+          <button onClick={toggleLike} className="btn btn-ghost"
+            style={{
+              borderColor: liked ? "var(--gold-hex)" : undefined,
+              color: liked ? "var(--gold-hex)" : undefined,
+            }}
+          >
+            <Star size={14} strokeWidth={1.6} style={{ fill: liked ? "var(--gold-hex)" : "transparent" }}/>
+            {likeCount.toLocaleString()} found this useful
+          </button>
+          <button onClick={() => setSaved(!saved)} className="btn btn-ghost"
+            style={{
+              borderColor: saved ? "var(--primary-blue)" : undefined,
+              color: saved ? "var(--primary-blue)" : undefined,
+            }}
+          >
+            <Bookmark size={13} strokeWidth={1.6}/> {saved ? "Saved" : "Save"}
+          </button>
+          {report.comment_count != null && (
+            <button className="btn btn-ghost">
+              <MessageSquare size={13} strokeWidth={1.6}/> {report.comment_count} comments
+            </button>
+          )}
+          <div style={{ flex: 1 }}/>
+          <button className="btn btn-ghost btn-sm">
+            <Share2 size={13} strokeWidth={1.6}/>
+          </button>
         </div>
-      )}
 
-      <div className="mb-8">
-        {report.is_content_deleted ? (
-          <div className="surface p-6 text-center mb-0">
-            <Trash2 className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              The author has deleted this report's content. The locked prediction
-              remains in their track record below.
+        {/* ── End-of-article subscribe ── */}
+        {!subscribed && (
+          <div className="surface ambient" style={{ padding: 32, marginTop: 32, textAlign: "center" }}>
+            <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="lg" ring/>
+            <h3 className="t-title" style={{ fontSize: 22, margin: "16px 0 8px" }}>
+              Read everything {authorName.split(" ")[0]} publishes
+            </h3>
+            <p className="t-body" style={{ fontSize: 14, color: "var(--text-mute)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6 }}>
+              All reports, every locked call, and direct messages.{" "}
+              {elo > 0 && (<>
+                <span className="t-num" style={{ color: "var(--primary-blue)" }}>{elo}</span> Elo,{" "}
+              </>)}
+              {accuracy > 0 && `${accuracy}% accuracy.`}
+            </p>
+            <button className="btn btn-gold btn-lg" onClick={handleSubscribe}>
+              Subscribe · ${price}/mo <ArrowRight size={14}/>
+            </button>
+            <p className="t-meta" style={{ marginTop: 14, fontSize: 11 }}>
+              Cancel anytime · 90% goes to {authorName.split(" ")[0]}
             </p>
           </div>
-        ) : (!isPremium || isPaid || isAuthor || unlockedNow) ? (
-          <BlockRenderer blocks={blocks} />
-        ) : (
-          <>
-            {/* Show excerpt + first ~2 blocks blurred as preview */}
-            {report.excerpt && (
-              <p className="text-foreground/90 leading-relaxed mb-4 text-base">{report.excerpt}</p>
-            )}
-
-            {/* Blurred content preview */}
-            {blocks.length > 0 && (
-              <div className="relative mb-0 overflow-hidden rounded-xl" style={{ maxHeight: 220 }}>
-                <div className="pointer-events-none select-none">
-                  <BlockRenderer blocks={blocks.slice(0, 3)} />
-                </div>
-                {/* Decorative gradient fade + blur — pointer-events-none
-                    so clicks pass through to anything beneath. */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
-                <div className="absolute inset-0 backdrop-blur-[3px] bg-background/20 pointer-events-none" />
-              </div>
-            )}
-
-            {/* Paywall card */}
-            <div className="surface-premium p-6 mt-0 relative">
-              {/* Premium badge */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="badge-founding">Premium Report</span>
-              </div>
-
-              <div className="text-center pt-2">
-                <Lock className="w-8 h-8 text-accent mx-auto mb-3" />
-                <h3 className="font-serif text-[20px] text-foreground mb-1">Full Analysis Locked</h3>
-                <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
-                  Get the complete research: valuation model, price target, catalysts, risks, and analyst conviction.
-                </p>
-
-                {/* What's inside */}
-                <div className="grid grid-cols-2 gap-2 mb-5 text-left max-w-sm mx-auto">
-                  {[
-                    { icon: BarChart2, label: "Full valuation model" },
-                    { icon: Target, label: "Price target & catalysts" },
-                    { icon: ShieldAlert, label: "Key risks breakdown" },
-                    { icon: TrendingUp, label: "Technical setup" },
-                    { icon: Lightbulb, label: "Researcher conviction score" },
-                    { icon: Lock, label: "Locked prediction" },
-                  ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-1.5 text-xs text-foreground/80">
-                      <Icon className="w-3.5 h-3.5 text-accent shrink-0" />
-                      <span>{label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    onClick={() => setShowUnlockDialog(true)}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 px-6"
-                    size="lg"
-                    style={{ borderRadius: 6 }}
-                  >
-                    <Lock className="w-4 h-4" />
-                    Unlock for <span className="font-display">${report.price || 4.99}</span>
-                  </Button>
-                  <Button
-                    onClick={() => setShowSubDialog(true)}
-                    className="cta-gold gap-2 px-6"
-                    size="lg"
-                    style={{ borderRadius: 6 }}
-                  >
-                    Subscribe · $9/mo
-                  </Button>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground mt-3">
-                  Paid from your wallet · One-time unlock or unlimited access via subscription
-                </p>
-              </div>
-            </div>
-
-            {/* Analyst trust bar */}
-            <div className="mt-4 flex items-center gap-3 p-3 bg-secondary rounded-tag border border-border">
-              {authorAvatar
-                ? <img src={authorAvatar} alt={authorName} className="w-9 h-9 rounded-full object-cover border border-border" />
-                : <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary text-sm">{(authorName[0] || "A").toUpperCase()}</div>
-              }
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{authorName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {report.author_accuracy > 0 ? `${report.author_accuracy}% prediction accuracy` : "Verified researcher on STOA"}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs shrink-0"
-                onClick={() => navigate(`/analyst?id=${report.created_by}`)}
-              >
-                View Profile
-              </Button>
-            </div>
-          </>
         )}
-      </div>
+      </article>
 
-      {(!isPremium || isPaid || isAuthor) && (
-        <div className="mb-8">
-          {savedClaims ? (
-            <SavedFactCheck
-              claims={savedClaims}
-              reportContent={plainText}
-              reportId={report.id}
-              reportTitle={report.title}
-              onJumpToClaim={handleJumpToClaim}
-            />
-          ) : plainText.length > 50 ? (
-            <FactChecker
-              reportContent={plainText}
-              reportId={report.id}
-              reportTitle={report.title}
-              onJumpToClaim={handleJumpToClaim}
-            />
-          ) : null}
-        </div>
-      )}
-
-      <CommentsSection reportId={report.id} reportAuthorEmail={report.created_by} reportTitle={report.title} />
-
-      {/* More from this analyst */}
+      {/* ── More from analyst ── */}
       {moreReports.length > 0 && (
-        <div className="mt-10 pt-8 border-t border-border/60">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif text-[14px] text-foreground">More from {authorName}</h3>
-            <button
-              onClick={() => navigate(`/analyst?id=${report.created_by}`)}
-              className="flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              View profile <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="space-y-3">
-            {moreReports.map(r => (
-              <button
-                key={r.id}
-                onClick={() => navigate(`/report?id=${r.id}`)}
-                className="w-full text-left flex items-start gap-3 p-3 surface surface-interactive group"
-              >
-                {r.prediction_direction && (
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-tag border shrink-0 mt-0.5 ${
-                    r.prediction_direction === "LONG" ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
-                  }`}>
-                    {r.prediction_direction}
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                    {r.title}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {r.created_date ? new Date(r.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                    {r.stock_ticker ? ` · ${r.stock_ticker}` : ""}
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary shrink-0 mt-1 transition-colors" />
+        <section style={{
+          background: "var(--bg-soft)",
+          borderTop: "0.5px solid var(--border-rgba)",
+          padding: "64px 0",
+        }}>
+          <div className="shell">
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+              <h3 className="t-title" style={{ fontSize: 22, margin: 0 }}>
+                More from {authorName.split(" ")[0]}
+              </h3>
+              <button className="btn btn-text btn-sm"
+                onClick={() => navigate(`/analyst/${author?.username || author?.email}`)}>
+                All research <ArrowRight size={12}/>
               </button>
-            ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+              {moreReports.map((r) => (
+                <article
+                  key={r.id}
+                  className="surface surface-interactive"
+                  style={{ padding: 22, cursor: "pointer" }}
+                  onClick={() => navigate(`/report?id=${r.id}`)}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <span className="tag" style={{ color: "var(--primary-blue)", borderColor: "rgba(30,58,138,0.25)" }}>
+                      {(r.kind || "REPORT").toUpperCase()}
+                    </span>
+                    <span className="t-meta">·</span>
+                    <span className="t-meta">
+                      {new Date(r.created_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h4 className="t-title" style={{ fontSize: 16, lineHeight: 1.3, margin: "0 0 8px" }}>
+                    {r.title}
+                  </h4>
+                  {r.excerpt && (
+                    <p className="t-body" style={{
+                      fontSize: 13, color: "var(--text-mute)",
+                      lineHeight: 1.55, margin: 0,
+                      display: "-webkit-box", WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical", overflow: "hidden",
+                    }}>
+                      {r.excerpt}
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Wallet-based unlock dialog */}
-      <WalletConfirmDialog
-        open={showUnlockDialog}
-        onClose={() => setShowUnlockDialog(false)}
-        onConfirm={async () => {
-          const res = await buyReport({
-            authorEmail:   report.created_by,
-            reportId:      report.id,
-            reportTitle:   report.title,
-            priceUSD:      report.price || 4.99,
-          });
-          if (!res.ok) {
-            if (res.reason === "insufficient") {
-              toast.error(`Need $${res.needed.toFixed(2)} more in wallet.`, {
-                action: { label: "Top up", onClick: () => navigate("/pay?mode=deposit") },
-                duration: 6000,
-              });
-            }
-            return;
-          }
-          setUnlockedNow(true);
-          setShowUnlockDialog(false);
-          toast.success("Report unlocked");
-        }}
-        title="Unlock report"
-        amountUSD={report.price || 4.99}
-        itemLabel={`${report.title} · by ${authorName}`}
-        showSplit={true}
-        confirmLabel="Unlock"
-      />
-
-      {/* Wallet-based subscribe dialog */}
-      <WalletConfirmDialog
-        open={showSubDialog}
-        onClose={() => setShowSubDialog(false)}
-        onConfirm={async () => {
-          const res = await subscribeAnalyst({
-            analystEmail:    report.created_by,
-            analystName:     authorName,
-            monthlyPriceUSD: 9,
-          });
-          if (!res.ok) {
-            if (res.reason === "insufficient") {
-              toast.error(`Need $${res.needed.toFixed(2)} more in wallet.`, {
-                action: { label: "Top up", onClick: () => navigate("/pay?mode=deposit") },
-                duration: 6000,
-              });
-            }
-            return;
-          }
-          setUnlockedNow(true);
-          setShowSubDialog(false);
-          toast.success(`Subscribed to ${authorName}!`);
-        }}
-        title={`Subscribe to ${authorName}`}
-        amountUSD={9}
-        itemLabel={`${authorName} · Monthly subscription · Full access to all reports`}
-        showSplit={true}
-        confirmLabel="Subscribe"
-      />
-
-      {/* Substack-style sticky bottom CTA — only shown when the viewer is
-          looking at a premium report they haven't paid for. Always one
-          tap away to subscribe; the lower position is intentional so it
-          fires the FOMO trigger after the excerpt is read but before the
-          reader bounces. */}
-      {showStickyPaywall && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60">
-          <div className="max-w-[680px] mx-auto px-5 py-3 flex items-center gap-3">
-            <div className="hidden sm:block flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-foreground truncate">
-                Subscribe to unlock the full thesis
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Read every report from <span className="text-foreground font-medium">{authorName}</span>
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => setShowSubDialog(true)}
-              className="cta-gold text-[13px] gap-1.5 shrink-0 ml-auto"
-              style={{ borderRadius: 6 }}
-            >
-              Subscribe to {authorName.split(" ")[0]} · $9/mo
-            </Button>
+      {/* Sticky bottom subscribe CTA for non-subscribers */}
+      {!subscribed && currentUser && currentUser.email !== report.created_by && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          zIndex: 40,
+          background: "color-mix(in srgb, var(--bg) 92%, transparent)",
+          backdropFilter: "blur(18px) saturate(1.2)",
+          WebkitBackdropFilter: "blur(18px) saturate(1.2)",
+          borderTop: "0.5px solid var(--border-rgba)",
+          padding: "12px 24px",
+        }}>
+          <div className="shell" style={{ display: "flex", alignItems: "center", gap: 16, padding: 0 }}>
+            <span className="t-meta">Subscribe to {authorName.split(" ")[0]}</span>
+            <div style={{ flex: 1 }}/>
+            <button className="btn btn-gold btn-sm" onClick={handleSubscribe}>
+              Subscribe · ${price}/mo
+            </button>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// ── Block renderer (for content_blocks variants) ─────────────────────────────
+function Block({ block, index }) {
+  const t = block.type || "text";
+
+  if (t === "heading" || t === "h2") {
+    return (
+      <h2 className="t-title" style={{ fontSize: 22, lineHeight: 1.3, margin: "40px 0 16px" }}>
+        {block.content || block.text}
+      </h2>
+    );
+  }
+  if (t === "subhead" || t === "h3") {
+    return (
+      <h3 className="t-title" style={{ fontSize: 18, lineHeight: 1.35, margin: "32px 0 12px" }}>
+        {block.content || block.text}
+      </h3>
+    );
+  }
+  if (t === "quote" || t === "pull") {
+    return (
+      <blockquote style={{
+        margin: "32px -24px",
+        padding: "0 0 0 24px",
+        borderLeft: "1px solid var(--gold-hex)",
+      }}>
+        <p style={{
+          fontFamily: "var(--f-serif)", fontStyle: "italic",
+          fontSize: 24, lineHeight: 1.35, color: "var(--text)",
+          margin: 0, letterSpacing: "-0.014em",
+        }}>
+          {block.content || block.text}
+        </p>
+      </blockquote>
+    );
+  }
+  if (t === "callout") {
+    return (
+      <div className="surface" style={{ padding: 18, margin: "24px 0", background: "var(--bg-elev)" }}>
+        <p className="t-body" style={{ fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+          {block.content || block.text}
+        </p>
+      </div>
+    );
+  }
+  if (t === "thesis") {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "40px 0" }}>
+        <div className="surface" style={{ padding: 22, borderColor: "rgba(14,107,69,0.32)", background: "rgba(14,107,69,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <TrendingUp size={14} strokeWidth={1.7} style={{ color: "var(--rolex-green)" }}/>
+            <span className="t-eyebrow" style={{ color: "var(--rolex-green)" }}>Bull thesis</span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontFamily: "var(--f-serif)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-body)" }}>
+            {(block.bull || []).map((x, i) => (
+              <li key={i} style={{ marginBottom: 8, paddingLeft: 14, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, top: 8, width: 6, height: 1, background: "var(--rolex-green)" }}/>
+                {x}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="surface" style={{ padding: 22, borderColor: "rgba(146,43,62,0.32)", background: "rgba(146,43,62,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <TrendingDown size={14} strokeWidth={1.7} style={{ color: "var(--velvet-red)" }}/>
+            <span className="t-eyebrow" style={{ color: "var(--velvet-red)" }}>Bear thesis</span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontFamily: "var(--f-serif)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-body)" }}>
+            {(block.bear || []).map((x, i) => (
+              <li key={i} style={{ marginBottom: 8, paddingLeft: 14, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, top: 8, width: 6, height: 1, background: "var(--velvet-red)" }}/>
+                {x}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+  if (t === "bullets") {
+    const items = block.content?.split("\n").filter(Boolean) || block.items || [];
+    return (
+      <ul style={{ fontFamily: "var(--f-serif)", fontSize: 17, lineHeight: 1.7, color: "var(--text-body)", paddingLeft: 22, margin: "0 0 22px" }}>
+        {items.map((x, i) => <li key={i} style={{ marginBottom: 8 }}>{x}</li>)}
+      </ul>
+    );
+  }
+  if (t === "image") {
+    return (
+      <figure style={{ margin: "32px 0" }}>
+        <img src={block.url || block.src} alt={block.caption || ""} style={{ width: "100%", borderRadius: 8 }}/>
+        {block.caption && (
+          <figcaption className="t-meta" style={{ marginTop: 8, textAlign: "center" }}>{block.caption}</figcaption>
+        )}
+      </figure>
+    );
+  }
+  // text / paragraph — apply drop cap to first paragraph
+  const text = block.content || block.text || "";
+  if (index === 0 && text) {
+    return (
+      <p style={{
+        fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7,
+        color: "var(--text-body)", margin: "0 0 22px",
+      }}>
+        <span style={{
+          fontSize: 64, fontFamily: "var(--f-serif)", fontWeight: 500,
+          lineHeight: 0.9, float: "left", paddingTop: 6, paddingRight: 10,
+          color: "var(--text)",
+        }}>{text[0]}</span>
+        {text.slice(1)}
+      </p>
+    );
+  }
+  return (
+    <p style={{
+      fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7,
+      color: "var(--text-body)", margin: "0 0 22px",
+    }}>
+      {text}
+    </p>
   );
 }
