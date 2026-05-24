@@ -396,6 +396,27 @@
   border-radius: var(--r-card);
 }
 
+/* Gold-edged surface — for PredictionBlock + premium signals.
+   Hairline gold border with a faint gold-tinted background wash. */
+.surface-gold-edge {
+  position: relative;
+  background: linear-gradient(135deg, var(--bg-soft) 0%, rgba(212,175,55,0.04) 100%);
+  border: var(--hair) solid rgba(212,175,55,0.35);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+.surface-gold-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 50%, transparent 100%);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .surface-interactive {
   cursor: pointer;
 }
@@ -642,6 +663,36 @@
 .btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
 .btn-lg { height: 46px; padding: 0 24px; font-size: 14px; }
 
+/* Explicit focus ring on .btn — design-system spec is 2px primary-blue/50
+   with 3px offset. The :focus-visible from @layer base already provides
+   this generally; this override ensures buttons keep the correct geometry
+   even when they sit inside a surface that resets outline-offset. */
+.btn:focus-visible {
+  outline: 2px solid rgba(30, 58, 138, 0.5);
+  outline-offset: 3px;
+  border-radius: var(--r-btn);
+}
+
+/* Nav-link underline transition — when the active tab switches, the underline
+   slides in via a width animation rather than appearing instantly. */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--text);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--t-base) var(--ease);
+  pointer-events: none;
+}
+.nav-link.active::after { transform: scaleX(1); }
+
 /* Skeleton shimmer */
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
@@ -834,7 +885,10 @@
   text-decoration: none;
 }
 .nav-link:hover { color: var(--text); }
-.nav-link.active { color: var(--text); border-bottom-color: var(--text); }
+/* The active underline is now drawn by the animated ::after pseudo-element
+   declared in the v2 polish section below — keeping border-bottom transparent
+   here avoids a double underline (static border + animated ::after). */
+.nav-link.active { color: var(--text); }
 
 /* Input + search — used in TopNav search field and editor inputs */
 .input {
