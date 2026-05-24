@@ -323,87 +323,47 @@ export default function InvestorHome() {
     </div>
   );
 
+  // Investor home is single-focus: discover analysts → subscribe.
+  // The hero collapses to a one-line greeting + one dominant CTA when
+  // the user hasn't followed anyone yet ("one card, one action"); KPI
+  // tiles only show once there's real data to display, per the brief's
+  // anti "—" anti-conversion rule.
+  const hasActivity = followedEmails.length > 0 || mySubscriptions.length > 0 || purchasedReports.length > 0;
+
   return (
- <div className="max-w-5xl mx-auto px-4 py-8 pb-16">
+ <div className="max-w-[1100px] mx-auto px-5 py-10 pb-16">
 
-      {/* ── Profile Header ── */}
- <div className="surface-premium p-7 mb-7">
- <div className="flex items-start gap-5 flex-wrap">
-          {/* Avatar */}
- <div className="relative">
-            {avatarUrl(user)
- ? <img src={avatarUrl(user)} alt={displayName} className="w-20 h-20 rounded-full border-[3px] border-card object-cover shadow-card-md ring-1 ring-border" />
- : <div className="w-20 h-20 rounded-full border-[3px] border-card shadow-card-md ring-1 ring-border bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-3xl font-medium text-white">
-                  {displayName[0].toUpperCase()}
-                </div>
-            }
- <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gain border-2 border-card" title="Online" />
-          </div>
+      {/* ── Editorial header ── */}
+      <div className="mb-10">
+        <span className="eyebrow text-muted-foreground">Investor Home</span>
+        <h1 className="font-serif font-medium text-foreground tracking-tight mt-2" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
+          {greeting}, {displayName.split(" ")[0]}.
+        </h1>
+        <p className="text-[15px] text-muted-foreground mt-2 max-w-[520px]">
+          {hasActivity
+            ? "Catch up on your followed researchers — and discover who's calling it right."
+            : "Follow researchers to see their analysis. Start by browsing the top performers below."}
+        </p>
+      </div>
 
-          {/* Info */}
- <div className="flex-1 min-w-[200px]">
- <span className="eyebrow">Investor Hub</span>
- <h1 className="text-2xl font-medium text-foreground mt-1.5 mb-1">
-              {greeting}, {displayName.split(" ")[0]}
-            </h1>
- <p className="text-sm text-muted-foreground mb-3">Your personalised research intelligence overview.</p>
- <div className="flex flex-wrap gap-2">
- <span className="pill"><Users className="w-3 h-3" />{followedEmails.length} Followed</span>
- <span className="pill"><Star className="w-3 h-3" />{watchlist.length} Watchlist</span>
-              {mySubscriptions.length > 0 && (
- <span className="pill pill-accent"><Crown className="w-3 h-3" />{mySubscriptions.length} Subscriptions</span>
-              )}
-              {purchasedReports.length > 0 && (
- <span className="pill"><Lock className="w-3 h-3" />{purchasedReports.length} Unlocked</span>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
- <div className="flex gap-2 flex-wrap">
- <Link to="/feed"><Button size="sm" className="gap-1.5 shadow-card"><Search className="w-3.5 h-3.5" /> Browse Reports</Button></Link>
- <Link to="/stocks"><Button variant="outline" size="sm" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Markets</Button></Link>
- <Link to="/edit-profile"><Button variant="outline" size="sm" className="gap-1.5"><Settings className="w-3.5 h-3.5" /> Settings</Button></Link>
-          </div>
+      {/* ── KPI tiles only appear once there is real activity to show.
+          Empty "—" tiles were anti-conversion for first-visit investors. */}
+      {hasActivity && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {followedEmails.length > 0 && (
+            <StatCard label="Following" value={followedEmails.length} sub="Researchers" icon={Users} iconColor="hsl(var(--primary))" onClick={() => navigate("/leaderboard")} hero />
+          )}
+          {mySubscriptions.length > 0 && (
+            <StatCard label="Subscriptions" value={mySubscriptions.length} sub="Active premium" icon={Crown} iconColor="hsl(var(--accent))" onClick={() => navigate("/feed")} />
+          )}
+          {purchasedReports.length > 0 && (
+            <StatCard label="Unlocked" value={purchasedReports.length} sub="Reports purchased" icon={Lock} iconColor="hsl(42 96% 45%)" onClick={() => navigate("/feed")} />
+          )}
+          {watchlist.length > 0 && (
+            <StatCard label="Watchlist" value={watchlist.length} sub="Stocks tracked" icon={Star} iconColor="hsl(42 96% 45%)" onClick={() => navigate("/stocks")} />
+          )}
         </div>
-      </div>
-
-      {/* ── Stats Grid ── */}
- <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
-        <StatCard
-          label="Following"
-          value={followedEmails.length}
-          sub="Researchers you track"
-          icon={Users}
-          iconColor="hsl(var(--primary))"
-          onClick={() => navigate("/leaderboard")}
-          hero
-        />
-        <StatCard
-          label="Watchlist"
-          value={watchlist.length}
-          sub="Stocks tracked"
-          icon={Star}
-          iconColor="hsl(42 96% 45%)"
-          onClick={() => navigate("/stocks")}
-        />
-        <StatCard
-          label="Subscriptions"
-          value={mySubscriptions.length}
-          sub={mySubscriptions.length > 0 ? "Premium access active" : "No active plans"}
-          icon={Crown}
-          iconColor="hsl(var(--accent))"
-          onClick={() => navigate("/feed")}
-        />
-        <StatCard
-          label="Unlocked Reports"
-          value={purchasedReports.length}
-          sub="Premium research"
-          icon={Lock}
-          iconColor="hsl(42 96% 45%)"
-          onClick={() => navigate("/feed")}
-        />
-      </div>
+      )}
 
       {/* ── Market Pulse — dark navy hero (Figma-inspired) ── */}
       {indexQuotes.length > 0 && (

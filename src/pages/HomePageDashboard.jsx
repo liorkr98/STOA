@@ -446,46 +446,54 @@ export default function HomePageDashboard() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 pb-16">
+    <div className="max-w-[1180px] mx-auto px-5 py-10 pb-16">
 
-      {/* ── Welcome header ── */}
-      <div className="mb-7">
-        <span className="eyebrow">Creator Studio</span>
-        <h1 className="text-3xl md:text-4xl font-medium tracking-tight mt-2">
-          {greeting}, <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{displayName.split(" ")[0]}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1.5">Here's your research intelligence overview.</p>
+      {/* ── Welcome header — editorial, single focus ── */}
+      <div className="mb-8 flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <span className="eyebrow text-muted-foreground">Creator Studio</span>
+          <h1 className="font-serif font-medium text-foreground tracking-tight mt-2" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
+            {greeting}, {displayName.split(" ")[0]}.
+          </h1>
+        </div>
+        <Link to="/editor">
+          <Button className="cta-gold gap-2 px-6 py-2.5 text-[13px]" style={{ borderRadius: 6 }}>
+            <PenLine className="w-4 h-4" /> Write Report
+          </Button>
+        </Link>
       </div>
 
-      {/* ── Stat chips ── */}
+      {/* ── 3 hero stat cards — Beehiiv-style creator dashboard:
+          Subscribers · Accuracy · Followers (proxy for earnings reach).
+          Big numbers, clear labels, generous padding, NO gradient chips. */}
       {myStats && (
-        <div className="flex flex-wrap gap-2 mb-8">
-          <StatChip
-            label="Accuracy"
-            value={myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(1)}%` : "—"}
-            color={myStats.accuracy >= 70 ? "text-green-600" : myStats.accuracy > 0 ? "text-amber-600" : "text-muted-foreground"}
-            to="/analyst"
-          />
-          <StatChip label="Published" value={myStats.reports} to="/analyst" />
-          <StatChip label="Followers" value={(myStats.followers).toLocaleString()} to="/analyst" />
-          {myStats.yield != null && (
-            <StatChip
-              label="Avg Yield"
-              value={formatYield(myStats.yield)}
-              color={myStats.yield >= 0 ? "text-green-600" : "text-red-500"}
-              to="/analyst"
-            />
-          )}
-          <Link to="/editor">
-            <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl bg-gradient-to-br from-primary to-primary/85 text-white hover:shadow-glow-navy hover:-translate-y-0.5 transition-all cursor-pointer">
-              <PenLine className="w-4 h-4" />
-              <span className="text-sm font-medium leading-none">Write Report</span>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <Link to="/subscribers" className="stat-card surface-interactive no-underline">
+            <p className="stat-card-label">Subscribers</p>
+            <p className="stat-card-value text-foreground mt-2">{mySubscriptions.length}</p>
+            <p className="stat-card-sub">Active paid · ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
           </Link>
-          <Link to="/analyst">
-            <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
-              <span className="text-sm font-medium leading-none text-foreground">View public profile →</span>
-            </div>
+
+          <Link to="/analyst" className="stat-card surface-interactive no-underline">
+            <p className="stat-card-label">Prediction Accuracy</p>
+            <p className="stat-card-value text-foreground mt-2">
+              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}%` : "—"}
+            </p>
+            <p className="stat-card-sub">
+              {myStats.accuracy > 0
+                ? <><span className="font-display">{myStats.reports}</span> reports tracked</>
+                : "Publish predictions to start your track record"}
+            </p>
+          </Link>
+
+          <Link to="/analyst" className="stat-card surface-interactive no-underline">
+            <p className="stat-card-label">Followers</p>
+            <p className="stat-card-value text-foreground mt-2">{myStats.followers.toLocaleString()}</p>
+            <p className="stat-card-sub">
+              {myStats.yield != null
+                ? <>Avg yield {formatYield(myStats.yield)}</>
+                : "Free following — grow your audience"}
+            </p>
           </Link>
         </div>
       )}
@@ -797,34 +805,12 @@ export default function HomePageDashboard() {
           </section>
         </div>
 
-        {/* ═══ RIGHT COLUMN ═══ */}
-        <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
-
-          {/* Quick Access — pinned to the top of the right column so it
-              actually lives up to its name. (Previously buried at the
-              bottom of the page below several large sections.) */}
-          <section className="bg-card border border-border rounded-2xl p-5">
-            <h2 className="font-medium text-sm mb-3">Quick Access</h2>
-            <div className="space-y-1">
-              {[
-                { icon: BarChart3, label: "My Dashboard", to: "/dashboard" },
-                { icon: Target, label: "My Predictions", to: "/predictions" },
-                { icon: Users, label: "My Subscribers", to: "/subscribers" },
-                { icon: Zap, label: "AI Credits & Wallet", to: "/wallet" },
-                { icon: TrendingUp, label: "Full Research Feed", to: "/feed" },
-              ].map(({ icon: Icon, label, to }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0 group-hover:text-primary transition-colors" />
-                  {label}
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-            </div>
-          </section>
+        {/* ═══ RIGHT COLUMN ═══ — slim, max 2 widgets per redesign brief.
+            Quick Access + Market Activity removed; users find those via
+            the global nav and /stocks. Right rail now shows only the
+            two highest-leverage panels: Top Researchers and Hot
+            Predictions. */}
+        <div className="hidden lg:flex flex-col gap-8 w-64 flex-shrink-0">
 
           {/* Top Analysts */}
           <section className="bg-card border border-border rounded-2xl p-5">
@@ -874,7 +860,10 @@ export default function HomePageDashboard() {
             )}
           </section>
 
-          {/* Trending tickers + sectors */}
+          {/* Market Activity removed — third widget violated the
+              "max 2 panels in the right rail" rule. Users find live
+              market data on /stocks instead. */}
+          {false && (
           <section className="surface p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-medium text-sm flex items-center gap-2">
@@ -948,6 +937,7 @@ export default function HomePageDashboard() {
               </>
             )}
           </section>
+          )}
 
         </div>
       </div>

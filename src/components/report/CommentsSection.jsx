@@ -122,11 +122,18 @@ export default function CommentsSection({ reportId, reportAuthorEmail, reportTit
   // uploaded a custom PFP saw the initial-letter fallback in comments.
   const displayAvatar = avatarUrl(currentUser);
 
+  // When there are no comments AND the viewer isn't signed in, render
+  // nothing — an empty "Discussion (0)" block is anti-conversion. Signed-in
+  // users still see the composer so they can start the discussion.
+  if (!loading && comments.length === 0 && !currentUser) return null;
+
   return (
- <div id="comments" className="mt-8">
+ <div id="comments" className="mt-12">
  <div className="flex items-center gap-2 mb-4">
  <MessageCircle className="w-4 h-4 text-primary" />
- <h3 className="font-medium text-base">Discussion ({comments.length})</h3>
+ <h3 className="font-serif font-medium text-lg">
+   {comments.length === 0 ? "Discussion" : `Discussion · ${comments.length}`}
+ </h3>
       </div>
 
       {currentUser && (

@@ -164,7 +164,64 @@ export default function BecomeAnalystPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-12 pb-16">
+      {/* ── Creator pitch — Beehiiv/Patreon style.
+          Value props, revenue math, and social proof BEFORE the
+          onboarding form. Reduces drop-off by answering "why should I
+          set up a profile?" before asking the user to commit. */}
+      <div className="max-w-3xl mx-auto px-4 mt-10 mb-4">
+        <div className="text-center mb-10">
+          <span className="eyebrow">For Researchers</span>
+          <h2 className="font-serif font-medium text-foreground tracking-tight mt-3" style={{ fontSize: "clamp(28px,4vw,40px)", letterSpacing: "-0.02em" }}>
+            Publish in 60 seconds.<br />
+            <span className="text-accent">Keep 90% of every dollar.</span>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+          {[
+            { Icon: Award,       title: "Auto-verified track record",  desc: "Every prediction is locked at publish and graded by the market. Your accuracy score updates on its own." },
+            { Icon: TrendingUp,  title: "Set your own price",          desc: "Charge $5 to $200 per month for subscriptions, or sell individual reports. We take 10%." },
+            { Icon: Sparkles,    title: "Professional editor + AI",    desc: "Stock charts, metrics blocks, bull/bear thesis cards, and an AI research copilot. Built for finance." },
+          ].map(({ Icon, title, desc }) => (
+            <div key={title} className="surface p-5">
+              <div className="w-9 h-9 rounded-tag bg-primary/10 flex items-center justify-center mb-3">
+                <Icon className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-serif text-[15px] text-foreground mb-1.5">{title}</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick revenue calc — Patreon-style social proof.
+            Static math, no inputs (keeping it simple per "one card, one
+            action"); the numbers come from the platform's standard 90/10
+            split and a typical $9/mo subscription tier. */}
+        <div className="surface-premium p-6 mb-2">
+          <p className="eyebrow text-accent mb-3">If you build a subscriber base</p>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { subs: 100,  rev: 9 * 100 * 0.9 },
+              { subs: 500,  rev: 9 * 500 * 0.9 },
+              { subs: 1000, rev: 9 * 1000 * 0.9 },
+            ].map(({ subs, rev }) => (
+              <div key={subs} className="text-center">
+                <p className="font-display font-medium text-foreground" style={{ fontSize: 26 }}>
+                  ${rev.toLocaleString()}<span className="text-muted-foreground text-sm font-normal">/mo</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  with <span className="font-display text-foreground">{subs.toLocaleString()}</span> subscribers
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center mt-4">
+            Assumes $9/mo subscriptions · You keep 90% · STOA fee 10%
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 pb-16">
         {/* `surface-premium` defaults to a near-transparent glass background,
             which works for cards floating over the page background. But this
             card is pulled UP by -mt-12 so its top 48px overlaps the dark navy

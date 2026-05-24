@@ -88,9 +88,17 @@ export default function WalletPage() {
     }
   };
 
+  // Skeleton-style loading — matches the rest of the redesign rather
+  // than a centered spinner string.
   if (loading) return (
-    <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
-      <Loader2 className="w-5 h-5 animate-spin" /> Loading wallet…
+    <div className="max-w-2xl mx-auto px-5 py-10">
+      <div className="shimmer h-7 w-40 mb-3" />
+      <div className="shimmer h-10 w-64 mb-8" />
+      <div className="shimmer h-44 w-full mb-5" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="shimmer h-24 w-full" />
+        <div className="shimmer h-24 w-full" />
+      </div>
     </div>
   );
 
@@ -176,7 +184,7 @@ export default function WalletPage() {
                 <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-gain" />Total Earned</span>
               </div>
               <p className="stat-card-value text-gain">${(wallet?.total_earned || 0).toFixed(2)}</p>
-              <p className="stat-card-sub">After platform &amp; processing fees</p>
+              <p className="stat-card-sub">You keep <span className="font-display">90%</span> of every subscription · After fees</p>
             </div>
             <div className="stat-card">
               <div className="flex items-center justify-between mb-2">
