@@ -42,15 +42,26 @@ async function searchStocks(query) {
 }
 
 async function fetchIndexes() {
+  // Hit Yahoo's chart endpoint directly (via proxyFetch) — the cached
+  // `getStockData` backend function the original implementation called was
+  // returning stale / null prices for the broad indexes, which is why the
+  // hero tile strip was rendering empty. Use the same source the watchlist
+  // and ticker detail page hit so prices stay consistent across the app.
   const TICKERS = ["SPY", "QQQ", "DIA", "^VIX"];
   const results = await Promise.allSettled(
     TICKERS.map(async (sym) => {
-      const r = await base44.functions.invoke("getStockData", { ticker: sym });
-      const d = r?.data || r;
+      const r = await base44.functions.invoke("proxyFetch", {
+        url: `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`,
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      const meta = r?.data?.chart?.result?.[0]?.meta || {};
+      const price = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose;
+      const changePct = price != null && prev ? ((price - prev) / prev) * 100 : null;
       return {
         symbol: sym === "^VIX" ? "VIX" : sym,
-        price: d?.price ?? d?.regularMarketPrice ?? null,
-        change: d?.regularMarketChangePercent ?? d?.changePercent ?? null,
+        price,
+        change: changePct,
       };
     })
   );
@@ -332,10 +343,18 @@ function WatchRow({ stock, onRemove, onClick }) {
 export default function StocksPage() {
   const navigate = useNavigate();
 
-  // Watchlist (persisted in localStorage)
+  // Watchlist (persisted in localStorage). Older builds stored watchlist as
+  // an array of plain ticker strings ("NVDA"); the new shape is
+  // [{ symbol, name }]. Normalize on load so a legacy localStorage entry
+  // doesn't crash the Markets page on first render.
   const [watchlist, setWatchlist] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]"); }
-    catch { return []; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map((w) => (typeof w === "string" ? { symbol: w, name: w } : w))
+        .filter((w) => w && typeof w.symbol === "string");
+    } catch { return []; }
   });
   const [watchlistData, setWatchlistData] = useState([]);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
@@ -399,8 +418,16 @@ export default function StocksPage() {
   useEffect(() => { refreshWatchlist(); }, [refreshWatchlist]);
 
   useEffect(() => {
-    fetchTopStocks().then(setTopStocks).finally(() => setLoading(false));
-    fetchIndexes().then(setIndexQuotes).catch(() => {});
+    // Two-call boot. fetchTopStocks failing was previously letting the
+    // unhandled rejection bubble out of the useEffect, but `setLoading(false)`
+    // never fired which kept the page stuck on "Loading markets…" forever.
+    // Catching here ensures the grid always either renders rows or an
+    // empty-state — never a perpetual spinner.
+    fetchTopStocks()
+      .then(setTopStocks)
+      .catch(() => setTopStocks([]))
+      .finally(() => setLoading(false));
+    fetchIndexes().then(setIndexQuotes).catch(() => setIndexQuotes([]));
   }, []);
 
   useEffect(() => {

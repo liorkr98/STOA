@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
-  Globe, Users, Bell, MessageSquare, Share2, Check,
-  Lock, ChevronRight, Clock,
+  Globe, Users, MessageSquare, Share2, Check,
+  Lock, ChevronRight, Clock, Pencil, Save, X, Loader2, Camera, Plus,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -18,6 +18,92 @@ import TierProgressBar from "@/components/analyst/TierProgressBar";
 import { computeAvgYield } from "@/lib/yieldCalc";
 import { computeAnalystTier } from "@/lib/analystTier";
 import { subscribeAnalyst } from "@/lib/walletService";
+import BackButton from "@/components/BackButton";
+import InlineFollowButton from "@/components/feed/InlineFollowButton";
+
+// ── Banner themes (edit mode only) ──────────────────────────────────────────
+const BANNER_THEMES = {
+  navy:     { label: "Navy",       bg: "var(--deepest-navy)" },
+  navygold: { label: "Navy + Gold", bg: "linear-gradient(135deg, var(--deepest-navy) 0%, var(--primary-blue) 70%)" },
+  slate:    { label: "Slate",      bg: "linear-gradient(135deg, #1a2842 0%, #243652 100%)" },
+};
+
+// Avatar uploader — client-side square-crop + upload through Base44.
+function AvatarUploader({ onUploaded }) {
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  const cropToSquare = (file, size = 512) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("Crop failed"));
+          resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.88);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+
+  const handlePick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please choose an image file"); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Image must be under 8 MB"); return; }
+    setBusy(true);
+    try {
+      const cropped = await cropToSquare(file);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: cropped });
+      const me = await base44.auth.me();
+      if (!me?.id) throw new Error("Could not resolve current user");
+      await base44.entities.User.update(me.id, { profile_picture_url: file_url });
+      onUploaded(file_url);
+      toast.success("Profile picture updated");
+    } catch (err) {
+      toast.error(err?.message || "Upload failed");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        title="Change profile picture"
+        style={{
+          position: "absolute",
+          bottom: -4,
+          right: -4,
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          background: "var(--gold-hex)",
+          color: "var(--deepest-navy)",
+          border: "0.5px solid var(--border-rgba)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+        }}
+      >
+        {busy ? <Loader2 size={13} className="animate-spin"/> : <Camera size={13} strokeWidth={1.7}/>}
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePick}/>
+    </>
+  );
+}
 
 // ── Direction → tag class helper ─────────────────────────────────────────────
 const DIR_TAG = { LONG: "tag-long", SHORT: "tag-short", Long: "tag-long", Short: "tag-short", Hold: "tag-hold" };
@@ -413,6 +499,7 @@ function SentimentBreakdown({ sentiment }) {
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
   const { username } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentUser, isAuthenticated } = useAuth();
 
   const [analyst, setAnalyst] = useState(null);
@@ -424,6 +511,16 @@ export default function AnalystProfilePage() {
   const [subBusy, setSubBusy] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showWalletConfirm, setShowWalletConfirm] = useState(false);
+
+  // ── Edit-mode state ──
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editBio, setEditBio] = useState("");
+  const [editTagline, setEditTagline] = useState("");
+  const [editSpecialties, setEditSpecialties] = useState([]);
+  const [newSpecialty, setNewSpecialty] = useState("");
+  const [editBanner, setEditBanner] = useState("navy");
+  const [editCustomBlocks, setEditCustomBlocks] = useState([]);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -504,6 +601,66 @@ export default function AnalystProfilePage() {
   // Open the wallet-confirm dialog rather than subscribing directly. The
   // dialog shows current balance + cost + new balance and only fires the
   // actual subscribe call once the user confirms.
+  // ── Own-profile check + edit mode handlers ──
+  const isOwnProfile = isAuthenticated && currentUser && analyst && (
+    analyst.id === currentUser.id ||
+    (analyst.email && currentUser.email && analyst.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
+
+  const parseProfileConfig = (a) => {
+    try { return JSON.parse(a?.profile_config || "{}"); } catch { return {}; }
+  };
+
+  const enterEditMode = () => {
+    if (!analyst) return;
+    const cfg = parseProfileConfig(analyst);
+    setEditBio(analyst.bio || "");
+    setEditTagline(analyst.tagline || "");
+    setEditSpecialties([...(analyst.specialties || [])]);
+    setEditBanner(cfg.banner || "navy");
+    setEditCustomBlocks(cfg.custom_blocks || []);
+    setIsEditMode(true);
+  };
+
+  const cancelEditMode = () => {
+    setIsEditMode(false);
+    setNewSpecialty("");
+  };
+
+  const saveProfile = async () => {
+    if (!analyst || savingProfile) return;
+    setSavingProfile(true);
+    try {
+      const cfg = { ...parseProfileConfig(analyst), banner: editBanner, custom_blocks: editCustomBlocks };
+      const updates = {
+        bio: editBio,
+        tagline: editTagline,
+        specialties: editSpecialties,
+        profile_config: JSON.stringify(cfg),
+      };
+      await base44.entities.User.update(analyst.id, updates);
+      setAnalyst((prev) => ({ ...prev, ...updates }));
+      setIsEditMode(false);
+      toast.success("Profile saved.");
+    } catch (err) {
+      toast.error(err?.message || "Save failed.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Auto-enter edit mode when ?edit=1 (e.g. from the Studio "Edit My Profile" CTA)
+  useEffect(() => {
+    if (!analyst || !currentUser) return;
+    const wantsEdit = searchParams.get("edit") === "1";
+    if (wantsEdit && isOwnProfile && !isEditMode) {
+      enterEditMode();
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analyst, currentUser, searchParams]);
+
   const handleSubscribe = () => {
     if (!isAuthenticated) { navigate("/signin"); return; }
     if (!analyst) return;
@@ -559,11 +716,104 @@ export default function AnalystProfilePage() {
     { id: "about", label: "About" },
   ];
 
+  const profileConfig = parseProfileConfig(analyst);
+  const activeBannerKey = isEditMode ? editBanner : (profileConfig.banner || "navy");
+  const activeBanner = BANNER_THEMES[activeBannerKey] || BANNER_THEMES.navy;
+  const displayBio = isEditMode ? editBio : (analyst.bio || "");
+  const displayTagline = isEditMode ? editTagline : (analyst.tagline || analyst.bio?.split("\n")[0] || "Researcher on Stoa.");
+  const displaySpecialties = isEditMode ? editSpecialties : (analyst.specialties || []);
+  const profileCustomBlocks = isEditMode ? editCustomBlocks : (profileConfig.custom_blocks || []);
+
   return (
     <div className="page" style={{ background: "var(--bg)" }}>
+      {/* ── Sticky edit bar (edit mode only) ── */}
+      {isEditMode && (
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            background: "color-mix(in srgb, var(--gold-hex) 14%, var(--bg))",
+            borderBottom: "0.5px solid rgba(212,175,55,0.4)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            padding: "10px 0",
+          }}
+        >
+          <div className="shell" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Pencil size={14} strokeWidth={1.7} style={{ color: "var(--gold-hex)" }}/>
+            <span className="t-title" style={{ fontSize: 13 }}>Editing your profile</span>
+            <span className="t-meta" style={{ fontSize: 11 }}>· Changes are private until you save</span>
+            <div style={{ flex: 1 }}/>
+            <button className="btn btn-ghost btn-sm" onClick={cancelEditMode}>
+              <X size={13} strokeWidth={1.7}/> Cancel
+            </button>
+            <button className="btn btn-gold btn-sm" disabled={savingProfile} onClick={saveProfile}>
+              {savingProfile ? <Loader2 size={13} className="animate-spin"/> : <Save size={13} strokeWidth={1.7}/>}
+              {savingProfile ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner (edit mode only — sets the chrome behind the avatar) ── */}
+      {isEditMode && (
+        <div
+          style={{
+            height: 110,
+            background: activeBanner.bg,
+            position: "relative",
+            overflow: "hidden",
+            borderBottom: "0.5px solid var(--border-rgba)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              bottom: 10,
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: 8,
+              padding: "8px 12px",
+              background: "rgba(0,0,0,0.35)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              borderRadius: 6,
+            }}
+          >
+            <span className="t-meta" style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, alignSelf: "center" }}>
+              Banner:
+            </span>
+            {Object.entries(BANNER_THEMES).map(([key, theme]) => (
+              <button
+                key={key}
+                onClick={() => setEditBanner(key)}
+                title={theme.label}
+                aria-label={`Banner: ${theme.label}`}
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 4,
+                  background: theme.bg,
+                  border: "0.5px solid",
+                  borderColor: editBanner === key ? "var(--gold-hex)" : "rgba(255,255,255,0.4)",
+                  boxShadow: editBanner === key ? "0 0 0 2px var(--gold-hex)" : "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Profile header ── */}
       <section className="ambient" style={{ padding: "44px 0 0", borderBottom: "0.5px solid var(--border-rgba)" }}>
         <div className="shell">
+          <div style={{ marginBottom: 14 }}>
+            <BackButton fallback="/feed" />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
             <span className="t-meta" style={{ cursor: "pointer" }} onClick={() => navigate("/feed")}>Discover</span>
             <ChevronRight size={12} style={{ color: "var(--text-meta)" }}/>
@@ -571,15 +821,33 @@ export default function AnalystProfilePage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 32, alignItems: "flex-start" }}>
-            {/* Avatar */}
+            {/* Avatar (+ camera badge in edit mode) */}
             <div style={{ position: "relative" }}>
-              <div className="av av-xl" style={{
-                background: "var(--deepest-navy)",
-                boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)",
-              }}>
-                {initials}
-              </div>
-              {rank && (
+              {(analyst.profile_picture_url || analyst.picture) ? (
+                <img
+                  src={analyst.profile_picture_url || analyst.picture}
+                  alt={analyst.full_name || ""}
+                  className="av av-xl"
+                  style={{
+                    objectFit: "cover",
+                    background: "var(--deepest-navy)",
+                    boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)",
+                  }}
+                />
+              ) : (
+                <div className="av av-xl" style={{
+                  background: "var(--deepest-navy)",
+                  boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)",
+                }}>
+                  {initials}
+                </div>
+              )}
+              {isEditMode && isOwnProfile && (
+                <AvatarUploader
+                  onUploaded={(url) => setAnalyst((a) => ({ ...a, profile_picture_url: url }))}
+                />
+              )}
+              {rank && !isEditMode && (
                 <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)" }}>
                   <span className="badge-founding">{tier} · #{rank}</span>
                 </div>
@@ -596,9 +864,30 @@ export default function AnalystProfilePage() {
                   <span className="receipt" style={{ fontSize: 11 }}>@{analyst.username}</span>
                 )}
               </div>
-              <p className="t-body" style={{ fontSize: 15, color: "var(--text-mute)", margin: "0 0 14px", maxWidth: 580, lineHeight: 1.55 }}>
-                {analyst.tagline || analyst.bio?.split("\n")[0] || "Researcher on Stoa."}
-              </p>
+              {isEditMode ? (
+                <input
+                  value={editTagline}
+                  onChange={(e) => setEditTagline(e.target.value)}
+                  placeholder="Add a tagline…"
+                  className="t-body"
+                  style={{
+                    width: "100%",
+                    maxWidth: 580,
+                    margin: "0 0 14px",
+                    background: "var(--bg-elev)",
+                    border: "0.5px dashed rgba(212,175,55,0.55)",
+                    borderRadius: 6,
+                    padding: "8px 10px",
+                    fontSize: 15,
+                    color: "var(--text)",
+                    outline: "none",
+                  }}
+                />
+              ) : (
+                <p className="t-body" style={{ fontSize: 15, color: "var(--text-mute)", margin: "0 0 14px", maxWidth: 580, lineHeight: 1.55 }}>
+                  {displayTagline}
+                </p>
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 {analyst.location && (
                   <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -610,17 +899,86 @@ export default function AnalystProfilePage() {
                   <Users size={12} strokeWidth={1.5}/>
                   {subscribers.toLocaleString()} subscribers
                 </span>
-                {(analyst.specialties || []).slice(0, 3).map((s) => (
+                {!isEditMode && displaySpecialties.slice(0, 3).map((s) => (
                   <React.Fragment key={s}>
                     <span className="t-meta">·</span>
                     <span className="tag">{s}</span>
                   </React.Fragment>
                 ))}
               </div>
+
+              {/* Specialties editor — edit mode only */}
+              {isEditMode && (
+                <div style={{ marginTop: 14 }}>
+                  <div className="t-meta" style={{ fontSize: 11, marginBottom: 6 }}>Specialties</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                    {editSpecialties.map((s) => (
+                      <span key={s} className="tag" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        {s}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${s}`}
+                          onClick={() => setEditSpecialties((p) => p.filter((x) => x !== s))}
+                          style={{ background: "transparent", border: 0, color: "inherit", padding: 0, cursor: "pointer", display: "inline-flex" }}
+                        >
+                          <X size={10} strokeWidth={1.8}/>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      value={newSpecialty}
+                      onChange={(e) => setNewSpecialty(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newSpecialty.trim()) {
+                          setEditSpecialties((p) => [...p, newSpecialty.trim()]);
+                          setNewSpecialty("");
+                        }
+                      }}
+                      placeholder="Add specialty (e.g. Tech, Macro)…"
+                      style={{
+                        flex: 1,
+                        maxWidth: 280,
+                        background: "var(--bg-elev)",
+                        border: "0.5px dashed rgba(212,175,55,0.55)",
+                        borderRadius: 6,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        color: "var(--text)",
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        if (newSpecialty.trim()) {
+                          setEditSpecialties((p) => [...p, newSpecialty.trim()]);
+                          setNewSpecialty("");
+                        }
+                      }}
+                    >
+                      <Plus size={12} strokeWidth={1.7}/> Add
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "stretch", minWidth: 240 }}>
+              {/* Owner-only: Edit profile toggles the inline edit surface */}
+              {isOwnProfile && !isEditMode && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={enterEditMode}
+                  style={{ justifyContent: "center" }}
+                >
+                  <Pencil size={13} strokeWidth={1.7}/> Edit profile
+                </button>
+              )}
               <button
                 onClick={handleSubscribe}
                 disabled={subBusy}
@@ -638,10 +996,17 @@ export default function AnalystProfilePage() {
                   </>
                 )}
               </button>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" style={{ flex: 1 }}>
-                  <Bell size={13} strokeWidth={1.6}/> Notify
-                </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                {/* Follow is FREE and independent from Subscribe (paid).
+                    InlineFollowButton hides itself when viewing your own
+                    profile or unauthenticated. */}
+                <div style={{ flex: 1, display: "flex" }}>
+                  <InlineFollowButton
+                    analystEmail={analyst.email}
+                    analystName={analyst.full_name}
+                    analystAvatar={analyst.profile_picture_url || ""}
+                  />
+                </div>
                 <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => navigate("/dm")}>
                   <MessageSquare size={13} strokeWidth={1.6}/> Message
                 </button>
@@ -721,18 +1086,41 @@ export default function AnalystProfilePage() {
           {tab === "predictions" && <PredictionsTab open={openCalls} resolved={resolvedCalls} analyst={analyst}/>}
           {tab === "about" && (
             <>
-              <AboutTab analyst={analyst}/>
-              {/* Custom researcher blocks — restored from backup (CustomBlocks).
-                  CustomBlocksSection renders text / link-tree / image / chart
-                  blocks saved on the analyst's profile_config. Read-only here
-                  since this page is the public view. */}
+              {/* Bio editor (edit mode) — restyled with .surface + v2 tokens */}
+              {isEditMode ? (
+                <div className="surface" style={{ padding: 24, marginBottom: 20 }}>
+                  <div className="t-eyebrow" style={{ marginBottom: 10 }}>About</div>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    rows={6}
+                    placeholder="Your background, methodology, what you focus on…"
+                    style={{
+                      width: "100%",
+                      background: "var(--bg-elev)",
+                      border: "0.5px dashed rgba(212,175,55,0.55)",
+                      borderRadius: 6,
+                      padding: "10px 12px",
+                      fontFamily: "var(--f-serif)",
+                      fontSize: 15,
+                      lineHeight: 1.6,
+                      color: "var(--text-body)",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              ) : (
+                <AboutTab analyst={{ ...analyst, bio: displayBio, specialties: displaySpecialties }}/>
+              )}
+              {/* Custom researcher blocks — text / link-tree / image / chart.
+                  Read-only on the public profile; editable when the owner is
+                  in edit mode (writes go through saveProfile). */}
               <div style={{ marginTop: 20 }}>
                 <CustomBlocksSection
-                  blocks={(() => {
-                    try { return JSON.parse(analyst.profile_config || "{}").custom_blocks || []; }
-                    catch { return []; }
-                  })()}
-                  isEditMode={false}
+                  blocks={profileCustomBlocks}
+                  isEditMode={isEditMode}
+                  onChange={isEditMode ? setEditCustomBlocks : undefined}
                 />
               </div>
             </>

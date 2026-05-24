@@ -3,10 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
-  Filter, ChevronDown, Clock, Eye, MessageSquare, Lock, ArrowRight,
+  Filter, ChevronDown, Clock, Eye, Lock, ArrowRight,
 } from "lucide-react";
 import { Avatar } from "@/components/AnalystCard";
 import { analystHref } from "@/lib/analystSlug";
+import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
+import InlineFollowButton from "@/components/feed/InlineFollowButton";
+import ShareModal from "@/components/profile/ShareModal";
+import { Heart, MessageCircle, Share2, Send } from "lucide-react";
+import { toast } from "sonner";
 
 // ── Filter sectors (top of feed) ─────────────────────────────────────────────
 const FILTERS = [
@@ -57,7 +62,7 @@ function timeAgo(iso) {
 }
 
 // ── A single feed article card ───────────────────────────────────────────────
-function FeedItem({ report, author, onOpen }) {
+function FeedItem({ report, author, currentUser, isFollowing, onFollowToggle, onOpen, onShare }) {
   const kind = (report.kind || (report.is_quick_post ? "POST" : "REPORT")).toUpperCase();
   const ks = kindBadge(kind);
   const tickers = report.prediction_ticker
@@ -74,6 +79,59 @@ function FeedItem({ report, author, onOpen }) {
   const initials = (authorName || "?")
     .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
+  // ── Like / comment / share state (optimistic + local) ──
+  const likeKey = `stoa_liked_${currentUser?.email || "anon"}_${report.id}`;
+  const [liked, setLiked] = useState(() => typeof window !== "undefined" && localStorage.getItem(likeKey) === "1");
+  const [likeCount, setLikeCount] = useState(report.likes || 0);
+  const [commentCount, setCommentCount] = useState(report.comment_count || 0);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+
+  const handleLike = (e) => {
+    e.stopPropagation();
+    if (!currentUser) { toast.error("Sign in to react."); return; }
+    const next = !liked;
+    setLiked(next);
+    const newCount = Math.max(0, likeCount + (next ? 1 : -1));
+    setLikeCount(newCount);
+    try { localStorage.setItem(likeKey, next ? "1" : ""); } catch {}
+    base44.entities.Report.update(report.id, { likes: newCount }).catch(() => {
+      setLiked(!next);
+      setLikeCount(likeCount);
+    });
+  };
+
+  const handleCommentClick = (e) => {
+    e.stopPropagation();
+    if (!currentUser) { toast.error("Sign in to comment."); return; }
+    setShowCommentInput((s) => !s);
+  };
+
+  const submitComment = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!commentDraft.trim() || postingComment) return;
+    setPostingComment(true);
+    try {
+      await base44.entities.Comment.create({
+        report_id: report.id,
+        author_email: currentUser.email,
+        author_name: currentUser.full_name || currentUser.email?.split("@")[0],
+        content: commentDraft.trim(),
+      });
+      setCommentCount((c) => c + 1);
+      setCommentDraft("");
+      setShowCommentInput(false);
+      toast.success("Comment posted.");
+      base44.entities.Report.update(report.id, { comment_count: commentCount + 1 }).catch(() => {});
+    } catch (err) {
+      toast.error(err?.message || "Comment failed.");
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
   return (
     <article
       className="surface surface-interactive"
@@ -84,8 +142,19 @@ function FeedItem({ report, author, onOpen }) {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="md"/>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="t-title" style={{ fontSize: 14 }}>{authorName}</span>
+            {author?.email && currentUser && currentUser.email !== author.email && (
+              <span onClick={(e) => e.stopPropagation()}>
+                <InlineFollowButton
+                  analystEmail={author.email}
+                  analystName={authorName}
+                  analystAvatar={author?.profile_picture_url || ""}
+                  isFollowing={isFollowing}
+                  onToggle={onFollowToggle}
+                />
+              </span>
+            )}
             {author?.title && (<>
               <span className="t-meta">·</span>
               <span className="t-meta">{author.title}</span>
@@ -152,7 +221,7 @@ function FeedItem({ report, author, onOpen }) {
         </div>
       )}
 
-      {/* Footer */}
+      {/* Footer (meta + tickers) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 14 }}>
           {report.read_time_min && (
@@ -166,11 +235,6 @@ function FeedItem({ report, author, onOpen }) {
               {report.views >= 1000 ? `${(report.views/1000).toFixed(1)}k` : report.views}
             </span>
           )}
-          {report.comment_count != null && (
-            <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <MessageSquare size={12} strokeWidth={1.5}/> {report.comment_count}
-            </span>
-          )}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {tickers.map((t) => (
@@ -178,6 +242,123 @@ function FeedItem({ report, author, onOpen }) {
           ))}
         </div>
       </div>
+
+      {/* ── Interaction row — like, comment, share ───────────────────────
+          Each click stops propagation so it doesn't open the report. Heart
+          uses velvet-red filled state; comment + share stay muted. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 18,
+          marginTop: 16,
+          paddingTop: 14,
+          borderTop: "0.5px solid var(--border-rgba)",
+        }}
+      >
+        <button
+          onClick={handleLike}
+          aria-pressed={liked}
+          aria-label={liked ? "Unlike" : "Like"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "transparent",
+            border: 0,
+            padding: 2,
+            cursor: "pointer",
+            color: liked ? "var(--velvet-red)" : "var(--text-mute)",
+            transition: "color var(--t-fast) var(--ease)",
+          }}
+        >
+          <Heart
+            size={15}
+            strokeWidth={1.7}
+            style={{ fill: liked ? "var(--velvet-red)" : "transparent" }}
+          />
+          <span className="t-num" style={{ fontSize: 12 }}>{likeCount}</span>
+        </button>
+
+        <button
+          onClick={handleCommentClick}
+          aria-expanded={showCommentInput}
+          aria-label="Comment"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "transparent",
+            border: 0,
+            padding: 2,
+            cursor: "pointer",
+            color: "var(--text-mute)",
+          }}
+        >
+          <MessageCircle size={15} strokeWidth={1.6}/>
+          <span className="t-num" style={{ fontSize: 12 }}>{commentCount}</span>
+        </button>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onShare && onShare(report); }}
+          aria-label="Share"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "transparent",
+            border: 0,
+            padding: 2,
+            cursor: "pointer",
+            color: "var(--text-mute)",
+          }}
+        >
+          <Share2 size={15} strokeWidth={1.6}/>
+        </button>
+      </div>
+
+      {/* Inline comment input — appears beneath the row, no navigation. */}
+      {showCommentInput && (
+        <form
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={submitComment}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 10,
+            padding: "8px 10px",
+            background: "var(--bg-elev)",
+            border: "0.5px solid var(--border-rgba)",
+            borderRadius: 6,
+          }}
+        >
+          <input
+            value={commentDraft}
+            onChange={(e) => setCommentDraft(e.target.value)}
+            placeholder={`Comment as ${currentUser?.full_name?.split(" ")[0] || "you"}…`}
+            autoFocus
+            className="t-body"
+            style={{
+              flex: 1,
+              background: "transparent",
+              border: 0,
+              outline: "none",
+              fontSize: 13,
+              color: "var(--text)",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!commentDraft.trim() || postingComment}
+            className="btn btn-primary btn-sm"
+            style={{ padding: "0 10px", height: 26 }}
+          >
+            <Send size={12} strokeWidth={1.7}/>
+            {postingComment ? "Posting…" : "Post"}
+          </button>
+        </form>
+      )}
     </article>
   );
 }
@@ -202,6 +383,9 @@ export default function HomeFeed() {
   // Following + Subscription state — restored from backup
   const [followedEmails, setFollowedEmails] = useState(new Set());
   const [subscribedEmails, setSubscribedEmails] = useState(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
+  const [shareReport, setShareReport] = useState(null);
 
   useEffect(() => {
     base44.entities.Report.filter({ status: "published" }, "-created_date", 200)
@@ -318,8 +502,8 @@ export default function HomeFeed() {
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button className="btn btn-ghost btn-sm">
-              <Filter size={14}/> Filters · 0
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowFilters(true)}>
+              <Filter size={14}/> Filters · {((feedPrefs.sectors?.length || 0) + (feedPrefs.tickers?.length || 0) + (feedPrefs.marketCaps?.length || 0))}
             </button>
             <span className="t-meta">Sorted by</span>
             <button className="btn btn-sm" style={{ color: "var(--text)", padding: "0 10px" }}>
@@ -459,7 +643,17 @@ export default function HomeFeed() {
                     key={r.id}
                     report={r}
                     author={userMap[r.created_by]}
+                    currentUser={user}
+                    isFollowing={followedEmails.has(r.created_by)}
+                    onFollowToggle={(next) => {
+                      setFollowedEmails((prev) => {
+                        const ns = new Set(prev);
+                        if (next) ns.add(r.created_by); else ns.delete(r.created_by);
+                        return ns;
+                      });
+                    }}
                     onOpen={() => navigate(`/report?id=${r.id}`)}
+                    onShare={() => setShareReport(r)}
                   />
                 ))
               )}
@@ -509,6 +703,24 @@ export default function HomeFeed() {
           )}
         </main>
       </div>
+
+      {/* Feed customizer modal — restored from backup. Lets readers pick
+          sectors, market caps, and tickers to bias the feed. */}
+      {showFilters && (
+        <FeedCustomizer
+          onClose={() => setShowFilters(false)}
+          onApply={(prefs) => setFeedPrefs(prefs)}
+        />
+      )}
+
+      {/* Share modal — opens when a feed card's share icon is tapped. */}
+      <ShareModal
+        open={!!shareReport}
+        onClose={() => setShareReport(null)}
+        url={shareReport ? `${typeof window !== "undefined" ? window.location.origin : ""}/report?id=${shareReport.id}` : ""}
+        title={shareReport?.title || ""}
+        description={shareReport?.excerpt || ""}
+      />
     </div>
   );
 }

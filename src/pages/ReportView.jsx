@@ -15,6 +15,7 @@ import FactChecker from "@/components/report/FactChecker";
 import CommentsSection from "@/components/report/CommentsSection";
 import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
+import BackButton from "@/components/BackButton";
 
 /**
  * ReportView — long-form research reading view (v3 rebuild).
@@ -224,7 +225,10 @@ export default function ReportView() {
   return (
     <div className="page" style={{ background: "var(--bg)" }}>
       {/* ── Breadcrumb ── */}
-      <section style={{ padding: "28px 0 16px", borderBottom: "0.5px solid var(--border-rgba)" }}>
+      <section style={{ padding: "20px 0 16px", borderBottom: "0.5px solid var(--border-rgba)" }}>
+        <div className="shell" style={{ marginBottom: 10 }}>
+          <BackButton fallback="/feed" />
+        </div>
         <div className="shell" style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span className="t-meta" style={{ cursor: "pointer" }} onClick={() => navigate("/feed")}>
@@ -318,54 +322,158 @@ export default function ReportView() {
           )}
         </div>
 
-        {/* Locked Prediction Receipt */}
-        {dir && ticker && report.prediction_entry_price && (
-          <div className="surface" style={{ padding: 22, marginBottom: 40, background: "var(--bg-elev)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <span className="receipt">
-                <Lock size={12} strokeWidth={1.5}/>
-                LOCKED PREDICTION · IMMUTABLE
-              </span>
-              {report.prediction_outcome === "hit" || report.prediction_outcome === "near" ? (
-                <span className="tag tag-hit">Resolved · Hit</span>
-              ) : report.prediction_outcome === "miss" ? (
-                <span className="tag tag-miss">Resolved · Miss</span>
-              ) : (
-                <span className="tag tag-open">Tracking</span>
-              )}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-              <span className={`tag ${dir === "Long" ? "tag-long" : dir === "Short" ? "tag-short" : "tag-hold"}`} style={{ height: 26, padding: "0 10px", fontSize: 11 }}>
-                {dir.toUpperCase()} {ticker}
-              </span>
-              {report.prediction_timeframe && (
-                <span className="t-meta">{report.prediction_timeframe} window</span>
-              )}
-            </div>
-            <div style={{
-              display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 1, background: "var(--border-rgba)",
-              border: "0.5px solid var(--border-rgba)",
-              borderRadius: 6, overflow: "hidden",
-            }}>
-              {[
-                ["Entry", `$${Number(report.prediction_entry_price).toFixed(2)}`],
-                ["Target", report.prediction_target_price ? `$${Number(report.prediction_target_price).toFixed(2)}` : "—"],
-                ["Stop", report.prediction_stop_price ? `$${Number(report.prediction_stop_price).toFixed(2)}` : "—"],
-                ["Now", livePrice ? `$${Number(livePrice).toFixed(2)}` : "—",
-                  livePrice && livePrice >= report.prediction_entry_price ? "pos" : livePrice ? "neg" : ""],
-              ].map(([l, v, tone], i) => (
-                <div key={i} style={{ background: "var(--bg-elev)", padding: "12px" }}>
-                  <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{l}</div>
-                  <div className="t-num" style={{
-                    fontSize: 16, marginTop: 4,
-                    color: tone === "pos" ? "var(--rolex-green)" : tone === "neg" ? "var(--velvet-red)" : "var(--text)",
-                  }}>{v}</div>
+        {/* Locked Prediction Receipt — entry/target/stop locked at publish.
+            Live price + % change render below the 4-cell grid; sentiment
+            color (rolex-green / velvet-red) applies because the live delta
+            IS sentiment. Timeframe progress bar shows elapsed-of-window;
+            outcome tag flips to Hit / Near / Partial / Miss when resolved. */}
+        {dir && ticker && report.prediction_entry_price && (() => {
+          const entry = Number(report.prediction_entry_price);
+          const target = report.prediction_target_price ? Number(report.prediction_target_price) : null;
+          const stop = report.prediction_stop_price ? Number(report.prediction_stop_price) : null;
+          const isShort = dir === "Short";
+          // % change from entry → live. For shorts, profit is when price drops,
+          // so we flip the sign so green/red still encode "good for the call".
+          const liveDelta = livePrice != null && entry
+            ? ((livePrice - entry) / entry) * 100 * (isShort ? -1 : 1)
+            : null;
+          const deltaPos = liveDelta != null && liveDelta >= 0;
+
+          // Timeframe progress — parses "30d" / "90d" / "6m" / a number.
+          const tfRaw = report.prediction_timeframe || "";
+          const tfDays =
+            typeof tfRaw === "number" ? tfRaw :
+            /^\d+$/.test(tfRaw) ? Number(tfRaw) :
+            /(\d+)\s*d/i.test(tfRaw) ? Number(RegExp.$1) :
+            /(\d+)\s*w/i.test(tfRaw) ? Number(RegExp.$1) * 7 :
+            /(\d+)\s*m/i.test(tfRaw) ? Number(RegExp.$1) * 30 :
+            null;
+          const publishedAt = report.published_date || report.created_date;
+          const elapsedDays = publishedAt
+            ? Math.max(0, Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86400000))
+            : null;
+          const tfPct = tfDays && elapsedDays != null
+            ? Math.min(100, Math.max(0, (elapsedDays / tfDays) * 100))
+            : null;
+          const expired = tfDays != null && elapsedDays != null && elapsedDays >= tfDays;
+
+          const outcome = (report.prediction_outcome || "").toLowerCase();
+          const outcomeTag =
+            outcome === "hit" ? { cls: "tag-hit", label: "Resolved · Hit" } :
+            outcome === "near" ? { cls: "tag-near", label: "Resolved · Near" } :
+            outcome === "partial" ? { cls: "tag-partial", label: "Resolved · Partial" } :
+            outcome === "miss" ? { cls: "tag-miss", label: "Resolved · Miss" } :
+            null;
+
+          return (
+            <div className="surface surface-gold-edge" style={{ padding: 22, marginBottom: 40 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <span className="receipt">
+                  <Lock size={12} strokeWidth={1.5}/>
+                  LOCKED PREDICTION · IMMUTABLE
+                </span>
+                {outcomeTag ? (
+                  <span className={`tag ${outcomeTag.cls}`}>{outcomeTag.label}</span>
+                ) : (
+                  <span className="tag tag-open">Tracking</span>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
+                <span className={`tag ${dir === "Long" ? "tag-long" : isShort ? "tag-short" : "tag-hold"}`} style={{ height: 26, padding: "0 10px", fontSize: 11 }}>
+                  {dir.toUpperCase()} {ticker}
+                </span>
+                {report.prediction_timeframe && (
+                  <span className="t-meta">{report.prediction_timeframe} window</span>
+                )}
+              </div>
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 1, background: "var(--border-rgba)",
+                border: "0.5px solid var(--border-rgba)",
+                borderRadius: 6, overflow: "hidden",
+                marginBottom: 16,
+              }}>
+                {[
+                  ["Entry", `$${entry.toFixed(2)}`],
+                  ["Target", target != null ? `$${target.toFixed(2)}` : "—"],
+                  ["Stop", stop != null ? `$${stop.toFixed(2)}` : "—"],
+                  ["Now", livePrice != null ? `$${Number(livePrice).toFixed(2)}` : "—",
+                    livePrice != null ? (deltaPos ? "pos" : "neg") : ""],
+                ].map(([l, v, tone], i) => (
+                  <div key={i} style={{ background: "var(--bg-elev)", padding: "12px" }}>
+                    <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{l}</div>
+                    <div className="t-num" style={{
+                      fontSize: 16, marginTop: 4,
+                      color: tone === "pos" ? "var(--rolex-green)" : tone === "neg" ? "var(--velvet-red)" : "var(--text)",
+                    }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Live delta row — % change from entry colored by sentiment.
+                  Hidden until the live price has resolved. */}
+              {liveDelta != null && !outcomeTag && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px",
+                  background: deltaPos ? "rgba(14,107,69,0.06)" : "rgba(146,43,62,0.06)",
+                  border: "0.5px solid",
+                  borderColor: deltaPos ? "rgba(14,107,69,0.32)" : "rgba(146,43,62,0.32)",
+                  borderRadius: 6,
+                  marginBottom: 12,
+                }}>
+                  <span className="pulse-dot" style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: deltaPos ? "var(--rolex-green)" : "var(--velvet-red)",
+                  }}/>
+                  <span className="t-meta" style={{ fontSize: 11 }}>LIVE</span>
+                  <span className="t-num" style={{
+                    fontSize: 14,
+                    color: deltaPos ? "var(--rolex-green)" : "var(--velvet-red)",
+                  }}>
+                    {deltaPos ? "+" : ""}{liveDelta.toFixed(2)}% from entry
+                  </span>
+                  <span className="t-meta" style={{ fontSize: 11, marginLeft: "auto" }}>
+                    {isShort ? "Short P&L" : "Long P&L"}
+                  </span>
                 </div>
-              ))}
+              )}
+
+              {/* Timeframe progress — Day N of M, hairline progress bar.
+                  When the window has expired, swap copy for the final outcome
+                  hint (the grade tag at the top is the canonical badge). */}
+              {tfDays != null && elapsedDays != null && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span className="t-meta" style={{ fontSize: 11 }}>
+                      {expired
+                        ? `Window closed · ${tfDays}d total`
+                        : `Day ${elapsedDays} of ${tfDays}`}
+                    </span>
+                    <span className="t-num" style={{ fontSize: 11, color: "var(--text-meta)" }}>
+                      {tfPct != null ? `${tfPct.toFixed(0)}%` : ""}
+                    </span>
+                  </div>
+                  <div style={{
+                    height: 3,
+                    background: "var(--border-rgba)",
+                    borderRadius: 2,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      width: `${tfPct ?? 0}%`,
+                      height: "100%",
+                      background: expired
+                        ? "var(--text-meta)"
+                        : "var(--gold-hex)",
+                      transition: "width var(--t-base) var(--ease)",
+                    }}/>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Body blocks ── */}
         <div className="report-body">
