@@ -1,503 +1,489 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import ReportCard from "@/components/feed/ReportCard";
-import Leaderboard from "@/components/feed/Leaderboard";
-import TrendingPanel from "@/components/feed/TrendingPanel";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { SlidersHorizontal, X, Flame, Users, Star, Search } from "lucide-react";
-import EmptyFeedState from "@/components/feed/EmptyFeedState";
-import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
-import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
-import OnboardingModal from "@/components/onboarding/OnboardingModal";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
-import LeftSidebar from "@/components/feed/LeftSidebar";
-import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
-import FeedSkeletonCard from "@/components/feed/FeedSkeletonCard";
-import QuickFilterRow from "@/components/feed/QuickFilterRow";
-import { TrendingDivider, AnalystSpotlight } from "@/components/feed/FeedDividerCard";
-import AnalystFeedCard from "@/components/feed/AnalystFeedCard";
-import Spinner from "@/components/ui/Spinner";
+import {
+  Filter, ChevronDown, Clock, Eye, MessageSquare, Lock, ArrowRight,
+} from "lucide-react";
+import { Avatar } from "@/components/AnalystCard";
+import { analystHref } from "@/lib/analystSlug";
 
-const FEED_TABS = [
-  { id: "trending", label: "Trending", icon: Flame },
-  { id: "following", label: "Following", icon: Users },
-  { id: "subscriptions", label: "Subscriptions", icon: Star },
-  { id: "analysts", label: "Researchers", icon: Users },
+// ── Filter sectors (top of feed) ─────────────────────────────────────────────
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "tech", label: "Tech" },
+  { id: "macro", label: "Macro" },
+  { id: "energy", label: "Energy" },
+  { id: "crypto", label: "Crypto" },
+  { id: "auto", label: "Auto & Industrial" },
 ];
 
-const PAGE_SIZE = 10;
+const TRENDING_TICKERS = [
+  { ticker: "NVDA", change: 3.2,  vol: "Heavy" },
+  { ticker: "TSM",  change: 2.1,  vol: "Normal" },
+  { ticker: "TLT",  change: -0.8, vol: "Heavy" },
+  { ticker: "META", change: 1.4,  vol: "Normal" },
+  { ticker: "BTC",  change: 4.8,  vol: "Heavy" },
+  { ticker: "GLD",  change: 0.6,  vol: "Light" },
+];
 
-function FeaturedHero({ report, userMap, hasEngagement }) {
-  if (!report) return null;
-  const authorUser = userMap[report.created_by] || {};
-  const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
-  const authorAvatar = report.author_avatar || authorUser.picture || null;
+function sectorMatch(report, sector) {
+  if (sector === "all") return true;
+  const txt = (report.industry || report.sector || report.tags || "")
+    .toString().toLowerCase();
+  return txt.includes(sector);
+}
+
+function kindBadge(kind) {
+  const k = (kind || "REPORT").toUpperCase();
+  if (k === "CALL")
+    return { color: "var(--gold-hex)", border: "0.5px solid rgba(212,175,55,0.45)", background: "rgba(212,175,55,0.06)" };
+  if (k === "POST")
+    return { color: "var(--text-mute)", border: "0.5px solid var(--border-strong)", background: "var(--bg-soft)" };
+  return { color: "var(--primary-blue)", border: "0.5px solid rgba(30,58,138,0.25)", background: "rgba(30,58,138,0.04)" };
+}
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+// ── A single feed article card ───────────────────────────────────────────────
+function FeedItem({ report, author, onOpen }) {
+  const kind = (report.kind || (report.is_quick_post ? "POST" : "REPORT")).toUpperCase();
+  const ks = kindBadge(kind);
+  const tickers = report.prediction_ticker
+    ? [report.prediction_ticker]
+    : (report.tickers || []).slice(0, 3);
+  const dir = report.prediction_action; // "Long" | "Short" | "Hold"
+  const isLong = dir === "Long";
+  const isShort = dir === "Short";
+  const hasPrediction = !!dir && tickers.length > 0;
+
+  const elo = author?.elo ?? Math.round((author?.accuracy_score || 60) * 10);
+  const accuracy = author?.accuracy_score || 0;
+  const authorName = author?.full_name || report.author_name || "Researcher";
+  const initials = (authorName || "?")
+    .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <Link
-      to={`/report?id=${report.id}`}
-      className="block surface surface-interactive p-6 mb-5 group no-underline"
+    <article
+      className="surface surface-interactive"
+      style={{ padding: 24, cursor: "pointer" }}
+      onClick={onOpen}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-[10px] font-medium uppercase tracking-widest text-primary">
-          Featured Analysis
-        </span>
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-          {hasEngagement ? "Top Rated This Week" : "Latest"}
+      {/* Author row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="md"/>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="t-title" style={{ fontSize: 14 }}>{authorName}</span>
+            {author?.title && (<>
+              <span className="t-meta">·</span>
+              <span className="t-meta">{author.title}</span>
+            </>)}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
+            {elo > 0 && (
+              <span className="t-meta" style={{ fontSize: 11 }}>
+                Elo <span className="t-num" style={{ color: "var(--primary-blue)" }}>{elo}</span>
+              </span>
+            )}
+            {accuracy > 0 && (<>
+              <span className="t-meta">·</span>
+              <span className="t-meta" style={{ fontSize: 11 }}>{accuracy}% accuracy</span>
+            </>)}
+            <span className="t-meta">·</span>
+            <span className="t-meta" style={{ fontSize: 11 }}>{timeAgo(report.created_date)}</span>
+          </div>
+        </div>
+        <span style={{
+          height: 22, padding: "0 8px", fontSize: 10.5, fontWeight: 500,
+          letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 4,
+          display: "inline-flex", alignItems: "center", ...ks,
+        }}>
+          {report.is_premium && (
+            <span style={{ width: 5, height: 5, background: "var(--gold-hex)", borderRadius: "50%", marginRight: 6 }}/>
+          )}
+          {kind}
         </span>
       </div>
-      <h2 className="text-xl leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif font-medium">
+
+      {/* Headline */}
+      <h2 className="t-title" style={{ fontSize: 22, lineHeight: 1.25, margin: "0 0 10px", letterSpacing: "-0.012em" }}>
         {report.title}
       </h2>
+
       {report.excerpt && (
-        <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+        <p className="t-body" style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--text-mute)", margin: "0 0 18px" }}>
           {report.excerpt}
         </p>
       )}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary overflow-hidden flex-shrink-0">
-          {authorAvatar
-            ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
-            : authorName[0]?.toUpperCase()}
-        </div>
-        <span className="text-xs font-medium text-foreground">{authorName}</span>
-        {report.prediction_action && (
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${
-            report.prediction_action === "Long" ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
-          }`}>
-            {report.prediction_action}{report.prediction_ticker ? ` · ${report.prediction_ticker}` : ""}
+
+      {/* Locked prediction summary */}
+      {hasPrediction && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "12px 16px", background: "var(--bg-elev)",
+          border: "0.5px solid var(--border-rgba)", borderRadius: 8,
+          marginBottom: 16,
+        }}>
+          <Lock size={14} strokeWidth={1.5} style={{ color: "var(--text-meta)" }}/>
+          <span className="t-meta" style={{ fontSize: 11 }}>LOCKED PREDICTION</span>
+          <div className="vr" style={{ height: 14 }}/>
+          <span className={`tag ${isLong ? "tag-long" : isShort ? "tag-short" : "tag-hold"}`}>
+            {dir.toUpperCase()} {tickers[0]}
           </span>
-        )}
-        <span className="text-xs text-muted-foreground ml-auto"><span className="font-display">{report.likes || 0}</span> likes</span>
+          {report.prediction_target_price && report.prediction_entry_price && (<>
+            <div style={{ flex: 1 }}/>
+            <span className="t-meta" style={{ fontSize: 11 }}>Target</span>
+            <span className="t-num" style={{ fontSize: 13, color: "var(--text)" }}>
+              ${Number(report.prediction_target_price).toFixed(2)}
+            </span>
+          </>)}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 14 }}>
+          {report.read_time_min && (
+            <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Clock size={12} strokeWidth={1.5}/> {report.read_time_min} min
+            </span>
+          )}
+          {report.views != null && (
+            <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Eye size={12} strokeWidth={1.5}/>
+              {report.views >= 1000 ? `${(report.views/1000).toFixed(1)}k` : report.views}
+            </span>
+          )}
+          {report.comment_count != null && (
+            <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <MessageSquare size={12} strokeWidth={1.5}/> {report.comment_count}
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {tickers.map((t) => (
+            <span key={t} className="tag">{t}</span>
+          ))}
+        </div>
       </div>
-    </Link>
+    </article>
   );
 }
 
-// Determine default tab: following if user has follows, else trending
-function getDefaultTab(hasFollows) {
-  const stored = localStorage.getItem("stoa_active_tab");
-  if (stored) return stored;
-  return hasFollows ? "following" : "trending";
-}
-
+/**
+ * HomeFeed — discover feed (v3 rebuild).
+ * Layout per prototype/src/screens/explore.jsx: section banner, view toggle,
+ * filter chips, 2-col grid (sticky leaderboard rail + main feed).
+ */
 export default function HomeFeed() {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("trending");
-  const [quickFilter, setQuickFilter] = useState("all");
-  const [showFilters, setShowFilters] = useState(false);
+  const [activeSector, setActiveSector] = useState("all");
+  const [view, setView] = useState("feed"); // feed | analysts
   const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("stoa_onboarded"));
-  const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
-  const [page, setPage] = useState(1);
   const [topAnalysts, setTopAnalysts] = useState([]);
   const [userMap, setUserMap] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Follows & subscriptions
-  const [followedAnalysts, setFollowedAnalysts] = useState([]);
-  const [subscribedAnalysts, setSubscribedAnalysts] = useState([]);
-  const [tabInitialized, setTabInitialized] = useState(false);
-
-  // "New since last visit" tracking
-  const lastVisit = useRef(parseInt(localStorage.getItem("stoa_last_visit") || "0"));
-  const [newSinceLastVisit, setNewSinceLastVisit] = useState(0);
-
-  // Load reports
   useEffect(() => {
     base44.entities.Report.filter({ status: "published" }, "-created_date", 200)
-      .then(data => {
-        const d = data || [];
-        setReports(d);
-        // Count new since last visit
-        if (lastVisit.current > 0) {
-          setNewSinceLastVisit(d.filter(r => new Date(r.created_date).getTime() > lastVisit.current).length);
-        }
-        localStorage.setItem("stoa_last_visit", Date.now().toString());
-      })
+      .then((d) => setReports(d || []))
+      .catch(() => setReports([]))
       .finally(() => setLoading(false));
   }, []);
 
-  // Load top analysts + build userMap for avatar fallback
   useEffect(() => {
     base44.entities.User.list("-accuracy_score", 50)
-      .then(d => {
+      .then((d) => {
         const users = d || [];
-        setTopAnalysts(users.filter(u => u.accuracy_score > 0).slice(0, 10));
+        setTopAnalysts(users.filter((u) => u.accuracy_score > 0).slice(0, 10));
         const map = {};
-        users.forEach(u => { if (u.email) map[u.email] = u; });
+        users.forEach((u) => { if (u.email) map[u.email] = u; });
         setUserMap(map);
       })
       .catch(() => {});
   }, []);
 
-  const refreshSubscriptions = useCallback(() => {
-    if (!isAuthenticated || !user) return;
-    base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100)
-      .then(subs => setSubscribedAnalysts(subs || []))
-      .catch(() => {});
-  }, [isAuthenticated, user]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      if (!tabInitialized) { setActiveTab("trending"); setTabInitialized(true); }
-      return;
-    }
-    Promise.all([
-      base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100).catch(() => []),
-      base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100).catch(() => []),
-    ]).then(([follows, subs]) => {
-      setFollowedAnalysts(follows || []);
-      setSubscribedAnalysts(subs || []);
-      if (!tabInitialized) {
-        setActiveTab(getDefaultTab((follows || []).length > 0));
-        setTabInitialized(true);
-      }
-    });
-  }, [isAuthenticated, user]);
-
-  const followedEmails = useMemo(() => followedAnalysts.map(f => f.analyst_email), [followedAnalysts]);
-  const subscribedEmails = useMemo(() => subscribedAnalysts.map(s => s.analyst_email), [subscribedAnalysts]);
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setPage(1);
-    localStorage.setItem("stoa_active_tab", tab);
-  };
-
-  // Quick follow from empty state
-  const handleFollowAnalyst = async (analyst) => {
-    if (!user) return;
-    await base44.entities.Follow.create({
-      follower_email: user.email,
-      analyst_email: analyst.email,
-      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Researcher",
-      analyst_avatar: analyst.picture || "",
-    }).catch(() => {});
-    setFollowedAnalysts(prev => [...prev, {
-      analyst_email: analyst.email,
-      analyst_name: analyst.full_name,
-      analyst_avatar: analyst.picture,
-    }]);
-  };
-
-  // Build a map of author email → accuracy so we can rank by analyst quality
-  // first (matches eToro's "popular investor" feel — best analysts surface to
-  // the top, not just most-recent posts).
-  const accuracyByEmail = useMemo(() => {
-    const m = {};
-    topAnalysts.forEach(a => { if (a.email) m[a.email] = a.accuracy_score || 0; });
-    return m;
-  }, [topAnalysts]);
-
-  // Apply tab filter
-  const applyTabFilter = useCallback((list) => {
-    if (activeTab === "trending") {
-      // New default sort: rank by analyst accuracy first, then engagement,
-      // then recency. Investors should see the best performers first.
-      return [...list].sort((a, b) => {
-        const accDiff = (accuracyByEmail[b.created_by] || 0) - (accuracyByEmail[a.created_by] || 0);
-        if (Math.abs(accDiff) > 5) return accDiff;
-        const engB = (b.likes || 0) + (b.views || 0) / 10;
-        const engA = (a.likes || 0) + (a.views || 0) / 10;
-        if (engB !== engA) return engB - engA;
-        return new Date(b.created_date) - new Date(a.created_date);
-      });
-    }
-    if (activeTab === "following") return list.filter(r => followedEmails.includes(r.created_by));
-    if (activeTab === "subscriptions") return list.filter(r => subscribedEmails.includes(r.created_by));
-    return list;
-  }, [activeTab, followedEmails, subscribedEmails, accuracyByEmail]);
-
-  // Apply quick filter
-  const applyQuickFilter = useCallback((list) => {
-    switch (quickFilter) {
-      case "long": return list.filter(r => r.prediction_action === "Long");
-      case "short": return list.filter(r => r.prediction_action === "Short");
-      case "trending": return [...list].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      case "small": return list.filter(r => r.market_cap === "small" || r.market_cap === "micro");
-      case "large": return list.filter(r => r.market_cap === "large" || r.market_cap === "mega");
-      case "Tech": case "Finance": case "Energy":
-        return list.filter(r => r.industry?.toLowerCase().includes(quickFilter.toLowerCase()));
-      default: return list;
-    }
-  }, [quickFilter]);
-
-  // Apply pref filters
-  const applyPrefFilters = useCallback((list) => {
-    const { sectors = [], marketCaps = [], tickers = [] } = feedPrefs;
-    if (!sectors.length && !marketCaps.length && !tickers.length) return list;
-    return list.filter(r => {
-      const sectorMatch = !sectors.length || sectors.includes(r.industry);
-      const capMatch = !marketCaps.length || marketCaps.map(c => c.toLowerCase()).includes((r.market_cap || "").toLowerCase());
-      const tickerList = (r.tickers || "").split(",").map(t => t.trim().toUpperCase());
-      const tickerMatch = !tickers.length || tickers.some(t => tickerList.includes(t));
-      return sectorMatch && capMatch && tickerMatch;
-    });
-  }, [feedPrefs]);
-
-  const filtered = useMemo(() =>
-    applyPrefFilters(applyQuickFilter(applyTabFilter(reports))),
-    [reports, applyTabFilter, applyQuickFilter, applyPrefFilters]
+  const filteredReports = useMemo(
+    () => reports.filter((r) => sectorMatch(r, activeSector)).slice(0, 30),
+    [reports, activeSector]
   );
 
-  const prefActiveCount = (feedPrefs.sectors?.length || 0) + (feedPrefs.marketCaps?.length || 0) + (feedPrefs.tickers?.length || 0);
+  const leaderboard = useMemo(() => topAnalysts.slice(0, 6), [topAnalysts]);
 
-  const clearPrefs = () => {
-    const empty = { sectors: [], marketCaps: [], tickers: [] };
-    setFeedPrefs(empty);
-    localStorage.setItem("stoa_feed_prefs", JSON.stringify(empty));
+  const goPublish = () => {
+    if (isAuthenticated) navigate("/dashboard");
+    else navigate("/signin");
   };
 
-  // Infinite scroll: show page * PAGE_SIZE items
-  const loadMoreRef = useRef(null);
-  useEffect(() => {
-    const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && page * PAGE_SIZE < filtered.length) {
-        setPage(p => p + 1);
-      }
-    }, { threshold: 0.1 });
-    if (loadMoreRef.current) obs.observe(loadMoreRef.current);
-    return () => obs.disconnect();
-  }, [filtered.length, page]);
-
-  const visibleReports = filtered.slice(0, page * PAGE_SIZE);
-
-  // Top weekly report for divider card.
-  // Ranked by combined engagement (likes + views + comment_count) so a brand-new
-  // post with 0 engagement doesn't outrank an actually-popular one.
-  const topWeeklyReport = useMemo(() => {
-    const oneWeekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-    const engagement = r => (r.likes || 0) + (r.views || 0) + (r.comment_count || 0);
-    return reports
-      .filter(r => new Date(r.created_date).getTime() > oneWeekAgo)
-      .sort((a, b) => engagement(b) - engagement(a))[0] || null;
-  }, [reports]);
-
-  // Whether the top report has any meaningful engagement at all.
-  // Used to swap the "Top Rated This Week" label for "Latest" when the feed is dead.
-  const topWeeklyHasEngagement = useMemo(() => {
-    if (!topWeeklyReport) return false;
-    return (topWeeklyReport.likes || 0) + (topWeeklyReport.views || 0) + (topWeeklyReport.comment_count || 0) > 0;
-  }, [topWeeklyReport]);
-
-  // Build feed items with dividers every 5
-  const feedItems = useMemo(() => {
-    const items = [];
-    visibleReports.forEach((report, i) => {
-      items.push({ type: "report", data: report });
-      if ((i + 1) % 5 === 0 && i < visibleReports.length - 1) {
-        const isEven = Math.floor(i / 5) % 2 === 0;
-        if (isEven && topWeeklyReport) {
-          items.push({ type: "trending_divider" });
-        } else if (!isEven && topAnalysts.length > 0) {
-          const spotlightAnalyst = topAnalysts[Math.floor(i / 5) % topAnalysts.length];
-          items.push({ type: "analyst_spotlight", data: spotlightAnalyst });
-        }
-      }
-    });
-    return items;
-  }, [visibleReports, topWeeklyReport, topAnalysts]);
-
-  const totalReports = filtered.length;
-  const hasMore = visibleReports.length < filtered.length;
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Market ticker bar removed — stole attention without serving a decision.
-          Replaced by a clean centered feed (Linear/Notion-style single dominant
-          column with slim left nav + narrow right rail). */}
-      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
-      <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
-
-      <div className="max-w-[1180px] mx-auto px-5 py-10 pb-20 lg:pb-10">
-      <div className="flex gap-10">
-        {/* Slim left nav — text links, generous spacing */}
-        <aside className="hidden lg:block w-44 flex-shrink-0">
-          <div className="sticky top-24">
-            <LeftSidebar />
-          </div>
-        </aside>
-
-        {/* Main Feed — dominant column (~60% of viewport) */}
-        <div className="flex-1 min-w-0 max-w-[640px]">
-          {/* Featured hero — top-rated report this week */}
-          {!loading && topWeeklyReport && activeTab === "trending" && (
-            <FeaturedHero report={topWeeklyReport} userMap={userMap} hasEngagement={topWeeklyHasEngagement} />
-          )}
-
-          {/* Editorial page header — serif title, generous breathing room */}
-          <div className="mb-8">
-            <h1 className="font-serif font-medium text-foreground tracking-tight" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
-              Research
-            </h1>
-            {!loading && (
-              <p className="text-[13px] text-muted-foreground mt-1.5">
-                <span className="font-display">{totalReports}</span> reports
-                {newSinceLastVisit > 0 && (
-                  <> · <span className="text-accent font-medium"><span className="font-display">{newSinceLastVisit}</span> new since your last visit</span></>
-                )}
+    <div className="page" style={{ background: "var(--bg)" }}>
+      {/* Section banner */}
+      <section style={{ padding: "40px 0 28px", borderBottom: "0.5px solid var(--border-rgba)" }}>
+        <div className="shell">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div className="t-eyebrow" style={{ marginBottom: 12 }}>The Stoa</div>
+              <h1 className="t-display" style={{ fontSize: 44, margin: 0 }}>
+                Read what's <em style={{ fontStyle: "italic" }}>working</em>.
+              </h1>
+              <p className="t-body" style={{ fontSize: 15, color: "var(--text-mute)", margin: "10px 0 0", maxWidth: 540 }}>
+                Live research from analysts ranked by their record. Every prediction in this feed is locked and grading toward a public Elo.
               </p>
-            )}
-          </div>
-
-          {/* SINGLE collapsed taxonomy layer — editorial underline tabs
-              with an inline "Customize" affordance at the right. Replaces
-              three competing layers (tabs + quick filters + controls bar). */}
-          <div role="tablist" aria-label="Feed sections" className="flex items-end justify-between gap-4 mb-6 border-b border-border/60">
-            <div className="flex gap-7">
-              {FEED_TABS.map(tab => {
-                const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`relative pb-3 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors ${
-                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {tab.label}{count != null && count > 0 ? ` · ${count}` : ""}
-                    {isActive && <span className="absolute -bottom-px left-0 right-0 h-px bg-foreground" />}
-                  </button>
-                );
-              })}
             </div>
-            <button
-              onClick={() => setShowFilters(true)}
-              className={`pb-3 flex items-center gap-1.5 text-[12px] font-medium transition-colors ${
-                prefActiveCount > 0 ? "text-accent" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Customize{prefActiveCount > 0 ? ` · ${prefActiveCount}` : ""}
-            </button>
-          </div>
 
-          {/* Active pref chips */}
-          {prefActiveCount > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {(feedPrefs.sectors || []).map(s => (
-                <span key={s} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
-                  {s} <button onClick={() => setFeedPrefs(p => { const upd = {...p, sectors: p.sectors.filter(x=>x!==s)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
-                </span>
+            <div style={{
+              display: "flex", gap: 8, padding: 4,
+              border: "0.5px solid var(--border-strong)", borderRadius: 8,
+              background: "var(--bg-elev)",
+            }}>
+              {[
+                { id: "feed", label: "Research feed" },
+                { id: "analysts", label: "Researchers" },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setView(v.id)}
+                  className="btn btn-sm"
+                  style={{
+                    background: view === v.id ? "var(--deepest-navy)" : "transparent",
+                    color: view === v.id ? "#fff" : "var(--text-mute)",
+                    borderRadius: 6, height: 28, padding: "0 12px",
+                  }}
+                >
+                  {v.label}
+                </button>
               ))}
-              {(feedPrefs.tickers || []).map(t => (
-                <span key={t} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
-                  ${t} <button onClick={() => setFeedPrefs(p => { const upd = {...p, tickers: p.tickers.filter(x=>x!==t)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-              {(feedPrefs.marketCaps || []).map(c => (
-                <span key={c} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
-                  {c} Cap <button onClick={() => setFeedPrefs(p => { const upd = {...p, marketCaps: p.marketCaps.filter(x=>x!==c)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-              <button onClick={clearPrefs} className="text-xs text-muted-foreground hover:text-foreground underline">clear all</button>
             </div>
-          )}
-
-          {/* Feed content */}
-          <div className="space-y-4">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <FeedSkeletonCard key={i} />)
-            ) : activeTab === "analysts" ? (
-              topAnalysts.length === 0 ? (
-                // Previously this rendered an empty grid with no message —
-                // looked like the tab was broken. Show a friendly empty
-                // state and a CTA to the leaderboard so users have somewhere
-                // to go.
-                <div className="text-center py-16">
-                  <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-medium text-foreground">No researchers to show yet</p>
-                  <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    Researchers will appear here as the platform grows.
-                  </p>
-                  <Link to="/leaderboard" className="text-sm text-primary hover:underline">
-                    Browse the full leaderboard →
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {topAnalysts.map(analyst => (
-                    <AnalystFeedCard key={analyst.id} analyst={analyst} allReports={reports} />
-                  ))}
-                </div>
-              )
-            ) : filtered.length === 0 ? (
-              activeTab === "following" ? (
-                <EmptyFollowingState onFollow={handleFollowAnalyst} />
-              ) : activeTab === "subscriptions" ? (
-                <EmptySubscriptionsState currentUser={user} onSubscribed={refreshSubscriptions} />
-              ) : (
-                <div className="text-center py-16">
-                  <Search className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-medium text-foreground">No reports match your current filters</p>
-                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back soon</p>
-                  {prefActiveCount > 0 && (
-                    <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={clearPrefs}>Clear Filters</Button>
-                  )}
-                </div>
-              )
-            ) : (
-              <>
-                {feedItems.map((item, idx) => {
-                  if (item.type === "report") {
-                    return (
-                      <ReportCard
-                        key={item.data.id}
-                        report={item.data}
-                        isSubscribed={subscribedEmails.includes(item.data.created_by)}
-                        currentUserEmail={user?.email}
-                        followedEmails={followedEmails}
-                        allReports={reports}
-                        userMap={userMap}
-                      />
-                    );
-                  }
-                  if (item.type === "trending_divider") {
-                    return <TrendingDivider key={`div-trending-${idx}`} report={topWeeklyReport} />;
-                  }
-                  if (item.type === "analyst_spotlight") {
-                    return <AnalystSpotlight key={`div-analyst-${idx}`} analyst={item.data} />;
-                  }
-                  return null;
-                })}
-
-                {/* Infinite scroll trigger */}
-                <div ref={loadMoreRef} className="py-2" />
-                {hasMore && (
-                  <div className="flex justify-center py-4">
-                    <Spinner size="sm" />
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </div>
+      </section>
 
-        {/* Right rail — narrow, max 2 widgets (Top Researchers + Hot
-            Predictions). Markets widget removed; users can find market
-            data in /stocks rather than competing with the feed. */}
-        <aside className="hidden xl:flex flex-col gap-8 w-[240px] flex-shrink-0">
-          <div className="sticky top-24 flex flex-col gap-8">
-            <Leaderboard />
-            <TrendingPanel />
+      {/* Filter row */}
+      <section style={{ padding: "20px 0", borderBottom: "0.5px solid var(--border-rgba)", background: "var(--bg)" }}>
+        <div className="shell" style={{ display: "flex", gap: 22, justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setActiveSector(f.id)}
+                className="btn btn-sm"
+                style={{
+                  background: activeSector === f.id ? "var(--bg-soft)" : "transparent",
+                  border: "0.5px solid",
+                  borderColor: activeSector === f.id ? "var(--border-strong)" : "var(--border-rgba)",
+                  color: activeSector === f.id ? "var(--text)" : "var(--text-mute)",
+                  height: 30, padding: "0 12px", fontWeight: 500,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button className="btn btn-ghost btn-sm">
+              <Filter size={14}/> Filters · 0
+            </button>
+            <span className="t-meta">Sorted by</span>
+            <button className="btn btn-sm" style={{ color: "var(--text)", padding: "0 10px" }}>
+              Elo · descending <ChevronDown size={12}/>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Main 2-col */}
+      <div className="shell" style={{
+        display: "grid", gridTemplateColumns: "1fr 1.7fr",
+        gap: 36, padding: "32px 32px 80px",
+      }}>
+        {/* Left rail */}
+        <aside style={{
+          position: "sticky", top: 78, alignSelf: "start",
+          maxHeight: "calc(100vh - 100px)", overflowY: "auto", paddingRight: 4,
+        }}>
+          {/* Mini leaderboard */}
+          <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "0.5px solid var(--border-rgba)", display: "flex", alignItems: "center" }}>
+              <span className="t-eyebrow">Leaderboard · this month</span>
+              <div style={{ flex: 1 }}/>
+              <span className="t-meta" style={{ color: "var(--gold-hex)" }}>Top 25</span>
+            </div>
+            <div>
+              {leaderboard.length === 0 && (
+                <div style={{ padding: 18 }}>
+                  <span className="t-meta">Loading…</span>
+                </div>
+              )}
+              {leaderboard.map((u, i) => {
+                const elo = u.elo ?? Math.round((u.accuracy_score || 60) * 10);
+                const initials = (u.full_name || u.email || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <Link
+                    key={u.email || i}
+                    to={analystHref ? analystHref(u) : `/analyst/${u.username || u.email}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "12px 18px",
+                      borderBottom: i < leaderboard.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+                      transition: "background var(--t-fast) var(--ease)",
+                      textDecoration: "none", color: "inherit",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    <span className="t-num" style={{ fontSize: 12, width: 22, color: "var(--text-meta)" }}>#{i + 1}</span>
+                    <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="sm"/>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="t-title" style={{ fontSize: 13.5, lineHeight: 1.2 }}>{u.full_name || u.email?.split("@")[0]}</div>
+                      <div className="t-meta" style={{ fontSize: 11 }}>{u.bio?.slice(0, 32) || u.title || "Researcher"}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div className="t-num" style={{ fontSize: 13, color: "var(--primary-blue)" }}>{elo}</div>
+                      <div className="t-meta" style={{ fontSize: 10 }}>{u.accuracy_score || 0}%</div>
+                    </div>
+                  </Link>
+                );
+              })}
+              <div style={{ display: "flex", justifyContent: "center", padding: 12, borderTop: "0.5px solid var(--border-rgba)" }}>
+                <Link to="/leaderboard" className="btn btn-text btn-sm" style={{ textDecoration: "none" }}>
+                  View all ranked <ArrowRight size={12}/>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Trending tickers */}
+          <div className="surface" style={{ padding: 0, marginTop: 16, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "0.5px solid var(--border-rgba)", display: "flex", alignItems: "center" }}>
+              <span className="t-eyebrow">Trending tickers</span>
+              <div style={{ flex: 1 }}/>
+              <span className="t-meta">24h</span>
+            </div>
+            <div>
+              {TRENDING_TICKERS.map((t, i) => (
+                <Link
+                  key={t.ticker}
+                  to={`/stock/${t.ticker}`}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "10px 18px",
+                    borderBottom: i < TRENDING_TICKERS.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+                    textDecoration: "none", color: "inherit",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="t-num" style={{ fontSize: 13, width: 48, color: "var(--text)" }}>{t.ticker}</span>
+                    <span className="t-meta" style={{ fontSize: 11 }}>{t.vol} vol</span>
+                  </div>
+                  <span className="t-num" style={{ fontSize: 13, color: t.change >= 0 ? "var(--rolex-green)" : "var(--velvet-red)" }}>
+                    {t.change >= 0 ? "+" : ""}{t.change.toFixed(1)}%
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Promo */}
+          <div className="surface" style={{
+            padding: 22, marginTop: 16,
+            background: "var(--deepest-navy)",
+            borderColor: "rgba(255,255,255,0.10)",
+            color: "#fff",
+          }}>
+            <div className="t-eyebrow" style={{ color: "var(--gold-light-hex)" }}>For Researchers</div>
+            <h4 className="t-title" style={{ fontSize: 17, color: "#fff", margin: "8px 0 8px" }}>Publish where the record matters.</h4>
+            <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", lineHeight: 1.55, margin: "0 0 14px" }}>
+              Keep 90%. Own your audience. Let your Elo do the marketing.
+            </p>
+            <button className="btn btn-gold btn-sm" onClick={goPublish}>
+              Start publishing <ArrowRight size={12}/>
+            </button>
           </div>
         </aside>
-      </div>
 
-      {showFilters && (
-        <FeedCustomizer
-          onClose={() => setShowFilters(false)}
-          onApply={(prefs) => setFeedPrefs(prefs)}
-        />
-      )}
+        {/* Feed */}
+        <main>
+          {loading && (
+            <div style={{ padding: 60, textAlign: "center" }}>
+              <span className="t-meta">Loading research…</span>
+            </div>
+          )}
+
+          {!loading && view === "feed" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {filteredReports.length === 0 ? (
+                <div className="surface" style={{ padding: 60, textAlign: "center" }}>
+                  <span className="t-meta">No reports match those filters yet.</span>
+                </div>
+              ) : (
+                filteredReports.map((r) => (
+                  <FeedItem
+                    key={r.id}
+                    report={r}
+                    author={userMap[r.created_by]}
+                    onOpen={() => navigate(`/report?id=${r.id}`)}
+                  />
+                ))
+              )}
+            </div>
+          )}
+
+          {!loading && view === "analysts" && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+              {topAnalysts.length === 0 ? (
+                <div className="surface" style={{ padding: 40, textAlign: "center", gridColumn: "1 / -1" }}>
+                  <span className="t-meta">No researchers yet.</span>
+                </div>
+              ) : (
+                topAnalysts.slice(0, 20).map((u) => {
+                  const elo = u.elo ?? Math.round((u.accuracy_score || 60) * 10);
+                  const initials = (u.full_name || u.email || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+                  return (
+                    <Link
+                      key={u.email}
+                      to={analystHref ? analystHref(u) : `/analyst/${u.username || u.email}`}
+                      className="surface surface-interactive"
+                      style={{ padding: 22, cursor: "pointer", textDecoration: "none", color: "inherit" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                        <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="lg"/>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="t-title" style={{ fontSize: 16 }}>{u.full_name || u.email?.split("@")[0]}</div>
+                          <div className="t-meta" style={{ fontSize: 12 }}>{u.bio?.slice(0, 60) || "Researcher"}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, padding: "12px 0", borderTop: "0.5px solid var(--border-rgba)", borderBottom: "0.5px solid var(--border-rgba)", marginBottom: 14 }}>
+                        <div style={{ flex: 1, textAlign: "center" }}>
+                          <div className="t-num" style={{ fontSize: 18, color: "var(--primary-blue)" }}>{elo}</div>
+                          <div className="t-meta" style={{ fontSize: 10 }}>Elo</div>
+                        </div>
+                        <div className="vr"/>
+                        <div style={{ flex: 1, textAlign: "center" }}>
+                          <div className="t-num" style={{ fontSize: 18, color: "var(--rolex-green)" }}>{u.accuracy_score || 0}%</div>
+                          <div className="t-meta" style={{ fontSize: 10 }}>Accuracy</div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

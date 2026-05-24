@@ -1,0 +1,504 @@
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import ReportCard from "@/components/feed/ReportCard";
+import Leaderboard from "@/components/feed/Leaderboard";
+import TrendingPanel from "@/components/feed/TrendingPanel";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { SlidersHorizontal, X, Flame, Users, Star, Search } from "lucide-react";
+import EmptyFeedState from "@/components/feed/EmptyFeedState";
+import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
+import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import LeftSidebar from "@/components/feed/LeftSidebar";
+import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
+import FeedSkeletonCard from "@/components/feed/FeedSkeletonCard";
+import QuickFilterRow from "@/components/feed/QuickFilterRow";
+import { TrendingDivider, AnalystSpotlight } from "@/components/feed/FeedDividerCard";
+import AnalystFeedCard from "@/components/feed/AnalystFeedCard";
+import Spinner from "@/components/ui/Spinner";
+
+const FEED_TABS = [
+  { id: "trending", label: "Trending", icon: Flame },
+  { id: "following", label: "Following", icon: Users },
+  { id: "subscriptions", label: "Subscriptions", icon: Star },
+  { id: "analysts", label: "Researchers", icon: Users },
+];
+
+const PAGE_SIZE = 10;
+
+function FeaturedHero({ report, userMap, hasEngagement }) {
+  if (!report) return null;
+  const authorUser = userMap[report.created_by] || {};
+  const authorName = report.author_name || authorUser.full_name || report.created_by?.split("@")[0] || "Researcher";
+  const authorAvatar = report.author_avatar || authorUser.picture || null;
+
+  return (
+    <Link
+      to={`/report?id=${report.id}`}
+      className="block surface surface-interactive p-6 mb-5 group no-underline"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-[10px] font-medium uppercase tracking-widest text-primary">
+          Featured Analysis
+        </span>
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+          {hasEngagement ? "Top Rated This Week" : "Latest"}
+        </span>
+      </div>
+      <h2 className="text-xl leading-snug mb-2 text-foreground group-hover:text-primary transition-colors font-serif font-medium">
+        {report.title}
+      </h2>
+      {report.excerpt && (
+        <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+          {report.excerpt}
+        </p>
+      )}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary overflow-hidden flex-shrink-0">
+          {authorAvatar
+            ? <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
+            : authorName[0]?.toUpperCase()}
+        </div>
+        <span className="text-xs font-medium text-foreground">{authorName}</span>
+        {report.prediction_action && (
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${
+            report.prediction_action === "Long" ? "bg-gain/10 text-gain border-gain/20" : "bg-loss/10 text-loss border-loss/20"
+          }`}>
+            {report.prediction_action}{report.prediction_ticker ? ` · ${report.prediction_ticker}` : ""}
+          </span>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto"><span className="font-display">{report.likes || 0}</span> likes</span>
+      </div>
+    </Link>
+  );
+}
+
+// Determine default tab: following if user has follows, else trending
+function getDefaultTab(hasFollows) {
+  const stored = localStorage.getItem("stoa_active_tab");
+  if (stored) return stored;
+  return hasFollows ? "following" : "trending";
+}
+
+export default function HomeFeed() {
+  const { user, isAuthenticated } = useAuth();
+
+  const [activeTab, setActiveTab] = useState("trending");
+  const [quickFilter, setQuickFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("stoa_onboarded"));
+  const [feedPrefs, setFeedPrefs] = useState(() => loadFeedPrefs());
+  const [page, setPage] = useState(1);
+  const [topAnalysts, setTopAnalysts] = useState([]);
+  const [userMap, setUserMap] = useState({});
+
+  // Follows & subscriptions
+  const [followedAnalysts, setFollowedAnalysts] = useState([]);
+  const [subscribedAnalysts, setSubscribedAnalysts] = useState([]);
+  const [tabInitialized, setTabInitialized] = useState(false);
+
+  // "New since last visit" tracking
+  const lastVisit = useRef(parseInt(localStorage.getItem("stoa_last_visit") || "0"));
+  const [newSinceLastVisit, setNewSinceLastVisit] = useState(0);
+
+  // Load reports
+  useEffect(() => {
+    base44.entities.Report.filter({ status: "published" }, "-created_date", 200)
+      .then(data => {
+        const d = data || [];
+        setReports(d);
+        // Count new since last visit
+        if (lastVisit.current > 0) {
+          setNewSinceLastVisit(d.filter(r => new Date(r.created_date).getTime() > lastVisit.current).length);
+        }
+        localStorage.setItem("stoa_last_visit", Date.now().toString());
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Load top analysts + build userMap for avatar fallback
+  useEffect(() => {
+    base44.entities.User.list("-accuracy_score", 50)
+      .then(d => {
+        const users = d || [];
+        setTopAnalysts(users.filter(u => u.accuracy_score > 0).slice(0, 10));
+        const map = {};
+        users.forEach(u => { if (u.email) map[u.email] = u; });
+        setUserMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  const refreshSubscriptions = useCallback(() => {
+    if (!isAuthenticated || !user) return;
+    base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100)
+      .then(subs => setSubscribedAnalysts(subs || []))
+      .catch(() => {});
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      if (!tabInitialized) { setActiveTab("trending"); setTabInitialized(true); }
+      return;
+    }
+    Promise.all([
+      base44.entities.Follow.filter({ follower_email: user.email }, "-created_date", 100).catch(() => []),
+      base44.entities.Subscription.filter({ subscriber_email: user.email, status: "active" }, "-created_date", 100).catch(() => []),
+    ]).then(([follows, subs]) => {
+      setFollowedAnalysts(follows || []);
+      setSubscribedAnalysts(subs || []);
+      if (!tabInitialized) {
+        setActiveTab(getDefaultTab((follows || []).length > 0));
+        setTabInitialized(true);
+      }
+    });
+  }, [isAuthenticated, user]);
+
+  const followedEmails = useMemo(() => followedAnalysts.map(f => f.analyst_email), [followedAnalysts]);
+  const subscribedEmails = useMemo(() => subscribedAnalysts.map(s => s.analyst_email), [subscribedAnalysts]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setPage(1);
+    localStorage.setItem("stoa_active_tab", tab);
+  };
+
+  // Quick follow from empty state
+  const handleFollowAnalyst = async (analyst) => {
+    if (!user) return;
+    await base44.entities.Follow.create({
+      follower_email: user.email,
+      analyst_email: analyst.email,
+      analyst_name: analyst.full_name || analyst.email?.split("@")[0] || "Researcher",
+      analyst_avatar: analyst.picture || "",
+    }).catch(() => {});
+    setFollowedAnalysts(prev => [...prev, {
+      analyst_email: analyst.email,
+      analyst_name: analyst.full_name,
+      analyst_avatar: analyst.picture,
+    }]);
+  };
+
+  // Build a map of author email → accuracy so we can rank by analyst quality
+  // first (matches eToro's "popular investor" feel — best analysts surface to
+  // the top, not just most-recent posts).
+  const accuracyByEmail = useMemo(() => {
+    const m = {};
+    topAnalysts.forEach(a => { if (a.email) m[a.email] = a.accuracy_score || 0; });
+    return m;
+  }, [topAnalysts]);
+
+  // Apply tab filter
+  const applyTabFilter = useCallback((list) => {
+    if (activeTab === "trending") {
+      // New default sort: rank by analyst accuracy first, then engagement,
+      // then recency. Investors should see the best performers first.
+      return [...list].sort((a, b) => {
+        const accDiff = (accuracyByEmail[b.created_by] || 0) - (accuracyByEmail[a.created_by] || 0);
+        if (Math.abs(accDiff) > 5) return accDiff;
+        const engB = (b.likes || 0) + (b.views || 0) / 10;
+        const engA = (a.likes || 0) + (a.views || 0) / 10;
+        if (engB !== engA) return engB - engA;
+        return new Date(b.created_date) - new Date(a.created_date);
+      });
+    }
+    if (activeTab === "following") return list.filter(r => followedEmails.includes(r.created_by));
+    if (activeTab === "subscriptions") return list.filter(r => subscribedEmails.includes(r.created_by));
+    return list;
+  }, [activeTab, followedEmails, subscribedEmails, accuracyByEmail]);
+
+  // Apply quick filter
+  const applyQuickFilter = useCallback((list) => {
+    switch (quickFilter) {
+      case "long": return list.filter(r => r.prediction_action === "Long");
+      case "short": return list.filter(r => r.prediction_action === "Short");
+      case "trending": return [...list].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      case "small": return list.filter(r => r.market_cap === "small" || r.market_cap === "micro");
+      case "large": return list.filter(r => r.market_cap === "large" || r.market_cap === "mega");
+      case "Tech": case "Finance": case "Energy":
+        return list.filter(r => r.industry?.toLowerCase().includes(quickFilter.toLowerCase()));
+      default: return list;
+    }
+  }, [quickFilter]);
+
+  // Apply pref filters
+  const applyPrefFilters = useCallback((list) => {
+    const { sectors = [], marketCaps = [], tickers = [] } = feedPrefs;
+    if (!sectors.length && !marketCaps.length && !tickers.length) return list;
+    return list.filter(r => {
+      const sectorMatch = !sectors.length || sectors.includes(r.industry);
+      const capMatch = !marketCaps.length || marketCaps.map(c => c.toLowerCase()).includes((r.market_cap || "").toLowerCase());
+      const tickerList = (r.tickers || "").split(",").map(t => t.trim().toUpperCase());
+      const tickerMatch = !tickers.length || tickers.some(t => tickerList.includes(t));
+      return sectorMatch && capMatch && tickerMatch;
+    });
+  }, [feedPrefs]);
+
+  const filtered = useMemo(() =>
+    applyPrefFilters(applyQuickFilter(applyTabFilter(reports))),
+    [reports, applyTabFilter, applyQuickFilter, applyPrefFilters]
+  );
+
+  const prefActiveCount = (feedPrefs.sectors?.length || 0) + (feedPrefs.marketCaps?.length || 0) + (feedPrefs.tickers?.length || 0);
+
+  const clearPrefs = () => {
+    const empty = { sectors: [], marketCaps: [], tickers: [] };
+    setFeedPrefs(empty);
+    localStorage.setItem("stoa_feed_prefs", JSON.stringify(empty));
+  };
+
+  // Infinite scroll: show page * PAGE_SIZE items
+  const loadMoreRef = useRef(null);
+  useEffect(() => {
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && page * PAGE_SIZE < filtered.length) {
+        setPage(p => p + 1);
+      }
+    }, { threshold: 0.1 });
+    if (loadMoreRef.current) obs.observe(loadMoreRef.current);
+    return () => obs.disconnect();
+  }, [filtered.length, page]);
+
+  const visibleReports = filtered.slice(0, page * PAGE_SIZE);
+
+  // Top weekly report for divider card.
+  // Ranked by combined engagement (likes + views + comment_count) so a brand-new
+  // post with 0 engagement doesn't outrank an actually-popular one.
+  const topWeeklyReport = useMemo(() => {
+    const oneWeekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    const engagement = r => (r.likes || 0) + (r.views || 0) + (r.comment_count || 0);
+    return reports
+      .filter(r => new Date(r.created_date).getTime() > oneWeekAgo)
+      .sort((a, b) => engagement(b) - engagement(a))[0] || null;
+  }, [reports]);
+
+  // Whether the top report has any meaningful engagement at all.
+  // Used to swap the "Top Rated This Week" label for "Latest" when the feed is dead.
+  const topWeeklyHasEngagement = useMemo(() => {
+    if (!topWeeklyReport) return false;
+    return (topWeeklyReport.likes || 0) + (topWeeklyReport.views || 0) + (topWeeklyReport.comment_count || 0) > 0;
+  }, [topWeeklyReport]);
+
+  // Build feed items with dividers every 5
+  const feedItems = useMemo(() => {
+    const items = [];
+    visibleReports.forEach((report, i) => {
+      items.push({ type: "report", data: report });
+      if ((i + 1) % 5 === 0 && i < visibleReports.length - 1) {
+        const isEven = Math.floor(i / 5) % 2 === 0;
+        if (isEven && topWeeklyReport) {
+          items.push({ type: "trending_divider" });
+        } else if (!isEven && topAnalysts.length > 0) {
+          const spotlightAnalyst = topAnalysts[Math.floor(i / 5) % topAnalysts.length];
+          items.push({ type: "analyst_spotlight", data: spotlightAnalyst });
+        }
+      }
+    });
+    return items;
+  }, [visibleReports, topWeeklyReport, topAnalysts]);
+
+  const totalReports = filtered.length;
+  const hasMore = visibleReports.length < filtered.length;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Market ticker bar removed — stole attention without serving a decision.
+          Replaced by a clean centered feed (Linear/Notion-style single dominant
+          column with slim left nav + narrow right rail). */}
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
+      <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
+
+      <div className="max-w-[1180px] mx-auto px-5 py-10 pb-20 lg:pb-10">
+      <div className="flex gap-10">
+        {/* Slim left nav — text links, generous spacing */}
+        <aside className="hidden lg:block w-44 flex-shrink-0">
+          <div className="sticky top-24">
+            <LeftSidebar />
+          </div>
+        </aside>
+
+        {/* Main Feed — dominant column (~60% of viewport) */}
+        <div className="flex-1 min-w-0 max-w-[640px]">
+          {/* Featured hero — top-rated report this week */}
+          {!loading && topWeeklyReport && activeTab === "trending" && (
+            <FeaturedHero report={topWeeklyReport} userMap={userMap} hasEngagement={topWeeklyHasEngagement} />
+          )}
+
+          {/* Editorial page header — serif title, generous breathing room */}
+          <div className="mb-8">
+            <h1 className="font-serif font-medium text-foreground tracking-tight" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
+              Research
+            </h1>
+            {!loading && (
+              <p className="text-[13px] text-muted-foreground mt-1.5">
+                <span className="font-display">{totalReports}</span> reports
+                {newSinceLastVisit > 0 && (
+                  <> · <span className="text-accent font-medium"><span className="font-display">{newSinceLastVisit}</span> new since your last visit</span></>
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* SINGLE collapsed taxonomy layer — editorial underline tabs
+              with an inline "Customize" affordance at the right. Replaces
+              three competing layers (tabs + quick filters + controls bar). */}
+          <div role="tablist" aria-label="Feed sections" className="flex items-end justify-between gap-4 mb-6 border-b border-border/60">
+            <div className="flex gap-7">
+              {FEED_TABS.map(tab => {
+                const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`relative pb-3 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors ${
+                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}{count != null && count > 0 ? ` · ${count}` : ""}
+                    {isActive && <span className="absolute -bottom-px left-0 right-0 h-px bg-foreground" />}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setShowFilters(true)}
+              className={`pb-3 flex items-center gap-1.5 text-[12px] font-medium transition-colors ${
+                prefActiveCount > 0 ? "text-accent" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Customize{prefActiveCount > 0 ? ` · ${prefActiveCount}` : ""}
+            </button>
+          </div>
+
+          {/* Active pref chips */}
+          {prefActiveCount > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(feedPrefs.sectors || []).map(s => (
+                <span key={s} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
+                  {s} <button onClick={() => setFeedPrefs(p => { const upd = {...p, sectors: p.sectors.filter(x=>x!==s)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
+                </span>
+              ))}
+              {(feedPrefs.tickers || []).map(t => (
+                <span key={t} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
+                  ${t} <button onClick={() => setFeedPrefs(p => { const upd = {...p, tickers: p.tickers.filter(x=>x!==t)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
+                </span>
+              ))}
+              {(feedPrefs.marketCaps || []).map(c => (
+                <span key={c} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-tag px-2.5 py-0.5">
+                  {c} Cap <button onClick={() => setFeedPrefs(p => { const upd = {...p, marketCaps: p.marketCaps.filter(x=>x!==c)}; localStorage.setItem("stoa_feed_prefs",JSON.stringify(upd)); return upd; })}><X className="w-3 h-3" /></button>
+                </span>
+              ))}
+              <button onClick={clearPrefs} className="text-xs text-muted-foreground hover:text-foreground underline">clear all</button>
+            </div>
+          )}
+
+          {/* Feed content */}
+          <div className="space-y-4">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => <FeedSkeletonCard key={i} />)
+            ) : activeTab === "analysts" ? (
+              topAnalysts.length === 0 ? (
+                // Previously this rendered an empty grid with no message —
+                // looked like the tab was broken. Show a friendly empty
+                // state and a CTA to the leaderboard so users have somewhere
+                // to go.
+                <div className="text-center py-16">
+                  <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-medium text-foreground">No researchers to show yet</p>
+                  <p className="text-sm text-muted-foreground mt-1 mb-4">
+                    Researchers will appear here as the platform grows.
+                  </p>
+                  <Link to="/leaderboard" className="text-sm text-primary hover:underline">
+                    Browse the full leaderboard →
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {topAnalysts.map(analyst => (
+                    <AnalystFeedCard key={analyst.id} analyst={analyst} allReports={reports} />
+                  ))}
+                </div>
+              )
+            ) : filtered.length === 0 ? (
+              activeTab === "following" ? (
+                <EmptyFollowingState onFollow={handleFollowAnalyst} />
+              ) : activeTab === "subscriptions" ? (
+                <EmptySubscriptionsState currentUser={user} onSubscribed={refreshSubscriptions} />
+              ) : (
+                <div className="text-center py-16">
+                  <Search className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-medium text-foreground">No reports match your current filters</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back soon</p>
+                  {prefActiveCount > 0 && (
+                    <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={clearPrefs}>Clear Filters</Button>
+                  )}
+                </div>
+              )
+            ) : (
+              <>
+                {feedItems.map((item, idx) => {
+                  if (item.type === "report") {
+                    return (
+                      <ReportCard
+                        key={item.data.id}
+                        report={item.data}
+                        isSubscribed={subscribedEmails.includes(item.data.created_by)}
+                        currentUserEmail={user?.email}
+                        followedEmails={followedEmails}
+                        allReports={reports}
+                        userMap={userMap}
+                      />
+                    );
+                  }
+                  if (item.type === "trending_divider") {
+                    return <TrendingDivider key={`div-trending-${idx}`} report={topWeeklyReport} />;
+                  }
+                  if (item.type === "analyst_spotlight") {
+                    return <AnalystSpotlight key={`div-analyst-${idx}`} analyst={item.data} />;
+                  }
+                  return null;
+                })}
+
+                {/* Infinite scroll trigger */}
+                <div ref={loadMoreRef} className="py-2" />
+                {hasMore && (
+                  <div className="flex justify-center py-4">
+                    <Spinner size="sm" />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right rail — narrow, max 2 widgets (Top Researchers + Hot
+            Predictions). Markets widget removed; users can find market
+            data in /stocks rather than competing with the feed. */}
+        <aside className="hidden xl:flex flex-col gap-8 w-[240px] flex-shrink-0">
+          <div className="sticky top-24 flex flex-col gap-8">
+            <Leaderboard />
+            <TrendingPanel />
+          </div>
+        </aside>
+      </div>
+
+      {showFilters && (
+        <FeedCustomizer
+          onClose={() => setShowFilters(false)}
+          onApply={(prefs) => setFeedPrefs(prefs)}
+        />
+      )}
+      </div>
+    </div>
+  );
+}
