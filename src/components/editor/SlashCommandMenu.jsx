@@ -54,11 +54,12 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
   return (
     <div
       ref={ref}
- className="absolute left-0 top-full mt-1 z-50 bg-card border border-border rounded-xl w-72 py-1.5 overflow-hidden"
+      className="absolute left-0 top-full mt-1 z-50 w-72 py-1.5 overflow-hidden surface"
+      style={{ background: "var(--bg-elev)" }}
     >
       {filter ? (
         <>
- <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border mb-1 font-medium tracking-wider uppercase">
+          <div className="px-3 py-1.5 t-eyebrow" style={{ borderBottom: "0.5px solid var(--border-rgba)", marginBottom: 4 }}>
             Blocks · "{filter}"
           </div>
           {filtered.map((cmd, i) => (
@@ -68,9 +69,7 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
       ) : (
         groupsInResult.map(group => (
           <div key={group}>
- <div className="px-3 pt-2 pb-1 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-              {group}
-            </div>
+            <div className="px-3 pt-2 pb-1 t-eyebrow">{group}</div>
             {filtered.filter(c => c.group === group).map(cmd => {
               const globalIdx = filtered.indexOf(cmd);
               return (
@@ -80,25 +79,71 @@ export default function SlashCommandMenu({ filter = "", onSelect, onClose }) {
           </div>
         ))
       )}
+      {/* Footer hint per spec: ↑↓ navigate / ↵ insert / esc close */}
+      <div
+        className="t-meta"
+        style={{
+          display: "flex",
+          gap: 12,
+          padding: "8px 12px",
+          marginTop: 4,
+          borderTop: "0.5px solid var(--border-rgba)",
+          fontSize: 10,
+        }}
+      >
+        <span>↑↓ navigate</span>
+        <span>↵ insert</span>
+        <span>esc close</span>
+      </div>
     </div>
   );
 }
 
 function CommandRow({ cmd, active, onSelect }) {
+  // Finance items get a gold-tinted icon tile per design handoff v2 spec.
+  const isFinance = cmd.group === "Finance";
   return (
     <button
       onMouseDown={(e) => { e.preventDefault(); onSelect(cmd.type); }}
- className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-        active ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
-      }`}
+      className="w-full flex items-center gap-3 px-3 py-2 text-left"
+      style={{
+        background: active ? "var(--bg-soft)" : "transparent",
+        color: active ? "var(--text)" : "var(--text-body)",
+        transition: "background var(--t-fast) var(--ease), color var(--t-fast) var(--ease)",
+        border: 0,
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = "var(--bg-softer)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = "transparent";
+      }}
     >
- <span className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-secondary rounded-lg flex-shrink-0 font-display tracking-tighter">
+      <span
+        className="w-7 h-7 flex items-center justify-center flex-shrink-0 t-num"
+        style={{
+          fontSize: 12,
+          background: isFinance ? "rgba(212,175,55,0.15)" : "var(--bg-soft)",
+          color: isFinance ? "var(--gold-hex)" : "var(--text)",
+          border: `0.5px solid ${isFinance ? "rgba(212,175,55,0.35)" : "var(--border-rgba)"}`,
+          borderRadius: 6,
+          letterSpacing: 0,
+        }}
+      >
         {cmd.icon}
       </span>
- <div className="min-w-0">
- <div className="text-xs font-medium">{cmd.label}</div>
- <div className="text-[10px] text-muted-foreground">{cmd.desc}</div>
+      <div className="min-w-0" style={{ flex: 1 }}>
+        <div className="t-body" style={{ fontSize: 12, fontWeight: 500 }}>{cmd.label}</div>
+        <div className="t-meta" style={{ fontSize: 10 }}>{cmd.desc}</div>
       </div>
+      {isFinance && (
+        <span
+          className="tag"
+          style={{ height: 16, padding: "0 5px", fontSize: 9, letterSpacing: "0.06em", color: "var(--gold-hex)", borderColor: "rgba(212,175,55,0.35)", background: "rgba(212,175,55,0.08)" }}
+        >
+          Finance
+        </span>
+      )}
     </button>
   );
 }

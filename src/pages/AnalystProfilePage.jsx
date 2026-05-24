@@ -708,8 +708,8 @@ export default function AnalystProfilePage() {
           <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3">
             <div className="shrink-0">
               {(analyst.profile_picture_url || analyst.picture)
-                ? <img src={analyst.profile_picture_url || analyst.picture} alt={displayName} className="w-7 h-7 rounded-full object-cover border border-border" />
-                : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-[11px] font-medium text-primary">{displayName?.[0]}</div>}
+                ? <img src={analyst.profile_picture_url || analyst.picture} alt={displayName} className="w-7 h-7 object-cover border border-border" style={{ borderRadius: 6 }} />
+                : <div className="w-7 h-7 av av-sm" style={{ background: "var(--deepest-navy)" }}>{displayName?.[0]}</div>}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-medium text-foreground truncate">{displayName}</div>
@@ -803,13 +803,15 @@ export default function AnalystProfilePage() {
           <div className="surface-premium p-6" style={{ background: "hsl(var(--card))" }}>
             <div className="flex items-end gap-4 mb-5">
 
-              {/* Avatar — uploaded profile_picture_url overrides auth-provider picture */}
-              <div className="shrink-0 -mt-10 ring-4 ring-background rounded-full relative">
+              {/* Avatar — square 8px per design-system v2 spec (not a circle).
+                  Navy bg + initials when no upload; uploaded profile_picture_url
+                  overrides auth-provider picture. */}
+              <div className="shrink-0 -mt-10 relative" style={{ boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)", borderRadius: 10 }}>
                 {(() => {
                   const src = analyst.profile_picture_url || analyst.picture;
                   return src
-                    ? <img src={src} alt={displayName} className="w-20 h-20 rounded-full object-cover border border-border" />
-                    : <div className="w-20 h-20 rounded-full bg-primary/10 border border-border flex items-center justify-center text-3xl font-medium text-primary font-serif">
+                    ? <img src={src} alt={displayName} className="w-20 h-20 object-cover border border-border" style={{ borderRadius: 10 }} />
+                    : <div className="w-20 h-20 flex items-center justify-center text-3xl font-medium text-white font-serif" style={{ borderRadius: 10, background: "var(--deepest-navy)" }}>
                         {displayName?.[0] || "A"}
                       </div>;
                 })()}
@@ -1037,8 +1039,9 @@ export default function AnalystProfilePage() {
           </div>
         )}
 
-        {/* ── Tab bar ── */}
-        <div role="tablist" aria-label="Profile sections" className="flex gap-0 border-b border-border/60 mb-6">
+        {/* ── Tab bar — design-system v2: nav-link style, Manrope 12px,
+            navy underline on active, no background highlights. */}
+        <div role="tablist" aria-label="Profile sections" className="flex gap-7 mb-6" style={{ borderBottom: "0.5px solid var(--border-rgba)" }}>
           {tabsToShow.map((tab, idx) => {
             const isActive = effectiveTab === tab;
             return (
@@ -1051,11 +1054,19 @@ export default function AnalystProfilePage() {
                 onDragStart={e => handleDragStart(e, idx)}
                 onDragOver={handleDragOver}
                 onDrop={e => handleDrop(e, idx)}
-                className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b transition-all select-none ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                } ${isEditMode ? "cursor-grab" : "cursor-pointer"}`}
+                className={`nav-link ${isActive ? "active" : ""} ${isEditMode ? "cursor-grab" : "cursor-pointer"}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingBottom: 14,
+                  paddingTop: 6,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  borderBottomWidth: 1,
+                  marginBottom: "-0.5px",
+                }}
                 onClick={() => !isEditMode && setActiveTab(tab)}
                 onKeyDown={e => { if (!isEditMode && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setActiveTab(tab); } }}
               >

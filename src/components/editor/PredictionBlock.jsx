@@ -90,15 +90,13 @@ export default function PredictionBlock({ onChange, onPublish, initialData }) {
   };
 
   return (
-    <div className="surface p-4">
+    <div className="surface-gold-edge p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Lock className="w-4 h-4 text-primary" />
-          <h4 className="font-serif text-[14px] text-foreground">Prediction</h4>
+          <Lock className="w-4 h-4" style={{ color: "var(--gold-hex)" }} />
+          <h4 className="t-title" style={{ fontSize: 14, margin: 0 }}>Locked Prediction</h4>
         </div>
-        <span className="pill-accent">
-          🔒 Locks at publish
-        </span>
+        <span className="badge-founding">Locks at publish</span>
       </div>
 
       <div className="bg-accent/10 border border-accent/30 rounded-tag px-3 py-2 mb-3 flex items-start gap-2">
