@@ -7,8 +7,6 @@ import TrendingPanel from "@/components/feed/TrendingPanel";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SlidersHorizontal, X, Flame, Users, Star, Search } from "lucide-react";
-import MarketsWidget from "@/components/feed/MarketsWidget";
-import MarketTickerBar from "@/components/feed/MarketTickerBar";
 import EmptyFeedState from "@/components/feed/EmptyFeedState";
 import EmptyFollowingState from "@/components/feed/EmptyFollowingState";
 import EmptySubscriptionsState from "@/components/feed/EmptySubscriptionsState";
@@ -187,13 +185,33 @@ export default function HomeFeed() {
     }]);
   };
 
+  // Build a map of author email → accuracy so we can rank by analyst quality
+  // first (matches eToro's "popular investor" feel — best analysts surface to
+  // the top, not just most-recent posts).
+  const accuracyByEmail = useMemo(() => {
+    const m = {};
+    topAnalysts.forEach(a => { if (a.email) m[a.email] = a.accuracy_score || 0; });
+    return m;
+  }, [topAnalysts]);
+
   // Apply tab filter
   const applyTabFilter = useCallback((list) => {
-    if (activeTab === "trending") return [...list].sort((a, b) => ((b.likes || 0) + (new Date(b.created_date) / 1e10)) - ((a.likes || 0) + (new Date(a.created_date) / 1e10)));
+    if (activeTab === "trending") {
+      // New default sort: rank by analyst accuracy first, then engagement,
+      // then recency. Investors should see the best performers first.
+      return [...list].sort((a, b) => {
+        const accDiff = (accuracyByEmail[b.created_by] || 0) - (accuracyByEmail[a.created_by] || 0);
+        if (Math.abs(accDiff) > 5) return accDiff;
+        const engB = (b.likes || 0) + (b.views || 0) / 10;
+        const engA = (a.likes || 0) + (a.views || 0) / 10;
+        if (engB !== engA) return engB - engA;
+        return new Date(b.created_date) - new Date(a.created_date);
+      });
+    }
     if (activeTab === "following") return list.filter(r => followedEmails.includes(r.created_by));
     if (activeTab === "subscriptions") return list.filter(r => subscribedEmails.includes(r.created_by));
     return list;
-  }, [activeTab, followedEmails, subscribedEmails]);
+  }, [activeTab, followedEmails, subscribedEmails, accuracyByEmail]);
 
   // Apply quick filter
   const applyQuickFilter = useCallback((list) => {
@@ -290,71 +308,72 @@ export default function HomeFeed() {
 
   return (
     <div className="min-h-screen bg-background">
-      <MarketTickerBar />
+      {/* Market ticker bar removed — stole attention without serving a decision.
+          Replaced by a clean centered feed (Linear/Notion-style single dominant
+          column with slim left nav + narrow right rail). */}
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <MobileBottomNav onSearchClick={() => setShowFilters(true)} />
 
-      <div className="max-w-7xl mx-auto px-4 py-6 pb-20 lg:pb-6">
-      <div className="flex gap-6">
-        {/* Left Sidebar */}
-        <aside className="hidden lg:block w-56 flex-shrink-0">
-          <div className="sticky top-6">
+      <div className="max-w-[1180px] mx-auto px-5 py-10 pb-20 lg:pb-10">
+      <div className="flex gap-10">
+        {/* Slim left nav — text links, generous spacing */}
+        <aside className="hidden lg:block w-44 flex-shrink-0">
+          <div className="sticky top-24">
             <LeftSidebar />
           </div>
         </aside>
 
-        {/* Main Feed */}
-        <div className="flex-1 min-w-0">
+        {/* Main Feed — dominant column (~60% of viewport) */}
+        <div className="flex-1 min-w-0 max-w-[640px]">
           {/* Featured hero — top-rated report this week */}
           {!loading && topWeeklyReport && activeTab === "trending" && (
             <FeaturedHero report={topWeeklyReport} userMap={userMap} hasEngagement={topWeeklyHasEngagement} />
           )}
 
-          {/* Page title + FOMO counter */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-lg font-medium text-foreground">Research Feed</h1>
-              {!loading && (
-                <p className="text-xs text-muted-foreground">
-                  {totalReports} reports{newSinceLastVisit > 0 ? ` · ` : ""}
-                  {newSinceLastVisit > 0 && (
-                    <span className="text-primary font-medium"><span className="font-display">{newSinceLastVisit}</span> new since your last visit</span>
-                  )}
-                </p>
-              )}
+          {/* Editorial page header — serif title, generous breathing room */}
+          <div className="mb-8">
+            <h1 className="font-serif font-medium text-foreground tracking-tight" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
+              Research
+            </h1>
+            {!loading && (
+              <p className="text-[13px] text-muted-foreground mt-1.5">
+                <span className="font-display">{totalReports}</span> reports
+                {newSinceLastVisit > 0 && (
+                  <> · <span className="text-accent font-medium"><span className="font-display">{newSinceLastVisit}</span> new since your last visit</span></>
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* SINGLE collapsed taxonomy layer — editorial underline tabs
+              with an inline "Customize" affordance at the right. Replaces
+              three competing layers (tabs + quick filters + controls bar). */}
+          <div role="tablist" aria-label="Feed sections" className="flex items-end justify-between gap-4 mb-6 border-b border-border/60">
+            <div className="flex gap-7">
+              {FEED_TABS.map(tab => {
+                const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`relative pb-3 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors ${
+                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}{count != null && count > 0 ? ` · ${count}` : ""}
+                    {isActive && <span className="absolute -bottom-px left-0 right-0 h-px bg-foreground" />}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-
-          {/* Feed tabs */}
-          <div role="tablist" aria-label="Feed sections" className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
-            {FEED_TABS.map(tab => {
-              const Icon = tab.icon;
-              const count = tab.id === "following" ? followedAnalysts.length : tab.id === "subscriptions" ? subscribedAnalysts.length : null;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-tag text-sm font-medium whitespace-nowrap transition-colors border ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}{count != null && count > 0 ? ` (${count})` : ""}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick filter row */}
-          <QuickFilterRow active={quickFilter} onChange={q => { setQuickFilter(q); setPage(1); }} />
-
-          {/* Controls bar */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-muted-foreground">{totalReports} reports</span>
             <button
               onClick={() => setShowFilters(true)}
-              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-tag border text-xs font-medium transition-colors ${prefActiveCount > 0 ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+              className={`pb-3 flex items-center gap-1.5 text-[12px] font-medium transition-colors ${
+                prefActiveCount > 0 ? "text-accent" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Customize{prefActiveCount > 0 ? ` · ${prefActiveCount}` : ""}
@@ -462,11 +481,14 @@ export default function HomeFeed() {
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <aside className="hidden lg:flex flex-col gap-4 w-64 flex-shrink-0">
-          <Leaderboard />
-          <TrendingPanel />
-          <MarketsWidget />
+        {/* Right rail — narrow, max 2 widgets (Top Researchers + Hot
+            Predictions). Markets widget removed; users can find market
+            data in /stocks rather than competing with the feed. */}
+        <aside className="hidden xl:flex flex-col gap-8 w-[240px] flex-shrink-0">
+          <div className="sticky top-24 flex flex-col gap-8">
+            <Leaderboard />
+            <TrendingPanel />
+          </div>
         </aside>
       </div>
 

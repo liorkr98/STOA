@@ -85,8 +85,10 @@ function PredictionPill({ action, ticker, lockPrice, targetPrice, isLocked }) {
           <span className="font-display ml-0.5">→ ${targetPrice}</span>
         )}
         {isLocked && (
-          <span className="inline-flex items-center gap-1 opacity-70 text-[11px] ml-0.5">
-            <Lock size={11} /> Target hidden
+          // Tease the locked target — show "Target: $▓▓▓" so subscribers
+          // feel what they're missing rather than nothing at all.
+          <span className="inline-flex items-center gap-1 text-[12px] ml-0.5 opacity-60">
+            → Target: <span className="font-display tracking-wider select-none" style={{ filter: "blur(3px)" }}>$•••</span>
           </span>
         )}
       </span>
@@ -504,7 +506,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                       className="cta-gold w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5"
                       style={{ borderRadius: 6 }}
                     >
-                      <CreditCard size={14} /> Subscribe . ${subscribePrice}/mo
+                      <CreditCard size={14} /> Subscribe · ${subscribePrice}/mo
                     </button>
                     {isPremium && report.price && (
                       <button
@@ -545,8 +547,24 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
           </div>
         )}
 
+        {/* Inline Subscribe CTA for locked content — Patreon-style:
+            unmissable "Subscribe · $XX/mo" rendered above the actions row
+            so investors never have to hunt for it. */}
+        {isLocked && (
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}&analystEmail=${authorEmail}`);
+            }}
+            className="cta-gold w-full inline-flex items-center justify-center gap-2 text-[13px] font-medium px-4 py-2.5 mt-2"
+            style={{ borderRadius: 6 }}
+          >
+            <Lock size={13} /> Subscribe to {authorName.split(" ")[0]} · ${subscribePrice}/mo
+          </button>
+        )}
+
         {/* ── FOOTER ── */}
-        <div className="flex items-center gap-3 pt-3 border-t border-border/60 mt-1">
+        <div className="flex items-center gap-3 pt-3 border-t border-border/60 mt-3">
           <span className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground pointer-events-none">
             <Eye size={13} /> <span className="font-display">{report.views || 0}</span>
           </span>

@@ -695,8 +695,35 @@ export default function AnalystProfilePage() {
     ...publishedReports.filter(r => !config.pinned_reports.includes(r.id)),
   ];
 
+  // Substack-style persistent Subscribe bar. Slides in after the hero
+  // scrolls out of view so investors always have a one-click path to
+  // subscribe — never more than one scroll away.
+  const showStickySubscribe = !isOwnProfile && !isSubscribed && currentUser;
+
   return (
     <div className="min-h-screen bg-background">
+
+      {showStickySubscribe && (
+        <div className="sticky top-14 z-40 bg-background/85 backdrop-blur-xl border-b border-border/60">
+          <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3">
+            <div className="shrink-0">
+              {(analyst.profile_picture_url || analyst.picture)
+                ? <img src={analyst.profile_picture_url || analyst.picture} alt={displayName} className="w-7 h-7 rounded-full object-cover border border-border" />
+                : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-[11px] font-medium text-primary">{displayName?.[0]}</div>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium text-foreground truncate">{displayName}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {scoring.total >= 1 && <><span className="font-display">{scoring.score}</span> score · </>}
+                <span className="font-display">{analyst.followers_count || 0}</span> followers
+              </div>
+            </div>
+            <Button size="sm" onClick={() => setShowSubModal(true)} className="cta-gold text-xs shrink-0" style={{ borderRadius: 6 }}>
+              Subscribe · ${SUBSCRIPTION_PRICE_USD}/mo
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ── Edit mode sticky bar ── */}
       {isEditMode && (
@@ -853,7 +880,7 @@ export default function AnalystProfilePage() {
                       </Link>
                     ) : (
                       <Button size="sm" onClick={() => setShowSubModal(true)} className="cta-gold text-xs" style={{ borderRadius: 6 }}>
-                        Subscribe . ${SUBSCRIPTION_PRICE_USD}/mo
+                        Subscribe · ${SUBSCRIPTION_PRICE_USD}/mo
                       </Button>
                     )}
                   </>
@@ -920,22 +947,42 @@ export default function AnalystProfilePage() {
               </div>
             )}
 
-            {/* Stats strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {ALL_STATS.map(stat => (
-                <StatCard
-                  key={stat.key}
-                  statKey={stat.key}
-                  scoring={scoring}
-                  analyst={analyst}
-                  publishedCount={publishedReports.length}
-                  isHidden={config.hidden_stats.includes(stat.key)}
-                  isEditMode={isEditMode}
-                  onToggle={toggleHideStat}
-                  onClick={() => setShowAccModal(true)}
-                />
-              ))}
+            {/* Followers count + social-proof row — Patreon-style.
+                Sits above the stat grid so it reads as the dominant trust
+                signal even when there's no resolved-prediction data yet. */}
+            <div className="flex items-center gap-5 text-[13px] text-muted-foreground mb-5 pb-5 border-b border-border/60">
+              <span><span className="font-display text-foreground font-medium">{analyst.followers_count || 0}</span> followers</span>
+              <span className="text-border">|</span>
+              <span><span className="font-display text-foreground font-medium">{publishedReports.length}</span> reports</span>
+              {scoring.total >= 1 && (
+                <>
+                  <span className="text-border">|</span>
+                  <span><span className="font-display text-foreground font-medium">{scoring.total}</span> resolved predictions</span>
+                </>
+              )}
             </div>
+
+            {/* Stats strip — hidden until there is at least one resolved
+                prediction. Showing five "—" tiles is anti-conversion: it
+                screams "no track record" before the visitor has even seen
+                the analyst's content. */}
+            {scoring.total >= 1 && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {ALL_STATS.map(stat => (
+                  <StatCard
+                    key={stat.key}
+                    statKey={stat.key}
+                    scoring={scoring}
+                    analyst={analyst}
+                    publishedCount={publishedReports.length}
+                    isHidden={config.hidden_stats.includes(stat.key)}
+                    isEditMode={isEditMode}
+                    onToggle={toggleHideStat}
+                    onClick={() => setShowAccModal(true)}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Edit mode stat hint */}
             {isEditMode && (
@@ -969,6 +1016,18 @@ export default function AnalystProfilePage() {
             )}
           </div>
         </div>
+
+        {/* ── HERO: Track Record Visualization ──
+            eToro-style equity curve as the dominant element above the
+            fold. This is the 2-second proof — "does this analyst know
+            their stuff?" — and answers that question before any tab is
+            tapped. Only renders when there are resolved predictions to
+            chart; otherwise we'd just be drawing a flat line. */}
+        {resolvedReports.length > 0 && (
+          <div className="mb-6">
+            <PerformanceVsMarket resolvedReports={resolvedReports} />
+          </div>
+        )}
 
         {/* ── Section reorder hint (edit mode) ── */}
         {isEditMode && (

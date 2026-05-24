@@ -680,19 +680,27 @@ export default function ReportView() {
   // tickers is stored as a comma-separated string
   const tickers = (report.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
 
+  // Show a Substack-style sticky bottom Subscribe CTA whenever the
+  // viewer is reading a premium report they haven't paid for. Drives the
+  // "feel FOMO → subscribe" arc described in the redesign brief.
+  const showStickyPaywall = isPremium && !isPaid && !isAuthor && !unlockedNow;
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={goBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back
+    <div className="max-w-[680px] mx-auto px-5 py-10">
+      <button onClick={goBack} className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
 
       {tickers.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-5">
           {tickers.map(t => <TickerTag key={t} ticker={t} />)}
         </div>
       )}
 
-      <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4">{report.title}</h1>
+      {/* Substack-style editorial title — larger, serif, generous margins. */}
+      <h1 className="font-serif font-medium text-foreground tracking-tight mb-6 leading-[1.12]" style={{ fontSize: "clamp(30px, 4.5vw, 42px)", letterSpacing: "-0.022em" }}>
+        {report.title}
+      </h1>
 
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button onClick={() => navigate(`/analyst?id=${report.created_by}`)} className="flex items-center gap-2">
@@ -887,7 +895,7 @@ export default function ReportView() {
                     size="lg"
                     style={{ borderRadius: 6 }}
                   >
-                    Subscribe . $9/mo
+                    Subscribe · $9/mo
                   </Button>
                 </div>
 
@@ -1047,6 +1055,34 @@ export default function ReportView() {
         showSplit={true}
         confirmLabel="Subscribe"
       />
+
+      {/* Substack-style sticky bottom CTA — only shown when the viewer is
+          looking at a premium report they haven't paid for. Always one
+          tap away to subscribe; the lower position is intentional so it
+          fires the FOMO trigger after the excerpt is read but before the
+          reader bounces. */}
+      {showStickyPaywall && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60">
+          <div className="max-w-[680px] mx-auto px-5 py-3 flex items-center gap-3">
+            <div className="hidden sm:block flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-foreground truncate">
+                Subscribe to unlock the full thesis
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Read every report from <span className="text-foreground font-medium">{authorName}</span>
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setShowSubDialog(true)}
+              className="cta-gold text-[13px] gap-1.5 shrink-0 ml-auto"
+              style={{ borderRadius: 6 }}
+            >
+              Subscribe to {authorName.split(" ")[0]} · $9/mo
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

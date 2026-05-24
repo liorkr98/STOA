@@ -213,20 +213,23 @@ export default function LandingPage() {
           </div>
 
           <h1 className="font-serif font-medium text-foreground leading-[1.08] mb-7 tracking-tight" style={{ fontSize: "clamp(38px, 6.5vw, 76px)", letterSpacing: "-0.025em" }}>
-            Where Financial Researchers<br />
-            <span className="text-accent">Build Their Reputation</span>
+            Find analysts who are<br />
+            <span className="text-accent">actually right.</span>
           </h1>
 
           <p className="text-muted-foreground max-w-[620px] mx-auto mb-11 leading-relaxed" style={{ fontSize: "clamp(16px, 2vw, 19px)" }}>
-            Publish research. Lock price targets publicly. Let the market grade your calls — automatically. The first platform where your track record is the product.
+            Every prediction is locked and tracked. Subscribe to the researchers with the receipts — or publish your own and let the market grade your calls. The platform where the track record is the product.
           </p>
 
+          {/* Primary CTA is now investor-first ("Browse Researchers"),
+              with publishing as the secondary path. Investors are the
+              larger audience and the revenue source. */}
           <div className="flex gap-3.5 justify-center flex-wrap mb-14">
-            <button onClick={primaryAction} className="cta-gold inline-flex items-center gap-2 text-base font-medium px-9 py-4" style={{ borderRadius: 6 }}>
-              {primaryLabel} <ArrowRight className="w-5 h-5" />
+            <button onClick={user ? enterPlatform : go} className="cta-gold inline-flex items-center gap-2 text-base font-medium px-9 py-4" style={{ borderRadius: 6 }}>
+              Browse Top Researchers <ArrowRight className="w-5 h-5" />
             </button>
-            <button onClick={user ? enterPlatform : go} className="inline-flex items-center gap-2 text-base font-medium px-9 py-4 rounded-sm border border-border text-foreground hover:bg-secondary/40 transition-colors" style={{ borderRadius: 6 }}>
-              Browse Top Researchers
+            <button onClick={primaryAction} className="inline-flex items-center gap-2 text-base font-medium px-9 py-4 rounded-sm border border-border text-foreground hover:bg-secondary/40 transition-colors" style={{ borderRadius: 6 }}>
+              {user ? primaryLabel : "Start Publishing →"}
             </button>
           </div>
 

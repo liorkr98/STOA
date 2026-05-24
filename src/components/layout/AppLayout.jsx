@@ -158,20 +158,17 @@ export default function AppLayout() {
         Skip to main content
       </a>
 
-      {/* Navbar */}
-      <header role="banner" className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
+      {/* Navbar — editorial, minimal chrome. Text links, not pill buttons.
+          Active state is a 1px underline below the label, matching the
+          design system's "no background highlights on nav items" rule. */}
+      <header role="banner" className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60">
+        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-8">
           <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
-            <StoaLogo size={32} textSize="text-xl" />
+            <StoaLogo size={28} textSize="text-lg" />
           </Link>
 
-          <div className="flex-1 max-w-sm hidden sm:block">
-            <SearchBar />
-          </div>
-
-          <nav role="navigation" aria-label="Main navigation" className="flex items-center gap-1 ml-auto">
+          <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-7">
             {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
                 <Link
@@ -180,17 +177,39 @@ export default function AppLayout() {
                   aria-label={item.label}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm font-medium transition-colors",
+                    "relative text-[13px] font-medium tracking-[0.01em] transition-colors py-1",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
+                  style={{ letterSpacing: "0.3px" }}
                 >
-                  <Icon className="w-4 h-4" aria-hidden="true" />
-                  <span className="hidden md:inline">{item.label}</span>
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute -bottom-[2px] left-0 right-0 h-px bg-foreground" />
+                  )}
                 </Link>
               );
             })}
+          </nav>
+
+          <div className="flex-1 max-w-xs hidden lg:block ml-auto">
+            <SearchBar />
+          </div>
+
+          <nav role="navigation" aria-label="Account" className="flex items-center gap-2 ml-auto lg:ml-0">
+            {/* Write CTA — visible to analysts at all times so publishing is
+                always one click away (Beehiiv-style). Editorial pill, not a
+                heavy button. */}
+            {isAuthenticated && isAnalyst && (
+              <Link
+                to="/editor"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-border text-[12px] font-medium text-foreground hover:border-accent/50 hover:text-accent transition-colors"
+              >
+                <PenLine className="w-3.5 h-3.5" />
+                Write
+              </Link>
+            )}
             {isAuthenticated ? (
               <div className="flex items-center gap-1">
                 {/* Wallet balance chip — quick spend + top-up */}

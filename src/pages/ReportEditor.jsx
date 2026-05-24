@@ -981,8 +981,11 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         </div>
       </div>
 
-      {/* ── Main content ── */}
- <div className="max-w-6xl mx-auto px-4 py-4">
+      {/* ── Main content ──
+          Editor narrowed to a Medium/Substack-style measure (~720px main
+          column) when no panel is active. Wider only when the design
+          preview pane needs the room. */}
+ <div className="max-w-[760px] mx-auto px-6 py-8">
         {editorMode === "quick" ? (
           <QuickPostEditor quickImage={quickImage} setQuickImage={setQuickImage}
             quickShowPrediction={quickShowPrediction} setQuickShowPrediction={setQuickShowPrediction}
