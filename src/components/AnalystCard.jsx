@@ -1,24 +1,78 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import Sparkline from "@/components/charts/Sparkline";
+import { avatarUrl } from "@/lib/avatarUrl";
 
 /**
- * Avatar — square 8px navy block with initials. NOT circular.
- * Sizes match base.css: sm 28 / md 38 / lg 52 / xl 84.
+ * useAvatarVersion — bumps whenever a profile picture is updated anywhere
+ * in the app. Every Avatar consumer keys off this so a single upload
+ * refreshes the picture across all visible surfaces without a reload.
  */
-function Avatar({ a, size = "md", ring = false, className }) {
+export function useAvatarVersion() {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    const bump = () => setV((n) => n + 1);
+    window.addEventListener("stoa-avatar-updated", bump);
+    return () => window.removeEventListener("stoa-avatar-updated", bump);
+  }, []);
+  return v;
+}
+
+export function bustAvatarCache(url) {
+  if (!url) return null;
+  return url.includes("?") ? `${url}&v=${Date.now()}` : `${url}?v=${Date.now()}`;
+}
+
+/**
+ * Avatar — square 8px navy block.
+ * Renders an <img> when the user has a profile picture, otherwise initials.
+ * NOT circular by default — the 8px geometry is part of the editorial identity.
+ *
+ * Pass either:
+ *   <Avatar a={{ initials, avatarColor, profile_picture_url, picture }} … />
+ *   <Avatar user={userEntity} … />
+ *   <Avatar src="…" initials="BA" … />
+ */
+function Avatar({ a, user, src, initials, size = "md", ring = false, className }) {
+  const version = useAvatarVersion();
+  const source = a || user || {};
+  const imgUrl = src ?? avatarUrl(source);
+  const text =
+    initials ??
+    source.initials ??
+    ((source.full_name || source.name || source.email || "?")
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase());
+  const bg = source.avatarColor || "var(--primary-blue)";
   const sizeClass = `av av-${size}`;
+  const ringShadow = ring
+    ? "0 0 0 3px var(--bg), 0 0 0 4px var(--gold-hex)"
+    : undefined;
+
+  if (imgUrl) {
+    return (
+      <img
+        key={`${imgUrl}-${version}`}
+        src={imgUrl}
+        alt={source.full_name || source.name || "Avatar"}
+        className={cn(sizeClass, className)}
+        style={{
+          objectFit: "cover",
+          background: bg,
+          boxShadow: ringShadow,
+        }}
+      />
+    );
+  }
   return (
     <div
       className={cn(sizeClass, className)}
-      style={{
-        background: a.avatarColor || "var(--primary-blue)",
-        boxShadow: ring
-          ? "0 0 0 3px var(--bg), 0 0 0 4px var(--gold-hex)"
-          : undefined,
-      }}
+      style={{ background: bg, boxShadow: ringShadow }}
     >
-      {a.initials}
+      {text}
     </div>
   );
 }

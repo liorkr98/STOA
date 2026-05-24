@@ -140,7 +140,7 @@ function FeedItem({ report, author, currentUser, isFollowing, onFollowToggle, on
     >
       {/* Author row */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="md"/>
+        <Avatar a={{ ...(author || {}), initials, avatarColor: "var(--primary-blue)" }} size="md"/>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="t-title" style={{ fontSize: 14 }}>{authorName}</span>
@@ -435,27 +435,37 @@ export default function HomeFeed() {
 
   return (
     <div className="page" style={{ background: "var(--bg)" }}>
-      {/* Section banner */}
-      <section style={{ padding: "40px 0 28px", borderBottom: "0.5px solid var(--border-rgba)" }}>
-        <div className="shell">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      {/* Section banner — navy hero (matches Markets) */}
+      <section className="ambient" style={{
+        background: "var(--deepest-navy)", color: "#fff",
+        padding: "48px 0 40px",
+        position: "relative", overflow: "hidden",
+        borderBottom: "0.5px solid var(--border-rgba)",
+      }}>
+        <style>{`
+          .feed-hero::before { background: var(--primary-blue); opacity: 0.22; }
+          .feed-hero::after  { background: var(--gold-hex); opacity: 0.10; }
+        `}</style>
+        <div className="feed-hero ambient" style={{ position: "absolute", inset: 0, padding: 0 }}/>
+        <div className="shell" style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
             <div>
-              <div className="t-eyebrow" style={{ marginBottom: 12 }}>The Stoa</div>
-              <h1 className="t-display" style={{ fontSize: 44, margin: 0 }}>
+              <div className="t-eyebrow" style={{ color: "var(--gold-light-hex)", marginBottom: 10 }}>The Stoa</div>
+              <h1 className="t-display" style={{ fontSize: 44, margin: 0, color: "#fff", letterSpacing: "-0.02em" }}>
                 Read what's <em style={{ fontStyle: "italic" }}>working</em>.
               </h1>
-              <p className="t-body" style={{ fontSize: 15, color: "var(--text-mute)", margin: "10px 0 0", maxWidth: 540 }}>
-                Live research from analysts ranked by their record. Every prediction in this feed is locked and grading toward a public Elo.
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", margin: "10px 0 0", maxWidth: 540, lineHeight: 1.55 }}>
+                Live research from analysts ranked by their record.
               </p>
             </div>
 
             <div style={{
-              display: "flex", gap: 8, padding: 4,
-              border: "0.5px solid var(--border-strong)", borderRadius: 8,
-              background: "var(--bg-elev)",
+              display: "flex", gap: 6, padding: 4,
+              border: "0.5px solid rgba(255,255,255,0.18)", borderRadius: 8,
+              background: "rgba(255,255,255,0.04)",
             }}>
               {[
-                { id: "trending", label: "Trending" },
+                { id: "trending", label: "Research feed" },
                 ...(isAuthenticated ? [
                   { id: "following", label: "Following" },
                   { id: "subscriptions", label: "Subscriptions" },
@@ -467,9 +477,10 @@ export default function HomeFeed() {
                   onClick={() => setView(v.id)}
                   className="btn btn-sm"
                   style={{
-                    background: view === v.id ? "var(--deepest-navy)" : "transparent",
-                    color: view === v.id ? "#fff" : "var(--text-mute)",
+                    background: view === v.id ? "#fff" : "transparent",
+                    color: view === v.id ? "var(--deepest-navy)" : "rgba(255,255,255,0.72)",
                     borderRadius: 6, height: 28, padding: "0 12px",
+                    border: "none",
                   }}
                 >
                   {v.label}
@@ -554,7 +565,7 @@ export default function HomeFeed() {
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
                     <span className="t-num" style={{ fontSize: 12, width: 22, color: "var(--text-meta)" }}>#{i + 1}</span>
-                    <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="sm"/>
+                    <Avatar a={{ ...u, initials, avatarColor: "var(--primary-blue)" }} size="sm"/>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="t-title" style={{ fontSize: 13.5, lineHeight: 1.2 }}>{u.full_name || u.email?.split("@")[0]}</div>
                       <div className="t-meta" style={{ fontSize: 11 }}>{u.bio?.slice(0, 32) || u.title || "Researcher"}</div>
@@ -678,7 +689,7 @@ export default function HomeFeed() {
                       style={{ padding: 22, cursor: "pointer", textDecoration: "none", color: "inherit" }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-                        <Avatar a={{ initials, avatarColor: "var(--primary-blue)" }} size="lg"/>
+                        <Avatar a={{ ...u, initials, avatarColor: "var(--primary-blue)" }} size="lg"/>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div className="t-title" style={{ fontSize: 16 }}>{u.full_name || u.email?.split("@")[0]}</div>
                           <div className="t-meta" style={{ fontSize: 12 }}>{u.bio?.slice(0, 60) || "Researcher"}</div>
