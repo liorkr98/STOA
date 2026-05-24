@@ -33,7 +33,7 @@ function predictionToCall(p) {
   const change = entry && exit ? ((exit - entry) / entry) * 100 * (p.direction === "Short" ? -1 : 1) : 0;
   const created = p.created_date ? new Date(p.created_date) : new Date();
   return {
-    id: p.id?.toString().slice(0, 6) || "p",
+    id: p.id?.toString()?.slice(0, 6) || "p",
     ticker: p.ticker,
     dir: (p.direction || "LONG").toUpperCase(),
     entry, target, exit,
