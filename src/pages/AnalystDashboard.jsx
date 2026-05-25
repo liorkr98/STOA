@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home, PenLine, Lock, FileText, Users, BarChart3, Wallet as WalletIcon,
   Settings as SettingsIcon, TrendingUp, Plus, ArrowRight, MoreHorizontal,
-  MessageCircle,
+  MessageCircle, FileEdit, ChevronRight,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -56,6 +56,7 @@ const NAV = [
   { id: "overview",     icon: Home,         label: "Overview" },
   { id: "compose",      icon: PenLine,      label: "Compose" },
   { id: "predictions",  icon: Lock,         label: "Predictions" },
+  { id: "drafts",       icon: FileEdit,     label: "Drafts" },
   { id: "publications", icon: FileText,     label: "Publications" },
   { id: "audience",     icon: Users,        label: "Audience" },
   { id: "messages",     icon: MessageCircle,label: "Messages" },
@@ -735,6 +736,7 @@ export default function AnalystDashboard() {
   const openCalls = calls.filter((c) => c.status === "open");
   const resolvedCalls = calls.filter((c) => c.status === "resolved");
   const publishedReports = myReports.filter((r) => r.status === "published");
+  const draftReports = myReports.filter((r) => r.status !== "published" && r.status !== "scheduled");
   const topReports = [...publishedReports].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
   const elo = profile?.elo ?? Math.round(((profile?.accuracy_score || 60) / 100) * 800 + 600);
@@ -769,6 +771,7 @@ export default function AnalystDashboard() {
 
   const counts = {
     predictions: openCalls.length,
+    drafts: draftReports.length,
     publications: publishedReports.length,
     audience: subscribers.length,
   };
@@ -807,6 +810,63 @@ export default function AnalystDashboard() {
         )}
         {!loading && section === "predictions" && (
           <PredictionsStudio openCalls={openCalls} resolvedCalls={resolvedCalls} navigate={navigate}/>
+        )}
+        {!loading && section === "drafts" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <div>
+                <h1 className="t-display" style={{ fontSize: 28, margin: 0 }}>Drafts</h1>
+                <p className="t-meta" style={{ marginTop: 4 }}>
+                  Unpublished reports — auto-saved as you write.
+                </p>
+              </div>
+              <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+                <PenLine size={13} strokeWidth={1.7}/> New draft
+              </button>
+            </div>
+            <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+              {draftReports.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center" }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <FileEdit size={22} strokeWidth={1.4} style={{ color: "var(--text-faint)" }}/>
+                  </div>
+                  <div className="t-body" style={{ fontSize: 14, color: "var(--text-mute)", marginBottom: 4 }}>
+                    No drafts yet
+                  </div>
+                  <div className="t-meta" style={{ marginBottom: 14 }}>
+                    Start writing in the editor — your work auto-saves here.
+                  </div>
+                  <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+                    Start writing
+                  </button>
+                </div>
+              ) : (
+                draftReports.map((r, i, arr) => (
+                  <Link
+                    key={r.id}
+                    to={`/editor?draft=${r.id}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 16,
+                      padding: "16px 22px",
+                      borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+                      textDecoration: "none", color: "inherit",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="t-body" style={{ fontSize: 14, color: "var(--text)" }}>
+                        {r.title || "Untitled Draft"}
+                      </div>
+                      <div className="t-meta" style={{ fontSize: 11, marginTop: 2 }}>
+                        Last edited {new Date(r.updated_date || r.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
+                    <span className="tag">Draft</span>
+                    <ChevronRight size={14} strokeWidth={1.5} style={{ color: "var(--text-meta)" }}/>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
         )}
         {!loading && section === "publications" && (
           <div>

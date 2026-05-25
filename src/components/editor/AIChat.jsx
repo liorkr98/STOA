@@ -297,8 +297,11 @@ const INIT_MSG = {
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function AIChat({ reportContent, onInsertBlock }) {
-  const [open, setOpen]         = useState(false);
+export default function AIChat({ reportContent, onInsertBlock, onClose }) {
+  // Default to open when mounted via the editor's "Open AI chat" flow — the
+  // parent only renders us when the user has explicitly asked to chat, so
+  // there's no reason to make them click the floating pill again.
+  const [open, setOpen]         = useState(true);
   const [minimized, setMinimized] = useState(false);
   const [messages, setMessages] = useState([INIT_MSG]);
   const [input, setInput]       = useState("");
@@ -559,6 +562,9 @@ Analyst:`;
   }
 
   // ── Floating panel ──────────────────────────────────────────────────────
+  // Bound the panel's height to the available viewport space below its `top`
+  // (minus a 16px breathing margin). Without this the input row + quick prompts
+  // could push below the fold on short viewports — the bug Bar reported.
   return (
     <div
       style={{
@@ -567,6 +573,7 @@ Analyst:`;
         top:        pos.y,
         zIndex:     60,
         width:      370,
+        maxHeight:  `calc(100vh - ${pos.y}px - 16px)`,
         userSelect: dragging ? "none" : "auto",
       }}
       className="surface overflow-hidden flex flex-col"
@@ -603,7 +610,7 @@ Analyst:`;
           </button>
           <button
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => setOpen(false)}
+            onClick={() => { setOpen(false); onClose?.(); }}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <X className="w-3.5 h-3.5" />
@@ -643,16 +650,13 @@ Analyst:`;
             </div>
           </div>
 
-          {/* Message list */}
+          {/* Message list — flex-1 with min-h-0 lets the list shrink and scroll,
+              while the header/quick-prompts row above and the input row below
+              stay pinned. The parent panel's maxHeight clamps the whole thing
+              to the viewport so nothing is ever clipped. */}
           <div
-            className="flex-1 overflow-y-auto p-3 space-y-3"
-            style={{
-              // Shrinks the message list on short viewports so the input
-              // and quick-prompts stay visible. Was a fixed 340px which
-              // pushed the input below the fold on screens < 680px tall.
-              height:    "min(340px, calc(100vh - 280px))",
-              maxHeight: "min(340px, calc(100vh - 280px))",
-            }}
+            className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3"
+            style={{ minHeight: 140 }}
           >
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>

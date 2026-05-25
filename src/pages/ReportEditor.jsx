@@ -1125,7 +1125,14 @@ export default function ReportEditor() {
           <Lock size={12} strokeWidth={1.6}/> {publishing ? "Publishing…" : "Lock & publish"}
         </button>
         <button
-          onClick={() => setAiOpen(!aiOpen)}
+          onClick={() => {
+            const next = !aiOpen;
+            setAiOpen(next);
+            // The floating AI Research Assistant chat shares the right edge
+            // of the editor with the rail — close the chat whenever the rail
+            // opens so the two surfaces never overlap.
+            if (next) setAiChatOpen(false);
+          }}
           className="btn btn-ghost btn-sm"
           style={{
             width: 32, padding: 0,
@@ -1519,7 +1526,7 @@ export default function ReportEditor() {
                 Generate report skeleton
               </button>
               <button
-                onClick={() => setAiChatOpen(true)}
+                onClick={() => { setAiChatOpen(true); setAiOpen(false); }}
                 className="btn btn-ghost"
                 style={{ width: "100%", justifyContent: "flex-start", gap: 10 }}
               >
@@ -1640,6 +1647,7 @@ export default function ReportEditor() {
       {aiChatOpen && (
         <AIChat
           reportContent={blocks.map((b) => b.text || "").join("\n\n")}
+          onClose={() => setAiChatOpen(false)}
           onInsertBlock={(block) => {
             // AIChat returns {type, content} → convert and append
             const type = block.type === "heading" ? "h" : "p";
