@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Search, Star, X, Users } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { loadWatchlist, saveWatchlist, subscribeToWatchlist } from "@/lib/watchlistStore";
 
 const PAGE_SIZE = 50;
-const WATCHLIST_KEY = "stoa_watchlist";
 
 // ── Data fetchers (preserved verbatim from .backup) ──────────────────────────
 async function fetchTopStocks() {
@@ -345,19 +345,12 @@ function WatchRow({ stock, onRemove, onClick }) {
 export default function StocksPage() {
   const navigate = useNavigate();
 
-  // Watchlist (persisted in localStorage). Older builds stored watchlist as
-  // an array of plain ticker strings ("NVDA"); the new shape is
-  // [{ symbol, name }]. Normalize on load so a legacy localStorage entry
-  // doesn't crash the Markets page on first render.
-  const [watchlist, setWatchlist] = useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-      if (!Array.isArray(raw)) return [];
-      return raw
-        .map((w) => (typeof w === "string" ? { symbol: w, name: w } : w))
-        .filter((w) => w && typeof w.symbol === "string");
-    } catch { return []; }
-  });
+  // Watchlist — single source of truth lives in watchlistStore (key
+  // stoa_watchlist). Subscribe so Feed/Studio mutations show up here
+  // immediately, and write back through saveWatchlist so the same custom
+  // event fires the other direction too.
+  const [watchlist, setWatchlist] = useState(loadWatchlist);
+  useEffect(() => subscribeToWatchlist(setWatchlist), []);
   const [watchlistData, setWatchlistData] = useState([]);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
 
@@ -396,15 +389,13 @@ export default function StocksPage() {
   }, []);
 
   const toggleWatch = useCallback((symbol, name) => {
-    setWatchlist((prev) => {
-      const exists = prev.find((w) => w.symbol === symbol);
-      const next = exists
-        ? prev.filter((w) => w.symbol !== symbol)
-        : [...prev, { symbol, name: name || symbol }];
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next));
-      toast.success(exists ? `${symbol} removed` : `${symbol} added to watchlist`);
-      return next;
-    });
+    const prev = loadWatchlist();
+    const exists = prev.some((w) => w.symbol === symbol);
+    const next = exists
+      ? prev.filter((w) => w.symbol !== symbol)
+      : [...prev, { symbol, name: name || symbol }];
+    saveWatchlist(next);
+    toast.success(exists ? `${symbol} removed` : `${symbol} added to watchlist`);
   }, []);
 
   const refreshWatchlist = useCallback(async () => {
@@ -574,7 +565,7 @@ export default function StocksPage() {
                   key={s.symbol}
                   stock={s}
                   onRemove={() => toggleWatch(s.symbol, s.name)}
-                  onClick={() => navigate(`/stock/${s.symbol}`)}
+                  onClick={() => navigate(`/stock?ticker=${s.symbol}`)}
                 />
               ))}
             </div>
@@ -664,7 +655,7 @@ export default function StocksPage() {
                 stock={s}
                 isWatched={watchedSet.has(s.symbol)}
                 onToggleWatch={() => toggleWatch(s.symbol, s.name)}
-                onClick={() => navigate(`/stock/${s.symbol}`)}
+                onClick={() => navigate(`/stock?ticker=${s.symbol}`)}
               />
             ))}
           </div>

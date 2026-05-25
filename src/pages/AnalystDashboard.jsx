@@ -31,6 +31,12 @@ function predToCall(p) {
   const change = entry && exit
     ? ((exit - entry) / entry) * 100 * (p.direction === "Short" ? -1 : 1) : 0;
   const created = p.created_date ? new Date(p.created_date) : new Date();
+  const totalDays = p.timeframe_days || 90;
+  // Days remaining = (window length) - (days since the prediction was locked).
+  // Clamped to >=0 so an overdue-but-still-open call shows "0 days" rather
+  // than a negative number.
+  const elapsedDays = Math.max(0, Math.floor((Date.now() - created.getTime()) / 86400000));
+  const daysRemaining = status === "open" ? Math.max(0, totalDays - elapsedDays) : 0;
   return {
     id: p.id?.toString()?.slice(0, 6) || "p",
     ticker: p.ticker,
@@ -40,7 +46,8 @@ function predToCall(p) {
     grade, status,
     date: created.toLocaleDateString("en-US", { month: "short", day: "2-digit" }),
     year: created.getFullYear(),
-    days: p.timeframe_days || 90,
+    days: totalDays,
+    daysRemaining,
     thesis: p.thesis || p.headline || "",
   };
 }
@@ -440,7 +447,51 @@ function Earnings({ wallet, lifetime }) {
         </div>
       </div>
 
+      {/* Payout history — keeps Earnings focused on the wallet/cashflow view.
+          Revenue analytics charts moved to the Analytics tab. */}
       <h3 className="t-title" style={{ fontSize: 17, margin: "20px 0 12px" }}>
+        Recent payouts
+      </h3>
+      <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+        {(wallet?.payouts || []).length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <span className="t-meta">No payouts yet. They'll appear here as soon as you withdraw to Stripe.</span>
+          </div>
+        ) : (
+          (wallet.payouts || []).slice(0, 8).map((p, i, arr) => (
+            <div
+              key={p.id || i}
+              style={{
+                display: "flex", alignItems: "center", padding: "14px 22px", gap: 20,
+                borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-rgba)" : "none",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div className="t-body" style={{ fontSize: 13 }}>{p.description || "Stripe payout"}</div>
+                <div className="t-meta" style={{ fontSize: 11, marginTop: 2 }}>
+                  {p.date ? new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                </div>
+              </div>
+              <div className="t-num" style={{ fontSize: 14, color: "var(--text)" }}>
+                ${(p.amount || 0).toLocaleString()}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Revenue chart — extracted so Analytics can render it without dragging
+// in the rest of the Earnings wallet card. Same look & data series. ─────
+function RevenueChart({ wallet }) {
+  const months = ["Dec", "Jan", "Feb", "Mar", "Apr", "May"];
+  const series = wallet?.history || months.map((m) => ({ m, v: 0 }));
+  const max = Math.max(...series.map((s) => s.v || 0), 1000);
+  return (
+    <div>
+      <h3 className="t-title" style={{ fontSize: 17, margin: "0 0 12px" }}>
         Revenue · last 6 months
       </h3>
       <div className="surface" style={{ padding: 22 }}>
@@ -539,6 +590,105 @@ function Placeholder({ name }) {
     }}>
       <h2 className="t-display" style={{ fontSize: 28, margin: 0, textTransform: "capitalize" }}>{name}</h2>
       <p className="t-meta">Coming soon — full screen design pending.</p>
+    </div>
+  );
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+// Monetization controls — subscription price, payout details. The
+// subscription price is the per-month USD figure shown on the analyst's
+// public profile and used by SubscribeCTA / WalletConfirmDialog.
+function StudioSettings({ user }) {
+  const [price, setPrice] = useState(user?.monthly_price ?? 9);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(null);
+
+  useEffect(() => {
+    if (user?.monthly_price != null) setPrice(user.monthly_price);
+  }, [user?.monthly_price]);
+
+  const save = async () => {
+    const v = Math.min(200, Math.max(5, Number(price) || 5));
+    setSaving(true);
+    try {
+      await base44.auth.updateMyUserData({ monthly_price: v });
+      setSavedMsg("Saved.");
+      setTimeout(() => setSavedMsg(null), 2200);
+    } catch {
+      setSavedMsg("Save failed.");
+      setTimeout(() => setSavedMsg(null), 2200);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      <h1 className="t-display" style={{ fontSize: 28, margin: 0 }}>Settings</h1>
+
+      <div className="surface" style={{ padding: 24 }}>
+        <div className="t-eyebrow" style={{ marginBottom: 8 }}>Monetization</div>
+        <h3 className="t-title" style={{ fontSize: 18, margin: "0 0 4px" }}>Monthly subscription price</h3>
+        <p className="t-meta" style={{ fontSize: 12, lineHeight: 1.5, margin: "0 0 18px" }}>
+          The price shown on your public profile. Subscribers pay this every
+          month for full access to your reports and DMs. You keep 90% — Stoa
+          fee is 10%.
+        </p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            display: "flex", alignItems: "center",
+            border: "0.5px solid var(--border-strong)",
+            borderRadius: 6,
+            background: "var(--bg-elev)",
+            padding: "0 14px",
+            height: 44,
+          }}>
+            <span className="t-num" style={{ fontSize: 22, color: "var(--gold-hex)" }}>$</span>
+            <input
+              type="number"
+              min={5}
+              max={200}
+              step={1}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              style={{
+                width: 80, height: 38,
+                border: 0, outline: 0, background: "transparent",
+                padding: "0 6px",
+                fontFamily: "var(--f-mono)", fontSize: 22,
+                color: "var(--text)", textAlign: "right",
+              }}
+            />
+            <span className="t-meta" style={{ fontSize: 12, marginLeft: 6 }}>/ mo</span>
+          </div>
+          <button
+            className="btn btn-gold btn-sm"
+            onClick={save}
+            disabled={saving || !(Number(price) >= 5 && Number(price) <= 200)}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          {savedMsg && (
+            <span className="t-meta" style={{ fontSize: 11.5, color: savedMsg === "Saved." ? "var(--rolex-green)" : "var(--velvet-red)" }}>
+              {savedMsg}
+            </span>
+          )}
+        </div>
+        <p className="t-meta" style={{ fontSize: 11, marginTop: 10 }}>
+          Range: $5 – $200 / month. Existing subscribers keep their old price
+          until they cancel and re-subscribe.
+        </p>
+      </div>
+
+      <div className="surface" style={{ padding: 24 }}>
+        <div className="t-eyebrow" style={{ marginBottom: 8 }}>Payout</div>
+        <h3 className="t-title" style={{ fontSize: 18, margin: "0 0 4px" }}>Withdrawals via Stripe</h3>
+        <p className="t-meta" style={{ fontSize: 12, lineHeight: 1.55, margin: 0 }}>
+          Stripe Express is the only payout method. Manage your connected
+          account from the Earnings tab.
+        </p>
+      </div>
     </div>
   );
 }
@@ -703,24 +853,20 @@ export default function AnalystDashboard() {
           </div>
         )}
         {!loading && section === "earnings" && (
-          <>
-            <Earnings wallet={wallet} lifetime={lifetime}/>
-            {/* Revenue Insights — restored from backup */}
-            <div style={{ marginTop: 22 }}>
-              <RevenueInsightsPanel/>
-            </div>
-          </>
+          <Earnings wallet={wallet} lifetime={lifetime}/>
         )}
         {!loading && section === "analytics" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
             <h1 className="t-display" style={{ fontSize: 28, margin: "0 0 8px" }}>Analytics</h1>
-            {/* Twits + Watchlist + Revenue Insights — restored from backup */}
+            {/* Revenue analytics live here, not in Earnings. Earnings stays
+                focused on balance + withdrawal + payout history. */}
+            <RevenueChart wallet={wallet}/>
+            <RevenueInsightsPanel/>
             <TwitsPanel currentUser={user}/>
             <WatchlistPanel reports={myReports}/>
-            <RevenueInsightsPanel/>
           </div>
         )}
-        {!loading && section === "settings" && <Placeholder name={section}/>}
+        {!loading && section === "settings" && <StudioSettings user={user}/>}
       </main>
     </div>
   );

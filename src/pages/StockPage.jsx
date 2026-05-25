@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, PenLine, TrendingUp, TrendingDown, Globe, Users, Building2, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 
-const WATCHLIST_KEY = "stoa_watchlist";
+import { isWatched as wlIs, addToWatchlist, removeFromWatchlist, subscribeToWatchlist } from "@/lib/watchlistStore";
 import { Badge } from "@/components/ui/badge";
 import { setMeta } from "@/lib/seo";
 import {
@@ -29,7 +29,12 @@ export default function StockPage() {
   const navigate    = useNavigate();
   const goBack      = useGoBack("/stocks");
   const urlParams   = new URLSearchParams(window.location.search);
-  const ticker      = urlParams.get("ticker")?.toUpperCase() || "NVDA";
+  const routeParams = useParams();
+  // Accept either /stock/:ticker (path param) or /stock?ticker=XXX (query
+  // string). Path param takes priority; falls back to NVDA only if neither
+  // is present. Fix for trending tickers / stock cards / watchlist rows
+  // that were all routing to NVDA regardless of which symbol was clicked.
+  const ticker      = (routeParams.ticker || urlParams.get("ticker") || "NVDA").toUpperCase();
 
   const [tab,          setTab]          = useState("chart");
   const [quote,        setQuote]        = useState(null);
@@ -40,26 +45,20 @@ export default function StockPage() {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
 
-  // Watchlist toggle. Source of truth is the same localStorage key the
-  // Markets page uses (stoa_watchlist), so toggling here flips the star on
-  // the Markets page too. Optimistic — flip state first, persist
-  // synchronously, no roll-back needed since localStorage doesn't fail.
+  // Watchlist toggle. All reads/writes go through watchlistStore so the
+  // same data is visible on Markets, Feed sidebar, and Studio analytics
+  // immediately (no page reload required).
   const [isWatched, setIsWatched] = useState(false);
   useEffect(() => {
-    try {
-      const list = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-      setIsWatched(list.some(w => w.symbol === ticker));
-    } catch { setIsWatched(false); }
+    setIsWatched(wlIs(ticker));
+    return subscribeToWatchlist(() => setIsWatched(wlIs(ticker)));
   }, [ticker]);
 
   const toggleWatch = useCallback(() => {
     try {
-      const list = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-      const exists = list.some(w => w.symbol === ticker);
-      const next = exists
-        ? list.filter(w => w.symbol !== ticker)
-        : [...list, { symbol: ticker, name: quote?.companyName || ticker }];
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next));
+      const exists = wlIs(ticker);
+      if (exists) removeFromWatchlist(ticker);
+      else addToWatchlist(ticker, quote?.companyName || ticker);
       setIsWatched(!exists);
       toast.success(exists ? `${ticker} removed from watchlist` : `${ticker} added to watchlist`);
     } catch {

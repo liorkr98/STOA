@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { loadWatchlist, subscribeToWatchlist } from "@/lib/watchlistStore";
 
-const WATCHLIST_KEY = "stoa_watchlist";
 const TIMEFRAMES = [
   { value: "1D", label: "1D" },
   { value: "1W", label: "1W" },
@@ -16,22 +16,6 @@ const TF_PARAMS = {
   "1M": { range: "1mo", interval: "1d"  },
   "1Y": { range: "1y",  interval: "1wk" },
 };
-
-// Normalise the shared `stoa_watchlist` localStorage entry. The key is written
-// by both the Markets page (shape `{ symbol, name }`) and the legacy
-// WatchlistPanel (shape `{ ticker, timeframe }`), plus older builds stored
-// plain strings. Anything we can't recognise is dropped on the floor.
-function loadShared() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .map((e) => (typeof e === "string"
-        ? { symbol: e }
-        : { symbol: e.symbol || e.ticker, name: e.name }))
-      .filter((e) => e.symbol);
-  } catch { return []; }
-}
 
 async function fetchQuote(symbol, timeframe) {
   try {
@@ -62,7 +46,7 @@ async function fetchQuote(symbol, timeframe) {
 }
 
 export default function FeedWatchlist() {
-  const [entries, setEntries] = useState(loadShared);
+  const [entries, setEntries] = useState(loadWatchlist);
   const [data, setData] = useState({});
   const [timeframe, setTimeframe] = useState("1D");
 
@@ -76,15 +60,10 @@ export default function FeedWatchlist() {
 
   useEffect(() => { refresh(timeframe); }, [refresh, timeframe]);
 
-  // Keep in sync if another page edits the watchlist while this widget is
-  // mounted — Markets removes/adds tickers via the same localStorage key.
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === WATCHLIST_KEY) setEntries(loadShared());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  // Subscribe to watchlist changes — fires for both cross-tab (storage
+  // event) and same-tab (custom event) mutations so Markets adds/removes
+  // are reflected here immediately.
+  useEffect(() => subscribeToWatchlist(setEntries), []);
 
   return (
     <div className="surface" style={{ padding: 0, marginTop: 16, overflow: "hidden" }}>
@@ -139,7 +118,7 @@ export default function FeedWatchlist() {
             return (
               <Link
                 key={e.symbol}
-                to={`/stock/${e.symbol}`}
+                to={`/stock?ticker=${e.symbol}`}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "10px 18px",

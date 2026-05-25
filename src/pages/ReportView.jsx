@@ -682,21 +682,94 @@ export default function ReportView() {
 function Block({ block, index }) {
   const t = block.type || "text";
 
-  if (t === "heading" || t === "h2") {
+  // The editor saves `title` and `dek` as the first two blocks; they're
+  // also rendered as the H1 + dek above the article, so skip them here to
+  // avoid duplicating the headline in the body.
+  if (t === "title" || t === "dek") return null;
+
+  if (t === "heading" || t === "h2" || t === "h") {
     return (
-      <h2 className="t-title" style={{ fontSize: 22, lineHeight: 1.3, margin: "40px 0 16px" }}>
+      <h2 style={{ fontFamily: "var(--f-serif)", fontWeight: 500, fontSize: 26, lineHeight: 1.25, letterSpacing: "-0.014em", margin: "44px 0 16px", color: "var(--text)" }}>
         {block.content || block.text}
       </h2>
     );
   }
   if (t === "subhead" || t === "h3") {
     return (
-      <h3 className="t-title" style={{ fontSize: 18, lineHeight: 1.35, margin: "32px 0 12px" }}>
+      <h3 style={{ fontFamily: "var(--f-serif)", fontWeight: 500, fontSize: 20, lineHeight: 1.35, margin: "32px 0 12px", color: "var(--text)" }}>
         {block.content || block.text}
       </h3>
     );
   }
-  if (t === "quote" || t === "pull") {
+  if (t === "prediction") {
+    return <PredictionReceipt data={block.data || block}/>;
+  }
+  if (t === "metrics") {
+    return <MetricsGrid data={block.data || block.metrics || []} content={block.content}/>;
+  }
+  if (t === "bullbear" || t === "thesis") {
+    const data = block.data || block;
+    const bull = data.bull || [];
+    const bear = data.bear || [];
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "40px 0" }}>
+        <div className="surface" style={{ padding: 22, borderColor: "rgba(14,107,69,0.32)", background: "rgba(14,107,69,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <TrendingUp size={14} strokeWidth={1.7} style={{ color: "var(--rolex-green)" }}/>
+            <span className="t-eyebrow" style={{ color: "var(--rolex-green)" }}>Bull thesis</span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontFamily: "var(--f-serif)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-body)" }}>
+            {bull.filter(Boolean).map((x, i) => (
+              <li key={i} style={{ marginBottom: 8, paddingLeft: 14, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, top: 8, width: 6, height: 1, background: "var(--rolex-green)" }}/>
+                {x}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="surface" style={{ padding: 22, borderColor: "rgba(146,43,62,0.32)", background: "rgba(146,43,62,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <TrendingDown size={14} strokeWidth={1.7} style={{ color: "var(--velvet-red)" }}/>
+            <span className="t-eyebrow" style={{ color: "var(--velvet-red)" }}>Bear thesis</span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontFamily: "var(--f-serif)", fontSize: 14.5, lineHeight: 1.6, color: "var(--text-body)" }}>
+            {bear.filter(Boolean).map((x, i) => (
+              <li key={i} style={{ marginBottom: 8, paddingLeft: 14, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, top: 8, width: 6, height: 1, background: "var(--velvet-red)" }}/>
+                {x}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+  if (t === "stockchart" || t === "graph" || t === "chart") {
+    const ticker = block.ticker || block.data?.ticker;
+    if (!ticker) return null;
+    return (
+      <figure style={{ margin: "32px 0" }}>
+        <iframe
+          title={`${ticker} chart`}
+          src={`https://s.tradingview.com/widgetembed/?frameElementId=tv_${ticker}&symbol=${ticker}&interval=D&hidesidetoolbar=1&theme=light&style=2&timezone=Etc/UTC`}
+          style={{ width: "100%", height: 360, border: "0.5px solid var(--border-rgba)", borderRadius: 8 }}
+        />
+        <figcaption className="t-meta" style={{ marginTop: 8, textAlign: "center" }}>{ticker} · daily chart</figcaption>
+      </figure>
+    );
+  }
+  if (t === "comparechart") {
+    const tickers = block.tickers || block.data?.tickers || [];
+    return (
+      <div className="surface" style={{ padding: 20, margin: "32px 0" }}>
+        <div className="t-eyebrow" style={{ marginBottom: 10 }}>Comparison</div>
+        <div className="t-meta" style={{ fontSize: 12 }}>
+          {tickers.length ? tickers.join(" vs ") : "No tickers selected"}
+        </div>
+      </div>
+    );
+  }
+  if (t === "quote" || t === "pull" || t === "pullquote") {
     return (
       <blockquote style={{
         margin: "32px -24px",
@@ -798,5 +871,134 @@ function Block({ block, index }) {
     }}>
       {text}
     </p>
+  );
+}
+
+// ── Inline prediction receipt (published-report variant) ──────────────
+// Shows ticker · direction · entry (locked) · target · stop · timeframe ·
+// live price tracking with % change. Used when an analyst inserts a
+// Prediction block inside the report body.
+function PredictionReceipt({ data }) {
+  const [live, setLive] = useState(null);
+  const ticker = (data?.ticker || "").toUpperCase();
+  const dir = (data?.dir || data?.direction || "LONG").toUpperCase();
+  const entry = Number(data?.entry || data?.entry_price || 0);
+  const target = Number(data?.target || data?.target_price || 0);
+  const stop = Number(data?.stop || data?.stop_price || 0);
+  const days = Number(data?.days || data?.timeframe_days || 90);
+
+  useEffect(() => {
+    if (!ticker) return;
+    let cancelled = false;
+    import("@/lib/stockData").then(({ fetchQuote }) =>
+      fetchQuote(ticker).then((q) => { if (!cancelled) setLive(q); }).catch(() => {})
+    );
+    return () => { cancelled = true; };
+  }, [ticker]);
+
+  if (!ticker) return null;
+
+  const livePrice = live?.price;
+  const changePct = livePrice && entry ? ((livePrice - entry) / entry) * 100 : null;
+  const positive = dir === "LONG" ? (changePct ?? 0) >= 0 : (changePct ?? 0) <= 0;
+
+  return (
+    <div
+      style={{
+        margin: "32px 0",
+        background: "var(--bg-elev)",
+        border: "0.5px solid rgba(212,175,55,0.32)",
+        borderRadius: 10,
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          display: "flex", alignItems: "center", padding: "12px 18px",
+          background: "rgba(212,175,55,0.06)",
+          borderBottom: "0.5px solid rgba(212,175,55,0.16)",
+          gap: 10,
+        }}
+      >
+        <Lock size={12} strokeWidth={1.6} style={{ color: "var(--gold-hex)" }}/>
+        <span className="receipt" style={{ color: "var(--gold-hex)", fontSize: 10.5 }}>
+          LOCKED PREDICTION · {ticker} · {days} DAY WINDOW
+        </span>
+        <div style={{ flex: 1 }}/>
+        <span
+          className="tag"
+          style={{
+            background: dir === "LONG" ? "rgba(14,107,69,0.08)" : "rgba(146,43,62,0.08)",
+            borderColor: dir === "LONG" ? "rgba(14,107,69,0.32)" : "rgba(146,43,62,0.32)",
+            color: dir === "LONG" ? "var(--rolex-green)" : "var(--velvet-red)",
+          }}
+        >
+          {dir}
+        </span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "var(--border-rgba)" }}>
+        {[
+          { label: "Entry (locked)", value: entry ? `$${entry.toFixed(2)}` : "—" },
+          { label: "Target", value: target ? `$${target.toFixed(2)}` : "—" },
+          { label: "Stop", value: stop ? `$${stop.toFixed(2)}` : "—" },
+          {
+            label: "Now",
+            value: livePrice ? `$${livePrice.toFixed(2)}` : "…",
+            sub: changePct != null ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : null,
+            subColor: positive ? "var(--rolex-green)" : "var(--velvet-red)",
+          },
+        ].map((c, i) => (
+          <div key={i} style={{ background: "var(--bg-elev)", padding: "14px 16px" }}>
+            <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{c.label}</div>
+            <div className="t-num" style={{ fontSize: 18, marginTop: 4, color: "var(--text)" }}>{c.value}</div>
+            {c.sub && (
+              <div className="t-num" style={{ fontSize: 11, color: c.subColor, marginTop: 2 }}>{c.sub}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Inline metrics grid (published-report variant) ────────────────────
+// Accepts either the editor's `data` array ([{label,value,delta}]) or the
+// MetricsBlock pipe-delimited string in `content`.
+function MetricsGrid({ data, content }) {
+  let rows = [];
+  if (Array.isArray(data) && data.length) {
+    rows = data.map((m) => ({ label: m.label, value: m.value, delta: m.delta || m.change || "" }));
+  } else if (typeof content === "string" && content.trim()) {
+    rows = content.split("\n").filter(Boolean).map((line) => {
+      const parts = line.split("|");
+      return { label: (parts[0] || "").trim(), value: (parts[1] || "").trim(), delta: (parts[2] || "").trim() };
+    }).filter((r) => r.label && r.value);
+  }
+  if (rows.length === 0) return null;
+  const cols = Math.min(rows.length, 4);
+  return (
+    <div className="surface" style={{ padding: 0, margin: "32px 0", overflow: "hidden" }}>
+      <div style={{ padding: "12px 18px", borderBottom: "0.5px solid var(--border-rgba)", display: "flex", alignItems: "center", gap: 10 }}>
+        <span className="t-eyebrow">Key metrics</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 1, background: "var(--border-rgba)" }}>
+        {rows.map((m, i) => {
+          const isPos = m.delta?.startsWith("+");
+          const isNeg = m.delta?.startsWith("-");
+          return (
+            <div key={i} style={{ background: "var(--bg-elev)", padding: "14px 16px" }}>
+              <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{m.label}</div>
+              <div className="t-num" style={{ fontSize: 17, marginTop: 4, color: "var(--text)" }}>{m.value}</div>
+              {m.delta && (
+                <div className="t-num" style={{ fontSize: 11, color: isPos ? "var(--rolex-green)" : isNeg ? "var(--velvet-red)" : "var(--text-meta)", marginTop: 2 }}>
+                  {m.delta}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
