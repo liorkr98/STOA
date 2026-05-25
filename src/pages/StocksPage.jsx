@@ -102,7 +102,7 @@ function fmtCap(n) {
   return `$${n}`;
 }
 
-const SECTORS = ["All", "Semis", "Tech", "Energy", "Macro", "Financials", "Auto", "Healthcare"];
+const SECTORS = ["All", "Semis", "Tech", "Energy", "Macro", "Financials", "Auto", "Healthcare", "Space"];
 const EXCHANGES = ["All", "NASDAQ", "NYSE"];
 
 // Sector-by-symbol fallback (Yahoo screener doesn't return sector reliably)
@@ -114,6 +114,8 @@ const SECTOR_MAP = {
   XOM: "Energy", CVX: "Energy",
   TLT: "Macro", GLD: "Macro", SLV: "Macro",
   LLY: "Healthcare", PFE: "Healthcare", JNJ: "Healthcare",
+  ASTS: "Space", RKLB: "Space", LUNR: "Space", MNTS: "Space",
+  BKSY: "Space", SPIR: "Space", PL: "Space", RDW: "Space",
 };
 
 function sectorFor(stock) {

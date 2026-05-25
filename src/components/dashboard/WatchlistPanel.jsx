@@ -175,7 +175,13 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
 export default function WatchlistPanel({ reports = [] }) {
   const [entries, setEntries] = useState(loadWatchlist);
   const [input, setInput] = useState("");
-  const [selectedTf, setSelectedTf] = useState("1D");
+  // Global "Show growth" timeframe — applies to every row. Initialised from
+  // the first stored entry so the toggle reflects what the user is actually
+  // looking at instead of always starting on "1D".
+  const [selectedTf, setSelectedTf] = useState(() => {
+    const initial = loadWatchlist();
+    return initial[0]?.timeframe || "1D";
+  });
   const [refreshKey, setRefreshKey] = useState(0);
 
   const addTicker = () => {
@@ -195,6 +201,17 @@ export default function WatchlistPanel({ reports = [] }) {
 
   const changeTimeframe = (t, tf) => {
     const next = entries.map(e => e.ticker === t ? { ...e, timeframe: tf } : e);
+    setEntries(next);
+    saveWatchlist(next);
+  };
+
+  // Apply the global "Show growth" timeframe to every row. Previously this
+  // toggle only set the default for newly-added tickers — clicking 1W/1M/1Y
+  // would highlight the chip but the visible % change on existing rows would
+  // never update, which is why the toggle felt broken.
+  const applyGlobalTimeframe = (tf) => {
+    setSelectedTf(tf);
+    const next = entries.map(e => ({ ...e, timeframe: tf }));
     setEntries(next);
     saveWatchlist(next);
   };
@@ -232,7 +249,7 @@ export default function WatchlistPanel({ reports = [] }) {
         {TIMEFRAMES.map(tf => (
           <button
             key={tf.value}
-            onClick={() => setSelectedTf(tf.value)}
+            onClick={() => applyGlobalTimeframe(tf.value)}
             className={`px-2 py-0.5 rounded-tag text-[10px] font-medium transition-all border ${
               selectedTf === tf.value
                 ? "bg-primary text-primary-foreground border-primary"
