@@ -8,50 +8,93 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { spendAICredits, loadMyWallet } from "@/lib/walletService";
 import { Coins } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { avatarUrl } from "@/lib/avatarUrl";
+
+function relTime(iso) {
+  if (!iso) return "just now";
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 const COST_FACT_CHECK = 3; // credits — Claude classify + Yahoo Finance + SEC EDGAR
 
-// Verified / supportive states share the gain palette; disputed/misleading
-// share loss/accent; opinion + unverified stay neutral so they don't look like
-// market sentiment.
+// Brand-spec category palette (24/05 update):
+//   Verified / Correct → rolex-green
+//   Wrong / Incorrect  → velvet-red
+//   Misleading         → gold
+//   Opinion            → primary-blue
+//   Unverified         → muted grey
+// SEC/Yahoo verified map onto the same green; SEC/Yahoo disputed onto red so
+// every claim badge across the app uses one consistent five-colour vocabulary.
 const TYPE_CONFIG = {
   Fact: {
-    icon: CheckCircle2, color: "text-gain",
-    bg: "bg-gain/10 border-gain/20", label: "Verified Fact",
+    icon: CheckCircle2, label: "Verified Fact",
+    color: "var(--rolex-green)",
+    bg: "rgba(14,107,69,0.08)",
+    border: "rgba(14,107,69,0.32)",
+  },
+  Wrong: {
+    icon: AlertTriangle, label: "Incorrect",
+    color: "var(--velvet-red)",
+    bg: "rgba(146,43,62,0.08)",
+    border: "rgba(146,43,62,0.32)",
   },
   Opinion: {
-    icon: MessageSquareQuote, color: "text-primary",
-    bg: "bg-primary/10 border-primary/20", label: "Opinion",
+    icon: MessageSquareQuote, label: "Opinion",
+    color: "var(--primary-blue)",
+    bg: "rgba(30,58,138,0.08)",
+    border: "rgba(30,58,138,0.32)",
   },
   Misleading: {
-    icon: AlertTriangle, color: "text-loss",
-    bg: "bg-loss/10 border-loss/20", label: "Potentially Misleading",
+    icon: AlertTriangle, label: "Potentially Misleading",
+    color: "var(--gold-hex)",
+    bg: "rgba(212,175,55,0.08)",
+    border: "rgba(212,175,55,0.36)",
   },
   Unverified: {
-    icon: Info, color: "text-muted-foreground",
-    bg: "bg-muted border-border", label: "Unverified",
+    icon: Info, label: "Unverified",
+    color: "var(--text-meta)",
+    bg: "var(--bg-soft)",
+    border: "var(--border-rgba)",
   },
   "Yahoo-Verified": {
-    icon: TrendingUp, color: "text-gain",
-    bg: "bg-gain/10 border-gain/20", label: "Yahoo Finance Verified",
+    icon: TrendingUp, label: "Yahoo Finance Verified",
+    color: "var(--rolex-green)",
+    bg: "rgba(14,107,69,0.08)",
+    border: "rgba(14,107,69,0.32)",
   },
   "Yahoo-Disputed": {
-    icon: AlertTriangle, color: "text-accent",
-    bg: "bg-accent/10 border-accent/30", label: "Disputed by Yahoo Finance",
+    icon: AlertTriangle, label: "Disputed by Yahoo Finance",
+    color: "var(--velvet-red)",
+    bg: "rgba(146,43,62,0.08)",
+    border: "rgba(146,43,62,0.32)",
   },
   "SEC-Verified": {
-    icon: CheckCircle2, color: "text-primary",
-    bg: "bg-primary/10 border-primary/20", label: "SEC Filing Verified",
+    icon: CheckCircle2, label: "SEC Filing Verified",
+    color: "var(--rolex-green)",
+    bg: "rgba(14,107,69,0.08)",
+    border: "rgba(14,107,69,0.32)",
   },
   "SEC-Disputed": {
-    icon: AlertTriangle, color: "text-loss",
-    bg: "bg-loss/10 border-loss/20", label: "Disputed by SEC Filing",
+    icon: AlertTriangle, label: "Disputed by SEC Filing",
+    color: "var(--velvet-red)",
+    bg: "rgba(146,43,62,0.08)",
+    border: "rgba(146,43,62,0.32)",
   },
 };
 
 function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
   const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
   const Icon = cfg.icon;
+  const { user: currentUser } = useAuth();
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState("");
@@ -132,17 +175,37 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
 
   const addNote = () => {
     if (!noteText.trim()) return;
-    setNotes(prev => [...prev, { id: Date.now(), text: noteText.trim(), time: "just now" }]);
+    if (!currentUser) { toast.error("Sign in to leave a note."); return; }
+    const author = {
+      name: currentUser.full_name || currentUser.email?.split("@")[0] || "Anonymous",
+      avatar: avatarUrl(currentUser) || null,
+      initials: (currentUser.full_name || currentUser.email || "?")
+        .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+    };
+    setNotes(prev => [...prev, {
+      id: Date.now(),
+      text: noteText.trim(),
+      createdAt: new Date().toISOString(),
+      author,
+      claimSnippet: (claim.text || "").slice(0, 100),
+    }]);
     setNoteText("");
   };
 
   return (
-    <div className={`p-3 rounded-xl border text-xs ${cfg.bg}`}>
+    <div
+      className="p-3 text-xs"
+      style={{
+        background: cfg.bg,
+        border: `0.5px solid ${cfg.border}`,
+        borderRadius: 10,
+      }}
+    >
       <div className="flex items-start gap-2">
-        <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cfg.color}`} />
+        <Icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: cfg.color }} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className={`font-medium text-[11px] ${cfg.color}`}>{cfg.label}</span>
+            <span className="font-medium text-[11px]" style={{ color: cfg.color, fontFamily: "var(--f-sans)" }}>{cfg.label}</span>
             {/* See ReportView.ClaimCard: "Unverified — high confidence" is self-contradictory. */}
             {claim.confidence && claim.type !== "Unverified" && (
               <span className={`text-[9px] rounded-tag px-1.5 py-0.5 font-medium border ${
@@ -257,8 +320,73 @@ function ClaimCard({ claim, reportId, reportTitle, onJumpToClaim }) {
                 <p className="text-[10px] text-muted-foreground italic mt-0.5">No community notes yet.</p>
               )}
               {notes.map(n => (
-                <div key={n.id} className="text-[10px] bg-white/60 rounded-lg px-2 py-1 mb-1 mt-1 text-foreground/80">
-                  {n.text} <span className="text-muted-foreground ml-1">{n.time}</span>
+                <div
+                  key={n.id}
+                  style={{
+                    marginTop: 6,
+                    padding: "8px 10px",
+                    background: "var(--bg-elev)",
+                    border: "0.5px solid var(--border-rgba)",
+                    borderRadius: 6,
+                    display: "flex",
+                    gap: 8,
+                  }}
+                >
+                  {n.author?.avatar ? (
+                    <img
+                      src={n.author.avatar}
+                      alt={n.author?.name || ""}
+                      width={22}
+                      height={22}
+                      style={{
+                        borderRadius: 4,
+                        objectFit: "cover",
+                        border: "0.5px solid var(--border-rgba)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 22, height: 22, borderRadius: 4,
+                        background: "var(--primary-blue)",
+                        color: "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 9, fontFamily: "var(--f-sans)", fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {n.author?.initials || "?"}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text)", fontFamily: "var(--f-sans)" }}>
+                        {n.author?.name || "Anonymous"}
+                      </span>
+                      <span style={{ fontSize: 9.5, color: "var(--text-meta)" }}>
+                        · {relTime(n.createdAt)}
+                      </span>
+                    </div>
+                    {n.claimSnippet && (
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          color: "var(--text-meta)",
+                          fontStyle: "italic",
+                          paddingLeft: 6,
+                          borderLeft: "1px solid var(--gold-hex)",
+                          marginBottom: 4,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        on: “{n.claimSnippet}{(claim.text || "").length > 100 ? "…" : ""}”
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11.5, color: "var(--text-body)", lineHeight: 1.45 }}>
+                      {n.text}
+                    </div>
+                  </div>
                 </div>
               ))}
               {showNotes ? (
@@ -638,7 +766,18 @@ Report:
             const cfg = TYPE_CONFIG[type];
             if (!cfg) return null;
             return (
-              <span key={type} className={`text-[10px] font-medium px-2 py-0.5 rounded-tag border ${cfg.bg} ${cfg.color}`}>
+              <span
+                key={type}
+                className="text-[10px] font-medium px-2 py-0.5"
+                style={{
+                  background: cfg.bg,
+                  color: cfg.color,
+                  border: `0.5px solid ${cfg.border}`,
+                  borderRadius: 4,
+                  fontFamily: "var(--f-sans)",
+                  letterSpacing: "0.04em",
+                }}
+              >
                 {count} {cfg.label}{count > 1 ? "s" : ""}
               </span>
             );

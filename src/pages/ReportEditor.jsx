@@ -3,17 +3,30 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronRight, Lock, Eye, FileText, Columns, BarChart3,
   TrendingUp, TrendingDown, Plus, X, Zap, ArrowRight, Image as ImageIcon, Bookmark,
+  List, ListOrdered, Quote, Minus, LineChart, GitCompare, ShieldAlert,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Avatar } from "@/components/AnalystCard";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { fetchQuote, fetchFundamentals, fmtCap } from "@/lib/stockData";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
 import TemplatesPanel from "@/components/editor/TemplatesPanel";
 import DesignPanel from "@/components/editor/DesignPanel";
+import StockChartBlock from "@/components/editor/StockChartBlock";
+import ImageBlock from "@/components/editor/ImageBlock";
+import MetricsBlock from "@/components/editor/MetricsBlock";
+
+// DYOD disclaimer text — every Stoa report needs this regulatory line.
+// Inserted via the DYOD button in the top toolbar (also restorable from
+// the slash menu under Text → Disclaimer).
+const DYOD_TEXT = "DO YOUR OWN DILIGENCE. This research is for informational " +
+  "purposes only and is not investment advice. Past performance does not " +
+  "guarantee future results. Always verify claims and consult a licensed " +
+  "advisor before making investment decisions.";
 
 const AUTOSAVE_MS = 1500;
 
@@ -105,16 +118,23 @@ function SlashMenu({ onClose, onInsert }) {
       items: [
         { type: "h", Icon: FileText, name: "Heading", desc: "Section heading · H2 in print" },
         { type: "p", Icon: Columns, name: "Body", desc: "Plain serif paragraph" },
-        { type: "pullquote", Icon: Zap, name: "Pull quote", desc: "Big italic callout" },
+        { type: "pullquote", Icon: Quote, name: "Pull quote", desc: "Big italic callout" },
         { type: "dek", Icon: Bookmark, name: "Subhead", desc: "Bold lead-in line" },
+        { type: "bullets", Icon: List, name: "Bullets", desc: "Unordered list" },
+        { type: "numbered", Icon: ListOrdered, name: "Numbered list", desc: "Ordered list" },
+        { type: "callout", Icon: Zap, name: "Callout", desc: "Surfaced highlight" },
+        { type: "divider", Icon: Minus, name: "Divider", desc: "Hairline section break" },
+        { type: "dyod", Icon: ShieldAlert, name: "DYOD Disclaimer", desc: "Do Your Own Diligence — regulatory" },
       ],
     },
     {
       title: "Finance",
       items: [
         { type: "prediction", Icon: Lock, name: "Locked Prediction", desc: "Ticker, direction, target — locks at publish", premium: true },
-        { type: "metrics", Icon: BarChart3, name: "Metrics block", desc: "Key stats with deltas" },
+        { type: "metrics", Icon: BarChart3, name: "Key Metrics", desc: "Live P/E, market cap, EPS — fetched by ticker", premium: true },
         { type: "bullbear", Icon: TrendingUp, name: "Bull / Bear thesis", desc: "Two-column case + counter-case" },
+        { type: "stockchart", Icon: LineChart, name: "Stock chart", desc: "TradingView-style price chart", premium: true },
+        { type: "comparechart", Icon: GitCompare, name: "Comparison chart", desc: "Compare 2-4 tickers side by side", premium: true },
       ],
     },
     {
@@ -221,10 +241,78 @@ function SlashMenu({ onClose, onInsert }) {
   );
 }
 
+// ── Common US tickers for the prediction-block autocomplete. Curated
+// rather than fetched live so the dropdown is always fast — the analyst
+// can still type any symbol freely. ───────────────────────────────────
+const POPULAR_TICKERS = [
+  { sym: "NVDA", name: "NVIDIA" },
+  { sym: "AAPL", name: "Apple" },
+  { sym: "MSFT", name: "Microsoft" },
+  { sym: "GOOGL", name: "Alphabet" },
+  { sym: "AMZN", name: "Amazon" },
+  { sym: "META", name: "Meta Platforms" },
+  { sym: "TSLA", name: "Tesla" },
+  { sym: "AMD", name: "AMD" },
+  { sym: "AVGO", name: "Broadcom" },
+  { sym: "TSM", name: "TSMC" },
+  { sym: "ASML", name: "ASML" },
+  { sym: "INTC", name: "Intel" },
+  { sym: "MU", name: "Micron" },
+  { sym: "QCOM", name: "Qualcomm" },
+  { sym: "JPM", name: "JPMorgan" },
+  { sym: "BAC", name: "Bank of America" },
+  { sym: "GS", name: "Goldman Sachs" },
+  { sym: "WMT", name: "Walmart" },
+  { sym: "PG", name: "Procter & Gamble" },
+  { sym: "JNJ", name: "Johnson & Johnson" },
+  { sym: "UNH", name: "UnitedHealth" },
+  { sym: "PFE", name: "Pfizer" },
+  { sym: "XOM", name: "Exxon" },
+  { sym: "CVX", name: "Chevron" },
+  { sym: "TLT", name: "20-Yr Treasury ETF" },
+  { sym: "SPY", name: "S&P 500 ETF" },
+  { sym: "QQQ", name: "Nasdaq-100 ETF" },
+  { sym: "GLD", name: "Gold ETF" },
+];
+
 // ── Prediction block (gold-edged) ────────────────────────────────────────────
+// On ticker change/blur, fetches live price + company info + market cap +
+// sector so the analyst sees what they're predicting on. Ticker input has
+// inline autocomplete from POPULAR_TICKERS.
 function PredictionBlockEditor({ block, onChange }) {
   const data = block.data || { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 };
   const set = (k, v) => onChange({ ...block, data: { ...data, [k]: v } });
+
+  const [quote, setQuote] = useState(null);
+  const [fund, setFund] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [acOpen, setAcOpen] = useState(false);
+
+  const lookupTicker = useCallback(async (sym) => {
+    if (!sym) { setQuote(null); setFund(null); return; }
+    setLoading(true);
+    try {
+      const [q, f] = await Promise.all([
+        fetchQuote(sym).catch(() => null),
+        fetchFundamentals(sym).catch(() => null),
+      ]);
+      setQuote(q);
+      setFund(f);
+      // Auto-fill entry price (locked at publish anyway, but useful as a hint)
+      if (q?.price && !data.entry) set("entry", q.price.toFixed(2));
+    } finally {
+      setLoading(false);
+    }
+  }, [data.entry, set]);
+
+  const acMatches = useMemo(() => {
+    const t = (data.ticker || "").toUpperCase();
+    if (!t) return POPULAR_TICKERS.slice(0, 6);
+    return POPULAR_TICKERS
+      .filter((p) => p.sym.startsWith(t) || p.name.toUpperCase().includes(t))
+      .slice(0, 6);
+  }, [data.ticker]);
+
   return (
     <div className="surface" style={{
       padding: 0, margin: "12px 0",
@@ -240,20 +328,47 @@ function PredictionBlockEditor({ block, onChange }) {
       }}>
         <Lock size={12} strokeWidth={1.6} style={{ color: "var(--gold-hex)" }}/>
         <span className="receipt" style={{ color: "var(--gold-hex)", fontSize: 10.5 }}>
-          ADD A PREDICTION · TICKER, DIRECTION, TARGET PRICE
+          {quote?.companyName ? `${data.ticker} · ${quote.companyName}` : "ADD A PREDICTION · TICKER, DIRECTION, TARGET PRICE"}
         </span>
+        {loading && <span className="t-meta" style={{ marginLeft: 8 }}>fetching…</span>}
       </div>
+
+      {(quote || fund) && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 18,
+          padding: "10px 18px",
+          background: "var(--bg-soft)",
+          borderBottom: "0.5px solid var(--border-rgba)",
+          fontSize: 11.5,
+          flexWrap: "wrap",
+        }}>
+          {quote?.price != null && (
+            <span className="t-num" style={{ color: "var(--text)" }}>
+              ${quote.price.toFixed(2)}
+              {quote.changePct != null && (
+                <span style={{ marginLeft: 6, color: quote.changePct >= 0 ? "var(--rolex-green)" : "var(--velvet-red)" }}>
+                  {quote.changePct >= 0 ? "+" : ""}{quote.changePct.toFixed(2)}%
+                </span>
+              )}
+            </span>
+          )}
+          {fund?.marketCap && <span className="t-meta">Cap · <span className="t-num">{fmtCap(fund.marketCap)}</span></span>}
+          {fund?.sector && <span className="t-meta">{fund.sector}</span>}
+          {fund?.pe != null && <span className="t-meta">P/E · <span className="t-num">{fund.pe.toFixed(1)}</span></span>}
+        </div>
+      )}
+
       <div style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "0.7fr 0.7fr 0.8fr 0.8fr 0.8fr 0.6fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "0.9fr 0.7fr 0.8fr 0.8fr 0.8fr 0.6fr", gap: 8 }}>
           {[
-            { l: "Ticker", k: "ticker", mono: false },
+            { l: "Ticker", k: "ticker", mono: false, autocomplete: true },
             { l: "Direction", k: "dir", mono: false, opts: ["LONG", "SHORT", "HOLD"] },
             { l: "Entry", k: "entry", mono: true },
             { l: "Target", k: "target", mono: true },
             { l: "Stop", k: "stop", mono: true },
             { l: "Days", k: "days", mono: true },
           ].map((f) => (
-            <div key={f.k}>
+            <div key={f.k} style={{ position: "relative" }}>
               <div className="t-meta" style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>
                 {f.l}
               </div>
@@ -273,6 +388,71 @@ function PredictionBlockEditor({ block, onChange }) {
                 >
                   {f.opts.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
+              ) : f.autocomplete ? (
+                <>
+                  <input
+                    value={data[f.k]}
+                    onChange={(e) => {
+                      const v = e.target.value.toUpperCase();
+                      set(f.k, v);
+                      setAcOpen(true);
+                    }}
+                    onFocus={() => setAcOpen(true)}
+                    onBlur={() => setTimeout(() => setAcOpen(false), 150)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setAcOpen(false);
+                        lookupTicker(data.ticker?.toUpperCase());
+                      }
+                    }}
+                    placeholder="NVDA"
+                    style={{
+                      width: "100%", height: 32, padding: "0 10px",
+                      border: "0.5px solid var(--border-strong)",
+                      borderRadius: 4, background: "var(--bg)",
+                      fontSize: 13, fontFamily: "var(--f-mono)",
+                      color: "var(--text)", letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                    }}
+                  />
+                  {acOpen && acMatches.length > 0 && (
+                    <div
+                      style={{
+                        position: "absolute", left: 0, right: 0, top: "100%",
+                        marginTop: 4, zIndex: 30,
+                        background: "var(--bg-elev)",
+                        border: "0.5px solid var(--border-strong)",
+                        borderRadius: 6, overflow: "hidden",
+                        maxHeight: 220, overflowY: "auto",
+                      }}
+                    >
+                      {acMatches.map((p) => (
+                        <button
+                          key={p.sym}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            set("ticker", p.sym);
+                            setAcOpen(false);
+                            lookupTicker(p.sym);
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            width: "100%", padding: "7px 10px",
+                            background: "transparent", border: 0,
+                            textAlign: "left", cursor: "pointer",
+                            fontSize: 12,
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <span className="t-num" style={{ width: 52, color: "var(--text)" }}>{p.sym}</span>
+                          <span className="t-meta" style={{ fontSize: 11 }}>{p.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <input
                   value={data[f.k]}
@@ -285,7 +465,6 @@ function PredictionBlockEditor({ block, onChange }) {
                     fontSize: 13,
                     fontFamily: f.mono ? "var(--f-mono)" : "var(--f-sans)",
                     color: "var(--text)",
-                    letterSpacing: f.k === "ticker" ? "0.04em" : 0,
                   }}
                 />
               )}
@@ -383,33 +562,119 @@ function BlockRenderer({ block, onChange }) {
     );
   }
   if (block.type === "metrics") {
-    const data = block.data || [
-      { label: "Metric", value: "—", delta: "" },
-      { label: "Metric", value: "—", delta: "" },
-    ];
+    // Full key-metrics block: delegate to MetricsBlock which fetches live
+    // P/E, EPS, revenue, market cap, etc. from Yahoo Finance and offers a
+    // ticker autofill plus manual edit fallback. Replaces the old static
+    // 2-cell placeholder that was outputting nonsense.
     return (
-      <div className="surface" style={{ padding: 18, margin: "8px 0", background: "var(--bg-elev)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <BarChart3 size={13} strokeWidth={1.55} style={{ color: "var(--text-meta)" }}/>
-          <span className="t-eyebrow">Key metrics</span>
-        </div>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${data.length}, 1fr)`,
-          gap: 1, background: "var(--border-rgba)",
-          border: "0.5px solid var(--border-rgba)",
-          borderRadius: 6, overflow: "hidden",
-        }}>
-          {data.map((m, i) => (
-            <div key={i} style={{ background: "var(--bg-elev)", padding: "12px 14px" }}>
-              <div className="t-meta" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em" }}>{m.label}</div>
-              <div className="t-num" style={{ fontSize: 17, marginTop: 4, color: "var(--text)" }}>{m.value}</div>
-              {m.delta && <div className="t-num" style={{ fontSize: 10.5, color: "var(--rolex-green)", marginTop: 2 }}>{m.delta}</div>}
-            </div>
-          ))}
+      <MetricsBlock
+        block={block}
+        onChange={onChange}
+        onDelete={() => {}}
+      />
+    );
+  }
+  if (block.type === "bullets" || block.type === "numbered") {
+    const isOrdered = block.type === "numbered";
+    return (
+      <div style={{ paddingLeft: 22, fontFamily: "var(--f-serif)", fontSize: 17, lineHeight: 1.7, color: "var(--text-body)" }}>
+        {isOrdered ? <span className="t-meta">1.</span> : <span style={{ color: "var(--gold-hex)" }}>•</span>}{" "}
+        <textarea
+          value={block.text}
+          onChange={(e) => setText(e.target.value)}
+          rows={Math.max(2, Math.ceil((block.text || "").length / 60))}
+          placeholder={isOrdered ? "Numbered list — one item per line" : "Bulleted list — one item per line"}
+          style={{
+            width: "calc(100% - 22px)", border: 0, outline: 0, padding: 0, resize: "none",
+            color: "var(--text-body)", background: "transparent",
+            fontFamily: "var(--f-serif)", fontSize: 17, lineHeight: 1.7,
+            verticalAlign: "top",
+          }}
+        />
+      </div>
+    );
+  }
+  if (block.type === "callout") {
+    return (
+      <div className="surface" style={{ padding: 18, margin: "12px 0", background: "var(--bg-elev)" }}>
+        <textarea
+          value={block.text}
+          onChange={(e) => setText(e.target.value)}
+          rows={Math.max(2, Math.ceil((block.text || "").length / 60))}
+          placeholder="A highlighted note or aside"
+          style={{
+            width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
+            color: "var(--text-body)", background: "transparent",
+            fontFamily: "var(--f-sans)", fontSize: 14, lineHeight: 1.6,
+          }}
+        />
+      </div>
+    );
+  }
+  if (block.type === "divider") {
+    return (
+      <div style={{ margin: "20px 0" }}>
+        <div style={{ height: 1, background: "var(--border-strong)" }}/>
+      </div>
+    );
+  }
+  if (block.type === "dyod") {
+    return (
+      <div
+        style={{
+          margin: "20px 0",
+          padding: "14px 18px",
+          background: "rgba(212,175,55,0.06)",
+          border: "0.5px solid rgba(212,175,55,0.32)",
+          borderRadius: 8,
+          display: "flex",
+          gap: 12,
+        }}
+      >
+        <ShieldAlert size={14} strokeWidth={1.7} style={{ color: "var(--gold-hex)", flexShrink: 0, marginTop: 2 }}/>
+        <div style={{ flex: 1 }}>
+          <div className="t-eyebrow" style={{ color: "var(--gold-hex)", marginBottom: 6 }}>Do Your Own Diligence</div>
+          <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-mute)", fontFamily: "var(--f-sans)" }}>
+            {block.text || DYOD_TEXT}
+          </div>
         </div>
       </div>
     );
+  }
+  if (block.type === "stockchart") {
+    return <StockChartBlock block={block} onChange={onChange} onDelete={() => {}}/>;
+  }
+  if (block.type === "comparechart") {
+    // Editor-side comparison: tickers + label inputs; renders side-by-side
+    // on the published view. Kept minimal here — analyst types 2-4 tickers
+    // separated by commas.
+    const data = block.data || { tickers: ["", ""] };
+    return (
+      <div className="surface" style={{ padding: 18, margin: "12px 0", background: "var(--bg-elev)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <GitCompare size={13} strokeWidth={1.55} style={{ color: "var(--text-meta)" }}/>
+          <span className="t-eyebrow">Comparison chart</span>
+        </div>
+        <input
+          value={(data.tickers || []).join(", ")}
+          onChange={(e) => onChange({ ...block, data: { ...data, tickers: e.target.value.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) } })}
+          placeholder="NVDA, AMD, INTC"
+          style={{
+            width: "100%", height: 36, padding: "0 12px",
+            border: "0.5px solid var(--border-strong)",
+            borderRadius: 4, background: "var(--bg)",
+            fontSize: 13, fontFamily: "var(--f-mono)", color: "var(--text)",
+            letterSpacing: "0.04em",
+          }}
+        />
+        <div className="t-meta" style={{ marginTop: 8, fontSize: 11 }}>
+          Up to 4 tickers, comma-separated. Renders as a comparison chart on the published report.
+        </div>
+      </div>
+    );
+  }
+  if (block.type === "image") {
+    return <ImageBlock block={block} onChange={onChange} onDelete={() => {}}/>;
   }
   if (block.type === "bullbear") {
     const data = block.data || { bull: [""], bear: [""] };
@@ -535,6 +800,12 @@ export default function ReportEditor() {
   const [aiOpen, setAiOpen] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [monetized, setMonetized] = useState(true);
+  // Pay-per-report monetization (PRD §monetization): analysts can offer their
+  // report to non-subscribers for a one-off price between $1 and $50. Both
+  // toggles can be on at once — subscribers read it for free, anyone else
+  // pays the individual price.
+  const [individualPurchase, setIndividualPurchase] = useState(false);
+  const [individualPrice, setIndividualPrice] = useState(5);
   // Restored from backup: floating AISidebar (report skeleton generator)
   // and AIChat (conversational), plus Templates + Design panels.
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
@@ -559,6 +830,8 @@ export default function ReportEditor() {
         if (Array.isArray(parsed) && parsed.length) setBlocks(parsed);
       } catch {}
       setMonetized(!!r.is_premium);
+      setIndividualPurchase(!!r.individual_purchase_enabled);
+      if (typeof r.individual_price === "number") setIndividualPrice(r.individual_price);
     }).catch(() => {});
   }, [draftIdParam]);
 
@@ -594,6 +867,8 @@ export default function ReportEditor() {
       excerpt,
       content_blocks: JSON.stringify(blocks),
       is_premium: monetized,
+      individual_purchase_enabled: individualPurchase,
+      individual_price: individualPurchase ? Math.min(50, Math.max(1, Number(individualPrice) || 5)) : null,
       status: "draft",
       created_by: user.email,
       author_name: user.full_name || user.email,
@@ -626,24 +901,46 @@ export default function ReportEditor() {
     } finally {
       setSaving(false);
     }
-  }, [blocks, draftId, monetized, user]);
+  }, [blocks, draftId, monetized, individualPurchase, individualPrice, user]);
 
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return; }
     clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => { save(true); }, AUTOSAVE_MS);
     return () => clearTimeout(autosaveTimer.current);
-  }, [blocks, monetized, save]);
+  }, [blocks, monetized, individualPurchase, individualPrice, save]);
 
   // Block ops
   const insertAt = (type, idx) => {
-    const newBlock = type === "prediction"
-      ? { id: newId(), type, data: { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 } }
-      : type === "metrics"
-      ? { id: newId(), type, data: [{ label: "Metric", value: "—", delta: "" }, { label: "Metric", value: "—", delta: "" }] }
-      : type === "bullbear"
-      ? { id: newId(), type, data: { bull: [""], bear: [""] } }
-      : { id: newId(), type, text: "" };
+    let newBlock;
+    switch (type) {
+      case "prediction":
+        newBlock = { id: newId(), type, data: { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 } };
+        break;
+      case "metrics":
+        newBlock = { id: newId(), type, content: "" };
+        break;
+      case "bullbear":
+        newBlock = { id: newId(), type, data: { bull: [""], bear: [""] } };
+        break;
+      case "comparechart":
+        newBlock = { id: newId(), type, data: { tickers: ["", ""] } };
+        break;
+      case "stockchart":
+        newBlock = { id: newId(), type, ticker: "", interval: "D", style: "1", studies: [] };
+        break;
+      case "image":
+        newBlock = { id: newId(), type, url: "", caption: "" };
+        break;
+      case "dyod":
+        newBlock = { id: newId(), type, text: DYOD_TEXT };
+        break;
+      case "divider":
+        newBlock = { id: newId(), type };
+        break;
+      default:
+        newBlock = { id: newId(), type, text: "" };
+    }
     setBlocks((prev) => {
       const next = [...prev];
       const at = idx == null ? next.length : idx;
@@ -651,6 +948,33 @@ export default function ReportEditor() {
       return next;
     });
     setActiveBlockId(newBlock.id);
+  };
+
+  // Top-toolbar shortcut for inserting a DYOD disclaimer — regulatory
+  // requirement on every published report. Idempotent: if a DYOD block
+  // already exists, scrolls to it instead of duplicating.
+  const insertDYOD = () => {
+    const existing = blocks.findIndex((b) => b.type === "dyod");
+    if (existing >= 0) {
+      setActiveBlockId(blocks[existing].id);
+      toast.info("DYOD disclaimer already in the report.");
+      return;
+    }
+    insertAt("dyod", blocks.length);
+    toast.success("DYOD disclaimer added.");
+  };
+
+  // Top-toolbar shortcut for inserting a locked Prediction block. Adds it
+  // after the title/dek so it sits prominently near the top of the draft.
+  const insertPrediction = () => {
+    const existing = blocks.findIndex((b) => b.type === "prediction");
+    if (existing >= 0) {
+      setActiveBlockId(blocks[existing].id);
+      toast.info("Prediction block already in the report.");
+      return;
+    }
+    const dekIdx = blocks.findIndex((b) => b.type === "dek");
+    insertAt("prediction", dekIdx >= 0 ? dekIdx + 1 : blocks.length);
   };
 
   const updateBlock = (id, patch) => {
@@ -763,6 +1087,27 @@ export default function ReportEditor() {
 
         <span className="vr" style={{ height: 18 }}/>
 
+        {/* Prediction + DYOD shortcuts — surfaced in the top bar so the two
+            most-important "insert" actions are always one click away. The
+            Prediction button is gold-edged to signal it's the call-to-action;
+            DYOD is a ghost button (it's the regulatory disclaimer). */}
+        <button
+          className="btn btn-ghost-gold btn-sm"
+          onClick={insertPrediction}
+          title="Insert a locked prediction (ticker, direction, target)"
+        >
+          <Lock size={12} strokeWidth={1.7}/> Prediction
+        </button>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={insertDYOD}
+          title="Insert the Do Your Own Diligence disclaimer"
+        >
+          <ShieldAlert size={12} strokeWidth={1.7}/> DYOD
+        </button>
+
+        <span className="vr" style={{ height: 18 }}/>
+
         {/* Templates + Design panel buttons — restored from backup */}
         <button className="btn btn-ghost btn-sm" onClick={() => setTemplatesOpen(true)}>
           Templates
@@ -846,7 +1191,9 @@ export default function ReportEditor() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 8px" }}>
             <div>
-              <div className="t-meta" style={{ marginBottom: 6 }}>Premium gate</div>
+              <div className="t-meta" style={{ marginBottom: 6 }}>Monetization</div>
+
+              {/* Toggle 1 — Members only (subscription required) */}
               <button onClick={() => setMonetized(!monetized)} style={{
                 display: "flex", alignItems: "center", gap: 10,
                 width: "100%", padding: "8px 10px",
@@ -866,13 +1213,78 @@ export default function ReportEditor() {
                     transition: "left var(--t-fast) var(--ease)",
                   }}/>
                 </span>
-                <span style={{ flex: 1, fontSize: 12 }}>
-                  {monetized ? "Paywalled" : "Free preview"}
-                </span>
+                <span style={{ flex: 1, fontSize: 12 }}>Members only</span>
               </button>
-              <div className="t-meta" style={{ fontSize: 10.5, marginTop: 6, lineHeight: 1.4 }}>
-                {monetized ? "Free readers see hero + first 200 words." : "Anyone can read the full report."}
+              <div className="t-meta" style={{ fontSize: 10.5, marginTop: 4, lineHeight: 1.4 }}>
+                {monetized ? "Subscribers read free; everyone else hits the paywall." : "Anyone can read the full report."}
               </div>
+
+              {/* Toggle 2 — Available for individual purchase */}
+              <button
+                onClick={() => setIndividualPurchase(!individualPurchase)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  width: "100%", padding: "8px 10px", marginTop: 8,
+                  background: "var(--bg-elev)",
+                  border: "0.5px solid var(--border-strong)",
+                  borderRadius: 6, cursor: "pointer", textAlign: "left",
+                }}
+              >
+                <span style={{
+                  width: 28, height: 16,
+                  background: individualPurchase ? "var(--gold-hex)" : "var(--border-strong)",
+                  borderRadius: 8, position: "relative", flexShrink: 0,
+                  transition: "background var(--t-fast) var(--ease)",
+                }}>
+                  <span style={{
+                    position: "absolute", top: 2, left: individualPurchase ? 14 : 2,
+                    width: 12, height: 12, background: "#fff", borderRadius: "50%",
+                    transition: "left var(--t-fast) var(--ease)",
+                  }}/>
+                </span>
+                <span style={{ flex: 1, fontSize: 12 }}>Available for individual purchase</span>
+              </button>
+
+              {/* Price input — only shown when individual purchase is on */}
+              {individualPurchase && (
+                <div
+                  style={{
+                    marginTop: 8, padding: "10px 12px",
+                    background: "rgba(212,175,55,0.06)",
+                    border: "0.5px solid rgba(212,175,55,0.32)",
+                    borderRadius: 6,
+                  }}
+                >
+                  <div className="t-meta" style={{ fontSize: 10.5, marginBottom: 6, color: "var(--gold-hex)" }}>
+                    Per-report price
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span className="t-num" style={{ color: "var(--gold-hex)", fontSize: 18 }}>$</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      step={1}
+                      value={individualPrice}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (Number.isFinite(v)) setIndividualPrice(Math.min(50, Math.max(1, v)));
+                      }}
+                      style={{
+                        width: 64, height: 30, padding: "0 8px",
+                        border: "0.5px solid var(--border-strong)",
+                        borderRadius: 4, background: "var(--bg)",
+                        fontFamily: "var(--f-mono)", fontSize: 14,
+                        color: "var(--text)", textAlign: "right",
+                      }}
+                    />
+                    <span className="t-meta" style={{ fontSize: 10.5 }}>per report</span>
+                  </div>
+                  <div className="t-meta" style={{ fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
+                    $1–$50 range. 90% goes to you, 10% Stoa fee.
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <div className="t-meta" style={{ marginBottom: 6 }}>Track record</div>
@@ -893,7 +1305,42 @@ export default function ReportEditor() {
         </aside>
 
         {/* Editor */}
-        <main style={{ padding: "48px 32px 120px", overflow: "hidden" }}>
+        <main
+          style={{ padding: "48px 32px 120px", overflow: "hidden" }}
+          onDragOver={(e) => {
+            // Accept drops carrying AI-generated content from the rail.
+            // Without preventDefault the browser refuses the drop entirely.
+            if (e.dataTransfer.types.includes("ai-text")) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDrop={(e) => {
+            const text = e.dataTransfer.getData("ai-text");
+            if (!text) return;
+            e.preventDefault();
+            const rawType = e.dataTransfer.getData("ai-type") || "text";
+            // Map AIChat block types onto the editor's block schema. AIChat
+            // uses {text, heading, bullets, quote, callout, stockchart}; the
+            // editor uses {p, h, bullets, pullquote, callout, stockchart}.
+            const TYPE_MAP = {
+              text: "p", paragraph: "p",
+              heading: "h", h2: "h", h3: "h",
+              bullets: "bullets",
+              quote: "pullquote", pullquote: "pullquote",
+              callout: "callout",
+              stockchart: "stockchart",
+              image: "image",
+            };
+            const type = TYPE_MAP[rawType] || "p";
+            const newBlock = type === "stockchart"
+              ? { id: newId(), type, ticker: text.toUpperCase(), interval: "D", style: "1", studies: [] }
+              : { id: newId(), type, text };
+            setBlocks((prev) => [...prev, newBlock]);
+            setActiveBlockId(newBlock.id);
+            toast.success("Dropped AI content into your report.");
+          }}
+        >
           <div style={{ maxWidth: 720, margin: "0 auto", position: "relative" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
               <span className="tag" style={{ borderColor: "rgba(30,58,138,0.25)", color: "var(--primary-blue)" }}>

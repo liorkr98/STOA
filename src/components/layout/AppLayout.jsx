@@ -57,12 +57,13 @@ const ROUTE_TITLES = {
   "/pay":              "Payment | STOA",
 };
 
-// Nav for analysts (creators) — full toolset including Write
+// Nav for analysts (creators) — the "Write" CTA pill is rendered separately
+// in the account-actions row, so it is intentionally omitted here to avoid
+// duplicating the Write entry in the top bar.
 const NAV_ANALYST = [
   { path: "/",       label: "Home",    icon: Home },
   { path: "/feed",   label: "Feed",    icon: LayoutDashboard },
   { path: "/stocks", label: "Markets", icon: TrendingUp },
-  { path: "/editor", label: "Write",   icon: PenLine },
 ];
 
 // Nav for investors (consumers) — read-only research consumption

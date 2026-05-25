@@ -22,19 +22,51 @@ const TF_PARAMS = {
   "1Y": { range: "1y",  interval: "1wk" },
 };
 
+// The dashboard panel adds a per-ticker timeframe selector that the rest of
+// the app doesn't have. Symbols are still stored in the shared store so
+// add/remove flows through to Markets/Feed; timeframes live in a sidecar
+// map keyed by ticker.
+const TIMEFRAME_MAP_KEY = "stoa_watchlist_timeframes";
+
+function loadTimeframeMap() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TIMEFRAME_MAP_KEY) || "{}");
+    return (raw && typeof raw === "object") ? raw : {};
+  } catch { return {}; }
+}
+
+function saveTimeframeMap(map) {
+  try { localStorage.setItem(TIMEFRAME_MAP_KEY, JSON.stringify(map || {})); } catch {}
+}
+
 export function loadWatchlist() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return raw.map(e =>
-      typeof e === "string"
-        ? { ticker: e, timeframe: "1D" }
-        : { ticker: e.ticker || e.symbol, timeframe: e.timeframe || "1D" }
-    );
+    if (!Array.isArray(raw)) return [];
+    const tfMap = loadTimeframeMap();
+    return raw
+      .map((e) => {
+        if (typeof e === "string") return { ticker: e.toUpperCase(), timeframe: tfMap[e.toUpperCase()] || "1D" };
+        const t = (e.ticker || e.symbol || "").toString().toUpperCase();
+        if (!t) return null;
+        return { ticker: t, timeframe: e.timeframe || tfMap[t] || "1D" };
+      })
+      .filter(Boolean);
   } catch { return []; }
 }
 
 export function saveWatchlist(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  const list = (entries || []).filter((e) => e && e.ticker);
+  // Persist symbol list in the shared shape so other consumers (Markets,
+  // Feed sidebar, StockPage star) see the same data.
+  const shared = list.map((e) => ({ symbol: (e.ticker || "").toUpperCase(), name: e.name || e.ticker }));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(shared)); } catch {}
+  // Sidecar: per-ticker timeframe.
+  const tfMap = {};
+  list.forEach((e) => { tfMap[(e.ticker || "").toUpperCase()] = e.timeframe || "1D"; });
+  saveTimeframeMap(tfMap);
+  // Tell the rest of the app this changed (same-tab listeners).
+  try { window.dispatchEvent(new CustomEvent("stoa-watchlist-changed", { detail: shared })); } catch {}
 }
 
 // Fetch current quote + change for a ticker using the getStockData Base44 function

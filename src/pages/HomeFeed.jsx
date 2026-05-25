@@ -591,7 +591,7 @@ export default function HomeFeed() {
               {TRENDING_TICKERS.map((t, i) => (
                 <Link
                   key={t.ticker}
-                  to={`/stock/${t.ticker}`}
+                  to={`/stock?ticker=${t.ticker}`}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "10px 18px",
