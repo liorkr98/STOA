@@ -87,6 +87,23 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
     if (onChange) onChange({ ...block, ticker, content: ticker, interval, chartStyle, chartTheme, height: chartHeight, studies, frozen, ...patch });
   }, [block, ticker, interval, chartStyle, chartTheme, chartHeight, studies, frozen, onChange]);
 
+  // On mount, if the block was inserted with an empty ticker (the editor
+  // creates `{type:"stockchart", ticker:""}` from the slash menu), the
+  // component falls back to a default ticker ("AAPL") for the preview but
+  // the underlying block stays empty — so the saved Report has an empty
+  // chart that ReportView refuses to render. Sync the resolved ticker back
+  // to the block once on mount so what the analyst sees is what gets saved.
+  const didInitialSyncRef = useRef(false);
+  useEffect(() => {
+    if (didInitialSyncRef.current) return;
+    didInitialSyncRef.current = true;
+    if (!block?.ticker && !block?.content && ticker) {
+      notify({ ticker, content: ticker });
+    }
+    // We only want this sync once per mount, regardless of notify changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Init TradingView widget with dynamic exchange resolution
   useEffect(() => {
     if (frozen) return;
@@ -341,6 +358,12 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
             value={inputTicker}
             onChange={e => setInputTicker(e.target.value.toUpperCase())}
             onKeyDown={e => e.key === "Enter" && applyTicker()}
+            onBlur={() => {
+              // Persist the typed ticker without forcing the analyst to click
+              // the search icon — losing focus is a strong "I'm done typing"
+              // signal and the previous flow silently dropped their input.
+              if (inputTicker && inputTicker.trim().toUpperCase() !== ticker) applyTicker();
+            }}
             placeholder="TICKER"
             className="w-24 h-7 text-sm font-display"
           />

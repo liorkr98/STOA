@@ -112,6 +112,37 @@ function AvatarUploader({ onUploaded }) {
 // ── Direction → tag class helper ─────────────────────────────────────────────
 const DIR_TAG = { LONG: "tag-long", SHORT: "tag-short", Long: "tag-long", Short: "tag-short", Hold: "tag-hold" };
 
+// ── Map a published Report's inline prediction_* fields to the shape that
+// predictionToCall expects. The Prediction entity does not exist as a
+// separate schema in Base44; every prediction lives on its Report.
+function reportToPrediction(r) {
+  const tfRaw = r.prediction_timeframe || "";
+  const tfDays =
+    typeof tfRaw === "number" ? tfRaw :
+    /^\d+$/.test(tfRaw) ? Number(tfRaw) :
+    /(\d+)\s*d/i.test(tfRaw) ? Number(RegExp.$1) :
+    /(\d+)\s*w/i.test(tfRaw) ? Number(RegExp.$1) * 7 :
+    /(\d+)\s*m/i.test(tfRaw) ? Number(RegExp.$1) * 30 :
+    90;
+  return {
+    id: r.id,
+    ticker: r.prediction_ticker,
+    direction: r.prediction_action,
+    entry_price: r.prediction_lock_price,
+    target_price: r.prediction_target_price,
+    stop_price: r.prediction_stop_loss,
+    exit_price: r.prediction_resolved_price,
+    timeframe_days: tfDays,
+    status: r.prediction_outcome && r.prediction_outcome !== "pending" ? "resolved" : "active",
+    outcome: r.prediction_outcome,
+    thesis: r.excerpt || "",
+    headline: r.title,
+    report_id: r.id,
+    created_by: r.created_by,
+    created_date: r.published_date || r.created_date,
+  };
+}
+
 // ── Map a Prediction entity to the LockedPredictionCard call shape ───────────
 function predictionToCall(p) {
   const status = (p.status || "active") === "active" ? "open" : "resolved";
@@ -542,13 +573,18 @@ export default function AnalystProfilePage() {
         if (!u || cancelled) { setLoading(false); return; }
         setAnalyst(u);
 
-        const [reportList, predList] = await Promise.all([
-          base44.entities.Report.filter({ created_by: u.email }, "-created_date", 50).catch(() => []),
-          base44.entities.Prediction.filter({ created_by: u.email }, "-created_date", 100).catch(() => []),
-        ]);
+        const reportList = await base44.entities.Report
+          .filter({ created_by: u.email }, "-created_date", 200)
+          .catch(() => []);
         if (cancelled) return;
         setReports(reportList || []);
-        setPredictions(predList || []);
+        // Predictions live as inline fields on published reports — there is no
+        // separate Prediction entity. Derive one "prediction" row per
+        // published report that has a locked prediction_ticker.
+        const predList = (reportList || [])
+          .filter((r) => r.status === "published" && r.prediction_ticker)
+          .map(reportToPrediction);
+        setPredictions(predList);
 
         if (isAuthenticated && currentUser) {
           const subs = await base44.entities.Subscription

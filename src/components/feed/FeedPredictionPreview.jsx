@@ -18,7 +18,7 @@ import { base44 } from "@/api/base44Client";
 export default function FeedPredictionPreview({ report, subscribed = true, monthlyPrice = 9, onSubscribe }) {
   const dir = report?.prediction_action;
   const ticker = report?.prediction_ticker;
-  const entry = report?.prediction_entry_price ? Number(report.prediction_entry_price) : null;
+  const entry = report?.prediction_lock_price ? Number(report.prediction_lock_price) : null;
   const target = report?.prediction_target_price ? Number(report.prediction_target_price) : null;
   const [livePrice, setLivePrice] = useState(null);
 

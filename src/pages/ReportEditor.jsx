@@ -862,10 +862,23 @@ export default function ReportEditor() {
     const title = blocks.find((b) => b.type === "title")?.text || "Untitled";
     const excerpt = blocks.find((b) => b.type === "dek")?.text || "";
     const predBlock = blocks.find((b) => b.type === "prediction");
+    // Collect every ticker mentioned in the report (prediction block, any
+    // stockchart blocks, and any comparechart blocks). Used by downstream
+    // surfaces — the Stock detail page's "STOA Analyst Reports" section, for
+    // example, filters reports on this field.
+    const tickerSet = new Set();
+    if (predBlock?.data?.ticker) tickerSet.add(predBlock.data.ticker.toUpperCase());
+    blocks.forEach((b) => {
+      if (b.type === "stockchart" && b.ticker) tickerSet.add(String(b.ticker).toUpperCase());
+      if (b.type === "comparechart" && Array.isArray(b.data?.tickers)) {
+        b.data.tickers.forEach((t) => { if (t) tickerSet.add(String(t).toUpperCase()); });
+      }
+    });
     const patch = {
       title,
       excerpt,
       content_blocks: JSON.stringify(blocks),
+      tickers: Array.from(tickerSet).join(","),
       is_premium: monetized,
       individual_purchase_enabled: individualPurchase,
       individual_price: individualPurchase ? Math.min(50, Math.max(1, Number(individualPrice) || 5)) : null,
@@ -877,9 +890,9 @@ export default function ReportEditor() {
       prediction_action: predBlock?.data?.dir
         ? predBlock.data.dir.charAt(0) + predBlock.data.dir.slice(1).toLowerCase()
         : null,
-      prediction_entry_price: predBlock?.data?.entry ? Number(predBlock.data.entry.toString().replace(/[^0-9.-]/g, "")) : null,
+      prediction_lock_price: predBlock?.data?.entry ? Number(predBlock.data.entry.toString().replace(/[^0-9.-]/g, "")) : null,
       prediction_target_price: predBlock?.data?.target ? Number(predBlock.data.target.toString().replace(/[^0-9.-]/g, "")) : null,
-      prediction_stop_price: predBlock?.data?.stop ? Number(predBlock.data.stop.toString().replace(/[^0-9.-]/g, "")) : null,
+      prediction_stop_loss: predBlock?.data?.stop ? Number(predBlock.data.stop.toString().replace(/[^0-9.-]/g, "")) : null,
       prediction_timeframe: predBlock?.data?.days ? `${predBlock.data.days} days` : null,
     };
     setSaving(true);
@@ -992,36 +1005,28 @@ export default function ReportEditor() {
       const id = await save(true);
       if (!id) throw new Error("Could not save before publish");
       const predBlock = blocks.find((b) => b.type === "prediction");
-      let lockData = {};
+      const lockData = {};
       if (predBlock?.data?.ticker && fetchLockPrice) {
         try {
           const live = await fetchLockPrice(predBlock.data.ticker);
           if (live?.price) {
-            lockData.prediction_entry_price = live.price;
-            lockData.prediction_locked_at = new Date().toISOString();
+            lockData.prediction_lock_price = live.price;
+            lockData.prediction_lock_time = new Date().toISOString();
+            if (live.source) lockData.prediction_lock_source = live.source;
           }
         } catch {}
       }
+      // The Prediction track-record entity does not exist as a separate
+      // schema in Base44 — predictions live as the prediction_* fields on
+      // the Report itself (see base44/entities/Report.jsonc). All downstream
+      // readers derive open positions from published Reports where
+      // prediction_ticker is set.
       await base44.entities.Report.update(id, {
         ...lockData,
         status: "published",
         published_at: new Date().toISOString(),
+        prediction_outcome: predBlock?.data?.ticker ? "pending" : null,
       });
-
-      // Create the Prediction entity so it lands on the analyst's record
-      if (predBlock?.data?.ticker) {
-        await base44.entities.Prediction.create({
-          ticker: predBlock.data.ticker,
-          direction: predBlock.data.dir.charAt(0) + predBlock.data.dir.slice(1).toLowerCase(),
-          entry_price: lockData.prediction_entry_price || Number(predBlock.data.entry || 0),
-          target_price: Number(predBlock.data.target || 0),
-          stop_price: Number(predBlock.data.stop || 0),
-          timeframe_days: Number(predBlock.data.days || 90),
-          status: "active",
-          report_id: id,
-          thesis: blocks.find((b) => b.type === "dek")?.text || "",
-        }).catch(() => {});
-      }
 
       toast.success("Published & locked.");
       navigate(`/report?id=${id}`);

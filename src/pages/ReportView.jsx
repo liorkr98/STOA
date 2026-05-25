@@ -329,10 +329,10 @@ export default function ReportView() {
             color (rolex-green / velvet-red) applies because the live delta
             IS sentiment. Timeframe progress bar shows elapsed-of-window;
             outcome tag flips to Hit / Near / Partial / Miss when resolved. */}
-        {dir && ticker && report.prediction_entry_price && (() => {
-          const entry = Number(report.prediction_entry_price);
+        {dir && ticker && report.prediction_lock_price && (() => {
+          const entry = Number(report.prediction_lock_price);
           const target = report.prediction_target_price ? Number(report.prediction_target_price) : null;
-          const stop = report.prediction_stop_price ? Number(report.prediction_stop_price) : null;
+          const stop = report.prediction_stop_loss ? Number(report.prediction_stop_loss) : null;
           const isShort = dir === "Short";
           // % change from entry → live. For shorts, profit is when price drops,
           // so we flip the sign so green/red still encode "good for the call".
@@ -484,14 +484,26 @@ export default function ReportView() {
               {report.content || report.excerpt || "—"}
             </p>
           ) : (
-            blocks.map((b, i) => <Block key={b.id ?? i} block={b} index={i}/>)
+            (() => {
+              // The drop cap should land on the first real paragraph in the
+              // body, regardless of what comes before it (title / dek /
+              // prediction / heading / chart…). Pre-compute its index so
+              // <Block> can render it differently.
+              const PARA_TYPES = new Set(["p", "paragraph", "text"]);
+              const firstParaIdx = blocks.findIndex(
+                (b) => PARA_TYPES.has(b.type || "text") && (b.content || b.text || "").trim()
+              );
+              return blocks.map((b, i) => (
+                <Block key={b.id ?? i} block={b} index={i} isFirstParagraph={i === firstParaIdx}/>
+              ));
+            })()
           )}
         </div>
 
         {/* ── Prediction trajectory chart — restored from backup.
             Shows entry → live → target over the timeframe window for any
             report with a locked prediction. */}
-        {report.prediction_ticker && report.prediction_entry_price && (
+        {report.prediction_ticker && report.prediction_lock_price && (
           <div style={{ margin: "32px 0" }}>
             <PredictionTrajectoryChart report={report}/>
           </div>
@@ -679,7 +691,7 @@ export default function ReportView() {
 }
 
 // ── Block renderer (for content_blocks variants) ─────────────────────────────
-function Block({ block, index }) {
+function Block({ block, index, isFirstParagraph = false }) {
   const t = block.type || "text";
 
   // The editor saves `title` and `dek` as the first two blocks; they're
@@ -847,9 +859,12 @@ function Block({ block, index }) {
       </figure>
     );
   }
-  // text / paragraph — apply drop cap to first paragraph
+  // text / paragraph — apply drop cap to the first real paragraph in the
+  // body (signaled by the parent — not derived from index, because the first
+  // paragraph is almost never the first block: title / dek / prediction /
+  // heading typically come first).
   const text = block.content || block.text || "";
-  if (index === 0 && text) {
+  if (isFirstParagraph && text) {
     return (
       <p style={{
         fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7,

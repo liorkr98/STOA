@@ -365,17 +365,24 @@ export default function StocksPage() {
   const [coverage, setCoverage] = useState({}); // { TICKER: { analysts, openLong, openShort } }
   const debounceRef = useRef(null);
 
-  // Open predictions → coverage map (so badges reflect real Stoa activity)
+  // Open predictions → coverage map (so badges reflect real Stoa activity).
+  // Predictions live as inline fields on published Reports (no separate
+  // Prediction entity exists in the Base44 schema). An "open" prediction is
+  // a published report with a prediction_ticker whose outcome is still pending.
   useEffect(() => {
-    base44.entities.Prediction.filter({ status: "active" }, "-created_date", 500)
-      .then((preds) => {
+    base44.entities.Report.filter({ status: "published" }, "-created_date", 500)
+      .then((reports) => {
         const map = {};
-        (preds || []).forEach((p) => {
-          const t = (p.ticker || "").toUpperCase();
+        (reports || []).forEach((r) => {
+          const t = (r.prediction_ticker || "").toUpperCase();
           if (!t) return;
+          const outcome = (r.prediction_outcome || "").toLowerCase();
+          // Treat anything not resolved (no outcome or "pending") as open.
+          const isOpen = !outcome || outcome === "pending";
+          if (!isOpen) return;
           if (!map[t]) map[t] = { analysts: new Set(), openLong: 0, openShort: 0 };
-          if (p.created_by) map[t].analysts.add(p.created_by);
-          const dir = (p.direction || p.action || "").toLowerCase();
+          if (r.created_by) map[t].analysts.add(r.created_by);
+          const dir = (r.prediction_action || "").toLowerCase();
           if (dir === "long") map[t].openLong += 1;
           else if (dir === "short") map[t].openShort += 1;
         });

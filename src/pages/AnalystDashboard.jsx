@@ -16,6 +16,36 @@ import TwitsPanel from "@/components/dashboard/TwitsPanel";
 import RevenueInsightsPanel from "@/components/dashboard/RevenueInsightsPanel";
 import DashboardDMs from "@/components/dashboard/DashboardDMs";
 
+// ── Map a published Report's inline prediction_* fields onto the same shape
+// predToCall consumes. There is no separate Prediction entity in Base44.
+function reportToPrediction(r) {
+  const tfRaw = r.prediction_timeframe || "";
+  const tfDays =
+    typeof tfRaw === "number" ? tfRaw :
+    /^\d+$/.test(tfRaw) ? Number(tfRaw) :
+    /(\d+)\s*d/i.test(tfRaw) ? Number(RegExp.$1) :
+    /(\d+)\s*w/i.test(tfRaw) ? Number(RegExp.$1) * 7 :
+    /(\d+)\s*m/i.test(tfRaw) ? Number(RegExp.$1) * 30 :
+    90;
+  return {
+    id: r.id,
+    ticker: r.prediction_ticker,
+    direction: r.prediction_action,
+    entry_price: r.prediction_lock_price,
+    target_price: r.prediction_target_price,
+    stop_price: r.prediction_stop_loss,
+    exit_price: r.prediction_resolved_price,
+    timeframe_days: tfDays,
+    status: r.prediction_outcome && r.prediction_outcome !== "pending" ? "resolved" : "active",
+    outcome: r.prediction_outcome,
+    thesis: r.excerpt || "",
+    headline: r.title,
+    report_id: r.id,
+    created_by: r.created_by,
+    created_date: r.published_date || r.created_date,
+  };
+}
+
 // ── Map Prediction entity → LockedPredictionCard call shape ──────────────────
 function predToCall(p) {
   const status = (p.status || "active") === "active" ? "open" : "resolved";
@@ -717,14 +747,19 @@ export default function AnalystDashboard() {
     let cancelled = false;
     Promise.all([
       base44.entities.Report.filter({ created_by: user.email }, "-created_date", 200).catch(() => []),
-      base44.entities.Prediction.filter({ created_by: user.email }, "-created_date", 200).catch(() => []),
       base44.entities.Subscription.filter({ analyst_email: user.email, status: "active" }, "-created_date", 200).catch(() => []),
       base44.entities.User.filter({ email: user.email }).catch(() => []),
       loadMyWallet ? loadMyWallet().catch(() => null) : Promise.resolve(null),
-    ]).then(([reports, preds, subs, users, w]) => {
+    ]).then(([reports, subs, users, w]) => {
       if (cancelled) return;
       setMyReports(reports || []);
-      setMyPredictions(preds || []);
+      // Predictions live as inline prediction_* fields on published Reports —
+      // there is no separate Prediction entity. Derive them from the reports
+      // we just loaded.
+      const preds = (reports || [])
+        .filter((r) => r.status === "published" && r.prediction_ticker)
+        .map(reportToPrediction);
+      setMyPredictions(preds);
       setSubscribers(subs || []);
       setProfile(users?.[0] || null);
       setWallet(w);

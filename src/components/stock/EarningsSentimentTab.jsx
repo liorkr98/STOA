@@ -8,9 +8,13 @@ export default function EarningsSentimentTab({ earnings, ratings, ticker }) {
   useEffect(() => {
     if (!ticker) return;
     base44.entities.Report.filter({ status: "published" }).then(all => {
+      const T = ticker.toUpperCase();
       setReports((all || []).filter(r => {
-        const tArr = (r.tickers || "").split(",").map(t => t.trim()).filter(Boolean);
-        return tArr.includes(ticker);
+        const tArr = (r.tickers || "").split(",").map(t => t.trim().toUpperCase()).filter(Boolean);
+        if (tArr.includes(T)) return true;
+        // Fall back to the report's locked prediction_ticker — reports
+        // published before tickers were being populated still surface here.
+        return (r.prediction_ticker || "").toUpperCase() === T;
       }));
     });
   }, [ticker]);
