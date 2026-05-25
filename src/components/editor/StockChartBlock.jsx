@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Trash2, Camera, Pencil, Loader2 } from "lucide-react";
+import { Search, Camera, Pencil, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -307,7 +307,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
   // ── Frozen snapshot view ──────────────────────────────────────────────────
   if (frozen && block?.snapshot_url) {
     return (
-      <div className="bg-card border border-border rounded-xl overflow-hidden mb-2">
+      <div className="bg-card border border-border rounded-[10px] overflow-hidden mb-2">
         <div className="relative">
           <img src={block.snapshot_url} alt={`${ticker} chart`} className="w-full object-cover" />
           <div className="absolute bottom-2 right-2 bg-black/65 text-white text-[11px] px-2 py-1 rounded">
@@ -320,11 +320,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
             <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={handleUnfreeze}>
               <Pencil className="w-3 h-3" /> Edit Chart
             </Button>
-            {onDelete && (
-              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={onDelete}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -333,7 +328,7 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
 
   // ── Live chart view ───────────────────────────────────────────────────────
   return (
-    <div className="bg-card border border-border rounded-xl p-3 mb-2">
+    <div className="bg-card border border-border rounded-[10px] p-3 mb-2">
       {/* Config bar */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <div className="flex items-center gap-1">
@@ -381,13 +376,6 @@ export default function StockChartBlock({ block, onDelete, onChange }) {
           ))}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          {onDelete && (
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* Studies */}

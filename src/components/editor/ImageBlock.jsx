@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Image, Loader2, Trash2 } from "lucide-react";
+import { Image, Loader2 } from "lucide-react";
 
 export default function ImageBlock({ block, onDelete, onChange }) {
   const [uploading, setUploading] = useState(false);
@@ -51,14 +51,11 @@ export default function ImageBlock({ block, onDelete, onChange }) {
   };
 
   return (
-    <div className="group relative rounded-xl border-2 border-dashed border-border overflow-hidden mb-2">
+    <div className="group relative rounded-[10px] border border-dashed border-border overflow-hidden mb-2">
       {url ? (
         <div>
           <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 border-b border-border">
             <span className="text-[10px] text-muted-foreground">Drag corner to resize</span>
-            <button onClick={onDelete} className="ml-auto text-muted-foreground hover:text-loss transition-colors">
-              <Trash2 className="w-4 h-4" />
-            </button>
           </div>
           <div
             ref={containerRef}

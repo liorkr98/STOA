@@ -61,7 +61,7 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
   };
 
   return (
-    <div className="group relative rounded-xl border border-border overflow-hidden my-2">
+    <div className="group relative rounded-[10px] border border-border overflow-hidden my-2">
       {/* Header */}
       <div className="flex items-center justify-between bg-secondary px-4 py-2 border-b border-border">
         <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
@@ -70,15 +70,9 @@ export default function MetricsBlock({ block, onChange, onDelete }) {
         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => setEditing(e => !e)}
-            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border bg-card transition-colors"
+            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border bg-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
           >
             {editing ? "Done" : "Edit"}
-          </button>
-          <button
-            onClick={onDelete}
-            className="text-[10px] text-muted-foreground hover:text-loss px-2 py-0.5 rounded border border-border bg-card transition-colors"
-          >
-            Remove
           </button>
         </div>
       </div>

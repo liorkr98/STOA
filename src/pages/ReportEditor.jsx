@@ -545,7 +545,7 @@ function BlockRenderer({ block, onChange }) {
   }
   if (block.type === "pullquote") {
     return (
-      <blockquote style={{ margin: "16px -24px", padding: "0 0 0 24px", borderLeft: "1px solid var(--gold-hex)" }}>
+      <blockquote style={{ margin: "16px -24px", padding: "0 0 0 24px", borderLeft: "0.5px solid var(--gold-hex)" }}>
         <textarea
           value={block.text}
           onChange={(e) => setText(e.target.value)}
@@ -626,7 +626,7 @@ function BlockRenderer({ block, onChange }) {
           padding: "14px 18px",
           background: "rgba(212,175,55,0.06)",
           border: "0.5px solid rgba(212,175,55,0.32)",
-          borderRadius: 8,
+          borderRadius: 10,
           display: "flex",
           gap: 12,
         }}

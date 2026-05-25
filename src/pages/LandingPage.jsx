@@ -49,7 +49,7 @@ function FullLockedCard() {
           <div className="t-meta">Elo <span className="t-num" style={{ color: "var(--primary-blue)" }}>1,382</span> · 91% accuracy</div>
         </div>
         <div style={{ flex: 1 }}/>
-        <span className="tag tag-long" style={{ height: 26, padding: "0 10px" }}>LONG NVDA</span>
+        <span className="tag tag-long">LONG NVDA</span>
       </div>
       <div className="receipt" style={{ marginBottom: 14 }}>
         <Lock size={12} strokeWidth={1.5}/>
@@ -97,7 +97,7 @@ function MiniLockedCard({ ticker, dir, change, grade = "HIT", date, year }) {
     <div className="surface" style={{ padding: 16, background: "var(--bg-elev)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <span className="receipt" style={{ fontSize: 10 }}>LOCKED · {date} {year}</span>
-        <span className="tag tag-hit" style={{ height: 18, padding: "0 6px", fontSize: 9.5 }}>{grade}</span>
+        <span className="tag tag-hit">{grade}</span>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <span className={`tag ${dir === "LONG" ? "tag-long" : "tag-short"}`}>{dir} {ticker}</span>
@@ -380,14 +380,15 @@ export default function LandingPage() {
                 <div className="t-eyebrow" style={{ marginBottom: 14 }}>{c.t}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {c.l.map(([label, path]) => (
-                    <span
+                    <button
                       key={label}
+                      type="button"
                       className="t-body"
-                      style={{ fontSize: 13, color: "var(--text-mute)", cursor: "pointer" }}
+                      style={{ fontSize: 13, color: "var(--text-mute)", cursor: "pointer", background: "transparent", border: 0, padding: 0, textAlign: "left", fontFamily: "inherit" }}
                       onClick={() => navigate(path)}
                     >
                       {label}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>

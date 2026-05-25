@@ -377,7 +377,7 @@ function Audience({ subscribers }) {
                   ${s.lifetime_amount || s.monthly_amount || "—"}
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button className="btn btn-ghost btn-sm" style={{ width: 28, padding: 0 }}>
+                  <button className="btn btn-ghost btn-sm" style={{ width: 28, padding: 0 }} aria-label="Subscriber options">
                     <MoreHorizontal size={14}/>
                   </button>
                 </div>

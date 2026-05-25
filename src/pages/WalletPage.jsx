@@ -157,7 +157,7 @@ export default function WalletPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => navigate("/pay?mode=deposit")}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-sm font-medium text-sm border border-border text-foreground hover:bg-secondary transition-colors"
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 font-medium text-sm border border-border text-foreground hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
                   style={{ borderRadius: 6 }}
                 >
                   <Plus className="w-4 h-4" /> Deposit
@@ -165,7 +165,7 @@ export default function WalletPage() {
                 <button
                   onClick={() => setShowWithdraw(true)}
                   disabled={!wallet?.balance}
-                  className="cta-gold flex items-center justify-center gap-1.5 flex-1 py-2.5 text-sm font-medium transition-colors disabled:opacity-40"
+                  className="cta-gold flex items-center justify-center gap-1.5 flex-1 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
                   style={{ borderRadius: 6 }}
                 >
                   <ArrowUpRight className="w-4 h-4" /> Withdraw
