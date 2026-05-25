@@ -46,6 +46,7 @@ export default function ReportView() {
   const [livePrice, setLivePrice] = useState(null);
   const [moreReports, setMoreReports] = useState([]);
   const [subscribed, setSubscribed] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   const likedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
 
@@ -74,6 +75,7 @@ export default function ReportView() {
         setReport(data);
         setLikeCount(data.likes || 0);
         setViewCount(data.views || 0);
+        setCommentCount(data.comment_count || 0);
         setLiked(localStorage.getItem(likedKey(reportId)) === "1");
 
         try { base44.analytics?.track?.({ eventName: "report_viewed", properties: { report_id: reportId } }); } catch {}
@@ -533,11 +535,9 @@ export default function ReportView() {
           >
             <Bookmark size={13} strokeWidth={1.6}/> {saved ? "Saved" : "Save"}
           </button>
-          {report.comment_count != null && (
-            <button className="btn btn-ghost">
-              <MessageSquare size={13} strokeWidth={1.6}/> {report.comment_count} comments
-            </button>
-          )}
+          <button className="btn btn-ghost" onClick={() => document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" })}>
+            <MessageSquare size={13} strokeWidth={1.6}/> {commentCount} {commentCount === 1 ? "comment" : "comments"}
+          </button>
           <div style={{ flex: 1 }}/>
           <button className="btn btn-ghost btn-sm">
             <Share2 size={13} strokeWidth={1.6}/>
@@ -573,6 +573,10 @@ export default function ReportView() {
             reportId={report.id}
             reportAuthorEmail={report.created_by}
             reportTitle={report.title}
+            onCountChange={(n) => {
+              setCommentCount(n);
+              base44.entities.Report.update(report.id, { comment_count: n }).catch(() => {});
+            }}
           />
         </div>
       </article>

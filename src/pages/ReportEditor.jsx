@@ -240,7 +240,7 @@ function PredictionBlockEditor({ block, onChange }) {
       }}>
         <Lock size={12} strokeWidth={1.6} style={{ color: "var(--gold-hex)" }}/>
         <span className="receipt" style={{ color: "var(--gold-hex)", fontSize: 10.5 }}>
-          PREDICTION BLOCK · LOCKS ON PUBLISH · AUTO-ATTACHED TO YOUR RECORD
+          ADD A PREDICTION · TICKER, DIRECTION, TARGET PRICE
         </span>
       </div>
       <div style={{ padding: 16 }}>
@@ -306,7 +306,7 @@ function BlockRenderer({ block, onChange }) {
       <input
         value={block.text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Title — Lora display"
+        placeholder="Your report title"
         className="t-display"
         style={{
           width: "100%", fontSize: 42, border: 0, outline: 0, padding: 0,
@@ -322,7 +322,7 @@ function BlockRenderer({ block, onChange }) {
       <input
         value={block.text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Italic subhead — sets the variant view"
+        placeholder="Add a subtitle or one-line summary"
         style={{
           width: "100%", fontSize: 19, border: 0, outline: 0, padding: 0,
           color: "var(--text-mute)", background: "transparent",
@@ -352,7 +352,7 @@ function BlockRenderer({ block, onChange }) {
         value={block.text}
         onChange={(e) => setText(e.target.value)}
         rows={Math.max(2, Math.ceil((block.text || "").length / 80))}
-        placeholder="Body — write your thesis in plain prose."
+        placeholder="Start writing your analysis..."
         style={{
           width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
           color: "var(--text-body)", background: "transparent",
@@ -371,7 +371,7 @@ function BlockRenderer({ block, onChange }) {
           value={block.text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
-          placeholder="Pull quote — big italic callout."
+          placeholder="Add a notable quote or key insight"
           style={{
             width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
             color: "var(--text)", background: "transparent",
@@ -428,7 +428,7 @@ function BlockRenderer({ block, onChange }) {
                   const next = [...data.bull]; next[i] = e.target.value;
                   onChange({ ...block, data: { ...data, bull: next } });
                 }}
-                placeholder="Bull point"
+                placeholder="Bull case"
                 style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--f-serif)", fontSize: 13.5, color: "var(--text-body)" }}
               />
             </div>
@@ -447,7 +447,7 @@ function BlockRenderer({ block, onChange }) {
                   const next = [...data.bear]; next[i] = e.target.value;
                   onChange({ ...block, data: { ...data, bear: next } });
                 }}
-                placeholder="Bear point"
+                placeholder="Bear case"
                 style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--f-serif)", fontSize: 13.5, color: "var(--text-body)" }}
               />
             </div>
@@ -640,7 +640,7 @@ export default function ReportEditor() {
     const newBlock = type === "prediction"
       ? { id: newId(), type, data: { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 } }
       : type === "metrics"
-      ? { id: newId(), type, data: [{ label: "Book-to-bill", value: "1.42×", delta: "+0.18 q/q" }, { label: "Backlog", value: "€42.6B", delta: "+11.4% y/y" }] }
+      ? { id: newId(), type, data: [{ label: "Metric", value: "—", delta: "" }, { label: "Metric", value: "—", delta: "" }] }
       : type === "bullbear"
       ? { id: newId(), type, data: { bull: [""], bear: [""] } }
       : { id: newId(), type, text: "" };

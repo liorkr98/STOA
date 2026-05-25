@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import {
-  Filter, ChevronDown, Clock, Eye, Lock, ArrowRight,
+  Filter, ChevronDown, Clock, Eye, ArrowRight,
 } from "lucide-react";
 import { Avatar } from "@/components/AnalystCard";
 import { analystHref } from "@/lib/analystSlug";
+import { avatarUrl } from "@/lib/avatarUrl";
 import FeedCustomizer, { loadFeedPrefs } from "@/components/feed/FeedCustomizer";
 import InlineFollowButton from "@/components/feed/InlineFollowButton";
+import FeedWatchlist from "@/components/feed/FeedWatchlist";
+import FeedPredictionPreview from "@/components/feed/FeedPredictionPreview";
 import ShareModal from "@/components/profile/ShareModal";
 import { Heart, MessageCircle, Share2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -62,15 +65,13 @@ function timeAgo(iso) {
 }
 
 // ── A single feed article card ───────────────────────────────────────────────
-function FeedItem({ report, author, currentUser, isFollowing, onFollowToggle, onOpen, onShare }) {
+function FeedItem({ report, author, currentUser, isFollowing, isSubscribed, onFollowToggle, onOpen, onShare, onSubscribe }) {
   const kind = (report.kind || (report.is_quick_post ? "POST" : "REPORT")).toUpperCase();
   const ks = kindBadge(kind);
   const tickers = report.prediction_ticker
     ? [report.prediction_ticker]
     : (report.tickers || []).slice(0, 3);
   const dir = report.prediction_action; // "Long" | "Short" | "Hold"
-  const isLong = dir === "Long";
-  const isShort = dir === "Short";
   const hasPrediction = !!dir && tickers.length > 0;
 
   const elo = author?.elo ?? Math.round((author?.accuracy_score || 60) * 10);
@@ -113,19 +114,22 @@ function FeedItem({ report, author, currentUser, isFollowing, onFollowToggle, on
     e.stopPropagation();
     if (!commentDraft.trim() || postingComment) return;
     setPostingComment(true);
+    const previousCount = commentCount;
+    setCommentCount((c) => c + 1);
     try {
       await base44.entities.Comment.create({
         report_id: report.id,
-        author_email: currentUser.email,
-        author_name: currentUser.full_name || currentUser.email?.split("@")[0],
+        author_name: currentUser.full_name || currentUser.email?.split("@")[0] || "Anonymous",
+        author_avatar: avatarUrl(currentUser) || null,
         content: commentDraft.trim(),
+        likes: 0,
       });
-      setCommentCount((c) => c + 1);
       setCommentDraft("");
       setShowCommentInput(false);
       toast.success("Comment posted.");
-      base44.entities.Report.update(report.id, { comment_count: commentCount + 1 }).catch(() => {});
+      base44.entities.Report.update(report.id, { comment_count: previousCount + 1 }).catch(() => {});
     } catch (err) {
+      setCommentCount(previousCount);
       toast.error(err?.message || "Comment failed.");
     } finally {
       setPostingComment(false);
@@ -197,28 +201,16 @@ function FeedItem({ report, author, currentUser, isFollowing, onFollowToggle, on
         </p>
       )}
 
-      {/* Locked prediction summary */}
+      {/* Prediction preview — ticker, direction, entry → target, live P&L,
+          timeframe progress. Locked/blurred for premium reports the viewer
+          isn't subscribed to. */}
       {hasPrediction && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "12px 16px", background: "var(--bg-elev)",
-          border: "0.5px solid var(--border-rgba)", borderRadius: 8,
-          marginBottom: 16,
-        }}>
-          <Lock size={14} strokeWidth={1.5} style={{ color: "var(--text-meta)" }}/>
-          <span className="t-meta" style={{ fontSize: 11 }}>LOCKED PREDICTION</span>
-          <div className="vr" style={{ height: 14 }}/>
-          <span className={`tag ${isLong ? "tag-long" : isShort ? "tag-short" : "tag-hold"}`}>
-            {dir.toUpperCase()} {tickers[0]}
-          </span>
-          {report.prediction_target_price && report.prediction_entry_price && (<>
-            <div style={{ flex: 1 }}/>
-            <span className="t-meta" style={{ fontSize: 11 }}>Target</span>
-            <span className="t-num" style={{ fontSize: 13, color: "var(--text)" }}>
-              ${Number(report.prediction_target_price).toFixed(2)}
-            </span>
-          </>)}
-        </div>
+        <FeedPredictionPreview
+          report={report}
+          subscribed={isSubscribed}
+          monthlyPrice={author?.monthly_price || 9}
+          onSubscribe={() => onSubscribe?.(report, author)}
+        />
       )}
 
       {/* Footer (meta + tickers) */}
@@ -585,6 +577,9 @@ export default function HomeFeed() {
             </div>
           </div>
 
+          {/* Watchlist — shares the stoa_watchlist localStorage key with Markets */}
+          <FeedWatchlist/>
+
           {/* Trending tickers */}
           <div className="surface" style={{ padding: 0, marginTop: 16, overflow: "hidden" }}>
             <div style={{ padding: "14px 18px", borderBottom: "0.5px solid var(--border-rgba)", display: "flex", alignItems: "center" }}>
@@ -656,6 +651,7 @@ export default function HomeFeed() {
                     author={userMap[r.created_by]}
                     currentUser={user}
                     isFollowing={followedEmails.has(r.created_by)}
+                    isSubscribed={subscribedEmails.has(r.created_by) || user?.email === r.created_by}
                     onFollowToggle={(next) => {
                       setFollowedEmails((prev) => {
                         const ns = new Set(prev);
@@ -665,6 +661,7 @@ export default function HomeFeed() {
                     }}
                     onOpen={() => navigate(`/report?id=${r.id}`)}
                     onShare={() => setShareReport(r)}
+                    onSubscribe={() => navigate(`/report?id=${r.id}`)}
                   />
                 ))
               )}
