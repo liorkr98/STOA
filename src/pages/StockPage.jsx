@@ -130,18 +130,14 @@ export default function StockPage() {
             aria-pressed={isWatched}
             aria-label={isWatched ? `Remove ${ticker} from watchlist` : `Add ${ticker} to watchlist`}
             title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-              isWatched
-                ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                : "bg-card text-muted-foreground border-border hover:text-amber-600 hover:border-amber-200"
-            }`}
+            className={`btn btn-sm ${isWatched ? "btn-ghost-gold" : "btn-ghost"}`}
           >
-            <Star className={`w-4 h-4 ${isWatched ? "fill-amber-500 text-amber-500" : ""}`} />
+            <Star className="w-4 h-4" style={{ fill: isWatched ? "var(--gold-hex)" : "transparent" }} />
             {isWatched ? "Watching" : "Watch"}
           </button>
           <button
             onClick={() => navigate(`/editor?ticker=${ticker}`)}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            className="btn btn-primary btn-sm"
           >
             <PenLine className="w-3.5 h-3.5" /> Write Report on {ticker}
           </button>
@@ -149,7 +145,7 @@ export default function StockPage() {
       </div>
 
       {/* ── Header card ──────────────────────────────────────── */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-5">
+      <div className="bg-card border border-border rounded-[10px] p-5 mb-5">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           {/* Left: name + badges */}
           <div>
@@ -229,7 +225,7 @@ export default function StockPage() {
       {tab === "overview" && (
         <div className="space-y-4">
           {/* Company Profile */}
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-card border border-border rounded-[10px] p-5">
             <h3 className="font-medium text-sm mb-3">Company Profile</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {fundamentals?.description || "No description available."}
@@ -238,7 +234,7 @@ export default function StockPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Company Details */}
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="bg-card border border-border rounded-[10px] p-5">
               <h3 className="font-medium text-sm mb-3">Company Details</h3>
               {[
                 { label: "Sector",    value: fundamentals?.sector },
@@ -264,7 +260,7 @@ export default function StockPage() {
             </div>
 
             {/* Key Metrics */}
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="bg-card border border-border rounded-[10px] p-5">
               <h3 className="font-medium text-sm mb-3">Key Metrics</h3>
               {[
                 { label: "P/E Ratio (TTM)",    value: fmtNum(fundamentals?.pe) },
@@ -304,7 +300,7 @@ export default function StockPage() {
           )}
           {news.map((item, i) => (
             <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
-              className="flex items-start gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-sm transition-all group"
+              className="flex items-start gap-4 p-4 bg-card border border-border rounded-[10px] hover:border-primary/30 transition-all group"
             >
               {item.thumbnail?.resolutions?.[0]?.url && (
                 <img
@@ -352,7 +348,7 @@ function LoadingScreen({ ticker }) {
 function ErrorScreen({ message, onBack }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 text-center">
-      <div className="bg-loss/5 border border-loss/20 rounded-xl p-8 inline-block">
+      <div className="bg-loss/5 border border-loss/20 rounded-[10px] p-8 inline-block">
         <p className="font-medium text-loss mb-2">Failed to load data</p>
         <p className="text-sm text-muted-foreground mb-4">{message}</p>
         <button onClick={onBack} className="text-sm text-primary hover:underline">← Go Back</button>

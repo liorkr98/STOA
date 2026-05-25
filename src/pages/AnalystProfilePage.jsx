@@ -1062,16 +1062,16 @@ export default function AnalystProfilePage() {
           }}>
             {[
               { l: "Elo Rating", v: elo, sub: `${tier}${rank ? ` · #${rank}` : ""}`, tone: "gold" },
-              { l: "Accuracy", v: `${analyst.accuracy_score || 0}%`, sub: `${gradeStats.total} resolved`, tone: "green" },
+              { l: "Accuracy", v: `${analyst.accuracy_score || 0}%`, sub: `${gradeStats.total} resolved` },
               { l: "Total Calls", v: calls.length, sub: `${openCalls.length} open · ${resolvedCalls.length} closed` },
-              { l: "Avg. Return", v: avgReturn != null ? `${avgReturn >= 0 ? "+" : ""}${avgReturn.toFixed(1)}%` : "—", sub: "Per resolved call", tone: "green" },
+              { l: "Avg. Return", v: avgReturn != null ? `${avgReturn >= 0 ? "+" : ""}${avgReturn.toFixed(1)}%` : "—", sub: "Per resolved call", tone: avgReturn != null && avgReturn < 0 ? "red" : "green" },
               { l: "Subscribers", v: subscribers.toLocaleString(), sub: analyst.subscribers_growth ? `+${analyst.subscribers_growth} this mo.` : "" },
             ].map((s, i) => (
               <div key={i} style={{ padding: "20px 22px", borderRight: i < 4 ? "0.5px solid rgba(255,255,255,0.14)" : "none" }}>
                 <div className="t-meta" style={{ color: "rgba(255,255,255,0.55)" }}>{s.l}</div>
                 <div className="t-num" style={{
                   fontSize: 26, marginTop: 6, letterSpacing: "-0.02em",
-                  color: s.tone === "green" ? "#7AD6A3" : s.tone === "gold" ? "var(--gold-light-hex)" : "#fff",
+                  color: s.tone === "green" ? "#7AD6A3" : s.tone === "red" ? "#E58B97" : s.tone === "gold" ? "var(--gold-light-hex)" : "#fff",
                 }}>
                   {s.v}
                 </div>
@@ -1081,16 +1081,19 @@ export default function AnalystProfilePage() {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 28, padding: "20px 0 0" }}>
+          <div role="tablist" aria-label="Analyst profile sections" style={{ display: "flex", gap: 28, padding: "20px 0 0" }}>
             {tabs.map((t) => (
-              <span
+              <button
                 key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
                 className={"nav-link" + (tab === t.id ? " active" : "")}
                 onClick={() => setTab(t.id)}
-                style={{ paddingBottom: 16, fontSize: 13, letterSpacing: "0.04em", fontWeight: 500 }}
+                style={{ paddingBottom: 16, fontSize: 13, letterSpacing: "0.04em", fontWeight: 500, background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
               >
                 {t.label}
-              </span>
+              </button>
             ))}
           </div>
         </div>

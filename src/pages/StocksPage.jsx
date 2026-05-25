@@ -321,12 +321,16 @@ function WatchRow({ stock, onRemove, onClick }) {
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         title="Remove from watchlist"
+        aria-label={`Remove ${stock.symbol} from watchlist`}
         style={{
-          width: 26, height: 26, borderRadius: 5,
+          width: 26, height: 26, borderRadius: 6,
           background: "transparent", border: 0,
           color: "var(--text-faint)", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "color var(--t-fast) var(--ease), background var(--t-fast) var(--ease)",
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--bg-softer)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-faint)"; e.currentTarget.style.background = "transparent"; }}
       >
         <X size={13} strokeWidth={1.7}/>
       </button>
@@ -544,10 +548,7 @@ export default function StocksPage() {
           </div>
 
           {watchlist.length === 0 ? (
-            <div className="surface" style={{
-              padding: 32, textAlign: "center",
-              borderStyle: "dashed", background: "transparent",
-            }}>
+            <div className="surface" style={{ padding: 32, textAlign: "center" }}>
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 40, height: 40, borderRadius: 8,
@@ -556,7 +557,7 @@ export default function StocksPage() {
                 <Star size={18} strokeWidth={1.5} style={{ color: "var(--gold-hex)" }}/>
               </div>
               <div className="t-body" style={{ fontSize: 14, color: "var(--text)" }}>Your watchlist is empty</div>
-              <div className="t-meta" style={{ marginTop: 4 }}>Star any ticker below to start tracking.</div>
+              <div className="t-meta" style={{ marginTop: 4 }}>Star any ticker in the grid below to start tracking it here.</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

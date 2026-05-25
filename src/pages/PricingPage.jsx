@@ -105,7 +105,7 @@ export default function PricingPage() {
             </ul>
             <button
               onClick={() => navigate(plan.dest)}
-              className={`w-full font-medium text-sm flex items-center justify-center gap-2 transition-colors ${
+              className={`w-full font-medium text-sm flex items-center justify-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 ${
                 plan.highlight
                   ? "cta-gold py-3.5"
                   : "py-2.5 border border-border text-foreground hover:bg-secondary/60"

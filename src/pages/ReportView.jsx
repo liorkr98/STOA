@@ -519,6 +519,7 @@ export default function ReportView() {
           marginTop: 48,
         }}>
           <button onClick={toggleLike} className="btn btn-ghost"
+            aria-pressed={liked}
             style={{
               borderColor: liked ? "var(--gold-hex)" : undefined,
               color: liked ? "var(--gold-hex)" : undefined,
@@ -527,19 +528,11 @@ export default function ReportView() {
             <Star size={14} strokeWidth={1.6} style={{ fill: liked ? "var(--gold-hex)" : "transparent" }}/>
             {likeCount.toLocaleString()} found this useful
           </button>
-          <button onClick={() => setSaved(!saved)} className="btn btn-ghost"
-            style={{
-              borderColor: saved ? "var(--primary-blue)" : undefined,
-              color: saved ? "var(--primary-blue)" : undefined,
-            }}
-          >
-            <Bookmark size={13} strokeWidth={1.6}/> {saved ? "Saved" : "Save"}
-          </button>
           <button className="btn btn-ghost" onClick={() => document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" })}>
             <MessageSquare size={13} strokeWidth={1.6}/> {commentCount} {commentCount === 1 ? "comment" : "comments"}
           </button>
           <div style={{ flex: 1 }}/>
-          <button className="btn btn-ghost btn-sm">
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} aria-label="Share report">
             <Share2 size={13} strokeWidth={1.6}/>
           </button>
         </div>
@@ -774,7 +767,7 @@ function Block({ block, index }) {
       <blockquote style={{
         margin: "32px -24px",
         padding: "0 0 0 24px",
-        borderLeft: "1px solid var(--gold-hex)",
+        borderLeft: "0.5px solid var(--gold-hex)",
       }}>
         <p style={{
           fontFamily: "var(--f-serif)", fontStyle: "italic",
