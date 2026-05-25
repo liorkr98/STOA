@@ -10,6 +10,7 @@ import {
   Wallet as WalletIcon,
   Settings as SettingsIcon,
 } from "lucide-react";
+import { Avatar } from "@/components/AnalystCard";
 
 /**
  * StudioSidebar — analyst-side vertical navigation per design handoff v2.
@@ -123,12 +124,7 @@ export default function StudioSidebar({ items, analyst }) {
         <div style={{ padding: "0 16px" }}>
           <div className="surface" style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                className="av av-md"
-                style={{ background: analyst.avatarColor || "var(--primary-blue)" }}
-              >
-                {analyst.initials}
-              </div>
+              <Avatar a={analyst} size="md" />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div
                   className="t-title"

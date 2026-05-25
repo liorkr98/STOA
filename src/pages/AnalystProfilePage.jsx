@@ -66,6 +66,10 @@ function AvatarUploader({ onUploaded }) {
       if (!me?.id) throw new Error("Could not resolve current user");
       await base44.entities.User.update(me.id, { profile_picture_url: file_url });
       onUploaded(file_url);
+      // Broadcast to every avatar in the app so they refresh in-place.
+      window.dispatchEvent(
+        new CustomEvent("stoa-avatar-updated", { detail: { url: file_url } })
+      );
       toast.success("Profile picture updated");
     } catch (err) {
       toast.error(err?.message || "Upload failed");
@@ -808,16 +812,39 @@ export default function AnalystProfilePage() {
         </div>
       )}
 
-      {/* ── Profile header ── */}
-      <section className="ambient" style={{ padding: "44px 0 0", borderBottom: "0.5px solid var(--border-rgba)" }}>
-        <div className="shell">
+      {/* ── Profile header — navy hero ── */}
+      <section className="ambient profile-navy-hero" style={{
+        padding: "44px 0 0",
+        borderBottom: "0.5px solid var(--border-rgba)",
+        background: "var(--deepest-navy)",
+        color: "#fff",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <style>{`
+          .profile-navy-hero::before { background: var(--primary-blue); opacity: 0.22; }
+          .profile-navy-hero::after  { background: var(--gold-hex); opacity: 0.10; }
+          .profile-navy-hero .t-meta { color: rgba(255,255,255,0.55); }
+          .profile-navy-hero .t-display { color: #fff; }
+          .profile-navy-hero .t-title { color: #fff; }
+          .profile-navy-hero .receipt { color: rgba(255,255,255,0.55); }
+          .profile-navy-hero .tag {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.78);
+          }
+          .profile-navy-hero .t-body { color: rgba(255,255,255,0.78); }
+          .profile-navy-hero .nav-link { color: rgba(255,255,255,0.65); }
+          .profile-navy-hero .nav-link.active { color: #fff; }
+        `}</style>
+        <div className="shell" style={{ position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 14 }}>
             <BackButton fallback="/feed" />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
             <span className="t-meta" style={{ cursor: "pointer" }} onClick={() => navigate("/feed")}>Discover</span>
-            <ChevronRight size={12} style={{ color: "var(--text-meta)" }}/>
-            <span className="t-meta" style={{ color: "var(--text)" }}>{analyst.full_name || analyst.email}</span>
+            <ChevronRight size={12} style={{ color: "rgba(255,255,255,0.40)" }}/>
+            <span className="t-meta" style={{ color: "#fff" }}>{analyst.full_name || analyst.email}</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 32, alignItems: "flex-start" }}>
@@ -830,14 +857,14 @@ export default function AnalystProfilePage() {
                   className="av av-xl"
                   style={{
                     objectFit: "cover",
-                    background: "var(--deepest-navy)",
-                    boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)",
+                    background: "var(--primary-blue)",
+                    boxShadow: "0 0 0 4px var(--deepest-navy), 0 0 0 5px var(--gold-hex)",
                   }}
                 />
               ) : (
                 <div className="av av-xl" style={{
-                  background: "var(--deepest-navy)",
-                  boxShadow: "0 0 0 4px var(--bg), 0 0 0 5px var(--gold-hex)",
+                  background: "var(--primary-blue)",
+                  boxShadow: "0 0 0 4px var(--deepest-navy), 0 0 0 5px var(--gold-hex)",
                 }}>
                   {initials}
                 </div>
@@ -1025,29 +1052,30 @@ export default function AnalystProfilePage() {
             </div>
           </div>
 
-          {/* KPI strip */}
+          {/* KPI strip — sits at the bottom edge of the navy hero */}
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 0,
             marginTop: 40,
-            borderTop: "0.5px solid var(--border-rgba)",
-            borderBottom: "0.5px solid var(--border-rgba)",
+            borderTop: "0.5px solid rgba(255,255,255,0.14)",
+            borderBottom: "0.5px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.03)",
           }}>
             {[
-              { l: "Elo Rating", v: elo, sub: `${tier}${rank ? ` · #${rank}` : ""}`, tone: "navy" },
+              { l: "Elo Rating", v: elo, sub: `${tier}${rank ? ` · #${rank}` : ""}`, tone: "gold" },
               { l: "Accuracy", v: `${analyst.accuracy_score || 0}%`, sub: `${gradeStats.total} resolved`, tone: "green" },
               { l: "Total Calls", v: calls.length, sub: `${openCalls.length} open · ${resolvedCalls.length} closed` },
               { l: "Avg. Return", v: avgReturn != null ? `${avgReturn >= 0 ? "+" : ""}${avgReturn.toFixed(1)}%` : "—", sub: "Per resolved call", tone: "green" },
               { l: "Subscribers", v: subscribers.toLocaleString(), sub: analyst.subscribers_growth ? `+${analyst.subscribers_growth} this mo.` : "" },
             ].map((s, i) => (
-              <div key={i} style={{ padding: "20px 22px", borderRight: i < 4 ? "0.5px solid var(--border-rgba)" : "none" }}>
-                <div className="t-meta">{s.l}</div>
+              <div key={i} style={{ padding: "20px 22px", borderRight: i < 4 ? "0.5px solid rgba(255,255,255,0.14)" : "none" }}>
+                <div className="t-meta" style={{ color: "rgba(255,255,255,0.55)" }}>{s.l}</div>
                 <div className="t-num" style={{
                   fontSize: 26, marginTop: 6, letterSpacing: "-0.02em",
-                  color: s.tone === "green" ? "var(--rolex-green)" : s.tone === "navy" ? "var(--primary-blue)" : "var(--text)",
+                  color: s.tone === "green" ? "#7AD6A3" : s.tone === "gold" ? "var(--gold-light-hex)" : "#fff",
                 }}>
                   {s.v}
                 </div>
-                {s.sub && <div className="t-meta" style={{ marginTop: 4, fontSize: 11 }}>{s.sub}</div>}
+                {s.sub && <div className="t-meta" style={{ marginTop: 4, fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{s.sub}</div>}
               </div>
             ))}
           </div>

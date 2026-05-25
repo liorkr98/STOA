@@ -138,27 +138,50 @@ function Overview({ analyst, kpis, trackSeries, openCalls, topReports, navigate 
   const now = new Date();
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 32 }}>
-        <div>
-          <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-            {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+      {/* Navy hero banner */}
+      <section className="ambient" style={{
+        background: "var(--deepest-navy)", color: "#fff",
+        padding: "44px 32px 60px",
+        position: "relative", overflow: "hidden",
+        borderRadius: 12,
+        marginBottom: 0,
+      }}>
+        <style>{`
+          .studio-hero::before { background: var(--primary-blue); opacity: 0.22; }
+          .studio-hero::after  { background: var(--gold-hex); opacity: 0.10; }
+        `}</style>
+        <div className="studio-hero ambient" style={{ position: "absolute", inset: 0, padding: 0 }}/>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <div className="t-eyebrow" style={{ color: "var(--gold-light-hex)", marginBottom: 10 }}>Studio</div>
+            <h1 className="t-display" style={{ fontSize: 36, margin: 0, color: "#fff", letterSpacing: "-0.02em" }}>
+              Welcome back, {analyst.first}.
+            </h1>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", margin: "10px 0 0", lineHeight: 1.55 }}>
+              {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            </p>
           </div>
-          <h1 className="t-display" style={{ fontSize: 32, margin: 0 }}>
-            Welcome back, {analyst.first}.
-          </h1>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              className="btn btn-sm"
+              onClick={() => navigate("/editor")}
+              style={{
+                background: "transparent",
+                color: "#fff",
+                border: "0.5px solid rgba(255,255,255,0.25)",
+              }}
+            >
+              <Plus size={13} strokeWidth={1.7}/> New prediction
+            </button>
+            <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
+              <PenLine size={13} strokeWidth={1.7}/> Compose report
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate("/editor")}>
-            <Plus size={13} strokeWidth={1.7}/> New prediction
-          </button>
-          <button className="btn btn-gold btn-sm" onClick={() => navigate("/editor")}>
-            <PenLine size={13} strokeWidth={1.7}/> Compose report
-          </button>
-        </div>
-      </div>
+      </section>
 
-      {/* KPI cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+      {/* KPI cards — sit on the bottom edge of the banner */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: -30, marginBottom: 28, position: "relative", zIndex: 2 }}>
         {kpis.map((s) => {
           const Icon = s.icon;
           const color = s.tone === "green" ? "var(--rolex-green)"
@@ -166,7 +189,7 @@ function Overview({ analyst, kpis, trackSeries, openCalls, topReports, navigate 
             : s.tone === "gold" ? "var(--gold-hex)"
             : "var(--text)";
           return (
-            <div key={s.l} className="surface" style={{ padding: 18 }}>
+            <div key={s.l} className="surface" style={{ padding: 18, background: "var(--bg-elev)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
                 <span className="t-meta">{s.l}</span>
                 {Icon && <Icon size={14} strokeWidth={1.5} style={{ color: "var(--text-meta)" }}/>}

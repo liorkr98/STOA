@@ -16,7 +16,8 @@ import AIChat from "@/components/editor/AIChat";
 import InvestorOnboarding, { shouldShowInvestorOnboarding, markInvestorOnboardingDone } from "@/components/onboarding/InvestorOnboarding";
 import AnalystOnboarding, { shouldShowAnalystOnboarding, markAnalystOnboardingDone } from "@/components/onboarding/AnalystOnboarding";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import { useAvatarVersion } from "@/components/AnalystCard";
+import { useAutoHideOnScroll } from "@/hooks/useAutoHideOnScroll";
 
 // Map every top-level route to a human-readable tab title.
 // Pages that call setMeta() themselves (ReportView, AnalystProfilePage, etc.)
@@ -83,6 +84,8 @@ export default function AppLayout() {
   const [showFirstVisit, setShowFirstVisit] = useState(false);
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
   const NAV_ITEMS = isAuthenticated && isAnalyst ? NAV_ANALYST : NAV_INVESTOR;
+  const avatarVersion = useAvatarVersion();
+  const headerVisible = useAutoHideOnScroll();
 
   // Keep document.title in sync with the current route on every SPA navigation.
   // Page components that call setMeta() in their own useEffect override this —
@@ -174,7 +177,15 @@ export default function AppLayout() {
       {/* Navbar — editorial, minimal chrome. Text links, not pill buttons.
           Active state is a 1px underline below the label, matching the
           design system's "no background highlights on nav items" rule. */}
-      <header role="banner" className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60">
+      <header
+        role="banner"
+        className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60"
+        style={{
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform var(--t-base) var(--ease)",
+          willChange: "transform",
+        }}
+      >
         <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-8">
           <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
             <StoaLogo size={28} textSize="text-lg" />
@@ -251,7 +262,7 @@ export default function AppLayout() {
                   <DropdownMenuTrigger asChild>
                     <button aria-label="Account menu" className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                       {avatarUrl(user)
-                        ? <img src={avatarUrl(user)} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
+                        ? <img key={avatarVersion} src={avatarUrl(user)} alt={user.full_name || "User"} className="w-7 h-7 rounded-full object-cover border border-border" />
                         : <div className="w-7 h-7 rounded-full bg-primary/10 border border-border flex items-center justify-center text-xs font-medium text-primary">
                             {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                           </div>
@@ -270,7 +281,7 @@ export default function AppLayout() {
                       } transition-colors`}
                     >
                       {avatarUrl(user)
-                        ? <img src={avatarUrl(user)} alt={user.full_name || "User"} className="w-9 h-9 rounded-full object-cover border border-border flex-shrink-0" />
+                        ? <img key={avatarVersion} src={avatarUrl(user)} alt={user.full_name || "User"} className="w-9 h-9 rounded-full object-cover border border-border flex-shrink-0" />
                         : <div className="w-9 h-9 rounded-full bg-primary/10 border border-border flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
                             {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                           </div>
@@ -382,7 +393,7 @@ export default function AppLayout() {
       </header>
 
       {/* Page content */}
-      <main id="main-content" role="main" className="flex-1" tabIndex={-1} style={{ paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}>
+      <main id="main-content" role="main" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
 
@@ -390,10 +401,6 @@ export default function AppLayout() {
 
       {/* Global AI analyst — available on every page except the editor (which has its own) */}
       {!["/editor"].includes(location.pathname) && <AIChat />}
-
-      {/* Mobile bottom nav — investor surfaces. Hidden on the editor (which
-          replaces the whole shell) and on the public landing page. */}
-      {!["/editor"].includes(location.pathname) && <MobileBottomNav />}
 
       {/* Onboarding flows — shown once for new users */}
       {showInvestorOnboarding && (

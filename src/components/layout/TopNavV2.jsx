@@ -2,6 +2,8 @@ import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, Bell } from "lucide-react";
 import StoaLogo from "@/components/StoaLogo";
+import { Avatar } from "@/components/AnalystCard";
+import { useAutoHideOnScroll } from "@/hooks/useAutoHideOnScroll";
 
 /**
  * TopNavV2 — investor-side top navigation per design-system MASTER.md.
@@ -26,6 +28,7 @@ export default function TopNavV2({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const visible = useAutoHideOnScroll();
 
   const defaultLinks = [
     { path: "/feed", label: "Discover" },
@@ -39,7 +42,14 @@ export default function TopNavV2({
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   return (
-    <header className="topbar">
+    <header
+      className="topbar"
+      style={{
+        transform: visible ? "translateY(0)" : "translateY(-100%)",
+        transition: "transform var(--t-base) var(--ease)",
+        willChange: "transform",
+      }}
+    >
       <div className="shell topbar-inner">
         <button
           type="button"
@@ -106,15 +116,11 @@ export default function TopNavV2({
             <Bell size={15} strokeWidth={1.5} />
           </button>
           {user && (
-            <div className="av av-md" style={{ background: "var(--deepest-navy)" }}>
-              {user.initials ||
-                (user.full_name || user.name || "?")
-                  .split(" ")
-                  .map((w) => w[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-            </div>
+            <Avatar
+              user={user}
+              size="md"
+              className="av"
+            />
           )}
         </div>
       </div>
