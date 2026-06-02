@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
@@ -14,7 +14,7 @@ import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
   const results = await Promise.allSettled(
@@ -56,12 +56,12 @@ function timeAgo(dateStr) {
 }
 
 function directionColor(d) {
-  if (d === "LONG" || d === "Long") return "text-green-600 bg-green-50 border-green-200";
+  if (d === "LONG" || d === "Long") return "text-gain bg-gain/10 border-gain/20";
   if (d === "SHORT" || d === "Short") return "text-red-600 bg-red-50 border-red-200";
   return "text-muted-foreground bg-secondary border-border";
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
@@ -109,13 +109,13 @@ function WatchItem({ entry, live }) {
       {live?.price != null ? (
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-medium flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <span className={`text-[11px] font-medium flex items-center gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-muted-foreground">—</span>
+        <span className="text-[11px] text-muted-foreground">â€”</span>
       )}
     </Link>
   );
@@ -162,7 +162,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
     );
     return computeAvgYield(resolved);
   })();
-  const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const MEDALS = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
 
   return (
     <div
@@ -180,11 +180,11 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{name}</p>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-medium ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
+          <span className={`text-[10px] font-medium ${acc >= 75 ? "text-gain" : acc >= 55 ? "text-amber-600" : "text-loss"}`}>
             {acc.toFixed(1)}%
           </span>
           {computed != null && (
-            <span className={`text-[10px] font-medium ${computed >= 0 ? "text-green-600" : "text-red-500"}`}>
+            <span className={`text-[10px] font-medium ${computed >= 0 ? "text-gain" : "text-loss"}`}>
               {computed >= 0 ? "+" : ""}{computed.toFixed(1)}% yield
             </span>
           )}
@@ -195,11 +195,11 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
           onClick={e => { e.stopPropagation(); onFollow(analyst); }}
           className={`text-[10px] font-medium px-2 py-0.5 rounded border transition-all shrink-0 ${
             isFollowing
-              ? "border-green-300 text-green-600 bg-green-50"
+              ? "border-gain/30 text-gain bg-gain/10"
               : "border-primary/30 text-primary hover:bg-primary/5"
           }`}
         >
-          {isFollowing ? "✓" : "Follow"}
+          {isFollowing ? "âœ“" : "Follow"}
         </button>
       )}
     </div>
@@ -230,17 +230,17 @@ function TrendingPredictionCard({ report }) {
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {isResolved && (
-          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
             {isHit ? "HIT" : "MISS"}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground">♥ {report.likes || 0}</span>
+        <span className="text-[10px] text-muted-foreground">â™¥ {report.likes || 0}</span>
       </div>
     </button>
   );
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// â”€â”€ main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -271,7 +271,7 @@ export default function HomePageDashboard() {
   // Investors see the consumer home; analysts/admins see the creator dashboard
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
-  // load watchlist from localStorage — normalise ticker/symbol field
+  // load watchlist from localStorage â€” normalise ticker/symbol field
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
@@ -385,7 +385,7 @@ export default function HomePageDashboard() {
     load();
   }, [user]);
 
-  // Live index prices — SPY, QQQ, DIA, VIX
+  // Live index prices â€” SPY, QQQ, DIA, VIX
   useEffect(() => {
     const INDEX_TICKERS = [{ sym: "SPY", label: "SPY" }, { sym: "QQQ", label: "QQQ" }, { sym: "DIA", label: "DIA" }, { sym: "^VIX", label: "VIX" }];
     const fetchIndexes = async () => {
@@ -448,7 +448,7 @@ export default function HomePageDashboard() {
   return (
     <div className="max-w-[1180px] mx-auto px-5 py-10 pb-16">
 
-      {/* ── Welcome header — editorial, single focus ── */}
+      {/* â”€â”€ Welcome header â€” editorial, single focus â”€â”€ */}
       <div className="mb-8 flex items-end justify-between flex-wrap gap-4">
         <div>
           <span className="eyebrow text-muted-foreground">Creator Studio</span>
@@ -463,21 +463,21 @@ export default function HomePageDashboard() {
         </Link>
       </div>
 
-      {/* ── 3 hero stat cards — Beehiiv-style creator dashboard:
-          Subscribers · Accuracy · Followers (proxy for earnings reach).
+      {/* â”€â”€ 3 hero stat cards â€” Beehiiv-style creator dashboard:
+          Subscribers Â· Accuracy Â· Followers (proxy for earnings reach).
           Big numbers, clear labels, generous padding, NO gradient chips. */}
       {myStats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <Link to="/subscribers" className="stat-card surface-interactive no-underline">
             <p className="stat-card-label">Subscribers</p>
             <p className="stat-card-value text-foreground mt-2">{mySubscriptions.length}</p>
-            <p className="stat-card-sub">Active paid · ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
+            <p className="stat-card-sub">Active paid Â· ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
           </Link>
 
           <Link to="/analyst" className="stat-card surface-interactive no-underline">
             <p className="stat-card-label">Prediction Accuracy</p>
             <p className="stat-card-value text-foreground mt-2">
-              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}%` : "—"}
+              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}%` : "â€”"}
             </p>
             <p className="stat-card-sub">
               {myStats.accuracy > 0
@@ -492,16 +492,16 @@ export default function HomePageDashboard() {
             <p className="stat-card-sub">
               {myStats.yield != null
                 ? <>Avg yield {formatYield(myStats.yield)}</>
-                : "Free following — grow your audience"}
+                : "Free following â€” grow your audience"}
             </p>
           </Link>
         </div>
       )}
 
-      {/* ── Two-column layout ── */}
+      {/* â”€â”€ Two-column layout â”€â”€ */}
       <div className="flex gap-6 items-start">
 
-        {/* ═══ LEFT COLUMN ═══ */}
+        {/* â•â•â• LEFT COLUMN â•â•â• */}
         <div className="flex-1 min-w-0 space-y-5">
 
           {/* My Drafts */}
@@ -582,8 +582,8 @@ export default function HomePageDashboard() {
                           )}
                           {!isPending && (
                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                              isHit  ? "bg-green-100 text-green-700"
-                              : isMiss ? "bg-red-100 text-red-700"
+                              isHit  ? "bg-gain/10 text-gain"
+                              : isMiss ? "bg-loss/10 text-loss"
                               : "bg-amber-100 text-amber-700"
                             }`}>
                               {(outcome || "").toUpperCase()}
@@ -596,11 +596,11 @@ export default function HomePageDashboard() {
                           )}
                           {r.views > 0 && (
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              👁 {r.views}
+                              ðŸ‘ {r.views}
                             </span>
                           )}
                           {r.likes > 0 && (
-                            <span className="text-[10px] text-muted-foreground">♥ {r.likes}</span>
+                            <span className="text-[10px] text-muted-foreground">â™¥ {r.likes}</span>
                           )}
                           <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
                         </div>
@@ -683,7 +683,7 @@ export default function HomePageDashboard() {
                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
                           )}
                           {!isPending && (
-                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : isMiss ? "bg-loss/10 text-loss" : "bg-amber-100 text-amber-700"}`}>
                               {(outcome || "").toUpperCase()}
                             </span>
                           )}
@@ -762,7 +762,7 @@ export default function HomePageDashboard() {
                               <span className="text-[10px] font-display font-medium text-primary/80">{r.stock_ticker}</span>
                             )}
                             {!isPending && (
-                              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : isMiss ? "bg-loss/10 text-loss" : "bg-amber-100 text-amber-700"}`}>
                                 {(outcome || "").toUpperCase()}
                               </span>
                             )}
@@ -805,7 +805,7 @@ export default function HomePageDashboard() {
           </section>
         </div>
 
-        {/* ═══ RIGHT COLUMN ═══ — slim, max 2 widgets per redesign brief.
+        {/* â•â•â• RIGHT COLUMN â•â•â• â€” slim, max 2 widgets per redesign brief.
             Quick Access + Market Activity removed; users find those via
             the global nav and /stocks. Right rail now shows only the
             two highest-leverage panels: Top Researchers and Hot
@@ -860,7 +860,7 @@ export default function HomePageDashboard() {
             )}
           </section>
 
-          {/* Market Activity removed — third widget violated the
+          {/* Market Activity removed â€” third widget violated the
               "max 2 panels in the right rail" rule. Users find live
               market data on /stocks instead. */}
           {false && (

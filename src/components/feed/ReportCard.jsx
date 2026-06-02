@@ -434,7 +434,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               {isLive && (
                 <span
                   className="inline-flex items-center gap-1 rounded-tag bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px] font-medium"
-                  style={{ animation: "livePulse 2s infinite" }}
+                  style={{ animation: "livePulse 2s infinite" }} /* livePulse defined in index.css */
                 >
                   <Radio size={9} /> LIVE
                 </span>
@@ -478,12 +478,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
         {report.excerpt && (
           <div className="mb-2.5 relative">
             <p
-              className="text-[14px] text-muted-foreground leading-relaxed line-clamp-3"
-              style={{
-                filter: isLocked ? "blur(3px)" : "none",
-                userSelect: isLocked ? "none" : "auto",
-                pointerEvents: isLocked ? "none" : "auto",
-              }}
+              className={`text-[14px] text-muted-foreground leading-relaxed line-clamp-3 ${isLocked ? "blur-sm select-none pointer-events-none" : ""}`}
             >
               {report.excerpt}
             </p>
@@ -503,8 +498,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                         e.stopPropagation();
                         navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}&analystEmail=${authorEmail}`);
                       }}
-                      className="cta-gold w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5"
-                      style={{ borderRadius: 6 }}
+                      className="cta-gold w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5 rounded-md"
                     >
                       <CreditCard size={14} /> Subscribe · ${subscribePrice}/mo
                     </button>
@@ -514,8 +508,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
                           e.stopPropagation();
                           navigate(`/pay?mode=report&price=${report.price}&title=${encodeURIComponent(report.title)}&analyst=${encodeURIComponent(authorName)}`);
                         }}
-                        className="w-full bg-primary text-primary-foreground text-[12px] font-medium px-3.5 py-1.5 hover:bg-primary/90 transition-colors"
-                        style={{ borderRadius: 6 }}
+                        className="w-full bg-primary text-primary-foreground text-[12px] font-medium px-3.5 py-1.5 rounded-md hover:bg-primary/90 transition-colors"
                       >
                         Buy This Report — <span className="font-display">${report.price}</span>
                       </button>
@@ -556,8 +549,7 @@ export default function ReportCard({ report, isSubscribed = false, currentUserEm
               e.stopPropagation();
               navigate(`/pay?mode=analyst&analyst=${encodeURIComponent(authorName)}&analystEmail=${authorEmail}`);
             }}
-            className="cta-gold w-full inline-flex items-center justify-center gap-2 text-[13px] font-medium px-4 py-2.5 mt-2"
-            style={{ borderRadius: 6 }}
+            className="cta-gold w-full inline-flex items-center justify-center gap-2 text-[13px] font-medium px-4 py-2.5 mt-2 rounded-md"
           >
             <Lock size={13} /> Subscribe to {authorName.split(" ")[0]} · ${subscribePrice}/mo
           </button>

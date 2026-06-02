@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 
 function timeAgo(dateStr) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "â€”";
   return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
 }
 
 function fmtDate(dateStr) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "â€”";
   return format(new Date(dateStr), "MMM d, yyyy");
 }
 
@@ -129,7 +129,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-medium">Admin — Users</h1>
+          <h1 className="text-xl font-medium">Admin â€” Users</h1>
           <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-tag border border-border"><span className="font-display">{sorted.length}</span> users</span>
         </div>
         <div className="flex items-center gap-2">
@@ -152,8 +152,8 @@ export default function AdminUsersPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
           { label: "Total Users", value: users.length, icon: Users, color: "text-blue-600" },
-          { label: "Total Reports", value: Object.values(reportCounts).reduce((a, b) => a + b, 0), icon: FileText, color: "text-green-600" },
-          { label: "Admins", value: users.filter(u => u.role === "admin").length, icon: Shield, color: "text-red-600" },
+          { label: "Total Reports", value: Object.values(reportCounts).reduce((a, b) => a + b, 0), icon: FileText, color: "text-gain" },
+          { label: "Admins", value: users.filter(u => u.role === "admin").length, icon: Shield, color: "text-loss" },
         ].map(s => {
           const Icon = s.icon;
           return (
@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
                         }
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate max-w-[140px]">{u.full_name || "—"}</p>
+                        <p className="font-medium truncate max-w-[140px]">{u.full_name || "â€”"}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[140px]">{u.email}</p>
                       </div>
                     </div>
@@ -216,7 +216,7 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     {u.accuracy_score > 0
                       ? <AccuracyTierBadge accuracy={u.accuracy_score} />
-                      : <span className="text-xs text-muted-foreground">—</span>
+                      : <span className="text-xs text-muted-foreground">â€”</span>
                     }
                   </td>
                   {/* Last Seen */}

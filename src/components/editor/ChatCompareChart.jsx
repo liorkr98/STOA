@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { Loader2, TrendingUp, TrendingDown, ExternalLink, GripHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
@@ -23,7 +23,7 @@ async function fetchSeries(ticker, days) {
 
 /**
  * Multi-ticker comparison chart. Each ticker is normalized to its % change
- * from the first close of the period — so NVDA at $200 and MSFT at $400 can
+ * from the first close of the period â€” so NVDA at $200 and MSFT at $400 can
  * be compared on the same Y axis (both start at 0%, diverge from there).
  *
  * Used by the AIChat when the model emits a [COMPARE:NVDA,MSFT:3M] directive.
@@ -67,7 +67,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-xl p-3 my-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading {tickers.join(" vs ")}…
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading {tickers.join(" vs ")}â€¦
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
   const yTicks = [yMax, 0, yMin].filter((v, i, a) => a.indexOf(v) === i);
 
   // Drag-to-report: emit a SINGLE "comparechart" block that holds both tickers
-  // and the timeframe — so the editor renders one integrated comparison chart,
+  // and the timeframe â€” so the editor renders one integrated comparison chart,
   // not one stockchart per ticker. (Previously each ticker was emitted as its
   // own stockchart, which is why exports showed two separate charts.)
   const handleDragStart = (e) => {
@@ -129,7 +129,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
     e.dataTransfer.setData("ai-timeframe", tf);
     e.dataTransfer.effectAllowed = "copy";
     const ghost = document.createElement("div");
-    ghost.textContent = `📊 ${tickerList.join(" + ")} · ${tf}`;
+    ghost.textContent = `ðŸ“Š ${tickerList.join(" + ")} Â· ${tf}`;
     ghost.style.cssText = "position:absolute;top:-1000px;padding:8px 12px;background:#0f172a;color:white;font:bold 12px ui-monospace;border-radius:8px";
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 30, 15);
@@ -141,13 +141,13 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
       draggable
       onDragStart={handleDragStart}
       className="block bg-card border border-border rounded-xl my-2 overflow-hidden group cursor-grab active:cursor-grabbing"
-      title="Drag to report · Inserts one chart block per ticker"
+      title="Drag to report Â· Inserts one chart block per ticker"
     >
       {/* Header / legend */}
       <div className="px-3 py-2 border-b border-border">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-            Compare · {tf} normalized return
+            Compare Â· {tf} normalized return
           </span>
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -162,7 +162,7 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
               >
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                 <span className="font-display font-medium text-xs">${s.ticker}</span>
-                <span className={`text-[10px] font-medium ${isUp ? "text-green-600" : "text-red-500"}`}>
+                <span className={`text-[10px] font-medium ${isUp ? "text-gain" : "text-loss"}`}>
                   {isUp ? <TrendingUp className="w-2.5 h-2.5 inline" /> : <TrendingDown className="w-2.5 h-2.5 inline" />}
                   {isUp ? "+" : ""}{s.lastPct.toFixed(2)}%
                 </span>
@@ -221,9 +221,10 @@ export default function ChatCompareChart({ tickers = [], timeframe = "1M" }) {
       {/* Drag hint */}
       <div className="px-3 py-1 border-t border-border bg-secondary/30 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
         <span className="text-[9px] text-muted-foreground flex items-center gap-1">
-          <GripHorizontal className="w-2.5 h-2.5" /> Drag to report · inserts one integrated comparison chart
+          <GripHorizontal className="w-2.5 h-2.5" /> Drag to report Â· inserts one integrated comparison chart
         </span>
       </div>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export default function AnalyticsKPICard({ icon, label, value, sub, trend, trendLabel, color = "text-primary" }) {
@@ -7,7 +7,7 @@ export default function AnalyticsKPICard({ icon, label, value, sub, trend, trend
       <div className="flex items-center justify-between mb-2">
         <span className="text-xl">{icon}</span>
         {trend != null && (
-          <span className={`flex items-center gap-0.5 text-[11px] font-medium ${trend >= 0 ? "text-green-600" : "text-red-500"}`}>
+          <span className={`flex items-center gap-0.5 text-[11px] font-medium ${trend >= 0 ? "text-gain" : "text-loss"}`}>
             {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {trend >= 0 ? "+" : ""}{trend}%
           </span>
