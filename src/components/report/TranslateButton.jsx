@@ -66,24 +66,21 @@ Title: ${title || ""}
 Excerpt: ${excerpt || ""}
 Blocks: ${JSON.stringify(textBlocks.map(b => ({ id: b.id, text: b.text })))}
 
-Return only valid JSON, no markdown.`;
+Return only valid JSON, no markdown fences.`;
 
-      const result = await base44.functions.invoke("openaiProxy", {
-        model: "gpt-4o-mini",
+      // Use base44's built-in AI (Claude) via the functions API
+      const result = await base44.functions.invoke("aiProxy", {
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000,
       }).catch(() => null);
 
-      // Try parsing the AI response
+      // Try parsing the AI response — handle both wrapped and raw formats
       let translated = null;
-      const raw = result?.choices?.[0]?.message?.content || "";
+      const raw = result?.content?.[0]?.text || result?.choices?.[0]?.message?.content || result?.text || "";
       try {
-        // Strip markdown code fences if present
         const clean = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
         translated = JSON.parse(clean);
       } catch {
-        // Fallback: use Claude via base44 AI
-        toast.error("Translation failed — try again");
+        toast.error("Translation failed — please try again");
         return;
       }
 

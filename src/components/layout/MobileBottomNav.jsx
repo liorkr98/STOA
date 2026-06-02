@@ -39,17 +39,18 @@ export default function MobileBottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors min-w-[56px]",
+                "relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors min-w-[56px]",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("w-5 h-5", isActive && "scale-110 transition-transform")} />
+              {/* Active top indicator */}
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-full" />
+              )}
+              <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110")} />
               <span className={cn("text-[10px] font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
                 {item.label}
               </span>
-              {isActive && (
-                <span className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full" />
-              )}
             </Link>
           );
         })}

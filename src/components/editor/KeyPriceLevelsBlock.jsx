@@ -220,9 +220,12 @@ export function KeyPriceLevelsReader({ block }) {
                   </span>
                 </div>
 
-                {/* Dot on axis */}
-                <div className={cn("absolute left-[117px] w-3 h-3 rounded-full border-2 border-card z-10", cfg.bg.replace("/10", ""), `border-${cfg.color.replace("text-", "")}`)}>
-                  <div className={cn("w-1.5 h-1.5 rounded-full mx-auto mt-0.5", cfg.bg)} />
+                {/* Dot on axis — use inline style for dynamic color to avoid Tailwind purge issues */}
+                <div
+                  className="absolute left-[117px] w-3 h-3 rounded-full border-2 border-card z-10 flex items-center justify-center"
+                  style={{ backgroundColor: "currentColor", opacity: 0.9 }}
+                >
+                  <div className={cn("w-1.5 h-1.5 rounded-full", cfg.bg)} />
                 </div>
 
                 {/* Horizontal line */}
