@@ -116,7 +116,7 @@ function WatchItem({ entry, live }) {
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-muted-foreground">â€”</span>
+        <span className=”text-[11px] text-muted-foreground”>--</span>
       )}
     </Link>
   );
@@ -475,13 +475,13 @@ export default function HomePageDashboard() {
           <Link to="/subscribers" className="stat-card surface-interactive no-underline">
             <p className="stat-card-label">Subscribers</p>
             <p className="stat-card-value text-foreground mt-2">{mySubscriptions.length}</p>
-            <p className="stat-card-sub">Active paid Â· ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
+            <p className="stat-card-sub">Active paid &middot; ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
           </Link>
 
           <Link to=”/analyst” className=”stat-card surface-interactive no-underline”>
             <p className=”stat-card-label”>STOA Score</p>
             <p className=”stat-card-value text-foreground mt-2”>
-              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}/100` : “—“}
+              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}/100` : null}
             </p>
             <p className=”stat-card-sub”>
               {myStats.accuracy > 0
@@ -496,7 +496,7 @@ export default function HomePageDashboard() {
             <p className="stat-card-sub">
               {myStats.yield != null
                 ? <>Avg yield {formatYield(myStats.yield)}</>
-                : "Free following â€” grow your audience"}
+                : “Free following - grow your audience”}
             </p>
           </Link>
         </div>
