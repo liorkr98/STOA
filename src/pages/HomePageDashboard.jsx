@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { computeScore } from "@/lib/scoringEngine";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
@@ -15,7 +15,7 @@ import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
-// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
   const results = await Promise.allSettled(
@@ -62,7 +62,7 @@ function directionColor(d) {
   return "text-muted-foreground bg-secondary border-border";
 }
 
-// â”€â”€ sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ sub-components â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
@@ -116,7 +116,7 @@ function WatchItem({ entry, live }) {
           </span>
         </div>
       ) : (
-        <span className=”text-[11px] text-muted-foreground”>--</span>
+        <span className="text-[11px] text-muted-foreground">--</span>
       )}
     </Link>
   );
@@ -200,7 +200,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
               : "border-primary/30 text-primary hover:bg-primary/5"
           }`}
         >
-          {isFollowing ? "âœ“" : "Follow"}
+          {isFollowing ? "âœ"" : "Follow"}
         </button>
       )}
     </div>
@@ -241,7 +241,7 @@ function TrendingPredictionCard({ report }) {
   );
 }
 
-// â”€â”€ main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ main page â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -272,7 +272,7 @@ export default function HomePageDashboard() {
   // Investors see the consumer home; analysts/admins see the creator dashboard
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
-  // load watchlist from localStorage â€” normalise ticker/symbol field
+  // load watchlist from localStorage â€" normalise ticker/symbol field
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
@@ -389,7 +389,7 @@ export default function HomePageDashboard() {
     load();
   }, [user]);
 
-  // Live index prices â€” SPY, QQQ, DIA, VIX
+  // Live index prices â€" SPY, QQQ, DIA, VIX
   useEffect(() => {
     const INDEX_TICKERS = [{ sym: "SPY", label: "SPY" }, { sym: "QQQ", label: "QQQ" }, { sym: "DIA", label: "DIA" }, { sym: "^VIX", label: "VIX" }];
     const fetchIndexes = async () => {
@@ -452,7 +452,7 @@ export default function HomePageDashboard() {
   return (
     <div className="max-w-[1180px] mx-auto px-5 py-10 pb-16">
 
-      {/* â”€â”€ Welcome header â€” editorial, single focus â”€â”€ */}
+      {/* â"€â"€ Welcome header â€" editorial, single focus â"€â"€ */}
       <div className="mb-8 flex items-end justify-between flex-wrap gap-4">
         <div>
           <span className="eyebrow text-muted-foreground">Creator Studio</span>
@@ -467,7 +467,7 @@ export default function HomePageDashboard() {
         </Link>
       </div>
 
-      {/* â”€â”€ 3 hero stat cards â€” Beehiiv-style creator dashboard:
+      {/* â"€â"€ 3 hero stat cards â€" Beehiiv-style creator dashboard:
           Subscribers Â· Accuracy Â· Followers (proxy for earnings reach).
           Big numbers, clear labels, generous padding, NO gradient chips. */}
       {myStats && (
@@ -478,15 +478,15 @@ export default function HomePageDashboard() {
             <p className="stat-card-sub">Active paid &middot; ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
           </Link>
 
-          <Link to=”/analyst” className=”stat-card surface-interactive no-underline”>
-            <p className=”stat-card-label”>STOA Score</p>
-            <p className=”stat-card-value text-foreground mt-2”>
+          <Link to="/analyst" className="stat-card surface-interactive no-underline">
+            <p className="stat-card-label">STOA Score</p>
+            <p className="stat-card-value text-foreground mt-2">
               {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}/100` : null}
             </p>
-            <p className=”stat-card-sub”>
+            <p className="stat-card-sub">
               {myStats.accuracy > 0
-                ? <><span className=”font-display”>{myStats.reports}</span> reports tracked</>
-                : “Publish predictions to start your track record”}
+                ? <><span className="font-display">{myStats.reports}</span> reports tracked</>
+                : "Publish predictions to start your track record"}
             </p>
           </Link>
 
@@ -496,13 +496,13 @@ export default function HomePageDashboard() {
             <p className="stat-card-sub">
               {myStats.yield != null
                 ? <>Avg yield {formatYield(myStats.yield)}</>
-                : “Free following - grow your audience”}
+                : "Free following - grow your audience"}
             </p>
           </Link>
         </div>
       )}
 
-      {/* â”€â”€ Two-column layout â”€â”€ */}
+      {/* â"€â"€ Two-column layout â"€â"€ */}
       <div className="flex gap-6 items-start">
 
         {/* â•â•â• LEFT COLUMN â•â•â• */}
@@ -600,7 +600,7 @@ export default function HomePageDashboard() {
                           )}
                           {r.views > 0 && (
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              ðŸ‘ {r.views}
+                              ðŸ' {r.views}
                             </span>
                           )}
                           {r.likes > 0 && (
@@ -809,7 +809,7 @@ export default function HomePageDashboard() {
           </section>
         </div>
 
-        {/* â•â•â• RIGHT COLUMN â•â•â• â€” slim, max 2 widgets per redesign brief.
+        {/* â•â•â• RIGHT COLUMN â•â•â• â€" slim, max 2 widgets per redesign brief.
             Quick Access + Market Activity removed; users find those via
             the global nav and /stocks. Right rail now shows only the
             two highest-leverage panels: Top Researchers and Hot
@@ -864,7 +864,7 @@ export default function HomePageDashboard() {
             )}
           </section>
 
-          {/* Market Activity removed â€” third widget violated the
+          {/* Market Activity removed â€" third widget violated the
               "max 2 panels in the right rail" rule. Users find live
               market data on /stocks instead. */}
           {false && (
