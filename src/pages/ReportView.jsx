@@ -18,6 +18,8 @@ import ExportPDFButton from "@/components/report/ExportPDFButton";
 import BackButton from "@/components/BackButton";
 import TranslateButton from "@/components/report/TranslateButton";
 import { KeyPriceLevelsReader } from "@/components/editor/KeyPriceLevelsBlock";
+import ReportSidebar from "@/components/report/ReportSidebar";
+import { computeScore } from "@/lib/scoringEngine";
 
 /**
  * ReportView — long-form research reading view (v3 rebuild).
@@ -49,6 +51,7 @@ export default function ReportView() {
   const [moreReports, setMoreReports] = useState([]);
   const [subscribed, setSubscribed] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const [allAuthorReports, setAllAuthorReports] = useState([]);
 
   // Translation state
   const [translatedData, setTranslatedData] = useState(null); // { title, excerpt, blocks, lang }
@@ -104,8 +107,13 @@ export default function ReportView() {
             if (!cancelled && users?.[0]) setAuthor(users[0]);
           }).catch(() => {});
           base44.entities.Report
-            .filter({ created_by: data.created_by, status: "published" }, "-created_date", 5)
-            .then((more) => !cancelled && setMoreReports((more || []).filter((r) => r.id !== reportId).slice(0, 3)))
+            .filter({ created_by: data.created_by, status: "published" }, "-created_date", 50)
+            .then((all) => {
+              if (cancelled) return;
+              setAllAuthorReports(all || []);
+              // More reports = recent 3 excluding this one
+              setMoreReports((all || []).filter((r) => r.id !== reportId).slice(0, 3));
+            })
             .catch(() => {});
         }
       } catch {
@@ -205,7 +213,9 @@ export default function ReportView() {
   // ── Derived ─────────────────────────────────────────────────────────────
   const authorName = author?.full_name || report?.author_name || "Researcher";
   const elo = author?.elo ?? Math.round(((author?.accuracy_score || 60) / 100) * 800 + 600);
-  const accuracy = author?.accuracy_score || 0;
+  // Prefer live-computed STOA score over stored ELO score for consistency
+  const stoaScoring = allAuthorReports.length > 0 ? computeScore(allAuthorReports) : null;
+  const accuracy = stoaScoring?.score ?? author?.accuracy_score ?? 0;
   const price = author?.monthly_price || 9;
   const initials = authorName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const isPremium = report?.is_premium;
@@ -275,8 +285,11 @@ export default function ReportView() {
         </div>
       </section>
 
+      {/* ── Two-column layout: article + NotebookLM sidebar ── */}
+      <div className="max-w-[1320px] mx-auto px-4 xl:px-8 flex gap-8 items-start">
+
       {/* ── Article ── */}
-      <article style={{ maxWidth: 720, margin: "0 auto", padding: "56px 32px 48px" }}>
+      <article style={{ maxWidth: 720, flex: "1 1 auto", minWidth: 0, padding: "56px 0 48px" }}>
         {/* Eyebrow */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <span className="tag" style={{ borderColor: "rgba(30,58,138,0.25)", color: "var(--primary-blue)" }}>
@@ -590,6 +603,25 @@ export default function ReportView() {
           />
         </div>
       </article>
+
+      {/* ── NotebookLM sidebar (xl+ only) ── */}
+      <ReportSidebar
+        report={report}
+        blocks={blocks}
+        author={author}
+        authorName={authorName}
+        initials={initials}
+        accuracy={accuracy}
+        subscribed={subscribed}
+        onSubscribe={handleSubscribe}
+        price={price}
+        livePrice={livePrice}
+        moreReports={moreReports}
+        allReports={allAuthorReports}
+        navigate={navigate}
+      />
+
+      </div>{/* end two-column flex */}
 
       {/* ── More from analyst ── */}
       {moreReports.length > 0 && (
