@@ -18,6 +18,7 @@ import AnalystOnboarding, { shouldShowAnalystOnboarding, markAnalystOnboardingDo
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import { useAvatarVersion } from "@/components/AnalystCard";
 import { useAutoHideOnScroll } from "@/hooks/useAutoHideOnScroll";
+import MobileBottomNav from "./MobileBottomNav";
 
 // Map every top-level route to a human-readable tab title.
 // Pages that call setMeta() themselves (ReportView, AnalystProfilePage, etc.)
@@ -175,19 +176,20 @@ export default function AppLayout() {
         Skip to main content
       </a>
 
-      {/* Navbar — editorial, minimal chrome. Text links, not pill buttons.
-          Active state is a 1px underline below the label, matching the
-          design system's "no background highlights on nav items" rule. */}
+      {/* Floating island navbar — fixed, pill-shaped, hovers above content. Hidden on mobile (bottom nav takes over). */}
       <header
         role="banner"
-        className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60"
+        className="hidden md:block fixed top-3 left-4 right-4 z-40 pointer-events-none"
         style={{
-          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-          transition: "transform var(--t-base) var(--ease)",
+          transform: headerVisible ? "translateY(0)" : "translateY(-110%)",
+          transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
           willChange: "transform",
         }}
       >
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-8">
+        <div
+          className="max-w-[1160px] mx-auto pointer-events-auto flex items-center gap-6 px-4 h-14 rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl shadow-lg"
+          style={{ boxShadow: "0 4px 24px -4px rgba(15,22,35,0.12), 0 1px 4px rgba(15,22,35,0.06)" }}
+        >
           <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
             <StoaLogo size={28} textSize="text-lg" />
           </Link>
@@ -387,14 +389,14 @@ export default function AppLayout() {
             )}
           </nav>
         </div>
-        {/* Mobile search */}
-        <div className="sm:hidden px-4 pb-2">
-          <SearchBar />
-        </div>
       </header>
 
-      {/* Page content */}
-      <main id="main-content" role="main" className="flex-1" tabIndex={-1}>
+      {/* Page content — pt-20 clears the floating nav (h-14 + top-3 + gap) */}
+      {/* Mobile bottom nav — shows on small screens instead of floating header */}
+      <MobileBottomNav />
+
+      {/* Page content — pt-20 clears the floating nav on desktop; pb-16 clears mobile bottom nav */}
+      <main id="main-content" role="main" className="flex-1 pt-4 md:pt-20 pb-16 md:pb-0" tabIndex={-1}>
         <Outlet />
       </main>
 

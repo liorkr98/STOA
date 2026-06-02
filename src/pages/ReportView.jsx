@@ -16,6 +16,7 @@ import CommentsSection from "@/components/report/CommentsSection";
 import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryChart";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 import BackButton from "@/components/BackButton";
+import TranslateButton from "@/components/report/TranslateButton";
 
 /**
  * ReportView — long-form research reading view (v3 rebuild).
@@ -47,6 +48,12 @@ export default function ReportView() {
   const [moreReports, setMoreReports] = useState([]);
   const [subscribed, setSubscribed] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+
+  // Translation state
+  const [translatedData, setTranslatedData] = useState(null); // { title, excerpt, blocks, lang }
+  const displayTitle   = translatedData?.title   || report?.title;
+  const displayExcerpt = translatedData?.excerpt  || report?.excerpt;
+  const displayBlocks  = translatedData?.blocks   || blocks;
 
   const likedKey = (id) => `stoa_liked_${currentUser?.email || "anon"}_${id}`;
 
@@ -250,6 +257,15 @@ export default function ReportView() {
               <Bookmark size={13} strokeWidth={1.6} style={{ fill: saved ? "var(--primary-blue)" : "transparent" }}/>
               {saved ? "Saved" : "Save"}
             </button>
+            <TranslateButton
+              title={report?.title}
+              excerpt={report?.excerpt}
+              blocks={blocks}
+              onTranslated={setTranslatedData}
+              onReset={() => setTranslatedData(null)}
+              isTranslated={!!translatedData}
+              translatedLang={translatedData?.lang}
+            />
             <ExportPDFButton report={report} blocks={blocks}/>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)} aria-label="Share report">
               <Share2 size={13} strokeWidth={1.6}/> Share
@@ -280,16 +296,16 @@ export default function ReportView() {
           margin: "0 0 18px",
           letterSpacing: "-0.022em",
         }}>
-          {report.title}
+          {displayTitle}
         </h1>
 
-        {report.excerpt && (
+        {(displayExcerpt) && (
           <p style={{
             fontFamily: "var(--f-serif)", fontStyle: "italic",
             fontSize: 19, lineHeight: 1.5, color: "var(--text-mute)",
             margin: "0 0 32px",
           }}>
-            {report.excerpt}
+            {displayExcerpt}
           </p>
         )}
 
@@ -479,12 +495,12 @@ export default function ReportView() {
 
         {/* ── Body blocks ── */}
         <div className="report-body">
-          {blocks.length === 0 ? (
+          {displayBlocks.length === 0 ? (
             <p style={{ fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7, color: "var(--text-body)" }}>
               {report.content || report.excerpt || "—"}
             </p>
           ) : (
-            blocks.map((b, i) => <Block key={b.id ?? i} block={b} index={i}/>)
+            displayBlocks.map((b, i) => <Block key={b.id ?? i} block={b} index={i}/>)
           )}
         </div>
 
