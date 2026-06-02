@@ -993,14 +993,23 @@ export default function ReportEditor() {
       if (!id) throw new Error("Could not save before publish");
       const predBlock = blocks.find((b) => b.type === "prediction");
       let lockData = {};
-      if (predBlock?.data?.ticker && fetchLockPrice) {
-        try {
-          const live = await fetchLockPrice(predBlock.data.ticker);
-          if (live?.price) {
-            lockData.prediction_entry_price = live.price;
-            lockData.prediction_locked_at = new Date().toISOString();
-          }
-        } catch {}
+      if (predBlock?.data?.ticker) {
+        // Capture the live market price at publish time as the official lock price.
+        // This is what the checkPredictions cloud function reads when resolving outcomes.
+        // Fallback to analyst-entered entry if the live fetch fails.
+        const enteredEntry = predBlock.data.entry ? Number(String(predBlock.data.entry).replace(/[^0-9.-]/g, "")) : null;
+        let livePrice = enteredEntry;
+        if (fetchLockPrice) {
+          try {
+            const live = await fetchLockPrice(predBlock.data.ticker);
+            if (live?.price) livePrice = live.price;
+          } catch {}
+        }
+        if (livePrice) {
+          lockData.prediction_lock_price = livePrice;   // ← what checkPredictions reads
+          lockData.prediction_lock_time  = new Date().toISOString(); // ← expiry anchor
+          lockData.prediction_entry_price = livePrice;  // ← also update display field
+        }
       }
       await base44.entities.Report.update(id, {
         ...lockData,

@@ -103,14 +103,13 @@ export default function BecomeAnalystPage() {
     if (!canNext() || submitting || !user) return;
     setSub(true);
     try {
+      // Set role to "pending_analyst" — admin must approve before they can publish.
       await base44.entities.User.update(user.id, {
-        role:           "analyst",
+        role:           "pending_analyst",
         tagline:        tagline.trim(),
         bio:            bio.trim(),
         specialties,
         specialization: style,
-        // Stash methodology into bio appendix if no dedicated field
-        // (We append it visually but keep bio main field as written)
       });
       // Methodology + style stored in profile_config so it's structured & doesn't bloat bio
       const existingCfg = (() => {
@@ -119,12 +118,20 @@ export default function BecomeAnalystPage() {
       await base44.entities.User.update(user.id, {
         profile_config: JSON.stringify({
           ...existingCfg,
-          methodology: methodology.trim(),
+          methodology:      methodology.trim(),
           investment_style: style,
+          applied_at:       new Date().toISOString(),
         }),
       });
+      // Notify admins via a notification (admin picks this up in the Approvals queue)
+      await base44.entities.Notification.create({
+        user_email: "admin",           // admin inbox catch-all
+        type:       "analyst_application",
+        title:      `New researcher application — ${user.full_name || user.email}`,
+        body:       `${tagline.trim()} · Specialties: ${specialties.join(", ")}`,
+        link:       "/admin/users",
+      }).catch(() => {});
       setDone(true);
-      setTimeout(() => navigate("/analyst"), 1800);
     } catch {
       setSub(false);
     }
@@ -134,12 +141,28 @@ export default function BecomeAnalystPage() {
   if (done) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gain/10 flex items-center justify-center">
-          <CheckCircle2 className="w-10 h-10 text-gain" />
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-amber-100 flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10 text-amber-600" />
         </div>
-        <h1 className="text-2xl font-medium mb-2">You're a researcher now</h1>
-        <p className="text-sm text-muted-foreground mb-1">Welcome to STOA's creator program.</p>
-        <p className="text-xs text-muted-foreground">Redirecting to your profile…</p>
+        <h1 className="text-2xl font-bold mb-2">Application submitted!</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          Your researcher application is under review. Our team typically responds within 24 hours.
+        </p>
+        <div className="bg-secondary/60 border border-border rounded-xl p-4 text-left text-sm text-muted-foreground space-y-2 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold flex-shrink-0">1</span>
+            <span>Admin reviews your profile & methodology</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold flex-shrink-0">2</span>
+            <span>You'll get a notification when approved</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold flex-shrink-0">3</span>
+            <span>Start publishing research and building your track record</span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">You can still browse the platform while your application is pending.</p>
       </div>
     );
   }
