@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import {
   Type, Image as ImageIcon, Link as LinkIcon, BarChart3,
   Plus, Trash2, GripVertical, ExternalLink, X,
@@ -7,15 +7,15 @@ import {
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-// ── Block type registry ───────────────────────────────────────────────────────
+// â”€â”€ Block type registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const BLOCK_TYPES = [
   { type: "text",   label: "Text section",     desc: "Write a paragraph: announcements, methodology, disclosures",   icon: Type },
   { type: "links",  label: "Links",            desc: "Linktree-style: Substack, YouTube, Discord, podcast, etc.",     icon: LinkIcon },
   { type: "image",  label: "Image",            desc: "Embed an image by URL (banner, screenshot, infographic)",       icon: ImageIcon },
-  { type: "chart",  label: "Ticker spotlight", desc: "Show a stock's live price and % change — \"stocks I cover\"",   icon: BarChart3 },
+  { type: "chart",  label: "Ticker spotlight", desc: "Show a stock's live price and % change â€” \"stocks I cover\"",   icon: BarChart3 },
 ];
 
-// ── Link icon auto-detection ──────────────────────────────────────────────────
+// â”€â”€ Link icon auto-detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function iconForUrl(url) {
   if (!url) return { Icon: Globe, color: "#64748b", label: "Website" };
   const u = url.toLowerCase();
@@ -33,7 +33,7 @@ function iconForUrl(url) {
   return { Icon: Globe, color: "#475569", label: "Website" };
 }
 
-// ── Ticker spotlight live price fetch ─────────────────────────────────────────
+// â”€â”€ Ticker spotlight live price fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function fetchTickerQuote(symbol) {
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}&formatted=false`;
   const r = await base44.functions.invoke("proxyFetch", { url, headers: { "User-Agent": "Mozilla/5.0" } });
@@ -46,7 +46,7 @@ async function fetchTickerQuote(symbol) {
   };
 }
 
-// ── Block renderers (public-facing) ───────────────────────────────────────────
+// â”€â”€ Block renderers (public-facing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TextBlockView({ block }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
@@ -132,12 +132,12 @@ function ChartBlockView({ block }) {
           ) : quote ? (
             <>
               <p className="font-bold text-base">${quote.price.toFixed(2)}</p>
-              <p className={`text-xs font-semibold ${isUp ? "text-green-600" : "text-red-500"}`}>
+              <p className={`text-xs font-semibold ${isUp ? "text-gain" : "text-loss"}`}>
                 {isUp ? "+" : ""}{quote.change?.toFixed(2)}%
               </p>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">—</p>
+            <p className="text-xs text-muted-foreground">â€”</p>
           )}
         </div>
       </div>
@@ -155,7 +155,7 @@ export function CustomBlockRenderer({ block }) {
   }
 }
 
-// ── Block editors (owner-only) ────────────────────────────────────────────────
+// â”€â”€ Block editors (owner-only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TextEditor({ block, onChange }) {
   return (
     <div className="space-y-2">
@@ -171,7 +171,7 @@ function TextEditor({ block, onChange }) {
         onChange={e => onChange({ ...block, content: e.target.value })}
         rows={4}
         maxLength={2000}
-        placeholder="Write the content…"
+        placeholder="Write the contentâ€¦"
         className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-2 bg-amber-50/30 focus:outline-none focus:border-amber-500 resize-none"
       />
     </div>
@@ -247,7 +247,7 @@ function LinksEditor({ block, onChange }) {
                 type="url"
                 value={link.url || ""}
                 onChange={e => updateLink(idx, { url: e.target.value })}
-                placeholder="https://…"
+                placeholder="https://â€¦"
                 className="flex-1 text-xs border border-border rounded px-2 py-1 bg-card focus:outline-none focus:border-primary font-mono"
               />
               <button
@@ -365,7 +365,7 @@ function AddBlockPicker({ onAdd }) {
   );
 }
 
-// ── Public: the section that wraps it all ─────────────────────────────────────
+// â”€â”€ Public: the section that wraps it all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function CustomBlocksSection({ blocks = [], isEditMode, onChange }) {
   const dragIdx = useRef(null);
 
@@ -390,7 +390,7 @@ export function CustomBlocksSection({ blocks = [], isEditMode, onChange }) {
     dragIdx.current = null;
   };
 
-  // Public view — render only non-empty blocks
+  // Public view â€” render only non-empty blocks
   if (!isEditMode) {
     const visible = blocks.filter(b => {
       if (b.type === "text")  return (b.content || "").trim();
@@ -412,7 +412,7 @@ export function CustomBlocksSection({ blocks = [], isEditMode, onChange }) {
     <div className="space-y-3">
       <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
         <p className="text-xs text-amber-800">
-          ✨ <strong>Custom sections</strong> appear on your About tab. Drag to reorder, click trash to remove.
+          âœ¨ <strong>Custom sections</strong> appear on your About tab. Drag to reorder, click trash to remove.
         </p>
       </div>
       {blocks.map((block, idx) => (
@@ -430,3 +430,4 @@ export function CustomBlocksSection({ blocks = [], isEditMode, onChange }) {
     </div>
   );
 }
+

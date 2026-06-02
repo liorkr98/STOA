@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
@@ -14,7 +14,7 @@ import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
   const results = await Promise.allSettled(
@@ -44,12 +44,12 @@ function timeAgo(dateStr) {
 }
 
 function directionColor(d) {
-  if (d === "LONG" || d === "Long") return "text-green-600 bg-green-50 border-green-200";
+  if (d === "LONG" || d === "Long") return "text-gain bg-gain/10 border-gain/20";
   if (d === "SHORT" || d === "Short") return "text-red-600 bg-red-50 border-red-200";
   return "text-muted-foreground bg-secondary border-border";
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
@@ -97,13 +97,13 @@ function WatchItem({ entry, live }) {
       {live?.price != null ? (
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-semibold flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <span className={`text-[11px] font-semibold flex items-center gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-muted-foreground">—</span>
+        <span className="text-[11px] text-muted-foreground">â€”</span>
       )}
     </Link>
   );
@@ -150,7 +150,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
     );
     return computeAvgYield(resolved);
   })();
-  const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const MEDALS = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
 
   return (
     <div
@@ -168,11 +168,11 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{name}</p>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-bold ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
+          <span className={`text-[10px] font-bold ${acc >= 75 ? "text-gain" : acc >= 55 ? "text-amber-600" : "text-loss"}`}>
             {acc.toFixed(1)}%
           </span>
           {computed != null && (
-            <span className={`text-[10px] font-semibold ${computed >= 0 ? "text-green-600" : "text-red-500"}`}>
+            <span className={`text-[10px] font-semibold ${computed >= 0 ? "text-gain" : "text-loss"}`}>
               {computed >= 0 ? "+" : ""}{computed.toFixed(1)}% yield
             </span>
           )}
@@ -183,11 +183,11 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
           onClick={e => { e.stopPropagation(); onFollow(analyst); }}
           className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-all shrink-0 ${
             isFollowing
-              ? "border-green-300 text-green-600 bg-green-50"
+              ? "border-gain/30 text-gain bg-gain/10"
               : "border-primary/30 text-primary hover:bg-primary/5"
           }`}
         >
-          {isFollowing ? "✓" : "Follow"}
+          {isFollowing ? "âœ“" : "Follow"}
         </button>
       )}
     </div>
@@ -218,17 +218,17 @@ function TrendingPredictionCard({ report }) {
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {isResolved && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
             {isHit ? "HIT" : "MISS"}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground">♥ {report.likes || 0}</span>
+        <span className="text-[10px] text-muted-foreground">â™¥ {report.likes || 0}</span>
       </div>
     </button>
   );
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// â”€â”€ main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -259,7 +259,7 @@ export default function HomePageDashboard() {
   // Investors see the consumer home; analysts/admins see the creator dashboard
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
-  // load watchlist from localStorage — normalise ticker/symbol field
+  // load watchlist from localStorage â€” normalise ticker/symbol field
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
@@ -373,7 +373,7 @@ export default function HomePageDashboard() {
     load();
   }, [user]);
 
-  // Live index prices — SPY, QQQ, DIA, VIX
+  // Live index prices â€” SPY, QQQ, DIA, VIX
   useEffect(() => {
     const INDEX_TICKERS = [{ sym: "SPY", label: "SPY" }, { sym: "QQQ", label: "QQQ" }, { sym: "DIA", label: "DIA" }, { sym: "^VIX", label: "VIX" }];
     const fetchIndexes = async () => {
@@ -436,7 +436,7 @@ export default function HomePageDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 pb-16">
 
-      {/* ── Welcome header ── */}
+      {/* â”€â”€ Welcome header â”€â”€ */}
       <div className="mb-7">
         <span className="eyebrow">Creator Studio</span>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mt-2">
@@ -445,13 +445,13 @@ export default function HomePageDashboard() {
         <p className="text-sm text-muted-foreground mt-1.5">Here's your research intelligence overview.</p>
       </div>
 
-      {/* ── Stat chips ── */}
+      {/* â”€â”€ Stat chips â”€â”€ */}
       {myStats && (
         <div className="flex flex-wrap gap-2 mb-8">
           <StatChip
             label="Accuracy"
-            value={myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(1)}%` : "—"}
-            color={myStats.accuracy >= 70 ? "text-green-600" : myStats.accuracy > 0 ? "text-amber-600" : "text-muted-foreground"}
+            value={myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(1)}%` : "â€”"}
+            color={myStats.accuracy >= 70 ? "text-gain" : myStats.accuracy > 0 ? "text-amber-600" : "text-muted-foreground"}
             to="/analyst"
           />
           <StatChip label="Published" value={myStats.reports} to="/analyst" />
@@ -460,7 +460,7 @@ export default function HomePageDashboard() {
             <StatChip
               label="Avg Yield"
               value={formatYield(myStats.yield)}
-              color={myStats.yield >= 0 ? "text-green-600" : "text-red-500"}
+              color={myStats.yield >= 0 ? "text-gain" : "text-loss"}
               to="/analyst"
             />
           )}
@@ -472,16 +472,16 @@ export default function HomePageDashboard() {
           </Link>
           <Link to="/analyst">
             <div className="flex items-center gap-1.5 px-5 py-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
-              <span className="text-sm font-semibold leading-none text-foreground">View public profile →</span>
+              <span className="text-sm font-semibold leading-none text-foreground">View public profile â†’</span>
             </div>
           </Link>
         </div>
       )}
 
-      {/* ── Two-column layout ── */}
+      {/* â”€â”€ Two-column layout â”€â”€ */}
       <div className="flex gap-6 items-start">
 
-        {/* ═══ LEFT COLUMN ═══ */}
+        {/* â•â•â• LEFT COLUMN â•â•â• */}
         <div className="flex-1 min-w-0 space-y-5">
 
           {/* My Drafts */}
@@ -562,8 +562,8 @@ export default function HomePageDashboard() {
                           )}
                           {!isPending && (
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                              isHit  ? "bg-green-100 text-green-700"
-                              : isMiss ? "bg-red-100 text-red-700"
+                              isHit  ? "bg-gain/10 text-gain"
+                              : isMiss ? "bg-loss/10 text-loss"
                               : "bg-amber-100 text-amber-700"
                             }`}>
                               {(outcome || "").toUpperCase()}
@@ -576,11 +576,11 @@ export default function HomePageDashboard() {
                           )}
                           {r.views > 0 && (
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              👁 {r.views}
+                              ðŸ‘ {r.views}
                             </span>
                           )}
                           {r.likes > 0 && (
-                            <span className="text-[10px] text-muted-foreground">♥ {r.likes}</span>
+                            <span className="text-[10px] text-muted-foreground">â™¥ {r.likes}</span>
                           )}
                           <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
                         </div>
@@ -663,7 +663,7 @@ export default function HomePageDashboard() {
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${directionColor(dir)}`}>{dir}</span>
                           )}
                           {!isPending && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : isMiss ? "bg-loss/10 text-loss" : "bg-amber-100 text-amber-700"}`}>
                               {(outcome || "").toUpperCase()}
                             </span>
                           )}
@@ -743,7 +743,7 @@ export default function HomePageDashboard() {
                               <span className="text-[10px] font-mono font-bold text-primary/80">{r.stock_ticker}</span>
                             )}
                             {!isPending && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isHit ? "bg-gain/10 text-gain" : isMiss ? "bg-loss/10 text-loss" : "bg-amber-100 text-amber-700"}`}>
                                 {(outcome || "").toUpperCase()}
                               </span>
                             )}
@@ -786,7 +786,7 @@ export default function HomePageDashboard() {
           </section>
         </div>
 
-        {/* ═══ RIGHT COLUMN ═══ */}
+        {/* â•â•â• RIGHT COLUMN â•â•â• */}
         <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
 
           {/* Top Analysts */}
@@ -940,3 +940,4 @@ export default function HomePageDashboard() {
     </div>
   );
 }
+

@@ -89,7 +89,7 @@ export default function AppLayout() {
       </a>
 
       {/* Navbar */}
-      <header role="banner" className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
+      <header role="banner" className="sticky top-0 z-30 bg-card/95 backdrop-blur-lg border-b border-border shadow-[0_1px_0_0_hsl(var(--border))]">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link to="/" className="flex-shrink-0" aria-label="STOA — go to homepage">
             <StoaLogo size={24} textSize="text-lg" />
@@ -110,9 +110,9 @@ export default function AppLayout() {
                   aria-label={item.label}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all relative",
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/10 text-primary after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:bg-primary after:rounded-full"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { Plus, X, TrendingUp, TrendingDown, Minus, FileText, Loader2, RefreshCw } from "lucide-react";
@@ -115,7 +115,7 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">${data.price.toFixed(2)}</span>
             {change != null && (
-              <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-green-600" : isDown ? "text-red-500" : "text-muted-foreground"}`}>
+              <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
                 {isUp ? <TrendingUp className="w-3 h-3" /> : isDown ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                 {change >= 0 ? "+" : ""}{change.toFixed(2)}%
               </span>
@@ -154,7 +154,7 @@ function PriceRow({ entry, reports, onRemove, onTimeframeChange }) {
             <Link key={r.id} to={`/report?id=${r.id}`}
               className="text-[10px] text-primary hover:underline border border-primary/20 bg-primary/5 px-1.5 py-0.5 rounded-full max-w-[80px] truncate block"
               title={r.title}>
-              {r.title?.slice(0, 14)}{r.title?.length > 14 ? "…" : ""}
+              {r.title?.slice(0, 14)}{r.title?.length > 14 ? "â€¦" : ""}
             </Link>
           ))}
           {relatedReports.length > 1 && (
@@ -265,3 +265,4 @@ export default function WatchlistPanel({ reports = [] }) {
     </div>
   );
 }
+

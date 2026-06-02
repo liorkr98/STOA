@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import TradingViewWidget from "@/components/feed/TradingViewWidget";
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 
-// ─── Claim type config ───────────────────────────────────────────────────────
+// â”€â”€â”€ Claim type config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TYPE_CONFIG = {
   Fact:             { icon: CheckCircle2,       color: "text-gain",        bg: "bg-gain/10 border-gain/20",         label: "Verified Fact" },
   Opinion:          { icon: MessageSquareQuote, color: "text-blue-600",    bg: "bg-blue-50 border-blue-200",        label: "Opinion" },
@@ -34,7 +34,7 @@ const TYPE_CONFIG = {
   "SEC-Disputed":   { icon: AlertTriangle,      color: "text-red-700",     bg: "bg-red-50 border-red-200",         label: "Disputed by SEC Filing" },
 };
 
-// ─── Community Notes under Opinion claims ────────────────────────────────────
+// â”€â”€â”€ Community Notes under Opinion claims â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ClaimWithNotes({ claim }) {
   const cfg = TYPE_CONFIG[claim.type] || TYPE_CONFIG.Unverified;
   const Icon = cfg.icon;
@@ -54,7 +54,7 @@ function ClaimWithNotes({ claim }) {
     try {
       await base44.integrations.Core.SendEmail({
         to: "baramsalem1@gmail.com",
-        subject: `AI Fact Check Dispute — ${claim.type}`,
+        subject: `AI Fact Check Dispute â€” ${claim.type}`,
         body: `A user flagged a potential AI fact-check mistake.\n\nClaim type: ${claim.type}\nConfidence: ${claim.confidence || "N/A"}\n\nClaim text:\n"${claim.text}"\n\nAI note: ${claim.note || "N/A"}\n\nPlease review this claim.`,
       });
       setReportSent(true);
@@ -117,11 +117,11 @@ function ClaimWithNotes({ claim }) {
             </div>
           )}
 
-          {/* AI mistaken? — amber pill */}
+          {/* AI mistaken? â€” amber pill */}
           <div className="mt-2">
             {reportSent ? (
               <span className="inline-flex items-center gap-1 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
-                <CheckCircle2 className="w-2.5 h-2.5" /> Reported — thanks!
+                <CheckCircle2 className="w-2.5 h-2.5" /> Reported â€” thanks!
               </span>
             ) : (
               <button
@@ -136,7 +136,7 @@ function ClaimWithNotes({ claim }) {
         </div>
       </div>
 
-      {/* Community Notes — only for Opinion */}
+      {/* Community Notes â€” only for Opinion */}
       {claim.type === "Opinion" && (
         <div className="mt-2 ml-5 pl-2 border-l-2 border-blue-200">
           <p className="text-[10px] font-semibold text-blue-600 mb-1 flex items-center gap-1">
@@ -173,7 +173,7 @@ function ClaimWithNotes({ claim }) {
   );
 }
 
-// ─── Saved fact-check panel ──────────────────────────────────────────────────
+// â”€â”€â”€ Saved fact-check panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SavedFactCheck({ claims, reportContent }) {
   const [open, setOpen]           = useState(true);
   const [activeFilter, setFilter] = useState(null);
@@ -200,7 +200,7 @@ function SavedFactCheck({ claims, reportContent }) {
           <Sparkles className="w-4 h-4 text-primary" />
           <div>
             <h4 className="font-semibold text-sm">AI Fact Check</h4>
-            <p className="text-[10px] text-muted-foreground">Claude AI · Yahoo Finance · SEC EDGAR</p>
+            <p className="text-[10px] text-muted-foreground">Claude AI Â· Yahoo Finance Â· SEC EDGAR</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ function SavedFactCheck({ claims, reportContent }) {
               title={isActive ? "Clear filter" : `Show only ${cfg.label}s`}
             >
               {count} {cfg.label}{count > 1 ? "s" : ""}
-              {isActive && " ×"}
+              {isActive && " Ã—"}
             </button>
           );
         })}
@@ -262,7 +262,7 @@ function SavedFactCheck({ claims, reportContent }) {
   );
 }
 
-// ─── Block renderer ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Block renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function BlockRenderer({ blocks }) {
   if (!blocks?.length) return <p className="text-muted-foreground italic text-sm">This report has no content yet.</p>;
   return (
@@ -275,7 +275,7 @@ function BlockRenderer({ blocks }) {
         if (block.type === "bullets") return (
           <ul key={i} className="list-disc list-inside space-y-1 pl-2">
             {content.split("\n").filter(Boolean).map((line, j) => (
-              <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^[•\-]\s*/, "")}</li>
+              <li key={j} className="text-foreground/90 text-sm leading-relaxed">{line.replace(/^[â€¢\-]\s*/, "")}</li>
             ))}
           </ul>
         );
@@ -295,7 +295,7 @@ function BlockRenderer({ blocks }) {
                   </div>
                   <img src={block.snapshot_url} alt={`${chartTicker} chart`} loading="lazy" className="w-full object-cover" style={{ height: chartHeight }} />
                   <div className="px-3 py-2 border-t border-border">
-                    <a href={`/stock?ticker=${chartTicker}`} className="text-xs text-primary hover:underline">View live chart for ${chartTicker} →</a>
+                    <a href={`/stock?ticker=${chartTicker}`} className="text-xs text-primary hover:underline">View live chart for ${chartTicker} â†’</a>
                   </div>
                 </>
               ) : (
@@ -307,7 +307,7 @@ function BlockRenderer({ blocks }) {
         if (block.type === "image" && block.content) return (
           <img key={i} src={block.content} alt="" className="rounded-xl max-w-full" />
         );
-        // Always render text blocks — even if content seems empty show nothing rather than skip
+        // Always render text blocks â€” even if content seems empty show nothing rather than skip
         if (!block.content && block.content !== 0) return null;
         return <p key={i} className="text-foreground/90 leading-relaxed text-sm whitespace-pre-line">{block.content}</p>;
       })}
@@ -315,7 +315,7 @@ function BlockRenderer({ blocks }) {
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function ReportView() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
@@ -376,7 +376,7 @@ export default function ReportView() {
       .finally(() => setLoading(false));
   }, [reportId]);
 
-  // Track view — runs once per session, skips if viewer is the author
+  // Track view â€” runs once per session, skips if viewer is the author
   useEffect(() => {
     if (!report || !reportId) return;
     const viewedKey = `viewed_${reportId}`;
@@ -512,7 +512,7 @@ export default function ReportView() {
           </div>
         </button>
         {publishedDate && (
-          <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy · h:mm a")}</span>
+          <span className="text-xs text-muted-foreground">{format(new Date(publishedDate), "MMMM d, yyyy Â· h:mm a")}</span>
         )}
         <div className="flex items-center gap-3 ml-auto">
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -553,7 +553,7 @@ export default function ReportView() {
 
       {prediction && <PredictionBadge prediction={prediction} currentPrice={livePrice} />}
 
-      {/* Visual proof — trajectory of the underlying since lock */}
+      {/* Visual proof â€” trajectory of the underlying since lock */}
       {report.prediction_lock_price && report.prediction_lock_time && (
         <div className="my-6">
           <PredictionTrajectoryChart report={report} />
@@ -630,12 +630,12 @@ export default function ReportView() {
                     className="border-amber-300 gap-2 px-6"
                     size="lg"
                   >
-                    Subscribe · $9/mo
+                    Subscribe Â· $9/mo
                   </Button>
                 </div>
 
                 <p className="text-[11px] text-muted-foreground mt-3">
-                  Paid from your wallet · One-time unlock or unlimited access via subscription
+                  Paid from your wallet Â· One-time unlock or unlimited access via subscription
                 </p>
               </div>
             </div>
@@ -698,7 +698,7 @@ export default function ReportView() {
               >
                 {r.prediction_direction && (
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
-                    r.prediction_direction === "LONG" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    r.prediction_direction === "LONG" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
                   }`}>
                     {r.prediction_direction}
                   </span>
@@ -709,7 +709,7 @@ export default function ReportView() {
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {r.created_date ? new Date(r.created_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                    {r.stock_ticker ? ` · ${r.stock_ticker}` : ""}
+                    {r.stock_ticker ? ` Â· ${r.stock_ticker}` : ""}
                   </p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary shrink-0 mt-1 transition-colors" />
@@ -745,7 +745,7 @@ export default function ReportView() {
         }}
         title="Unlock report"
         amountUSD={report.price || 4.99}
-        itemLabel={`${report.title} · by ${authorName}`}
+        itemLabel={`${report.title} Â· by ${authorName}`}
         showSplit={true}
         confirmLabel="Unlock"
       />
@@ -775,7 +775,7 @@ export default function ReportView() {
         }}
         title={`Subscribe to ${authorName}`}
         amountUSD={9}
-        itemLabel={`${authorName} · Monthly subscription · Full access to all reports`}
+        itemLabel={`${authorName} Â· Monthly subscription Â· Full access to all reports`}
         showSplit={true}
         confirmLabel="Subscribe"
       />

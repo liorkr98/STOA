@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { X, PenLine, Lock, Trophy, Palette, DollarSign, Sparkles, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -10,10 +10,10 @@ const STEPS = [
     bg: "bg-violet-50",
     title: "You're now a researcher!",
     subtitle: "Welcome to the creator program",
-    body: "As a STOA researcher, you publish research reports that investors can read, follow, and subscribe to. Your track record is built automatically — every prediction is verified against real prices.",
+    body: "As a STOA researcher, you publish research reports that investors can read, follow, and subscribe to. Your track record is built automatically â€” every prediction is verified against real prices.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-gradient-to-br from-violet-50 to-blue-50 p-4 text-center">
-        <div className="text-4xl mb-1">🏆</div>
+        <div className="text-4xl mb-1">ðŸ†</div>
         <div className="text-sm font-bold">Your researcher journey starts today</div>
         <div className="text-xs text-muted-foreground mt-1">Publish your first report to get on the leaderboard</div>
       </div>
@@ -31,7 +31,7 @@ const STEPS = [
         {[
           { type: "Heading",     color: "bg-blue-100 text-blue-700" },
           { type: "Paragraph",  color: "bg-secondary text-muted-foreground" },
-          { type: "Stock Chart",color: "bg-green-100 text-green-700" },
+          { type: "Stock Chart",color: "bg-gain/10 text-gain" },
           { type: "Prediction", color: "bg-amber-100 text-amber-700" },
         ].map((b, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
@@ -81,7 +81,7 @@ const STEPS = [
     bg: "bg-green-50",
     title: "Build Your Track Record",
     subtitle: "Accuracy earns reputation",
-    body: "Your score is computed from win rate (Wilson-adjusted), profit factor, and alpha vs benchmark. The leaderboard rewards researchers with the most accurate predictions — not just the most popular.",
+    body: "Your score is computed from win rate (Wilson-adjusted), profit factor, and alpha vs benchmark. The leaderboard rewards researchers with the most accurate predictions â€” not just the most popular.",
     visual: (
       <div className="mt-4 rounded-xl border border-border bg-card p-3">
         <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-2">Score breakdown</div>
@@ -110,7 +110,7 @@ const STEPS = [
     bg: "bg-rose-50",
     title: "Customise Your Profile",
     subtitle: "Your brand, your page",
-    body: "Your public researcher profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links — it's your creator landing page.",
+    body: "Your public researcher profile is fully customisable. Add a banner, pick colours, write your bio, embed stock spotlights, add social links â€” it's your creator landing page.",
     visual: (
       <div className="mt-4 rounded-xl overflow-hidden border border-border">
         <div className="h-8" style={{ background: "linear-gradient(135deg,#0d1f3c,#1e3a6e)" }} />
@@ -133,7 +133,7 @@ const STEPS = [
     bg: "bg-emerald-50",
     title: "Earn from Your Research",
     subtitle: "Premium reports & subscriptions",
-    body: "Set any report as Premium (paid). Investors pay directly from their wallet. You can also offer monthly subscriptions for exclusive research. STOA takes a 10% platform fee — the rest is yours.",
+    body: "Set any report as Premium (paid). Investors pay directly from their wallet. You can also offer monthly subscriptions for exclusive research. STOA takes a 10% platform fee â€” the rest is yours.",
     visual: (
       <div className="mt-4 space-y-2">
         {[
@@ -155,7 +155,7 @@ const STEPS = [
     bg: "bg-primary/10",
     title: "Time to write",
     subtitle: "Your first report is one click away",
-    body: "Head to the Editor to write your first report. It costs 10 AI credits to publish — you get 50 free credits when you join. The AI assistant is there to help at any time.",
+    body: "Head to the Editor to write your first report. It costs 10 AI credits to publish â€” you get 50 free credits when you join. The AI assistant is there to help at any time.",
     cta: true,
   },
 ];
@@ -248,3 +248,4 @@ export default function AnalystOnboarding({ onClose }) {
     </div>
   );
 }
+

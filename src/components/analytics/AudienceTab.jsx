@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { format } from "date-fns";
 import AnalyticsKPICard from "./AnalyticsKPICard";
 import { Users } from "lucide-react";
@@ -26,10 +26,10 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <AnalyticsKPICard icon="👥" label="Total Followers" value={totalFollowers} sub="All time" color="text-blue-600" />
-        <AnalyticsKPICard icon="💎" label="Active Subscribers" value={activeSubs.length} sub="Paying" color="text-green-600" />
-        <AnalyticsKPICard icon="🔄" label="Free → Paid Rate" value={`${convRate}%`} sub="Conversion" color={parseFloat(convRate) >= 5 ? "text-green-600" : "text-amber-600"} />
-        <AnalyticsKPICard icon="📈" label="Follower Growth" value={`+${newFollowersThisMonth}`} sub="This month" color="text-purple-600" />
+        <AnalyticsKPICard icon="ðŸ‘¥" label="Total Followers" value={totalFollowers} sub="All time" color="text-blue-600" />
+        <AnalyticsKPICard icon="ðŸ’Ž" label="Active Subscribers" value={activeSubs.length} sub="Paying" color="text-gain" />
+        <AnalyticsKPICard icon="ðŸ”„" label="Free â†’ Paid Rate" value={`${convRate}%`} sub="Conversion" color={parseFloat(convRate) >= 5 ? "text-gain" : "text-amber-600"} />
+        <AnalyticsKPICard icon="ðŸ“ˆ" label="Follower Growth" value={`+${newFollowersThisMonth}`} sub="This month" color="text-purple-600" />
       </div>
 
       {/* Followers Table */}
@@ -59,7 +59,7 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
                   return aIsSub - bIsSub || new Date(b.created_date) - new Date(a.created_date);
                 }).slice(0, 50).map(f => {
                   const u = followerUsers[f.follower_email];
-                  const name = u?.full_name || f.follower_email?.split("@")[0] || "—";
+                  const name = u?.full_name || f.follower_email?.split("@")[0] || "â€”";
                   const avatar = u?.picture;
                   const isSub = subEmails.has(f.follower_email);
                   return (
@@ -117,7 +117,7 @@ export default function AudienceTab({ currentUser, subscriptions, follows, follo
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-3">Impression proxy = followers × 5. Real view tracking coming soon.</p>
+        <p className="text-[10px] text-muted-foreground mt-3">Impression proxy = followers Ã— 5. Real view tracking coming soon.</p>
       </div>
     </div>
   );

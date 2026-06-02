@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { Loader2, TrendingUp, TrendingDown, ExternalLink, GripHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-// Timeframe → days mapping
+// Timeframe â†’ days mapping
 const TF_DAYS = {
   "1W": 7,
   "1M": 30,
@@ -70,7 +70,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-xl p-3 my-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading chart for ${ticker}…
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading chart for ${ticker}â€¦
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
     e.dataTransfer.effectAllowed = "copy";
     // Optional: a nicer ghost image showing the ticker
     const ghost = document.createElement("div");
-    ghost.textContent = `📊 ${ticker}`;
+    ghost.textContent = `ðŸ“Š ${ticker}`;
     ghost.style.cssText = "position:absolute;top:-1000px;padding:8px 12px;background:#0f172a;color:white;font:bold 12px ui-monospace;border-radius:8px";
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 30, 15);
@@ -126,9 +126,9 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
       draggable
       onDragStart={handleDragStart}
       className="bg-card border border-border rounded-xl my-2 overflow-hidden hover:border-primary/30 transition-all group cursor-grab active:cursor-grabbing"
-      title="Drag to report · Click to open full chart"
+      title="Drag to report Â· Click to open full chart"
     >
-      {/* Header — click navigates, drag uses the parent's listener */}
+      {/* Header â€” click navigates, drag uses the parent's listener */}
       <a
         href={`/stock?ticker=${ticker}`}
         onClick={e => e.stopPropagation()}
@@ -143,7 +143,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-mono font-bold text-sm">${last.toFixed(2)}</p>
-          <p className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <p className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{change.toFixed(2)}%
           </p>
@@ -164,7 +164,7 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
         </svg>
       </div>
 
-      {/* Drag hint footer — appears on hover */}
+      {/* Drag hint footer â€” appears on hover */}
       <div className="px-3 py-1 border-t border-border bg-secondary/30 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
         <span className="text-[9px] text-muted-foreground flex items-center gap-1">
           <GripHorizontal className="w-2.5 h-2.5" /> Drag to report
@@ -176,3 +176,4 @@ export default function ChatChart({ ticker, timeframe = "1M" }) {
     </div>
   );
 }
+

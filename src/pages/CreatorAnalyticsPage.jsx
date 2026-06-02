@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, Link } from "react-router-dom";
 import { format, subDays, subMonths, isAfter, parseISO, startOfMonth } from "date-fns";
@@ -15,7 +15,7 @@ import {
 import { computeScore } from "@/lib/scoringEngine";
 import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
-// ── Date range options ────────────────────────────────────────────────────────
+// â”€â”€ Date range options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DATE_RANGES = [
   { label: "7D",  days: 7 },
   { label: "1M",  days: 30 },
@@ -28,7 +28,7 @@ function cutoff(days) {
   return days ? subDays(new Date(), days) : new Date(0);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function pct(a, b) {
   if (!b || b === 0) return null;
   return ((a - b) / b) * 100;
@@ -53,19 +53,19 @@ function buildMonthly(items, dateKey, valueKey) {
     .map(([month, value]) => ({ month: month.slice(5), value }));
 }
 
-// ── Trend indicator ───────────────────────────────────────────────────────────
+// â”€â”€ Trend indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Trend({ value }) {
-  if (value == null) return <span className="text-[11px] text-muted-foreground">—</span>;
+  if (value == null) return <span className="text-[11px] text-muted-foreground">â€”</span>;
   const up = value >= 0;
   return (
-    <span className={`flex items-center gap-0.5 text-[11px] font-semibold ${up ? "text-green-500" : "text-red-500"}`}>
+    <span className={`flex items-center gap-0.5 text-[11px] font-semibold ${up ? "text-green-500" : "text-loss"}`}>
       {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
       {fmtPct(value)} from last period
     </span>
   );
 }
 
-// ── KPI Card (matching Figma top-row cards) ───────────────────────────────────
+// â”€â”€ KPI Card (matching Figma top-row cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function KPICard({ label, value, trend, icon: Icon, iconBg, children }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
@@ -90,7 +90,7 @@ function KPICard({ label, value, trend, icon: Icon, iconBg, children }) {
   );
 }
 
-// ── Section card wrapper ──────────────────────────────────────────────────────
+// â”€â”€ Section card wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SectionCard({ title, subtitle, action, children }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
@@ -106,7 +106,7 @@ function SectionCard({ title, subtitle, action, children }) {
   );
 }
 
-// ── Custom tooltip for charts ─────────────────────────────────────────────────
+// â”€â”€ Custom tooltip for charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -121,7 +121,7 @@ const ChartTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function CreatorAnalyticsPage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser]     = useState(null);
@@ -151,7 +151,7 @@ export default function CreatorAnalyticsPage() {
     }).finally(() => setLoading(false));
   }, [refreshKey]);
 
-  // ── Date filtering ──────────────────────────────────────────────────────────
+  // â”€â”€ Date filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const rangeObj  = DATE_RANGES.find(r => r.label === range);
   const cut       = cutoff(rangeObj?.days);
   const prevCut   = cutoff(rangeObj?.days ? rangeObj.days * 2 : null);
@@ -159,7 +159,7 @@ export default function CreatorAnalyticsPage() {
   const inRange   = useCallback((d) => d && isAfter(parseISO(d), cut), [cut]);
   const inPrev    = useCallback((d) => d && isAfter(parseISO(d), prevCut) && !isAfter(parseISO(d), cut), [cut, prevCut]);
 
-  // ── Derived stats ───────────────────────────────────────────────────────────
+  // â”€â”€ Derived stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const published   = useMemo(() => reports.filter(r => r.status === "published"), [reports]);
   const curPub      = useMemo(() => published.filter(r => inRange(r.created_date)), [published, inRange]);
   const prevPub     = useMemo(() => published.filter(r => inPrev(r.created_date)), [published, inPrev]);
@@ -224,23 +224,23 @@ export default function CreatorAnalyticsPage() {
   const transactionFeed = useMemo(() => {
     const subEvents = subscriptions.slice(0, 20).map(s => ({
       id: `sub-${s.id}`,
-      icon: "👤",
+      icon: "ðŸ‘¤",
       title: s.subscriber_email?.split("@")[0] || "Subscriber",
       sub: `${s.plan || "Monthly"} subscription`,
       date: s.created_date,
       amount: `+$${s.price || 29}`,
       status: s.status === "active" ? "active" : "expired",
-      statusColor: s.status === "active" ? "text-green-600" : "text-muted-foreground",
+      statusColor: s.status === "active" ? "text-gain" : "text-muted-foreground",
     }));
     const txnEvents = transactions.slice(0, 20).map(t => ({
       id: `txn-${t.id}`,
-      icon: "🔓",
+      icon: "ðŸ”“",
       title: "Report Unlocked",
       sub: t.related_id ? `Report ID: ${t.related_id.slice(-6)}` : "Premium report",
       date: t.created_date,
-      amount: t.amount ? `+$${t.amount}` : "+$—",
+      amount: t.amount ? `+$${t.amount}` : "+$â€”",
       status: "completed",
-      statusColor: "text-green-600",
+      statusColor: "text-gain",
     }));
     return [...subEvents, ...txnEvents]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -259,7 +259,7 @@ export default function CreatorAnalyticsPage() {
       ...topReports.map(r => [
         `"${r.title}"`, r.views || 0, r.likes || 0,
         r.is_premium ? "Yes" : "No",
-        r.prediction_action || "—",
+        r.prediction_action || "â€”",
         r.prediction_outcome || "pending",
         format(new Date(r.created_date), "yyyy-MM-dd"),
       ]),
@@ -283,12 +283,12 @@ export default function CreatorAnalyticsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 pb-16">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex items-start justify-between flex-wrap gap-4 mb-7">
         <div>
           <span className="eyebrow">Creator Analytics</span>
           <h1 className="text-3xl font-extrabold tracking-tight mt-2">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Your complete performance overview — live data.</p>
+          <p className="text-sm text-muted-foreground mt-1">Your complete performance overview â€” live data.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Date range selector */}
@@ -313,10 +313,10 @@ export default function CreatorAnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Row 1: Highlight + KPI cards ────────────────────────────────────── */}
+      {/* â”€â”€ Row 1: Highlight + KPI cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
 
-        {/* Highlight card — dark navy (Figma) */}
+        {/* Highlight card â€” dark navy (Figma) */}
         <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
           <div className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
           <div className="relative z-10">
@@ -334,7 +334,7 @@ export default function CreatorAnalyticsPage() {
                   {scoring.score.toFixed(0)}
                   <span className="text-lg">pts</span>
                 </p>
-                <p className="text-white/40 text-[11px] mt-1">{scoring.hits}W · {scoring.misses}L · {scoring.total} resolved</p>
+                <p className="text-white/40 text-[11px] mt-1">{scoring.hits}W Â· {scoring.misses}L Â· {scoring.total} resolved</p>
               </>
             ) : (
               <>
@@ -376,7 +376,7 @@ export default function CreatorAnalyticsPage() {
         </KPICard>
       </div>
 
-      {/* ── Row 2: Transactions + Revenue Chart + Donut ──────────────────────── */}
+      {/* â”€â”€ Row 2: Transactions + Revenue Chart + Donut â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
 
         {/* Transaction list */}
@@ -422,7 +422,7 @@ export default function CreatorAnalyticsPage() {
         <div className="lg:col-span-5">
           <SectionCard
             title="Views & Engagement"
-            subtitle={`Monthly trend · ${range}`}
+            subtitle={`Monthly trend Â· ${range}`}
             action={
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" />Views</span>
@@ -468,7 +468,7 @@ export default function CreatorAnalyticsPage() {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <p className="text-xl font-extrabold leading-none tabular-nums">
-                        {scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "—"}
+                        {scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "â€”"}
                       </p>
                       <p className="text-[9px] text-muted-foreground">Score</p>
                     </div>
@@ -492,7 +492,7 @@ export default function CreatorAnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Row 3: Top reports + Subscribers + Promo ─────────────────────────── */}
+      {/* â”€â”€ Row 3: Top reports + Subscribers + Promo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
 
         {/* Top reports horizontal bars */}
@@ -530,12 +530,12 @@ export default function CreatorAnalyticsPage() {
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           {r.prediction_outcome && r.prediction_outcome !== "pending" && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isHit ? "bg-green-100 text-green-700" : isMiss ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isHit ? "bg-gain/10 text-gain" : isMiss ? "bg-loss/10 text-loss" : "bg-amber-100 text-amber-700"}`}>
                               {isHit ? "HIT" : isMiss ? "MISS" : (r.prediction_outcome || "").toUpperCase()}
                             </span>
                           )}
                           <span className="text-[10px] text-muted-foreground tabular-nums">
-                            👁 {(r.views || 0).toLocaleString()}
+                            ðŸ‘ {(r.views || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -549,7 +549,7 @@ export default function CreatorAnalyticsPage() {
                         />
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] text-muted-foreground">♥ {r.likes || 0}</span>
+                        <span className="text-[10px] text-muted-foreground">â™¥ {r.likes || 0}</span>
                         {r.is_premium && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">Premium</span>}
                         <span className="text-[10px] text-muted-foreground ml-auto">{format(new Date(r.created_date), "MMM d")}</span>
                       </div>
@@ -624,7 +624,7 @@ export default function CreatorAnalyticsPage() {
               </div>
               <div className="grid grid-cols-3 gap-1.5 pt-1">
                 {[
-                  { label: "MRR", value: `$${projMRR.toLocaleString()}`, color: "text-green-600", bg: "bg-green-50" },
+                  { label: "MRR", value: `$${projMRR.toLocaleString()}`, color: "text-gain", bg: "bg-green-50" },
                   { label: "Annual", value: `$${(projAnnual/1000).toFixed(0)}k`, color: "text-blue-600", bg: "bg-blue-50" },
                   { label: "Net", value: `$${projNet.toLocaleString()}`, color: "text-purple-600", bg: "bg-purple-50" },
                 ].map(s => (
@@ -637,10 +637,10 @@ export default function CreatorAnalyticsPage() {
             </div>
           </div>
 
-          {/* Level Up Promo — Figma navy/gold */}
+          {/* Level Up Promo â€” Figma navy/gold */}
           <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1a1050 0%, #2d1b8e 60%, #3730a3 100%)" }}>
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.25) 0%, transparent 70%)", transform: "translate(20%, -20%)" }} />
-            <div className="text-2xl mb-2 relative z-10">👑</div>
+            <div className="text-2xl mb-2 relative z-10">ðŸ‘‘</div>
             <div className="relative z-10">
               <h3 className="text-white font-extrabold text-sm leading-snug mb-1.5">
                 Level up your analytics to the next level.
@@ -658,7 +658,7 @@ export default function CreatorAnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Row 4: Monthly subscribers area chart + Prediction table ─────────── */}
+      {/* â”€â”€ Row 4: Monthly subscribers area chart + Prediction table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
 
         {/* Monthly subscriber growth */}
@@ -699,10 +699,10 @@ export default function CreatorAnalyticsPage() {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Total Calls",  value: scoring.total || 0,                            color: "text-foreground" },
-              { label: "Hit Rate",     value: scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "—", color: "text-primary" },
-              { label: "Avg Yield",    value: formatYield(avgYield),                          color: avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-green-600" : "text-red-500" },
-              { label: "Hits",         value: scoring.hits || 0,                              color: "text-green-600" },
-              { label: "Misses",       value: scoring.misses || 0,                            color: "text-red-500" },
+              { label: "Hit Rate",     value: scoring.total > 0 ? `${scoring.score.toFixed(0)}` : "â€”", color: "text-primary" },
+              { label: "Avg Yield",    value: formatYield(avgYield),                          color: avgYield == null ? "text-muted-foreground" : avgYield >= 0 ? "text-gain" : "text-loss" },
+              { label: "Hits",         value: scoring.hits || 0,                              color: "text-gain" },
+              { label: "Misses",       value: scoring.misses || 0,                            color: "text-loss" },
               { label: "Pending",      value: (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) > 0 ? (scoring.total || 0) - (scoring.hits || 0) - (scoring.misses || 0) : 0, color: "text-amber-500" },
             ].map(s => (
               <div key={s.label} className="bg-secondary rounded-xl p-3 text-center">
@@ -721,3 +721,4 @@ export default function CreatorAnalyticsPage() {
     </div>
   );
 }
+

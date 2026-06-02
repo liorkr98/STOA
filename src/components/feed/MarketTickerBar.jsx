@@ -33,7 +33,7 @@ function Sparkline({ closes, isUp }) {
     const y = (H - pad) - ((v - min) / range) * (H - pad * 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(" ");
-  const color = isUp ? "#16a34a" : "#dc2626";
+  const color = isUp ? "hsl(152, 55%, 35%)" : "hsl(0, 72%, 52%)";
   const fillId = `sf-${Math.random().toString(36).slice(2)}`;
   const lastPt = closes.map((v, i) => ({
     x: pad + (i / (closes.length - 1)) * (W - pad * 2),
@@ -75,7 +75,7 @@ function TickerItem({ item }) {
         )}
       </div>
       {item.change != null && (
-        <span className={`text-[10px] font-semibold tabular-nums shrink-0 ${isUp ? "text-green-600" : "text-red-500"}`}>
+        <span className={`text-[10px] font-semibold tabular-nums shrink-0 ${isUp ? "text-gain" : "text-loss"}`}>
           {isUp ? "+" : ""}{item.change.toFixed(2)}%
         </span>
       )}

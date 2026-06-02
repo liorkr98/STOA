@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { setMeta, injectJsonLd } from "@/lib/seo";
 import {
@@ -25,7 +25,7 @@ import { subscribeAnalyst } from "@/lib/walletService";
 import { toast } from "sonner";
 import WatchlistPanel from "@/components/dashboard/WatchlistPanel";
 
-// ── Config helpers ────────────────────────────────────────────────────────────
+// â”€â”€ Config helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DEFAULT_CONFIG = {
   banner:         "slate",
   hidden_stats:   [],
@@ -49,7 +49,7 @@ function parseConfig(analyst) {
   catch { return { ...DEFAULT_CONFIG }; }
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getTimeframeBucket(tf) {
   if (!tf) return null;
   const t = tf.toLowerCase();
@@ -91,7 +91,7 @@ function PredictionRow({ report }) {
       </div>
       <div className="text-right shrink-0">
         {yld != null && (
-          <p className={`text-sm font-bold ${yld >= 0 ? "text-green-600" : "text-red-500"}`}>
+          <p className={`text-sm font-bold ${yld >= 0 ? "text-gain" : "text-loss"}`}>
             {yld >= 0 ? "+" : ""}{yld.toFixed(1)}%
           </p>
         )}
@@ -114,7 +114,7 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
         <div className={`border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all bg-card h-full ${isPinned ? "border-amber-300 ring-1 ring-amber-200" : "border-border"}`}>
           {isPinned && (
             <span className="absolute -top-2 left-3 text-[9px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">
-              📌 Pinned
+              ðŸ“Œ Pinned
             </span>
           )}
           <div className="flex items-start justify-between gap-2 mb-2">
@@ -148,17 +148,17 @@ function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
           }`}
           title={isPinned ? "Unpin" : "Pin to top"}
         >
-          📌
+          ðŸ“Œ
         </button>
       )}
     </div>
   );
 }
 
-// ── Stat definitions ──────────────────────────────────────────────────────────
+// â”€â”€ Stat definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ALL_STATS = [
   { key: "score",         label: "Score",         sub: s => `${s.total} calls`,                      bg: "bg-primary/5 border border-primary/10" },
-  { key: "winRate",       label: "Win Rate",       sub: s => s.total > 0 ? `${s.hits}W · ${s.misses}L` : "",  bg: "bg-secondary" },
+  { key: "winRate",       label: "Win Rate",       sub: s => s.total > 0 ? `${s.hits}W Â· ${s.misses}L` : "",  bg: "bg-secondary" },
   { key: "profitFactor",  label: "Profit Factor",  sub: () => "avg win / avg loss",                   bg: "bg-secondary" },
   { key: "avgReturn",     label: "Avg Return",     sub: () => "per call",                             bg: "bg-secondary" },
   { key: "followers",     label: "Followers",      sub: (s, a) => `${(a.published || 0)} reports`,   bg: "bg-secondary" },
@@ -167,18 +167,18 @@ const ALL_STATS = [
 function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditMode, onToggle, onClick }) {
   const renderValue = () => {
     if (statKey === "score")
-      return <span className="text-primary">{scoring.total >= 5 ? scoring.score : "—"}</span>;
+      return <span className="text-primary">{scoring.total >= 5 ? scoring.score : "â€”"}</span>;
     if (statKey === "winRate")
-      return <span className={scoring.rawWR == null ? "text-muted-foreground" : scoring.rawWR >= 0.6 ? "text-green-600" : scoring.rawWR >= 0.45 ? "text-amber-600" : "text-red-500"}>
-        {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—"}
+      return <span className={scoring.rawWR == null ? "text-muted-foreground" : scoring.rawWR >= 0.6 ? "text-gain" : scoring.rawWR >= 0.45 ? "text-amber-600" : "text-loss"}>
+        {scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "â€”"}
       </span>;
     if (statKey === "profitFactor")
-      return <span className={scoring.profitFactor == null ? "text-muted-foreground" : scoring.profitFactor >= 2 ? "text-green-600" : scoring.profitFactor >= 1 ? "text-amber-600" : "text-red-500"}>
-        {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—"}
+      return <span className={scoring.profitFactor == null ? "text-muted-foreground" : scoring.profitFactor >= 2 ? "text-gain" : scoring.profitFactor >= 1 ? "text-amber-600" : "text-loss"}>
+        {scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "â€”"}
       </span>;
     if (statKey === "avgReturn")
-      return <span className={scoring.avgReturn == null ? "text-muted-foreground" : scoring.avgReturn >= 0 ? "text-green-600" : "text-red-500"}>
-        {scoring.avgReturn != null ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%` : "—"}
+      return <span className={scoring.avgReturn == null ? "text-muted-foreground" : scoring.avgReturn >= 0 ? "text-gain" : "text-loss"}>
+        {scoring.avgReturn != null ? `${scoring.avgReturn >= 0 ? "+" : ""}${scoring.avgReturn.toFixed(1)}%` : "â€”"}
       </span>;
     if (statKey === "followers")
       return <span>{(analyst.followers_count || 0).toLocaleString()}</span>;
@@ -213,7 +213,7 @@ function StatCard({ statKey, scoring, analyst, publishedCount, isHidden, isEditM
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AnalystProfilePage() {
   const navigate = useNavigate();
   const { username } = useParams();
@@ -245,7 +245,7 @@ export default function AnalystProfilePage() {
   // Drag state for section reorder
   const dragIdx = useRef(null);
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const load = async () => {
       try {
@@ -267,12 +267,12 @@ export default function AnalystProfilePage() {
           const displayName = userData.full_name || userData.email?.split("@")[0] || "Researcher";
           const tagline = userData.tagline || "Verified researcher on STOA";
           setMeta({
-            title:       `${displayName} — Researcher Profile`,
+            title:       `${displayName} â€” Researcher Profile`,
             description: `${tagline}. ${userData.accuracy_score ? `${userData.accuracy_score.toFixed(1)}% prediction accuracy. ` : ""}Follow ${displayName}'s locked predictions on STOA.`,
             image:       userData.picture,
             type:        "profile",
           });
-          // Person/Author JSON-LD — surfaces analyst as an author in Google
+          // Person/Author JSON-LD â€” surfaces analyst as an author in Google
           injectJsonLd("ld-analyst", {
             "@context":    "https://schema.org",
             "@type":       "Person",
@@ -311,7 +311,7 @@ export default function AnalystProfilePage() {
     load();
   }, [username]);
 
-  // ── Follow ────────────────────────────────────────────────────────────────
+  // â”€â”€ Follow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleFollow = async () => {
     if (!currentUser || !analyst) return;
     setFollowLoading(true);
@@ -338,7 +338,7 @@ export default function AnalystProfilePage() {
     }
   };
 
-  // ── Subscribe — paid via wallet (no PayPal popup, instant) ────────────────
+  // â”€â”€ Subscribe â€” paid via wallet (no PayPal popup, instant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const SUBSCRIPTION_PRICE_USD = 9; // monthly; tweak per analyst pricing in future
   const handleSubscribe = async () => {
     if (!currentUser || !analyst) return;
@@ -363,12 +363,12 @@ export default function AnalystProfilePage() {
     }
   };
 
-  // ── Share ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Share â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Share button now opens a proper modal with copy + social options.
   // Old version silently failed in insecure contexts (no HTTPS, no permission).
   const openShare = () => setShowShareModal(true);
 
-  // ── Edit mode ─────────────────────────────────────────────────────────────
+  // â”€â”€ Edit mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const enterEditMode = () => {
     const cfg = parseConfig(analyst);
     setEditConfig(cfg);
@@ -384,7 +384,7 @@ export default function AnalystProfilePage() {
   };
 
   // Auto-enter edit mode when ?edit=1 in URL (from /branding, /edit-profile,
-  // dropdown "Edit My Page", etc.). searchParams MUST be in deps — without it,
+  // dropdown "Edit My Page", etc.). searchParams MUST be in deps â€” without it,
   // clicking the dropdown item while already on /analyst would no-op because
   // the component stays mounted and analyst/currentUser don't change.
   useEffect(() => {
@@ -453,7 +453,7 @@ export default function AnalystProfilePage() {
     dragIdx.current = null;
   };
 
-  // ── Guards ────────────────────────────────────────────────────────────────
+  // â”€â”€ Guards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -467,7 +467,7 @@ export default function AnalystProfilePage() {
     </div>
   );
 
-  // ── Computed values ───────────────────────────────────────────────────────
+  // â”€â”€ Computed values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isOwnProfile     = currentUser && analyst.id === currentUser.id;
   const displayName      = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const resolvedReports  = myReports.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending");
@@ -515,13 +515,13 @@ export default function AnalystProfilePage() {
   return (
     <div className="min-h-screen bg-background">
 
-      {/* ── Edit mode sticky bar ── */}
+      {/* â”€â”€ Edit mode sticky bar â”€â”€ */}
       {isEditMode && (
         <div className="sticky top-0 z-50 bg-amber-50 border-b-2 border-amber-300 px-4 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Pencil className="w-4 h-4 text-amber-700" />
             <span className="text-sm font-semibold text-amber-800">Editing your profile page</span>
-            <span className="text-xs text-amber-600 hidden sm:block">· Changes are not public until you save</span>
+            <span className="text-xs text-amber-600 hidden sm:block">Â· Changes are not public until you save</span>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={cancelEditMode} className="border-amber-300 text-amber-800 hover:bg-amber-100 gap-1.5">
@@ -535,7 +535,7 @@ export default function AnalystProfilePage() {
         </div>
       )}
 
-      {/* ── Hero banner ── */}
+      {/* â”€â”€ Hero banner â”€â”€ */}
       <div className="relative h-36 overflow-hidden" style={{ background: bannerTheme.bg }}>
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,0.05) 40px,rgba(255,255,255,0.05) 41px)"
@@ -549,7 +549,7 @@ export default function AnalystProfilePage() {
           </button>
         </div>
 
-        {/* Banner theme picker — edit mode only */}
+        {/* Banner theme picker â€” edit mode only */}
         {isEditMode && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2">
             <span className="text-xs text-white/70 mr-1">Theme:</span>
@@ -572,7 +572,7 @@ export default function AnalystProfilePage() {
 
       <div className="max-w-4xl mx-auto px-4">
 
-        {/* ── Profile header card ── */}
+        {/* â”€â”€ Profile header card â”€â”€ */}
         <div className="relative -mt-12 mb-6">
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <div className="flex items-end gap-4 mb-5">
@@ -609,7 +609,7 @@ export default function AnalystProfilePage() {
                   ? <input
                       value={editTagline}
                       onChange={e => setEditTagline(e.target.value)}
-                      placeholder="Add a tagline…"
+                      placeholder="Add a taglineâ€¦"
                       className="mt-1.5 w-full text-sm border border-dashed border-amber-400 rounded-lg px-2 py-1 bg-amber-50/50 focus:outline-none focus:border-amber-500"
                     />
                   : displayTagline && <p className="text-sm text-muted-foreground mt-1">{displayTagline}</p>
@@ -701,7 +701,7 @@ export default function AnalystProfilePage() {
                         setNewSpecialty("");
                       }
                     }}
-                    placeholder="Add specialty (e.g. Tech, Macro)…"
+                    placeholder="Add specialty (e.g. Tech, Macro)â€¦"
                     className="flex-1 text-xs border border-dashed border-amber-400 rounded-lg px-2.5 py-1.5 bg-amber-50/50 focus:outline-none focus:border-amber-500"
                   />
                   <button
@@ -764,7 +764,7 @@ export default function AnalystProfilePage() {
           </div>
         </div>
 
-        {/* ── Section reorder hint (edit mode) ── */}
+        {/* â”€â”€ Section reorder hint (edit mode) â”€â”€ */}
         {isEditMode && (
           <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
             <GripVertical className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -772,7 +772,7 @@ export default function AnalystProfilePage() {
           </div>
         )}
 
-        {/* ── Tab bar ── */}
+        {/* â”€â”€ Tab bar â”€â”€ */}
         <div className="flex gap-0 border-b border-border mb-6">
           {tabsToShow.map((tab, idx) => (
             <div
@@ -794,7 +794,7 @@ export default function AnalystProfilePage() {
           ))}
         </div>
 
-        {/* ── Reports tab ── */}
+        {/* â”€â”€ Reports tab â”€â”€ */}
         {effectiveTab === "Reports" && (
           <div className="pb-12">
             {twits.length > 0 && (
@@ -829,7 +829,7 @@ export default function AnalystProfilePage() {
               <>
                 {isEditMode && (
                   <p className="text-xs text-amber-700 mb-3 flex items-center gap-1.5">
-                    📌 Click the pin icon on any report to pin it to the top of your profile.
+                    ðŸ“Œ Click the pin icon on any report to pin it to the top of your profile.
                   </p>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -848,7 +848,7 @@ export default function AnalystProfilePage() {
           </div>
         )}
 
-        {/* ── Track Record tab ── */}
+        {/* â”€â”€ Track Record tab â”€â”€ */}
         {effectiveTab === "Track Record" && (
           <div className="pb-12 space-y-5">
             <div className="bg-card border border-border rounded-xl p-5">
@@ -863,7 +863,7 @@ export default function AnalystProfilePage() {
                         <p className="text-[10px] text-muted-foreground mt-0.5">{stats.hits}/{stats.total}</p>
                       </>
                     ) : (
-                      <p className="text-xl font-bold text-muted-foreground/30">—</p>
+                      <p className="text-xl font-bold text-muted-foreground/30">â€”</p>
                     )}
                   </div>
                 ))}
@@ -873,7 +873,7 @@ export default function AnalystProfilePage() {
             <PerformanceVsMarket analyst={analyst} />
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="text-sm font-semibold mb-1">All Predictions</h3>
-              <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved · {activePredictions.length} active</p>
+              <p className="text-xs text-muted-foreground mb-4">{resolvedReports.length} resolved Â· {activePredictions.length} active</p>
               {myReports.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No predictions yet.</p>
               ) : (
@@ -887,7 +887,7 @@ export default function AnalystProfilePage() {
           </div>
         )}
 
-        {/* ── About tab ── */}
+        {/* â”€â”€ About tab â”€â”€ */}
         {effectiveTab === "About" && (
           <div className="pb-12 space-y-5">
 
@@ -899,7 +899,7 @@ export default function AnalystProfilePage() {
                   value={editBio}
                   onChange={e => setEditBio(e.target.value)}
                   rows={5}
-                  placeholder="Write a bio — your background, methodology, what you focus on…"
+                  placeholder="Write a bio â€” your background, methodology, what you focus onâ€¦"
                   className="w-full text-sm border border-dashed border-amber-400 rounded-lg px-3 py-2 bg-amber-50/30 focus:outline-none focus:border-amber-500 resize-none"
                 />
               ) : displayBio ? (
@@ -957,7 +957,7 @@ export default function AnalystProfilePage() {
               </div>
             )}
 
-            {/* Custom sections — owner-editable: text, image, links, ticker spotlight */}
+            {/* Custom sections â€” owner-editable: text, image, links, ticker spotlight */}
             <CustomBlocksSection
               blocks={config.custom_blocks || []}
               isEditMode={isEditMode}
@@ -1015,18 +1015,18 @@ export default function AnalystProfilePage() {
         )}
       </div>
 
-      {/* ── Score modal ── */}
+      {/* â”€â”€ Score modal â”€â”€ */}
       {showAccModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAccModal(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-1">Researcher Score</h3>
             <p className="text-5xl font-extrabold text-primary mb-1">{scoring.score}</p>
-            <p className="text-xs text-muted-foreground mb-5">out of 100 · {scoring.total} resolved predictions</p>
+            <p className="text-xs text-muted-foreground mb-5">out of 100 Â· {scoring.total} resolved predictions</p>
             <div className="space-y-3 mb-5">
               {[
-                { label: "Win Rate",       value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "—",             sub: `${hitCount} wins · ${scoring.misses} losses`,                                                                   color: "#2563eb", bar: scoring._winRateScore },
-                { label: "Profit Factor",  value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "—",        sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "—"} · avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "—"}`, color: "#16a34a", bar: scoring._pfScore },
-                scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "—", sub: "excess return vs benchmark", color: "#d97706", bar: scoring._alphaScore },
+                { label: "Win Rate",       value: scoring.rawWR != null ? `${(scoring.rawWR * 100).toFixed(1)}%` : "â€”",             sub: `${hitCount} wins Â· ${scoring.misses} losses`,                                                                   color: "#2563eb", bar: scoring._winRateScore },
+                { label: "Profit Factor",  value: scoring.profitFactor != null ? `${scoring.profitFactor.toFixed(2)}x` : "â€”",        sub: `avg win ${scoring.avgWin != null ? `+${scoring.avgWin.toFixed(1)}%` : "â€”"} Â· avg loss ${scoring.avgLoss != null ? `-${scoring.avgLoss.toFixed(1)}%` : "â€”"}`, color: "#16a34a", bar: scoring._pfScore },
+                scoring._alphaScore != null && { label: "Alpha vs S&P 500", value: scoring.avgAlpha != null ? `${scoring.avgAlpha >= 0 ? "+" : ""}${scoring.avgAlpha.toFixed(1)}%` : "â€”", sub: "excess return vs benchmark", color: "#d97706", bar: scoring._alphaScore },
               ].filter(Boolean).map(item => (
                 <div key={item.label}>
                   <div className="flex justify-between mb-1">
@@ -1052,14 +1052,14 @@ export default function AnalystProfilePage() {
         </div>
       )}
 
-      {/* ── Subscribe modal (wallet-based) ── */}
+      {/* â”€â”€ Subscribe modal (wallet-based) â”€â”€ */}
       <WalletConfirmDialog
         open={showSubModal}
         onClose={() => setShowSubModal(false)}
         onConfirm={handleSubscribe}
         title={`Subscribe to ${displayName}`}
         amountUSD={SUBSCRIPTION_PRICE_USD}
-        itemLabel={`${displayName} · Monthly subscription · ${publishedReports.length} published report${publishedReports.length !== 1 ? "s" : ""}`}
+        itemLabel={`${displayName} Â· Monthly subscription Â· ${publishedReports.length} published report${publishedReports.length !== 1 ? "s" : ""}`}
         showSplit={true}
         confirmLabel="Subscribe"
       />
@@ -1074,3 +1074,4 @@ export default function AnalystProfilePage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { startOfMonth, format, subMonths, isAfter, startOfWeek, addDays } from "date-fns";
 import AnalyticsKPICard from "./AnalyticsKPICard";
@@ -20,7 +20,7 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
   const hits = useMemo(() => resolvedReports.filter(r => r.prediction_outcome === "hit" || r.prediction_outcome === "near").length, [resolvedReports]);
   const accuracy = resolvedReports.length > 0 ? ((hits / resolvedReports.length) * 100).toFixed(1) : null;
 
-  // MRR chart — last 6 months cumulative
+  // MRR chart â€” last 6 months cumulative
   const mrrChart = useMemo(() => {
     const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
     return months.map(m => {
@@ -33,7 +33,7 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
     });
   }, [subscriptions]);
 
-  // Followers growth — last 8 weeks
+  // Followers growth â€” last 8 weeks
   const followersChart = useMemo(() => {
     return Array.from({ length: 8 }, (_, i) => {
       const weekStart = startOfWeek(addDays(new Date(), -(7 - i) * 7));
@@ -46,7 +46,7 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
     });
   }, [follows]);
 
-  // Engagement per report — last 5 published
+  // Engagement per report â€” last 5 published
   const engagementChart = useMemo(() => {
     return publishedReports.slice(0, 5).map(r => ({
       name: (r.title || "Untitled").slice(0, 18),
@@ -61,11 +61,11 @@ export default function OverviewTab({ currentUser, reports, subscriptions, follo
     <div className="space-y-6">
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <AnalyticsKPICard icon="💰" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-green-600" />
-        <AnalyticsKPICard icon="👥" label="Subscribers" value={activeSubs.length} sub="Active paying" color="text-blue-600" />
-        <AnalyticsKPICard icon="👁" label="Total Views" value={totalLikes > 0 ? totalLikes : "—"} sub="Likes as proxy" color="text-purple-600" />
-        <AnalyticsKPICard icon="❤️" label="Engagement" value={engagement} sub="Likes + poll votes" color="text-pink-600" />
-        <AnalyticsKPICard icon="🎯" label="Accuracy" value={accuracy ? `${accuracy}%` : "—"} sub="On resolved calls" color={accuracy >= 60 ? "text-green-600" : "text-amber-600"} />
+        <AnalyticsKPICard icon="ðŸ’°" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-gain" />
+        <AnalyticsKPICard icon="ðŸ‘¥" label="Subscribers" value={activeSubs.length} sub="Active paying" color="text-blue-600" />
+        <AnalyticsKPICard icon="ðŸ‘" label="Total Views" value={totalLikes > 0 ? totalLikes : "â€”"} sub="Likes as proxy" color="text-purple-600" />
+        <AnalyticsKPICard icon="â¤ï¸" label="Engagement" value={engagement} sub="Likes + poll votes" color="text-pink-600" />
+        <AnalyticsKPICard icon="ðŸŽ¯" label="Accuracy" value={accuracy ? `${accuracy}%` : "â€”"} sub="On resolved calls" color={accuracy >= 60 ? "text-gain" : "text-amber-600"} />
       </div>
 
       {/* MRR Chart */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
@@ -47,7 +47,7 @@ function directionColor(d) {
   return "text-muted-foreground bg-secondary border-border";
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatCard({ label, value, sub, icon: Icon, iconColor, onClick, hero }) {
   return (
@@ -91,7 +91,7 @@ function WatchItem({ entry, live }) {
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-muted-foreground">—</span>
+        <span className="text-[11px] text-muted-foreground">â€”</span>
       )}
     </Link>
   );
@@ -134,7 +134,7 @@ function ReportRow({ report, index }) {
       <div className="shrink-0 text-right">
         {!isPending ? (
           <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
-            {isHit ? "Hit ✓" : "Miss ✗"}
+            {isHit ? "Hit âœ“" : "Miss âœ—"}
           </span>
         ) : (
           <span className="text-[11px] text-muted-foreground">{timeAgo(report.created_date)}</span>
@@ -151,7 +151,7 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
   const name = analyst.full_name || analyst.email?.split("@")[0] || "Researcher";
   const acc = analyst.accuracy_score || 0;
   const following = followedEmails.includes(analyst.email);
-  const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const MEDALS = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
 
   return (
     <div
@@ -164,7 +164,7 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{name}</p>
-        <span className={`text-[10px] font-bold ${acc >= 75 ? "text-green-600" : acc >= 55 ? "text-amber-600" : "text-red-500"}`}>
+        <span className={`text-[10px] font-bold ${acc >= 75 ? "text-gain" : acc >= 55 ? "text-amber-600" : "text-loss"}`}>
           {acc.toFixed(1)}% accuracy
         </span>
       </div>
@@ -177,14 +177,14 @@ function AnalystCard({ analyst, rank, followedEmails, onFollow, currentUserEmail
               : "border-primary/30 text-primary hover:bg-primary/5"
           }`}
         >
-          {following ? "✓ Following" : "+ Follow"}
+          {following ? "âœ“ Following" : "+ Follow"}
         </button>
       )}
     </div>
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────────
+// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function InvestorHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -325,7 +325,7 @@ export default function InvestorHome() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 pb-16">
 
-      {/* ── Profile Header ── */}
+      {/* â”€â”€ Profile Header â”€â”€ */}
       <div className="surface-premium p-7 mb-7">
         <div className="flex items-start gap-5 flex-wrap">
           {/* Avatar */}
@@ -367,7 +367,7 @@ export default function InvestorHome() {
         </div>
       </div>
 
-      {/* ── Stats Grid ── */}
+      {/* â”€â”€ Stats Grid â”€â”€ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
         <StatCard
           label="Following"
@@ -404,7 +404,7 @@ export default function InvestorHome() {
         />
       </div>
 
-      {/* ── Market Pulse — dark navy hero (Figma-inspired) ── */}
+      {/* â”€â”€ Market Pulse â€” dark navy hero (Figma-inspired) â”€â”€ */}
       {indexQuotes.length > 0 && (
         <div className="rounded-2xl p-6 mb-7 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1e3a6e 100%)" }}>
           <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.12) 0%, transparent 70%)", transform: "translate(30%,-30%)" }} />
@@ -450,10 +450,10 @@ export default function InvestorHome() {
         </div>
       )}
 
-      {/* ── Two-column layout ── */}
+      {/* â”€â”€ Two-column layout â”€â”€ */}
       <div className="flex gap-6 items-start">
 
-        {/* ═══ LEFT COLUMN ═══ */}
+        {/* â•â•â• LEFT COLUMN â•â•â• */}
         <div className="flex-1 min-w-0 space-y-5">
 
           {/* My Watchlist */}
@@ -603,7 +603,7 @@ export default function InvestorHome() {
           )}
         </div>
 
-        {/* ═══ RIGHT COLUMN ═══ */}
+        {/* â•â•â• RIGHT COLUMN â•â•â• */}
         <div className="hidden lg:flex flex-col gap-5 w-72 flex-shrink-0">
 
           {/* Top Analysts */}
@@ -668,7 +668,7 @@ export default function InvestorHome() {
                         {r.stock_ticker && <p className="text-[10px] font-mono font-bold text-primary/70">{r.stock_ticker}</p>}
                       </div>
                       {isResolved && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isHit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isHit ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>
                           {isHit ? "HIT" : "MISS"}
                         </span>
                       )}
@@ -705,10 +705,10 @@ export default function InvestorHome() {
         </div>
       </div>
 
-      {/* ── Become an Analyst CTA — Figma navy/gold ── */}
+      {/* â”€â”€ Become an Analyst CTA â€” Figma navy/gold â”€â”€ */}
       <div className="rounded-2xl p-7 relative overflow-hidden mt-7" style={{ background: "linear-gradient(135deg, #0d1f3c 0%, #1a3060 60%, #1e3a6e 100%)" }}>
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(201,150,19,0.18) 0%, transparent 65%)", transform: "translate(25%, 35%)" }} />
-        <div className="absolute top-4 right-6 text-4xl select-none">📈</div>
+        <div className="absolute top-4 right-6 text-4xl select-none">ðŸ“ˆ</div>
         <div className="relative z-10 max-w-sm">
           <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "hsl(var(--accent))" }}>Have a market view?</span>
           <h3 className="text-xl font-extrabold text-white mt-1.5 mb-2">Become a Researcher</h3>
@@ -732,3 +732,4 @@ export default function InvestorHome() {
     </div>
   );
 }
+

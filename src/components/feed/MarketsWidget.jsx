@@ -43,7 +43,7 @@ function WatchlistItem({ entry, live }) {
       {live?.price != null ? (
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[10px] font-semibold tabular-nums flex items-center gap-0.5 ${isUp ? "text-green-600" : "text-red-500"}`}>
+          <span className={`text-[10px] font-semibold tabular-nums flex items-center gap-0.5 ${isUp ? "text-gain" : "text-loss"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>

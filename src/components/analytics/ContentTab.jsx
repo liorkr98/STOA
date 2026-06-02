@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import AnalyticsKPICard from "./AnalyticsKPICard";
@@ -23,11 +23,11 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
   const recommendations = useMemo(() => {
     const recs = [];
     if (premiumReports.length === 0)
-      recs.push("💡 Add a premium tier — lock predictions in your next report to start earning");
+      recs.push("ðŸ’¡ Add a premium tier â€” lock predictions in your next report to start earning");
     if (parseFloat(avgLikes) < 1)
-      recs.push("💡 Engagement is low — try adding a poll to your next report to drive interaction");
+      recs.push("ðŸ’¡ Engagement is low â€” try adding a poll to your next report to drive interaction");
     if (daysSinceLastReport !== null && daysSinceLastReport > 14)
-      recs.push(`💡 You haven't published in ${daysSinceLastReport} days — consistent publishing drives follower growth`);
+      recs.push(`ðŸ’¡ You haven't published in ${daysSinceLastReport} days â€” consistent publishing drives follower growth`);
     return recs;
   }, [premiumReports, avgLikes, daysSinceLastReport]);
 
@@ -35,16 +35,16 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <AnalyticsKPICard icon="📝" label="Published" value={publishedReports.length} sub="Reports" color="text-primary" />
-        <AnalyticsKPICard icon="❤️" label="Total Likes" value={totalLikes} sub="Across all reports" color="text-pink-600" />
-        <AnalyticsKPICard icon="📊" label="Avg Likes/Report" value={avgLikes} sub="Per report" color="text-purple-600" />
-        <AnalyticsKPICard icon="⭐" label="Premium Reports" value={premiumReports.length} sub="Locked reports" color="text-amber-600" />
+        <AnalyticsKPICard icon="ðŸ“" label="Published" value={publishedReports.length} sub="Reports" color="text-primary" />
+        <AnalyticsKPICard icon="â¤ï¸" label="Total Likes" value={totalLikes} sub="Across all reports" color="text-pink-600" />
+        <AnalyticsKPICard icon="ðŸ“Š" label="Avg Likes/Report" value={avgLikes} sub="Per report" color="text-purple-600" />
+        <AnalyticsKPICard icon="â­" label="Premium Reports" value={premiumReports.length} sub="Locked reports" color="text-amber-600" />
       </div>
 
       {/* Top Report */}
       {topReport && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-3">🏆 Top Performing Report</h3>
+          <h3 className="font-semibold text-sm mb-3">ðŸ† Top Performing Report</h3>
           <div
             className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer hover:border-amber-400 transition-all"
             onClick={() => navigate(`/report?id=${topReport.id}`)}
@@ -52,17 +52,17 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
             <div className="flex-1">
               <p className="font-bold text-base mb-2">{topReport.title}</p>
               <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-pink-600 font-semibold">❤️ {topReport.likes || 0} likes</span>
+                <span className="flex items-center gap-1 text-pink-600 font-semibold">â¤ï¸ {topReport.likes || 0} likes</span>
                 <span className="text-muted-foreground">{format(new Date(topReport.created_date), "MMM d, yyyy")}</span>
                 {topReport.prediction_action && (
-                  <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${topReport.prediction_action === "Long" ? "bg-green-100 text-green-700" : topReport.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                  <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${topReport.prediction_action === "Long" ? "bg-gain/10 text-gain" : topReport.prediction_action === "Short" ? "bg-loss/10 text-loss" : "bg-gray-100 text-gray-700"}`}>
                     {topReport.prediction_action}
                   </span>
                 )}
                 {topReport.is_premium && <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>}
               </div>
             </div>
-            <span className="text-primary text-sm font-semibold">View →</span>
+            <span className="text-primary text-sm font-semibold">View â†’</span>
           </div>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function ContentTab({ currentUser, reports, votes, filteredReport
                       <td className="py-2.5 text-purple-600 font-semibold">{voteCount}</td>
                       <td className="py-2.5">
                         {r.prediction_action && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.prediction_action === "Long" ? "bg-green-100 text-green-700" : r.prediction_action === "Short" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.prediction_action === "Long" ? "bg-gain/10 text-gain" : r.prediction_action === "Short" ? "bg-loss/10 text-loss" : "bg-gray-100 text-gray-700"}`}>
                             {r.prediction_action}
                           </span>
                         )}

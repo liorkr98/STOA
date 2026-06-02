@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { differenceInDays, format } from "date-fns";
 import AnalyticsKPICard from "./AnalyticsKPICard";
 import { Users } from "lucide-react";
@@ -35,10 +35,10 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
     <div className="space-y-6">
       {/* Revenue KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <AnalyticsKPICard icon="💰" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-green-600" />
-        <AnalyticsKPICard icon="📈" label="ARR" value={`$${arr.toLocaleString()}`} sub="Annualized" color="text-blue-600" />
-        <AnalyticsKPICard icon="🏦" label="Total Earned" value={`$${Math.round(totalEarned).toLocaleString()}`} sub="All time estimate" color="text-purple-600" />
-        <AnalyticsKPICard icon="👤" label="Avg per Sub" value={`$${avgPerSub}`} sub="Per subscriber/mo" color="text-amber-600" />
+        <AnalyticsKPICard icon="ðŸ’°" label="MRR" value={`$${mrr.toLocaleString()}`} sub="Monthly recurring" color="text-gain" />
+        <AnalyticsKPICard icon="ðŸ“ˆ" label="ARR" value={`$${arr.toLocaleString()}`} sub="Annualized" color="text-blue-600" />
+        <AnalyticsKPICard icon="ðŸ¦" label="Total Earned" value={`$${Math.round(totalEarned).toLocaleString()}`} sub="All time estimate" color="text-purple-600" />
+        <AnalyticsKPICard icon="ðŸ‘¤" label="Avg per Sub" value={`$${avgPerSub}`} sub="Per subscriber/mo" color="text-amber-600" />
       </div>
 
       {/* Subscribers Table */}
@@ -65,7 +65,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
               <tbody className="divide-y divide-border">
                 {subscriptions.map(sub => {
                   const u = subscriberUsers[sub.subscriber_email];
-                  const name = u?.full_name || sub.subscriber_email?.split("@")[0] || "—";
+                  const name = u?.full_name || sub.subscriber_email?.split("@")[0] || "â€”";
                   const avatar = u?.picture;
                   return (
                     <tr key={sub.id} className="hover:bg-secondary/40 transition-colors">
@@ -101,7 +101,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">{projSlider} subscribers × ${projPrice.toFixed(0)}/mo</label>
+              <label className="text-sm font-medium">{projSlider} subscribers Ã— ${projPrice.toFixed(0)}/mo</label>
             </div>
             <input
               type="range" min={1} max={500} value={projSlider}
@@ -141,7 +141,7 @@ export default function RevenueTab({ subscriptions, subscriberUsers }) {
             </div>
             <div className="flex-1 text-sm text-muted-foreground">
               Your subscribers have been with you for an average of <strong>{avgAge} days</strong>. 
-              {avgAge >= 60 ? " 🎉 Excellent retention! Keep publishing great content." : avgAge >= 30 ? " Good start — consistent quality builds long-term loyalty." : " Early days — focus on delivering value to keep subscribers engaged."}
+              {avgAge >= 60 ? " ðŸŽ‰ Excellent retention! Keep publishing great content." : avgAge >= 30 ? " Good start â€” consistent quality builds long-term loyalty." : " Early days â€” focus on delivering value to keep subscribers engaged."}
             </div>
           </div>
         </div>
