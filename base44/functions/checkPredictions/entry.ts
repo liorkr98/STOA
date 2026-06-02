@@ -248,7 +248,9 @@ Deno.serve(async (req) => {
     const pending = allReports.filter(r =>
       r.prediction_action &&
       r.prediction_ticker &&
-      r.prediction_lock_price &&
+      // Accept prediction_lock_price OR prediction_entry_price as the lock reference
+      // (older reports published before the lock_price fix only have entry_price)
+      (r.prediction_lock_price || r.prediction_entry_price) &&
       r.prediction_target_price &&
       (!r.prediction_outcome || r.prediction_outcome === "pending")
     );
@@ -271,13 +273,19 @@ Deno.serve(async (req) => {
       if (!livePrice) continue;
 
       for (const report of reports) {
-        const lockTime = report.prediction_lock_time ? new Date(report.prediction_lock_time) : new Date(report.created_date);
+        // Use prediction_lock_price if available (set on publish); fall back to
+        // prediction_entry_price for reports published before the lock_price fix.
+        const effectiveLockPrice = report.prediction_lock_price || report.prediction_entry_price;
+
+        const lockTime = report.prediction_lock_time
+          ? new Date(report.prediction_lock_time)
+          : (report.prediction_locked_at ? new Date(report.prediction_locked_at) : new Date(report.created_date));
         const months = parseTimeframeMonths(report.prediction_timeframe);
         const expiryMs = lockTime.getTime() + months * 30 * 24 * 60 * 60 * 1000;
         const isExpired = now.getTime() >= expiryMs;
 
         // Check resolution against live price — includes extended hours pricing (pre-market and after-hours)
-        const outcome = resolveOutcome(report.prediction_action, report.prediction_lock_price, report.prediction_target_price, livePrice);
+        const outcome = resolveOutcome(report.prediction_action, effectiveLockPrice, report.prediction_target_price, livePrice);
         const shouldResolve = outcome === "hit" || isExpired;
 
         if (!shouldResolve) {
@@ -295,8 +303,8 @@ Deno.serve(async (req) => {
         });
 
         const outcomeEmoji = { hit: "🎯", near: "✅", partial: "🟡", miss: "❌" }[finalOutcome] || "📊";
-        const yieldPct = report.prediction_lock_price
-          ? (((livePrice - report.prediction_lock_price) / report.prediction_lock_price) * 100).toFixed(2)
+        const yieldPct = effectiveLockPrice
+          ? (((livePrice - effectiveLockPrice) / effectiveLockPrice) * 100).toFixed(2)
           : null;
         const yieldStr = yieldPct !== null ? ` (${yieldPct > 0 ? "+" : ""}${yieldPct}% yield)` : "";
 
@@ -316,7 +324,7 @@ Deno.serve(async (req) => {
       const userReports = await base44.asServiceRole.entities.Report.filter({ created_by: email, status: "published" }, "-created_date", 200);
       const closedPreds = userReports.filter(r =>
         r.prediction_action &&
-        r.prediction_lock_price &&
+        (r.prediction_lock_price || r.prediction_entry_price) &&
         r.prediction_resolved_price &&
         r.prediction_outcome &&
         r.prediction_outcome !== "pending"
@@ -340,7 +348,7 @@ Deno.serve(async (req) => {
 
         return {
           action,
-          entryPrice:      r.prediction_lock_price,
+          entryPrice:      r.prediction_lock_price || r.prediction_entry_price,
           exitPrice:       r.prediction_resolved_price,
           targetPrice:     r.prediction_target_price || null,
           daysHeld,

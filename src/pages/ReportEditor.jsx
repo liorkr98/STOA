@@ -19,6 +19,7 @@ import DesignPanel from "@/components/editor/DesignPanel";
 import StockChartBlock from "@/components/editor/StockChartBlock";
 import ImageBlock from "@/components/editor/ImageBlock";
 import MetricsBlock from "@/components/editor/MetricsBlock";
+import { KeyPriceLevelsEditor } from "@/components/editor/KeyPriceLevelsBlock";
 
 // DYOD disclaimer text — every Stoa report needs this regulatory line.
 // Inserted via the DYOD button in the top toolbar (also restorable from
@@ -133,6 +134,7 @@ function SlashMenu({ onClose, onInsert }) {
         { type: "prediction", Icon: Lock, name: "Locked Prediction", desc: "Ticker, direction, target — locks at publish", premium: true },
         { type: "metrics", Icon: BarChart3, name: "Key Metrics", desc: "Live P/E, market cap, EPS — fetched by ticker", premium: true },
         { type: "bullbear", Icon: TrendingUp, name: "Bull / Bear thesis", desc: "Two-column case + counter-case" },
+        { type: "keypricelevels", Icon: TrendingUp, name: "Key Price Levels", desc: "Visual timeline of support, resistance, targets & breakouts" },
         { type: "stockchart", Icon: LineChart, name: "Stock chart", desc: "TradingView-style price chart", premium: true },
         { type: "comparechart", Icon: GitCompare, name: "Comparison chart", desc: "Compare 2-4 tickers side by side", premium: true },
       ],
@@ -721,6 +723,9 @@ function BlockRenderer({ block, onChange }) {
       </div>
     );
   }
+  if (block.type === "keypricelevels") {
+    return <KeyPriceLevelsEditor block={block} onChange={onChange} />;
+  }
   return null;
 }
 
@@ -922,6 +927,9 @@ export default function ReportEditor() {
         break;
       case "bullbear":
         newBlock = { id: newId(), type, data: { bull: [""], bear: [""] } };
+        break;
+      case "keypricelevels":
+        newBlock = { id: newId(), type, data: { ticker: "", currentPrice: null, levels: [] } };
         break;
       case "comparechart":
         newBlock = { id: newId(), type, data: { tickers: ["", ""] } };

@@ -17,6 +17,7 @@ import PredictionTrajectoryChart from "@/components/report/PredictionTrajectoryC
 import ExportPDFButton from "@/components/report/ExportPDFButton";
 import BackButton from "@/components/BackButton";
 import TranslateButton from "@/components/report/TranslateButton";
+import { KeyPriceLevelsReader } from "@/components/editor/KeyPriceLevelsBlock";
 
 /**
  * ReportView — long-form research reading view (v3 rebuild).
@@ -752,6 +753,9 @@ function Block({ block, index }) {
         </div>
       </div>
     );
+  }
+  if (t === "keypricelevels") {
+    return <KeyPriceLevelsReader block={block} />;
   }
   if (t === "stockchart" || t === "graph" || t === "chart") {
     const ticker = block.ticker || block.data?.ticker;
