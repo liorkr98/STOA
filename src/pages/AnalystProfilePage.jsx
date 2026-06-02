@@ -65,10 +65,10 @@ function OutcomeBadge({ outcome }) {
     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">ACTIVE</span>
   );
   if (outcome === "hit" || outcome === "near") return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">HIT</span>
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gain/10 text-gain border border-gain/20">HIT</span>
   );
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">MISS</span>
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-loss/10 text-loss border border-loss/20">MISS</span>
   );
 }
 
@@ -103,9 +103,9 @@ function PredictionRow({ report }) {
 
 function ReportMiniCard({ report, isPinned, isEditMode, onTogglePin }) {
   const directionColor = report.prediction_direction === "LONG"
-    ? "text-green-600 bg-green-50 border-green-200"
+    ? "text-gain bg-gain/10 border-gain/20"
     : report.prediction_direction === "SHORT"
-    ? "text-red-600 bg-red-50 border-red-200"
+    ? "text-loss bg-loss/10 border-loss/20"
     : "text-muted-foreground bg-secondary border-border";
 
   return (
@@ -632,7 +632,7 @@ export default function AnalystProfilePage() {
                     <Button
                       size="sm"
                       variant={following ? "secondary" : "outline"}
-                      className={`gap-1.5 text-xs ${following ? "text-green-600 border-green-200" : ""}`}
+                      className={`gap-1.5 text-xs ${following ? "text-gain border-gain/30" : ""}`}
                       onClick={handleFollow}
                       disabled={followLoading}
                     >
@@ -641,7 +641,7 @@ export default function AnalystProfilePage() {
                     </Button>
                     {isSubscribed ? (
                       <Link to={`/dm?with=${encodeURIComponent(analyst.email)}`}>
-                        <Button size="sm" variant="outline" className="text-xs gap-1.5 text-green-600 border-green-200">
+                        <Button size="sm" variant="outline" className="text-xs gap-1.5 text-gain border-gain/30">
                           <MessageSquare className="w-3 h-3" /> Message
                         </Button>
                       </Link>

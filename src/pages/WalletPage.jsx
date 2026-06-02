@@ -169,9 +169,9 @@ export default function WalletPage() {
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="stat-card">
               <div className="flex items-center justify-between mb-2">
-                <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-green-500" />Total Earned</span>
+                <span className="stat-card-label flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-gain" />Total Earned</span>
               </div>
-              <p className="stat-card-value text-green-600">${(wallet?.total_earned || 0).toFixed(2)}</p>
+              <p className="stat-card-value text-gain">${(wallet?.total_earned || 0).toFixed(2)}</p>
               <p className="stat-card-sub">After platform &amp; processing fees</p>
             </div>
             <div className="stat-card">

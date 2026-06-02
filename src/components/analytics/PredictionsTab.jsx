@@ -79,8 +79,8 @@ export default function PredictionsTab({ reports }) {
               <p className="font-bold text-lg">{bestCall.prediction_ticker}</p>
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bestCall.prediction_action === "Long" ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"}`}>{bestCall.prediction_action}</span>
-                <span className="text-green-600 font-bold text-lg">+{bestCall.yield.toFixed(2)}%</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Hit âœ…</span>
+                <span className="text-gain font-bold text-lg">+{bestCall.yield.toFixed(2)}%</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gain/10 text-gain border border-gain/20">Hit âœ…</span>
               </div>
               <p className="text-xs text-muted-foreground">{bestCall.title?.slice(0, 50)}</p>
             </div>
@@ -149,7 +149,7 @@ export default function PredictionsTab({ reports }) {
                         {isPending ? (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
                         ) : isHit ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Hit âœ…</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gain/10 text-gain border border-gain/20">Hit âœ…</span>
                         ) : (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 capitalize">{r.prediction_outcome} âŒ</span>
                         )}
@@ -166,3 +166,4 @@ export default function PredictionsTab({ reports }) {
     </div>
   );
 }
+

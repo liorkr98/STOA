@@ -116,8 +116,8 @@ export default function BecomeAnalystPage() {
   if (done) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-green-100 flex items-center justify-center">
-          <CheckCircle2 className="w-10 h-10 text-green-600" />
+        <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gain/10 flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10 text-gain" />
         </div>
         <h1 className="text-2xl font-extrabold mb-2">You're a researcher now</h1>
         <p className="text-sm text-muted-foreground mb-1">Welcome to STOA's creator program.</p>

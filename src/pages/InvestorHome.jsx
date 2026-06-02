@@ -42,8 +42,8 @@ function timeAgo(d) {
 }
 
 function directionColor(d) {
-  if (d === "LONG" || d === "Long" || d === "BUY" || d === "Buy") return "text-green-600 bg-green-50 border-green-200";
-  if (d === "SHORT" || d === "Short" || d === "SELL" || d === "Sell") return "text-red-600 bg-red-50 border-red-200";
+  if (d === "LONG" || d === "Long" || d === "BUY" || d === "Buy") return "text-gain bg-gain/10 border-gain/20";
+  if (d === "SHORT" || d === "Short" || d === "SELL" || d === "Sell") return "text-loss bg-loss/10 border-loss/20";
   return "text-muted-foreground bg-secondary border-border";
 }
 
@@ -85,7 +85,7 @@ function WatchItem({ entry, live }) {
       {live?.price != null ? (
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold tabular-nums">${live.price.toFixed(2)}</span>
-          <span className={`text-[11px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${isUp ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+          <span className={`text-[11px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${isUp ? "text-gain bg-gain/10" : "text-loss bg-loss/10"}`}>
             {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
             {isUp ? "+" : ""}{live.change?.toFixed(2)}%
           </span>
