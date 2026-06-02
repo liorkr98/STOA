@@ -709,7 +709,9 @@ export default function AnalystProfilePage() {
   const rank = analyst.rank || analyst.leaderboard_rank;
   const price = analyst.monthly_price || 9;
   const subscribers = analyst.subscribers_count || analyst.followers_count || 0;
-  const avgReturn = computeAvgYield ? computeAvgYield(reports) : null;
+  // Prefer STOA engine's direction-adjusted avg return (accurate for shorts)
+  // over the legacy computeAvgYield which is long-only biased.
+  const avgReturn = scoring?.avgReturn ?? (computeAvgYield ? computeAvgYield(reports) : null);
   const initials = (analyst.full_name || analyst.email || "?")
     .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -1062,7 +1064,7 @@ export default function AnalystProfilePage() {
           }}>
             {[
               { l: "Elo Rating", v: elo, sub: `${tier}${rank ? ` · #${rank}` : ""}`, tone: "gold" },
-              { l: "Accuracy", v: `${analyst.accuracy_score || 0}%`, sub: `${gradeStats.total} resolved` },
+              { l: "STOA Score", v: scoring?.score != null ? `${scoring.score}/100` : `${analyst.accuracy_score || 0}%`, sub: `${gradeStats.total} resolved` },
               { l: "Total Calls", v: calls.length, sub: `${openCalls.length} open · ${resolvedCalls.length} closed` },
               { l: "Avg. Return", v: avgReturn != null ? `${avgReturn >= 0 ? "+" : ""}${avgReturn.toFixed(1)}%` : "—", sub: "Per resolved call", tone: avgReturn != null && avgReturn < 0 ? "red" : "green" },
               { l: "Subscribers", v: subscribers.toLocaleString(), sub: analyst.subscribers_growth ? `+${analyst.subscribers_growth} this mo.` : "" },
@@ -1177,7 +1179,7 @@ export default function AnalystProfilePage() {
               <div className="surface" style={{ padding: 22 }}>
                 <div className="t-eyebrow" style={{ marginBottom: 12 }}>Tier progress</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <AccuracyTierBadge accuracy={analyst.accuracy_score || 0}/>
+                  <AccuracyTierBadge user={analyst} allReports={reports} size="lg" />
                 </div>
                 <TierProgressBar tier={tierData}/>
               </div>

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from "react";
+import { computeScore } from "@/lib/scoringEngine";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
@@ -318,8 +319,11 @@ export default function HomePageDashboard() {
         const myPub = (myReports || []).filter(r => r.status === "published");
         setMyPublished(myPub.slice(0, 6));
         const me = users.find(u => u.email === email) || user;
+        // Use STOA engine score (live-computed from reports) so the dashboard
+        // chip matches what the leaderboard and profile page show.
+        const stoaScore = computeScore(myPub);
         setMyStats({
-          accuracy: me.accuracy_score || 0,
+          accuracy: stoaScore.score > 0 ? stoaScore.score : (me.accuracy_score || 0),
           reports: myPub.length,
           followers: me.followers_count || 0,
           yield: computeAvgYield(myPub.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending")),
@@ -474,15 +478,15 @@ export default function HomePageDashboard() {
             <p className="stat-card-sub">Active paid Â· ${(mySubscriptions.length * 9).toLocaleString()}/mo run-rate</p>
           </Link>
 
-          <Link to="/analyst" className="stat-card surface-interactive no-underline">
-            <p className="stat-card-label">Prediction Accuracy</p>
-            <p className="stat-card-value text-foreground mt-2">
-              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}%` : "â€”"}
+          <Link to=”/analyst” className=”stat-card surface-interactive no-underline”>
+            <p className=”stat-card-label”>STOA Score</p>
+            <p className=”stat-card-value text-foreground mt-2”>
+              {myStats.accuracy > 0 ? `${myStats.accuracy.toFixed(0)}/100` : “—“}
             </p>
-            <p className="stat-card-sub">
+            <p className=”stat-card-sub”>
               {myStats.accuracy > 0
-                ? <><span className="font-display">{myStats.reports}</span> reports tracked</>
-                : "Publish predictions to start your track record"}
+                ? <><span className=”font-display”>{myStats.reports}</span> reports tracked</>
+                : “Publish predictions to start your track record”}
             </p>
           </Link>
 

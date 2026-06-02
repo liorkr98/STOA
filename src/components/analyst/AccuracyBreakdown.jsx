@@ -1,152 +1,301 @@
-import React from "react";
-import { TrendingUp, TrendingDown, Zap, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
+import React, { useMemo } from "react";
+import { TrendingUp, TrendingDown, Target, BarChart2, Award, AlertTriangle, Info } from "lucide-react";
+import { computeScore, computeTier, callReturn } from "@/lib/scoringEngine";
+import { cn } from "@/lib/utils";
 
-const BUCKET_KEYS = ["INTRADAY", "SHORT", "MEDIUM", "LONG"];
-const BUCKET_LABELS = {
-  INTRADAY: "Intraday",
-  SHORT:    "Short-Term",
-  MEDIUM:   "Medium-Term",
-  LONG:     "Long-Term",
-};
-const BUCKET_DESC = {
-  INTRADAY: "< 1 day",
-  SHORT:    "1–14 days",
-  MEDIUM:   "15–90 days",
-  LONG:     "90d+",
-};
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(v, suffix = "", prefix = "") {
+  if (v == null) return "—";
+  return `${prefix}${typeof v === "number" ? v.toFixed(1) : v}${suffix}`;
+}
 
-function EloBar({ delta, maxDelta = 80 }) {
-  const pct = Math.min(100, Math.max(0, (delta / maxDelta) * 100));
-  const isPos = delta >= 0;
+function pctBar(value, max = 100, colorClass = "bg-primary") {
+  const w = Math.min(100, Math.max(0, (value / max) * 100));
   return (
-    <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-1.5">
-      <div
-        className={`h-full rounded-full transition-all ${isPos ? "bg-gain" : "bg-loss"}`}
-        style={{ width: `${isPos ? pct : Math.min(100, (-delta / maxDelta) * 100)}%` }}
-      />
+    <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-1">
+      <div className={cn("h-full rounded-full transition-all", colorClass)} style={{ width: `${w}%` }} />
     </div>
   );
 }
 
-export default function AccuracyBreakdown({ analystUser }) {
-  const breakdown = (() => {
-    try { return analystUser?.accuracy_breakdown ? JSON.parse(analystUser.accuracy_breakdown) : {}; }
-    catch { return {}; }
-  })();
+// Bucket a report by days held
+function getDaysHeld(report) {
+  const lock     = report.prediction_lock_time || report.prediction_locked_at || report.created_date;
+  const resolved = report.prediction_resolved_time;
+  if (!lock || !resolved) return null;
+  return Math.max(1, Math.round((new Date(resolved) - new Date(lock)) / 86400000));
+}
 
-  const totalCalls = analystUser?.total_calls || 0;
-  const hasCalls   = totalCalls > 0;
-  const score     = analystUser?.accuracy_score || 0;
-  // Starting Elo per PRD: 1,000. Every new researcher begins here — matches
-  // what /scoring advertises ("Starting Elo = 1,000"). Previously this
-  // floored at 600 for analysts with no resolved calls, contradicting the
-  // PRD and the scoring-page copy.
-  const rating    = hasCalls ? (analystUser?.accuracy_rating || 1000) : 1000;
-  const tier      = hasCalls ? (analystUser?.accuracy_tier || "Building") : "Building";
-  const hitRate   = hasCalls ? (analystUser?.hit_rate || 0) : null;
-  const yield_    = analystUser?.yearly_yield;
+function getBucket(days) {
+  if (days == null) return null;
+  if (days < 1)  return "INTRADAY";
+  if (days < 15) return "SHORT";
+  if (days < 91) return "MEDIUM";
+  return "LONG";
+}
+
+const BUCKET_META = {
+  INTRADAY: { label: "Intraday",     desc: "< 1 day",    icon: "⚡" },
+  SHORT:    { label: "Short-Term",   desc: "1 – 14 days", icon: "📅" },
+  MEDIUM:   { label: "Medium-Term",  desc: "15 – 90 days", icon: "📊" },
+  LONG:     { label: "Long-Term",    desc: "90d+",        icon: "🏔️" },
+};
+
+// ── Per-timeframe breakdown (computed from reports) ────────────────────────────
+function buildBuckets(reports) {
+  const buckets = { INTRADAY: [], SHORT: [], MEDIUM: [], LONG: [] };
+
+  const resolved = (reports || []).filter(r =>
+    r.prediction_outcome &&
+    r.prediction_outcome !== "pending" &&
+    (r.prediction_lock_price || r.prediction_entry_price) &&
+    r.prediction_resolved_price
+  );
+
+  resolved.forEach(r => {
+    const days   = getDaysHeld(r);
+    const bucket = getBucket(days) || "MEDIUM";
+    const isHit  = r.prediction_outcome === "hit" || r.prediction_outcome === "near";
+    const ret    = callReturn(
+      r.prediction_action,
+      r.prediction_lock_price || r.prediction_entry_price,
+      r.prediction_resolved_price
+    );
+    buckets[bucket].push({ isHit, ret });
+  });
+
+  const result = {};
+  Object.entries(buckets).forEach(([key, items]) => {
+    if (items.length === 0) return;
+    const hits     = items.filter(i => i.isHit).length;
+    const returns  = items.map(i => i.ret).filter(v => v != null);
+    const avgRet   = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
+    const wins     = returns.filter(v => v > 0);
+    const losses   = returns.filter(v => v < 0);
+    const avgWin   = wins.length   ? wins.reduce((a, b) => a + b, 0) / wins.length   : null;
+    const avgLoss  = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : null;
+    const pf       = avgLoss > 0 ? Math.min(10, avgWin / avgLoss) : (avgWin > 0 ? 5 : 0);
+    result[key] = {
+      calls:   items.length,
+      hits,
+      hitRate: Math.round((hits / items.length) * 100),
+      avgRet:  avgRet != null ? parseFloat(avgRet.toFixed(2)) : null,
+      pf:      avgLoss != null ? parseFloat(pf.toFixed(2)) : null,
+    };
+  });
+  return result;
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+/**
+ * AccuracyBreakdown — STOA Scoring Engine v2 display.
+ *
+ * Props:
+ *   analystUser    — User entity (used for specialization, achievements meta)
+ *   analystReports — Published reports by this analyst (required for live compute)
+ */
+export default function AccuracyBreakdown({ analystUser, analystReports }) {
+  const reports = analystReports || [];
+
+  // Compute live STOA score from reports
+  const s = useMemo(() => computeScore(reports), [reports]);
+  const tier = useMemo(() => computeTier(s.score, s.total), [s.score, s.total]);
+  const buckets = useMemo(() => buildBuckets(reports), [reports]);
+
+  const hasData = s.total > 0;
+  const lowSample = s.total > 0 && s.total < 10;
 
   return (
     <div className="surface p-5 space-y-5">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-serif text-[14px] text-foreground">Track Record — Elo Engine</h3>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-muted-foreground" />
+          <h3 className="font-serif text-[14px] text-foreground">Track Record</h3>
+          {hasData && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+              style={{ background: tier.bg, color: tier.color, borderColor: tier.border }}
+            >
+              {tier.icon} {tier.label}
+            </span>
+          )}
+        </div>
         {analystUser?.specialization && (
-          <span className="pill-primary">
-            {analystUser.specialization}
-          </span>
+          <span className="pill text-[11px]">{analystUser.specialization}</span>
         )}
       </div>
 
-      {/* Top KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Accuracy Score", value: `${score}`, sub: "/ 100", color: score >= 75 ? "text-gain" : "text-foreground" },
-          { label: "Elo Rating",     value: rating,      sub: "/ 1400", color: "text-foreground" },
-          { label: "Hit Rate",       value: hitRate == null ? "—" : `${hitRate}%`, sub: "of calls",  color: "text-foreground" },
-          { label: "Total Calls",    value: totalCalls,   sub: "resolved",  color: "text-foreground" },
-        ].map(kpi => (
-          <div key={kpi.label} className="stat-card">
-            <p className="stat-card-label mb-1">{kpi.label}</p>
-            <p className={`text-xl font-medium font-display ${kpi.color}`}>{kpi.value}<span className="text-xs font-normal text-muted-foreground ml-0.5">{kpi.sub}</span></p>
+      {!hasData ? (
+        <div className="text-center py-8 text-sm text-muted-foreground">
+          <Target className="w-8 h-8 mx-auto mb-3 opacity-30" />
+          <p>No resolved predictions yet.</p>
+          <p className="text-xs mt-1 opacity-70">Complete 5+ calls to earn a tier.</p>
+        </div>
+      ) : (
+        <>
+          {/* ── Top KPIs ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              {
+                label: "STOA Score",
+                value: s.score,
+                sub:   "/ 100",
+                color: s.score >= 65 ? "text-gain" : s.score >= 35 ? "text-amber-600" : "text-loss",
+                bar:   { value: s.score, color: s.score >= 65 ? "bg-gain" : s.score >= 35 ? "bg-amber-500" : "bg-loss" },
+              },
+              {
+                label: "Win Rate",
+                value: s.rawWR != null ? `${(s.rawWR * 100).toFixed(0)}%` : "—",
+                sub:   `(${s.hits}/${s.total})`,
+                color: s.rawWR >= 0.6 ? "text-gain" : s.rawWR >= 0.45 ? "text-amber-600" : "text-loss",
+                bar:   { value: s.rawWR * 100, color: s.rawWR >= 0.6 ? "bg-gain" : s.rawWR >= 0.45 ? "bg-amber-500" : "bg-loss" },
+              },
+              {
+                label: "Profit Factor",
+                value: s.profitFactor != null ? `${s.profitFactor}x` : "—",
+                sub:   "avg win / loss",
+                color: s.profitFactor >= 2 ? "text-gain" : s.profitFactor >= 1 ? "text-amber-600" : "text-loss",
+                bar:   { value: Math.min(100, (s.profitFactor / 4) * 100), color: s.profitFactor >= 2 ? "bg-gain" : "bg-amber-500" },
+              },
+              {
+                label: "Avg Return",
+                value: s.avgReturn != null ? `${s.avgReturn > 0 ? "+" : ""}${s.avgReturn.toFixed(1)}%` : "—",
+                sub:   "per closed call",
+                color: s.avgReturn >= 0 ? "text-gain" : "text-loss",
+                bar:   null,
+              },
+            ].map(kpi => (
+              <div key={kpi.label} className="stat-card">
+                <p className="stat-card-label mb-1">{kpi.label}</p>
+                <p className={cn("text-xl font-medium font-display", kpi.color)}>
+                  {kpi.value}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">{kpi.sub}</span>
+                </p>
+                {kpi.bar && pctBar(kpi.bar.value, 100, kpi.bar.color)}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Elo progress bar */}
-      <div className="bg-secondary rounded-tag p-3 border border-border/60">
-        <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-muted-foreground font-medium">Elo Rating Progress</span>
-          <span className="font-medium font-display text-foreground">{rating} / 1400</span>
-        </div>
-        <div className="w-full h-2.5 bg-border rounded-tag overflow-hidden">
-          <div
-            className="h-full rounded-tag bg-primary transition-all"
-            style={{ width: `${Math.max(2, ((rating - 600) / 800) * 100)}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[9px] text-muted-foreground mt-1.5">
-          <span>600 · Building</span>
-          <span>800 · Average</span>
-          <span>1000 · Strong</span>
-          <span>1200 · Expert</span>
-          <span>1400 · Elite</span>
-        </div>
-      </div>
+          {/* ── Score composition ── */}
+          <div className="rounded-xl border border-border/60 p-3 bg-secondary/30 space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Score Composition</p>
+            {[
+              { label: "Win Rate (Wilson-adjusted)",  value: s._winRateScore, weight: s._alphaScore != null ? "40%" : "52%" },
+              { label: "Profit Factor",               value: s._pfScore,       weight: s._alphaScore != null ? "35%" : "48%" },
+              ...(s._alphaScore != null ? [{ label: "Alpha vs S&P 500", value: s._alphaScore, weight: "25%" }] : []),
+            ].map(row => (
+              <div key={row.label} className="flex items-center gap-3">
+                <span className="text-[11px] text-muted-foreground w-[160px] flex-shrink-0">{row.label}</span>
+                <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full" style={{ width: `${row.value || 0}%` }} />
+                </div>
+                <span className="text-[11px] font-medium font-display w-8 text-right tabular-nums">{row.value ?? "—"}</span>
+                <span className="text-[10px] text-muted-foreground w-6">{row.weight}</span>
+              </div>
+            ))}
+            {lowSample && (
+              <p className="text-[10px] text-amber-600 flex items-center gap-1 pt-1">
+                <AlertTriangle className="w-3 h-3" />
+                Score is sample-scaled ({s.total} calls). Stabilises around 20+.
+              </p>
+            )}
+          </div>
 
-      {/* Yearly yield */}
-      {yield_ != null && yield_ !== 0 && (
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-tag border text-sm font-medium ${yield_ >= 0 ? "bg-gain/10 border-gain/20 text-gain" : "bg-loss/10 border-loss/20 text-loss"}`}>
-          {yield_ >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-          <span className="font-display">{yield_ >= 0 ? "+" : ""}{yield_.toFixed(1)}%</span> annualized yield across closed calls
-        </div>
+          {/* ── Avg Win vs Avg Loss ── */}
+          {(s.avgWin != null || s.avgLoss != null) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className={cn("rounded-xl border p-3", "bg-gain/5 border-gain/20")}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Avg Win</p>
+                <p className="text-lg font-bold font-display text-gain">
+                  {s.avgWin != null ? `+${s.avgWin.toFixed(1)}%` : "—"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">{s.hits} winning calls</p>
+              </div>
+              <div className={cn("rounded-xl border p-3", "bg-loss/5 border-loss/20")}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Avg Loss</p>
+                <p className="text-lg font-bold font-display text-loss">
+                  {s.avgLoss != null ? `-${s.avgLoss.toFixed(1)}%` : "—"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">{s.misses} losing calls</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Alpha vs benchmark ── */}
+          {s.avgAlpha != null && (
+            <div className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium",
+              s.avgAlpha >= 0 ? "bg-gain/10 border-gain/20 text-gain" : "bg-loss/10 border-loss/20 text-loss"
+            )}>
+              {s.avgAlpha >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span className="font-display">{s.avgAlpha >= 0 ? "+" : ""}{s.avgAlpha.toFixed(1)}%</span>
+              <span className="font-normal text-muted-foreground">average alpha vs S&P 500</span>
+            </div>
+          )}
+
+          {/* ── Per-timeframe breakdown ── */}
+          {Object.keys(buckets).length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Performance by Timeframe
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {["INTRADAY", "SHORT", "MEDIUM", "LONG"].map(key => {
+                  const b   = buckets[key];
+                  const meta = BUCKET_META[key];
+                  return (
+                    <div key={key} className={cn(
+                      "rounded-xl border p-3 text-center",
+                      b ? "bg-background border-border" : "bg-secondary/40 border-border opacity-50"
+                    )}>
+                      <p className="text-lg mb-0.5">{meta.icon}</p>
+                      <p className="text-[10px] font-semibold text-foreground">{meta.label}</p>
+                      <p className="text-[9px] text-muted-foreground mb-2">{meta.desc}</p>
+                      {b ? (
+                        <>
+                          <p className={cn(
+                            "text-base font-bold font-display",
+                            b.hitRate >= 60 ? "text-gain" : b.hitRate >= 45 ? "text-amber-600" : "text-loss"
+                          )}>
+                            {b.hitRate}%
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">win rate</p>
+                          {pctBar(b.hitRate, 100, b.hitRate >= 60 ? "bg-gain" : b.hitRate >= 45 ? "bg-amber-500" : "bg-loss")}
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            {b.hits}/{b.calls} calls
+                          </p>
+                          {b.avgRet != null && (
+                            <p className={cn("text-[10px] font-medium font-display mt-0.5", b.avgRet >= 0 ? "text-gain" : "text-loss")}>
+                              {b.avgRet >= 0 ? "+" : ""}{b.avgRet}% avg
+                            </p>
+                          )}
+                          {b.calls < 5 && (
+                            <p className="text-[9px] text-amber-600 mt-1 flex items-center justify-center gap-0.5">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Low sample
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground/30 mt-2">—</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Per-bucket breakdown */}
-      <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Elo Δ by Timeframe</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {BUCKET_KEYS.map(key => {
-            const b = breakdown[key];
-            return (
-              <div key={key} className={`rounded-tag border p-3 text-center ${b ? "bg-background border-border" : "bg-secondary border-border opacity-50"}`}>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">{BUCKET_LABELS[key]}</p>
-                <p className="text-[9px] text-muted-foreground mb-2">{BUCKET_DESC[key]}</p>
-                {b ? (
-                  <>
-                    <p className={`text-lg font-medium font-display ${b.netDelta >= 0 ? "text-gain" : "text-loss"}`}>
-                      {b.netDelta >= 0 ? "+" : ""}{b.netDelta}
-                      <span className="text-[10px] font-normal text-muted-foreground ml-0.5">Δelo</span>
-                    </p>
-                    <EloBar delta={b.netDelta} />
-                    <p className="text-[10px] text-muted-foreground mt-1.5">
-                      <span className="font-display">{b.hitRate}%</span> hit · <span className="font-display">{b.calls}</span> call{b.calls !== 1 ? "s" : ""}
-                    </p>
-                    {b.avgAlpha !== 0 && (
-                      <p className={`text-[10px] font-medium mt-0.5 font-display ${b.avgAlpha > 0 ? "text-gain" : "text-loss"}`}>
-                        {b.avgAlpha > 0 ? "+" : ""}{b.avgAlpha}% α/yr
-                      </p>
-                    )}
-                    {!b.isSignificant && (
-                      <p className="text-[9px] text-accent mt-1 flex items-center justify-center gap-0.5">
-                        <AlertTriangle className="w-2.5 h-2.5" /> Low sample
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground/40 mt-2">—</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Engine note */}
-      <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-3">
-        <Zap className="w-3 h-3 inline mr-1 text-primary" />
-        Powered by Modified Elo (K-factor weighted by alpha, boldness & timeframe). Based on TipRanks/Cornell research & Elo literature 2024.
-        1 call moves rating by at most ~+20 Elo. Score becomes meaningful after 10+ calls.
+      {/* ── Engine note ── */}
+      <p className="text-[10px] text-muted-foreground border-t border-border/60 pt-3 flex items-start gap-1.5">
+        <Info className="w-3 h-3 flex-shrink-0 mt-0.5 text-primary" />
+        <span>
+          STOA Scoring Engine v2: Wilson-adjusted win rate + profit factor + alpha vs S&P 500.
+          Sample-scaled logarithmically — score stabilises at ~20 resolved calls.
+          All returns are direction-adjusted (Short wins = price fell).
+        </span>
       </p>
     </div>
   );

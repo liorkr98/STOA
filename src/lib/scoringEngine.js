@@ -52,7 +52,9 @@ export function computeScore(reports) {
   const resolved = (reports || []).filter(r =>
     r.prediction_outcome &&
     r.prediction_outcome !== 'pending' &&
-    r.prediction_lock_price &&
+    // Accept prediction_lock_price OR prediction_entry_price — older reports
+    // published before the lock_price fix only stored entry_price.
+    (r.prediction_lock_price || r.prediction_entry_price) &&
     r.prediction_resolved_price
   );
 
@@ -69,7 +71,11 @@ export function computeScore(reports) {
 
   // ─ 2. Profit Factor ─────────────────────────────────────────────────────
   const returns = resolved
-    .map(r => callReturn(r.prediction_action, r.prediction_lock_price, r.prediction_resolved_price))
+    .map(r => callReturn(
+      r.prediction_action,
+      r.prediction_lock_price || r.prediction_entry_price,
+      r.prediction_resolved_price
+    ))
     .filter(v => v !== null);
 
   const winningReturns = returns.filter(r => r > 0);
@@ -100,7 +106,11 @@ export function computeScore(reports) {
   if (withBenchmark.length >= 5) {
     const alphas = withBenchmark
       .map(r => {
-        const ret = callReturn(r.prediction_action, r.prediction_lock_price, r.prediction_resolved_price);
+        const ret = callReturn(
+          r.prediction_action,
+          r.prediction_lock_price || r.prediction_entry_price,
+          r.prediction_resolved_price
+        );
         return ret !== null ? ret - r.prediction_benchmark_pct : null;
       })
       .filter(v => v !== null);
