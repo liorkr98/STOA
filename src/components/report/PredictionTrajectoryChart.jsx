@@ -36,8 +36,9 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
   const [width, setWidth] = useState(640);
 
   const ticker      = report?.prediction_ticker || report?.stock_ticker;
-  const lockPrice   = report?.prediction_lock_price;
-  const lockTime    = report?.prediction_lock_time;
+  // Fall back to prediction_entry_price for reports published before the lock_price fix
+  const lockPrice   = report?.prediction_lock_price || report?.prediction_entry_price;
+  const lockTime    = report?.prediction_lock_time || report?.prediction_locked_at;
   const targetPrice = report?.prediction_target_price;
   const stopLoss    = report?.prediction_stop_loss;
   const action      = report?.prediction_action; // "Long" | "Short" | "Hold"
@@ -60,19 +61,18 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
     if (!ticker || !lockTime) { setLoading(false); return; }
     const fromUnix = Math.floor(new Date(lockTime).getTime() / 1000);
     const toUnix   = Math.floor((resolvedTime ? new Date(resolvedTime).getTime() : Date.now()) / 1000);
-    if (toUnix - fromUnix < 86400) {
-      // Less than a day — extend by a day so the chart isn't empty
-      setLoading(false);
-      return;
-    }
+    // For very recent predictions (< 1 day), use a 1-week window from lock
+    // so we at least show some surrounding context price history
+    const windowEnd = Math.max(toUnix, fromUnix + 7 * 86400);
     setLoading(true);
-    fetchHistorical(ticker, fromUnix, toUnix)
+    fetchHistorical(ticker, fromUnix, windowEnd)
       .then(d => setData(d))
       .catch(() => setError("Could not load price history"))
       .finally(() => setLoading(false));
   }, [ticker, lockTime, resolvedTime]);
 
-  if (!ticker || !lockPrice || !lockTime) return null;
+  // Show if we have at least a ticker — lock price is now optional (shows static snapshot)
+  if (!ticker) return null;
 
   // ── Compute chart geometry ──────────────────────────────────────────────────
   const H = compact ? 160 : 240;
@@ -183,9 +183,31 @@ export default function PredictionTrajectoryChart({ report, compact = false }) {
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : error || data.length === 0 ? (
-          <div className="flex items-center justify-center text-xs text-muted-foreground" style={{ height: H }}>
-            <Clock className="w-4 h-4 mr-2" />
-            {error || "Price history will populate as time passes."}
+          /* No history yet — show a static key levels snapshot instead of blank */
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-6" style={{ height: H }}>
+            <Clock className="w-5 h-5 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground text-center">
+              Price history will populate over time.
+            </p>
+            {/* Static key levels table */}
+            <div className="grid grid-cols-3 gap-4 w-full max-w-xs mt-2">
+              <div className="text-center">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lock</p>
+                <p className="text-sm font-bold font-mono">${lockPrice?.toFixed(2)}</p>
+              </div>
+              {targetPrice && (
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Target</p>
+                  <p className="text-sm font-bold font-mono text-amber-600">${targetPrice?.toFixed(2)}</p>
+                </div>
+              )}
+              {stopLoss && (
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Stop</p>
+                  <p className="text-sm font-bold font-mono text-muted-foreground">${stopLoss?.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <svg width={width} height={H} className="block">
