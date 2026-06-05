@@ -37,15 +37,17 @@ function KeyTakeawaysCard({ report, blocks }) {
           .filter(Boolean),
       ].join("\n").slice(0, 4000);
 
-      const result = await base44.functions.invoke("aiProxy", {
-        messages: [{
-          role: "user",
-          content: `Extract 4–6 key takeaways from this financial research report. Return a JSON array of short strings (max 15 words each). Focus on: the main thesis, key risks, price targets, and action items. Report:\n\n${textContent}\n\nReturn only a valid JSON array of strings.`,
-        }],
+      const result = await base44.integrations.Core.InvokeLLM({
+        model: "claude_sonnet_4_6",
+        prompt: `Extract 4-6 key takeaways from this financial research report. Return a JSON array of short strings (max 15 words each). Focus on: the main thesis, key risks, price targets, and action items. Report:\n\n${textContent}\n\nReturn only a valid JSON array of strings.`,
       });
 
-      const raw = result?.content?.[0]?.text || result?.text || "";
-      const clean = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+      const raw = typeof result === "string"
+        ? result
+        : (result?.content?.[0]?.text || result?.text || result?.response || "");
+      let clean = raw.replace(/^```json?\n?/i, "").replace(/\n?```$/i, "").trim();
+      const arrMatch = clean.match(/\[[\s\S]*\]/);
+      if (arrMatch) clean = arrMatch[0];
       const parsed = JSON.parse(clean);
       if (Array.isArray(parsed)) setTakeaways(parsed.slice(0, 6));
     } catch {

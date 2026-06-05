@@ -68,16 +68,22 @@ Blocks: ${JSON.stringify(textBlocks.map(b => ({ id: b.id, text: b.text })))}
 
 Return only valid JSON, no markdown fences.`;
 
-      // Use base44's built-in AI (Claude) via the functions API
-      const result = await base44.functions.invoke("aiProxy", {
-        messages: [{ role: "user", content: prompt }],
+      // Use base44's built-in AI (Claude) via the Core integration
+      const result = await base44.integrations.Core.InvokeLLM({
+        model: "claude_sonnet_4_6",
+        prompt,
       }).catch(() => null);
 
-      // Try parsing the AI response — handle both wrapped and raw formats
+      // Try parsing the AI response — handle string and wrapped formats
       let translated = null;
-      const raw = result?.content?.[0]?.text || result?.choices?.[0]?.message?.content || result?.text || "";
+      const raw = typeof result === "string"
+        ? result
+        : (result?.content?.[0]?.text || result?.text || result?.response || "");
       try {
-        const clean = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+        // Strip markdown fences and isolate the JSON object if the model added prose
+        let clean = raw.replace(/^```json?\n?/i, "").replace(/\n?```$/i, "").trim();
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        if (jsonMatch) clean = jsonMatch[0];
         translated = JSON.parse(clean);
       } catch {
         toast.error("Translation failed — please try again");

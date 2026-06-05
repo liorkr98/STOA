@@ -1094,7 +1094,7 @@ export default function ReportEditor() {
               {qualityScore}
             </span>
             <span style={{ width: 60, height: 3, background: "var(--border-rgba)", borderRadius: 2, overflow: "hidden" }}>
-              <span style={{ display: "block", width: `${qualityScore}%`, height: "100%", background: qualityScore >= 80 ? "var(--rolex-green)" : "var(--primary-blue)" }}/>
+              <span style={{ display: "block", width: `${qualityScore}%`, height: "100%", background: qualityScore >= 80 ? "var(--rolex-green)" : "var(--primary-blue)", transition: "width var(--t-base) var(--ease-in-out), background var(--t-fast) var(--ease)" }}/>
             </span>
           </div>
           <span className="vr" style={{ height: 16 }}/>

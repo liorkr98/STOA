@@ -154,11 +154,18 @@
     --gap-lg: 24px;
     --gap-xl: 40px;
 
-    /* Motion */
-    --ease:   cubic-bezier(0.2, 0.7, 0.2, 1);
-    --t-fast: 140ms;
+    /* Motion — easing curves follow the design-engineering principle that the
+       built-in CSS easings are too weak. Strong custom curves give motion the
+       "punch" that makes it feel intentional. Entering/exiting → ease-out;
+       on-screen movement → ease-in-out; never ease-in on UI. */
+    --ease:        cubic-bezier(0.23, 1, 0.32, 1);  /* strong ease-out (default UI) */
+    --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); /* on-screen morph/movement */
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);  /* iOS-like drawer/sheet */
+    --t-press: 130ms;  /* button press feedback */
+    --t-fast: 160ms;
     --t-base: 240ms;
-    --t-slow: 480ms;
+    --t-slow: 420ms;
   }
 
   .dark {
@@ -637,12 +644,14 @@
     background var(--t-fast) var(--ease),
     color var(--t-fast) var(--ease),
     border-color var(--t-fast) var(--ease),
-    transform var(--t-fast) var(--ease);
+    transform var(--t-press) var(--ease);
   white-space: nowrap;
   cursor: pointer;
   border: 0;
 }
-.btn:active { transform: translateY(0.5px); }
+/* Press feedback — subtle scale-down confirms the interface heard the user.
+   scale() also scales children proportionally, so icons + label move together. */
+.btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
 
 .btn-gold        { background: var(--gold-hex); color: var(--deepest-navy); }
@@ -741,13 +750,38 @@
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.fade-up   { animation: fadeUp 0.7s ease forwards; }
-.fade-up-2 { animation: fadeUp 0.7s 0.15s ease forwards; opacity: 0; }
-.fade-up-3 { animation: fadeUp 0.7s 0.3s ease forwards; opacity: 0; }
+/* Entrance uses the strong ease-out curve so content arrives fast then settles.
+   Stagger delays are short (≤300ms) — long delays make the page feel slow. */
+.fade-up   { animation: fadeUp 0.6s var(--ease-out) forwards; }
+.fade-up-2 { animation: fadeUp 0.6s 0.09s var(--ease-out) forwards; opacity: 0; }
+.fade-up-3 { animation: fadeUp 0.6s 0.18s var(--ease-out) forwards; opacity: 0; }
+.fade-up-4 { animation: fadeUp 0.6s 0.27s var(--ease-out) forwards; opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Reduced motion keeps the fade (aids comprehension) but drops the movement. */
+  .fade-up, .fade-up-2, .fade-up-3, .fade-up-4 {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Hover lift — subtle -3px rise + stronger hairline on hover, transform-only so
+   it stays on the GPU. Gated to fine-pointer devices so a tap on touch screens
+   doesn't leave a card stuck in its lifted state. */
+.lift {
+  transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-strong);
+  }
+}
+.lift:active { transform: translateY(0); }
 
 /* Pulse dot — the green "Live" indicator on hero eyebrows.
    2s ease-in-out, opacity oscillating 1 → 0.35 → 1. */
@@ -1069,7 +1103,7 @@ article ::selection {
   color: hsl(46 65% 32%);                 /* gold-on-light text */
   border-radius: var(--radius);
   font-weight: 500;                       /* Manrope max 500 per design system */
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-press) var(--ease);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
 }
@@ -1088,7 +1122,7 @@ article ::selection {
   border-color: rgba(212, 175, 55, 0.45);
   transform: translateY(-1px);
 }
-.cta-gold:active { transform: translateY(0); }
+.cta-gold:active { transform: scale(0.97); }
 .dark .cta-gold { color: hsl(var(--gold-light)); }
 
 /* Founding-member / premium badge — gold tint, 4px squared corners.

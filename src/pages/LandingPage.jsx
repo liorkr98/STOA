@@ -7,6 +7,7 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import StoaLogo from "@/components/StoaLogo";
 import AnalystCard from "@/components/AnalystCard";
+import Reveal from "@/components/Reveal";
 
 const SIGNIN_PATH = "/signin";
 
@@ -194,7 +195,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div className="fade-up-2" style={{ position: "relative" }}>
             <HeroPredictionStack/>
           </div>
         </div>
@@ -209,10 +210,10 @@ export default function LandingPage() {
             { v: "142k",  l: "Monthly readers" },
             { v: "$1.4M", l: "Paid to researchers" },
           ].map((s, i) => (
-            <div key={i} style={{ padding: "8px 28px", borderRight: i < 3 ? "0.5px solid var(--border-rgba)" : "none" }}>
+            <Reveal key={i} delay={i * 80} y={12} style={{ padding: "8px 28px", borderRight: i < 3 ? "0.5px solid var(--border-rgba)" : "none" }}>
               <div className="t-num" style={{ fontSize: 36, color: s.tone === "green" ? "var(--rolex-green)" : "var(--text)", letterSpacing: "-0.02em" }}>{s.v}</div>
               <div className="t-meta" style={{ marginTop: 6 }}>{s.l}</div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -238,15 +239,17 @@ export default function LandingPage() {
               { n: "01", t: "Publish a call", d: "Set ticker, direction, target price, and timeframe. The price locks at publish. There is no edit button.", Icon: PenLine },
               { n: "02", t: "The market grades", d: "When the window closes, Stoa pulls the verified price and assigns Hit, Near, Partial, or Miss. Automatically.", Icon: BarChart3 },
               { n: "03", t: "Your Elo updates", d: "Every resolved call moves your rating on a 600–1400 scale. Subscribers see the whole record. Past, present, permanent.", Icon: TrendingUp },
-            ].map(({ n, t, d, Icon }) => (
-              <div key={n} className="surface" style={{ padding: 28 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 28 }}>
-                  <span className="t-num" style={{ fontSize: 13, color: "var(--gold-hex)", letterSpacing: "0.16em" }}>STEP {n}</span>
-                  <Icon size={20} strokeWidth={1.4} style={{ color: "var(--text-meta)" }}/>
+            ].map(({ n, t, d, Icon }, i) => (
+              <Reveal key={n} delay={i * 90}>
+                <div className="surface lift" style={{ padding: 28, height: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 28 }}>
+                    <span className="t-num" style={{ fontSize: 13, color: "var(--gold-hex)", letterSpacing: "0.16em" }}>STEP {n}</span>
+                    <Icon size={20} strokeWidth={1.4} style={{ color: "var(--text-meta)" }}/>
+                  </div>
+                  <h3 className="t-title" style={{ fontSize: 22, lineHeight: 1.2, margin: "0 0 12px" }}>{t}</h3>
+                  <p className="t-body" style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-mute)", margin: 0 }}>{d}</p>
                 </div>
-                <h3 className="t-title" style={{ fontSize: 22, lineHeight: 1.2, margin: "0 0 12px" }}>{t}</h3>
-                <p className="t-body" style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-mute)", margin: 0 }}>{d}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -268,7 +271,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="surface" style={{ padding: 0, overflow: "hidden" }}>
+          <Reveal className="surface" delay={80} style={{ padding: 0, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr", borderBottom: "0.5px solid var(--border-rgba)", background: "var(--bg-elev)" }}>
               <div className="t-meta" style={{ padding: "14px 20px", fontSize: 11 }}>FEATURE</div>
               {["Stoa", "Substack", "Seeking Alpha"].map((c, i) => (
@@ -297,7 +300,7 @@ export default function LandingPage() {
                 ))}
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -323,8 +326,10 @@ export default function LandingPage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
-            {SPOTLIGHT_ANALYSTS.map((a) => (
-              <AnalystCard key={a.id} a={a} onOpen={handleOpenAnalyst}/>
+            {SPOTLIGHT_ANALYSTS.map((a, i) => (
+              <Reveal key={a.id} delay={i * 90}>
+                <AnalystCard a={a} onOpen={handleOpenAnalyst}/>
+              </Reveal>
             ))}
           </div>
         </div>
