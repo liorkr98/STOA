@@ -7,6 +7,7 @@ import { Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Shield, Users, FileT
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
+import AdminSupportInbox from "@/components/admin/AdminSupportInbox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -308,6 +309,7 @@ export default function AdminUsersPage() {
         {[
           { id: "users",     label: "All Users",    count: users.length },
           { id: "approvals", label: "Approvals",    count: pendingCount, highlight: pendingCount > 0 },
+          { id: "support",   label: "Support",      count: 0 },
         ].map(tab => (
           <button
             key={tab.id}
@@ -333,7 +335,9 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "approvals" ? (
+      {activeTab === "support" ? (
+        <AdminSupportInbox />
+      ) : activeTab === "approvals" ? (
         <ApprovalsTab users={users} onApprove={handleApprove} onReject={handleReject} />
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">

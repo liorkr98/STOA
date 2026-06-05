@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Sun, Moon, Monitor } from "lucide-react";
+import { Home, PenLine, LogIn, Wallet, LogOut, LayoutDashboard, ChevronDown, TrendingUp, Shield, Bookmark, MessageSquare, Sparkles, User as UserIcon, Sun, Moon, Monitor, LifeBuoy } from "lucide-react";
 import { useTheme } from "@/lib/ThemeContext";
 import { avatarUrl } from "@/lib/avatarUrl";
 import { cn } from "@/lib/utils";
@@ -331,6 +331,9 @@ export default function AppLayout() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/saved")}>
                       <Bookmark className="w-4 h-4 mr-2" /> Saved Reports
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/support")}>
+                      <LifeBuoy className="w-4 h-4 mr-2" /> Support
                     </DropdownMenuItem>
                     {user?.role === "admin" && (
                       <>

@@ -379,7 +379,7 @@ export default function LandingPage() {
             {[
               { t: "Platform", l: [["Feed", "/feed"], ["Leaderboard", "/leaderboard"], ["Markets", "/stocks"], ["Pricing", "/pricing"]] },
               { t: "Analysts", l: [["Start publishing", "/become-analyst"], ["Studio", "/dashboard"], ["Scoring", "/scoring"], ["Analytics", "/analytics"]] },
-              { t: "Company",  l: [["About", "/about"], ["How it works", "/how-it-works"], ["Terms", "/terms"], ["Privacy", "/privacy"]] },
+              { t: "Company",  l: [["About", "/about"], ["How it works", "/how-it-works"], ["Support", "/support"], ["Terms", "/terms"], ["Privacy", "/privacy"]] },
             ].map((c) => (
               <div key={c.t}>
                 <div className="t-eyebrow" style={{ marginBottom: 14 }}>{c.t}</div>

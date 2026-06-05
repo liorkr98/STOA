@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, Heart, MessageCircle, X, Loader2, CheckCheck, Trash2 } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, TrendingUp, FileText, UserPlus, Heart, MessageCircle, X, Loader2, CheckCheck, Trash2, LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { formatDistanceToNow } from "date-fns";
@@ -14,6 +14,7 @@ const TYPE_CONFIG = {
   follow:  { icon: UserPlus,      color: "text-primary", bg: "bg-primary/10", label: "New Follower" },
   like:    { icon: Heart,         color: "text-primary", bg: "bg-primary/10", label: "Liked" },
   comment: { icon: MessageCircle, color: "text-primary", bg: "bg-primary/10", label: "Comment" },
+  support: { icon: LifeBuoy,      color: "text-primary", bg: "bg-primary/10", label: "Support" },
 };
 
 export default function NotificationCenter() {

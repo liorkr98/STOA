@@ -53,6 +53,7 @@ const CreatorAnalyticsPage  = lazy(() => import('@/pages/CreatorAnalyticsPage'))
 const SavedReportsPage      = lazy(() => import('@/pages/SavedReportsPage'));
 const InboxPage             = lazy(() => import('@/pages/InboxPage'));
 const BecomeAnalystPage     = lazy(() => import('@/pages/BecomeAnalystPage'));
+const SupportPage           = lazy(() => import('@/pages/SupportPage'));
 
 // Tiny spinner shown while a route's bundle is fetching
 const RouteFallback = () => (
@@ -145,6 +146,8 @@ const AuthenticatedApp = () => {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />
         <Route path="/accessibility" element={<AccessibilityPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/contact" element={<Navigate to="/support" replace />} />
 
         {/* Auth-required routes */}
         <Route path="/editor" element={<EditorRoute />} />
