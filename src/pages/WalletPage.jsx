@@ -22,18 +22,20 @@ function PayPalDepositButton({ amount, onSuccess }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (window.paypal) { setReady(true); return; }
-    const existing = document.querySelector('script[src*="paypal.com/sdk"]');
+    if (window.paypal?.Buttons) { setReady(true); return; }
+    // Remove any existing PayPal script that lacks the Buttons component
+    const existing = document.querySelector('script[data-paypal-buttons]');
     if (existing) { existing.addEventListener("load", () => setReady(true)); return; }
     const script = document.createElement("script");
     script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&enable-funding=venmo,paylater,card&components=buttons`;
+    script.setAttribute("data-paypal-buttons", "1");
     script.onload = () => setReady(true);
     script.onerror = () => toast.error("Failed to load PayPal. Please refresh.");
     document.head.appendChild(script);
   }, []);
 
   useEffect(() => {
-    if (!ready || !containerRef.current) return;
+    if (!ready || !containerRef.current || !window.paypal?.Buttons) return;
     containerRef.current.innerHTML = "";
     if (!amount || amount < MIN_DEPOSIT_USD) return;
     window.paypal.Buttons({
