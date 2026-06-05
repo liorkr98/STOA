@@ -1,1738 +1,1423 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  ChevronRight, Lock, Eye, FileText, Columns, BarChart3,
-  TrendingUp, TrendingDown, Plus, X, Zap, ArrowRight, Image as ImageIcon, Bookmark,
-  List, ListOrdered, Quote, Minus, LineChart, GitCompare, ShieldAlert,
+  Sparkles, Plus, Type, List, BarChart3, ImageIcon, Quote,
+  Send, Save, FolderOpen, Trash2, Clock, CheckCircle2,
+  ChevronDown, Settings2, TrendingUp, Lock,
+  Hash, FileText, Zap, AlignLeft, Palette, X, Layout, Eye,
+  Undo2, Redo2, GripVertical, Languages
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
-import { useAuth } from "@/lib/AuthContext";
-import { toast } from "sonner";
-import { Avatar } from "@/components/AnalystCard";
-import { avatarUrl } from "@/lib/avatarUrl";
-import { fetchLockPrice } from "@/lib/priceLockProvider";
-import { fetchQuote, fetchFundamentals, fmtCap } from "@/lib/stockData";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+
+import EditorBlock from "@/components/editor/EditorBlock";
+import StockChartBlock from "@/components/editor/StockChartBlock";
+import ChatCompareChart from "@/components/editor/ChatCompareChart";
+import ImageBlock from "@/components/editor/ImageBlock";
+import PredictionBlock from "@/components/editor/PredictionBlock";
+import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { avatarUrl } from "@/lib/avatarUrl";
+import { loadMyWallet, spendAICredits } from "@/lib/walletService";
 import AISidebar from "@/components/editor/AISidebar";
 import AIChat from "@/components/editor/AIChat";
+import EditorSettingsPanel from "@/components/editor/EditorSettingsPanel";
+import BoostPanel from "@/components/editor/BoostPanel";
 import TemplatesPanel from "@/components/editor/TemplatesPanel";
-import DesignPanel from "@/components/editor/DesignPanel";
-import StockChartBlock from "@/components/editor/StockChartBlock";
-import ImageBlock from "@/components/editor/ImageBlock";
+import DesignPanel, { REPORT_THEMES, REPORT_FONTS } from "@/components/editor/DesignPanel";
+import FloatingToolbar from "@/components/editor/FloatingToolbar";
+import ReportQualityScore from "@/components/editor/ReportQualityScore";
+import FactChecker from "@/components/report/FactChecker";
+import QuickPostEditor from "@/components/editor/QuickPostEditor";
+import ColumnsBlock from "@/components/editor/ColumnsBlock";
 import MetricsBlock from "@/components/editor/MetricsBlock";
-import { KeyPriceLevelsEditor } from "@/components/editor/KeyPriceLevelsBlock";
+import ThesisBlock from "@/components/editor/ThesisBlock";
 
-// DYOD disclaimer text — every Stoa report needs this regulatory line.
-// Inserted via the DYOD button in the top toolbar (also restorable from
-// the slash menu under Text → Disclaimer).
-const DYOD_TEXT = "DO YOUR OWN DILIGENCE. This research is for informational " +
-  "purposes only and is not investment advice. Past performance does not " +
-  "guarantee future results. Always verify claims and consult a licensed " +
-  "advisor before making investment decisions.";
 
-const AUTOSAVE_MS = 1500;
+// ─── Constants ─────────────────────────────────────────────────────────────
+const DYOR_TEXT =
+  "Disclaimer: This report is for informational purposes only and does not constitute financial advice. Always do your own research (DYOR) before making any investment decisions.";
 
+const BLOCK_TYPES = [
+  { type: "heading",    label: "Heading",     icon: Type,      shortcut: "H" },
+  { type: "text",       label: "Paragraph",   icon: AlignLeft, shortcut: "P" },
+  { type: "bullets",   label: "Bullet List", icon: List,      shortcut: "B" },
+  { type: "quote",     label: "Quote",       icon: Quote,     shortcut: "Q" },
+  { type: "callout",   label: "Callout",     icon: FileText,  shortcut: "L" },
+  { type: "divider",   label: "Divider",     icon: Layout,    shortcut: "D" },
+  { type: "numbered",  label: "Numbered",    icon: List,      shortcut: "N" },
+  { type: "stockchart",label: "Stock Chart", icon: BarChart3, shortcut: "C" },
+  { type: "image",     label: "Image",       icon: ImageIcon, shortcut: "I" },
+  { type: "columns",   label: "Text + Media", icon: Layout,    shortcut: "T" },
+  { type: "metrics",   label: "Key Metrics",  icon: BarChart3, shortcut: "K" },
+  { type: "thesis",    label: "Bull / Bear",  icon: TrendingUp, shortcut: "B" },
+];
+
+const INDUSTRIES = [
+  "Technology","Healthcare","Financials","Energy","Consumer Discretionary",
+  "Consumer Staples","Industrials","Materials","Real Estate","Utilities","Telecom","Crypto"
+];
+
+const MARKET_CAPS = [
+  { value: "mega",  label: "Mega Cap  (>$200B)" },
+  { value: "large", label: "Large Cap ($10–200B)" },
+  { value: "mid",   label: "Mid Cap   ($2–10B)" },
+  { value: "small", label: "Small Cap ($300M–2B)" },
+  { value: "micro", label: "Micro Cap (<$300M)" },
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
 let _nextId = Date.now();
 const newId = () => ++_nextId;
+const makeBlock = (type, content = "") => ({ id: newId(), type, content });
 
-// ── Default blocks for a new draft ───────────────────────────────────────────
-const DEFAULT_BLOCKS = [
-  { id: newId(), type: "title", text: "" },
-  { id: newId(), type: "dek", text: "" },
-  { id: newId(), type: "p", text: "" },
-];
-
-const BLOCK_LABEL = {
-  title: "Title", dek: "Subhead", h: "Heading",
-  p: "Body", prediction: "Locked prediction",
-  metrics: "Metrics block", bullbear: "Bull / Bear thesis",
-  pullquote: "Pull quote", image: "Image",
+const sanitizeBlock = (b) => {
+  if (!b || typeof b !== "object") return null;
+  if (typeof b.type !== "string") return null;
+  return {
+    id:           typeof b.id === "number" ? b.id : newId(),
+    type:         b.type,
+    content:      typeof b.content === "string" ? b.content : "",
+    ticker:       b.ticker       || undefined,
+    height:       b.height       || undefined,
+    snapshot_url: b.snapshot_url || undefined,
+    frozen:       b.frozen       || undefined,
+    interval:     b.interval     || undefined,
+    chartStyle:   b.chartStyle   || undefined,
+    chartTheme:   b.chartTheme   || undefined,
+    studies:      b.studies      || undefined,
+    savedAt:      b.savedAt      || undefined,
+    rowGroup:     b.rowGroup     || undefined,
+    blockAlign:   b.blockAlign   || undefined,
+    // Comparison-chart block: holds multiple tickers rendered as one chart
+    tickers:      Array.isArray(b.tickers) ? b.tickers : undefined,
+    timeframe:    b.timeframe    || undefined,
+  };
 };
 
-const BLOCK_ICON = {
-  title: FileText, dek: Bookmark, h: Columns, p: Columns,
-  prediction: Lock, metrics: BarChart3, bullbear: TrendingUp,
-  pullquote: Zap, image: ImageIcon,
+const sanitizeBlocks = (arr) => {
+  if (!Array.isArray(arr)) return [makeBlock("text")];
+  const clean = arr.map(sanitizeBlock).filter(Boolean);
+  return clean.length > 0 ? clean : [makeBlock("text")];
 };
 
-// ── Insertion zone ───────────────────────────────────────────────────────────
-function InsertionZone({ onAdd, persistent = false }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={onAdd}
-      style={{
-        position: "relative",
-        height: hover || persistent ? 32 : 12,
-        margin: "0 -10px",
-        cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "height var(--t-fast) var(--ease)",
-      }}
-    >
-      <div style={{
-        height: 1, width: "100%",
-        background: hover ? "var(--gold-hex)" : "transparent",
-        transition: "background var(--t-fast) var(--ease)",
-      }}/>
-      {(hover || persistent) && (
-        <div style={{
-          position: "absolute", left: "50%", top: "50%",
-          transform: "translate(-50%, -50%)",
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "4px 10px 4px 6px",
-          background: "var(--bg-elev)",
-          border: "0.5px solid",
-          borderColor: hover ? "var(--gold-hex)" : "var(--border-strong)",
-          borderRadius: 16,
-          color: hover ? "var(--gold-hex)" : "var(--text-mute)",
-          fontSize: 11, fontFamily: "var(--f-sans)", fontWeight: 500,
-          letterSpacing: "0.04em",
-        }}>
-          <span style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 18, height: 18, borderRadius: "50%",
-            background: hover ? "var(--gold-hex)" : "var(--bg-soft)",
-            color: hover ? "var(--deepest-navy)" : "var(--text-mute)",
-          }}>
-            <Plus size={11} strokeWidth={1.8}/>
-          </span>
-          <span>Add block</span>
-          <span style={{
-            padding: "0 5px",
-            border: "0.5px solid currentColor",
-            borderRadius: 3, fontSize: 9.5,
-            fontFamily: "var(--f-mono)", opacity: 0.7,
-          }}>/</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Slash menu ───────────────────────────────────────────────────────────────
-function SlashMenu({ onClose, onInsert }) {
-  const sections = [
-    {
-      title: "Text",
-      items: [
-        { type: "h", Icon: FileText, name: "Heading", desc: "Section heading · H2 in print" },
-        { type: "p", Icon: Columns, name: "Body", desc: "Plain serif paragraph" },
-        { type: "pullquote", Icon: Quote, name: "Pull quote", desc: "Big italic callout" },
-        { type: "dek", Icon: Bookmark, name: "Subhead", desc: "Bold lead-in line" },
-        { type: "bullets", Icon: List, name: "Bullets", desc: "Unordered list" },
-        { type: "numbered", Icon: ListOrdered, name: "Numbered list", desc: "Ordered list" },
-        { type: "callout", Icon: Zap, name: "Callout", desc: "Surfaced highlight" },
-        { type: "divider", Icon: Minus, name: "Divider", desc: "Hairline section break" },
-        { type: "dyod", Icon: ShieldAlert, name: "DYOD Disclaimer", desc: "Do Your Own Diligence — regulatory" },
-      ],
-    },
-    {
-      title: "Finance",
-      items: [
-        { type: "prediction", Icon: Lock, name: "Locked Prediction", desc: "Ticker, direction, target — locks at publish", premium: true },
-        { type: "metrics", Icon: BarChart3, name: "Key Metrics", desc: "Live P/E, market cap, EPS — fetched by ticker", premium: true },
-        { type: "bullbear", Icon: TrendingUp, name: "Bull / Bear thesis", desc: "Two-column case + counter-case" },
-        { type: "keypricelevels", Icon: TrendingUp, name: "Key Price Levels", desc: "Visual timeline of support, resistance, targets & breakouts" },
-        { type: "stockchart", Icon: LineChart, name: "Stock chart", desc: "TradingView-style price chart", premium: true },
-        { type: "comparechart", Icon: GitCompare, name: "Comparison chart", desc: "Compare 2-4 tickers side by side", premium: true },
-      ],
-    },
-    {
-      title: "Media",
-      items: [
-        { type: "image", Icon: ImageIcon, name: "Image", desc: "Drop, paste, or pick" },
-      ],
-    },
-  ];
-
-  return (
-    <>
-      <div onClick={onClose} style={{
-        position: "fixed", inset: 0, zIndex: 80,
-        background: "rgba(10,26,63,0.18)",
-        backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
-      }}/>
-      <div className="surface" style={{
-        position: "fixed", top: "50%", left: "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex: 81, width: 520, maxHeight: "70vh", overflow: "hidden",
-        background: "var(--bg-elev)", borderColor: "var(--border-strong)",
-        display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: "0.5px solid var(--border-rgba)", gap: 10 }}>
-          <span className="t-num" style={{
-            padding: "2px 7px",
-            border: "0.5px solid var(--border-strong)",
-            borderRadius: 3, fontSize: 11,
-          }}>/</span>
-          <input
-            autoFocus
-            placeholder="Search blocks — type 'pred', 'chart', 'metric'…"
-            style={{
-              flex: 1, background: "transparent", border: 0, outline: 0,
-              fontSize: 14, color: "var(--text)",
-            }}
-          />
-          <button onClick={onClose} className="btn btn-text btn-sm" style={{ width: 26, padding: 0 }}>
-            <X size={14} strokeWidth={1.7}/>
-          </button>
-        </div>
-        <div style={{ overflowY: "auto", padding: "10px 0" }}>
-          {sections.map((s) => (
-            <div key={s.title} style={{ marginBottom: 10 }}>
-              <div className="t-eyebrow" style={{ padding: "6px 14px" }}>{s.title}</div>
-              {s.items.map((it) => {
-                const Ic = it.Icon;
-                return (
-                  <button key={it.name}
-                    onClick={() => { onInsert(it.type); onClose(); }}
-                    style={{
-                      display: "flex", alignItems: "center",
-                      width: "100%", padding: "8px 14px", gap: 12,
-                      background: "transparent", textAlign: "left",
-                      border: 0, cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                  >
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: 32, height: 32, borderRadius: 6,
-                      background: it.premium ? "rgba(212,175,55,0.10)" : "var(--bg-soft)",
-                      border: "0.5px solid",
-                      borderColor: it.premium ? "rgba(212,175,55,0.32)" : "var(--border-rgba)",
-                      color: it.premium ? "var(--gold-hex)" : "var(--text-mute)",
-                      flexShrink: 0,
-                    }}>
-                      <Ic size={15} strokeWidth={1.55}/>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 13, color: "var(--text)" }}>{it.name}</span>
-                        {it.premium && <span className="badge-founding" style={{ height: 16, padding: "0 5px", fontSize: 8.5 }}>Finance</span>}
-                      </div>
-                      <div className="t-meta" style={{ fontSize: 11.5, marginTop: 2 }}>{it.desc}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 14,
-          padding: "10px 14px",
-          borderTop: "0.5px solid var(--border-rgba)",
-          background: "var(--bg-soft)",
-        }}>
-          {[["↑↓", "navigate"], ["↵", "insert"], ["esc", "close"]].map(([k, l]) => (
-            <span key={k} className="t-meta" style={{ fontSize: 10.5, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{
-                padding: "1px 5px",
-                border: "0.5px solid var(--border-strong)",
-                borderRadius: 3, fontFamily: "var(--f-mono)",
-              }}>{k}</span>
-              {l}
-            </span>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── Common US tickers for the prediction-block autocomplete. Curated
-// rather than fetched live so the dropdown is always fast — the analyst
-// can still type any symbol freely. ───────────────────────────────────
-const POPULAR_TICKERS = [
-  { sym: "NVDA", name: "NVIDIA" },
-  { sym: "AAPL", name: "Apple" },
-  { sym: "MSFT", name: "Microsoft" },
-  { sym: "GOOGL", name: "Alphabet" },
-  { sym: "AMZN", name: "Amazon" },
-  { sym: "META", name: "Meta Platforms" },
-  { sym: "TSLA", name: "Tesla" },
-  { sym: "AMD", name: "AMD" },
-  { sym: "AVGO", name: "Broadcom" },
-  { sym: "TSM", name: "TSMC" },
-  { sym: "ASML", name: "ASML" },
-  { sym: "INTC", name: "Intel" },
-  { sym: "MU", name: "Micron" },
-  { sym: "QCOM", name: "Qualcomm" },
-  { sym: "JPM", name: "JPMorgan" },
-  { sym: "BAC", name: "Bank of America" },
-  { sym: "GS", name: "Goldman Sachs" },
-  { sym: "WMT", name: "Walmart" },
-  { sym: "PG", name: "Procter & Gamble" },
-  { sym: "JNJ", name: "Johnson & Johnson" },
-  { sym: "UNH", name: "UnitedHealth" },
-  { sym: "PFE", name: "Pfizer" },
-  { sym: "XOM", name: "Exxon" },
-  { sym: "CVX", name: "Chevron" },
-  { sym: "TLT", name: "20-Yr Treasury ETF" },
-  { sym: "SPY", name: "S&P 500 ETF" },
-  { sym: "QQQ", name: "Nasdaq-100 ETF" },
-  { sym: "GLD", name: "Gold ETF" },
-];
-
-// ── Prediction block (gold-edged) ────────────────────────────────────────────
-// On ticker change/blur, fetches live price + company info + market cap +
-// sector so the analyst sees what they're predicting on. Ticker input has
-// inline autocomplete from POPULAR_TICKERS.
-function PredictionBlockEditor({ block, onChange }) {
-  const data = block.data || { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 };
-  const set = (k, v) => onChange({ ...block, data: { ...data, [k]: v } });
-
-  const [quote, setQuote] = useState(null);
-  const [fund, setFund] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [acOpen, setAcOpen] = useState(false);
-
-  const lookupTicker = useCallback(async (sym) => {
-    if (!sym) { setQuote(null); setFund(null); return; }
-    setLoading(true);
-    try {
-      const [q, f] = await Promise.all([
-        fetchQuote(sym).catch(() => null),
-        fetchFundamentals(sym).catch(() => null),
-      ]);
-      setQuote(q);
-      setFund(f);
-      // Auto-fill entry price (locked at publish anyway, but useful as a hint)
-      if (q?.price && !data.entry) set("entry", q.price.toFixed(2));
-    } finally {
-      setLoading(false);
+function buildRows(blocks) {
+  const seen = new Set();
+  const rows = [];
+  for (const b of blocks) {
+    if (b.rowGroup) {
+      if (!seen.has(b.rowGroup)) {
+        seen.add(b.rowGroup);
+        rows.push({ type: "group", groupId: b.rowGroup, blocks: blocks.filter(x => x.rowGroup === b.rowGroup) });
+      }
+    } else {
+      rows.push({ type: "single", block: b });
     }
-  }, [data.entry, set]);
-
-  const acMatches = useMemo(() => {
-    const t = (data.ticker || "").toUpperCase();
-    if (!t) return POPULAR_TICKERS.slice(0, 6);
-    return POPULAR_TICKERS
-      .filter((p) => p.sym.startsWith(t) || p.name.toUpperCase().includes(t))
-      .slice(0, 6);
-  }, [data.ticker]);
-
-  return (
-    <div className="surface" style={{
-      padding: 0, margin: "12px 0",
-      background: "var(--bg-elev)",
-      border: "0.5px solid rgba(212,175,55,0.32)",
-      overflow: "hidden",
-    }}>
-      <div style={{
-        display: "flex", alignItems: "center", padding: "10px 16px",
-        background: "rgba(212,175,55,0.06)",
-        borderBottom: "0.5px solid rgba(212,175,55,0.16)",
-        gap: 10,
-      }}>
-        <Lock size={12} strokeWidth={1.6} style={{ color: "var(--gold-hex)" }}/>
-        <span className="receipt" style={{ color: "var(--gold-hex)", fontSize: 10.5 }}>
-          {quote?.companyName ? `${data.ticker} · ${quote.companyName}` : "ADD A PREDICTION · TICKER, DIRECTION, TARGET PRICE"}
-        </span>
-        {loading && <span className="t-meta" style={{ marginLeft: 8 }}>fetching…</span>}
-      </div>
-
-      {(quote || fund) && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 18,
-          padding: "10px 18px",
-          background: "var(--bg-soft)",
-          borderBottom: "0.5px solid var(--border-rgba)",
-          fontSize: 11.5,
-          flexWrap: "wrap",
-        }}>
-          {quote?.price != null && (
-            <span className="t-num" style={{ color: "var(--text)" }}>
-              ${quote.price.toFixed(2)}
-              {quote.changePct != null && (
-                <span style={{ marginLeft: 6, color: quote.changePct >= 0 ? "var(--rolex-green)" : "var(--velvet-red)" }}>
-                  {quote.changePct >= 0 ? "+" : ""}{quote.changePct.toFixed(2)}%
-                </span>
-              )}
-            </span>
-          )}
-          {fund?.marketCap && <span className="t-meta">Cap · <span className="t-num">{fmtCap(fund.marketCap)}</span></span>}
-          {fund?.sector && <span className="t-meta">{fund.sector}</span>}
-          {fund?.pe != null && <span className="t-meta">P/E · <span className="t-num">{fund.pe.toFixed(1)}</span></span>}
-        </div>
-      )}
-
-      <div style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "0.9fr 0.7fr 0.8fr 0.8fr 0.8fr 0.6fr", gap: 8 }}>
-          {[
-            { l: "Ticker", k: "ticker", mono: false, autocomplete: true },
-            { l: "Direction", k: "dir", mono: false, opts: ["LONG", "SHORT", "HOLD"] },
-            { l: "Entry", k: "entry", mono: true },
-            { l: "Target", k: "target", mono: true },
-            { l: "Stop", k: "stop", mono: true },
-            { l: "Days", k: "days", mono: true },
-          ].map((f) => (
-            <div key={f.k} style={{ position: "relative" }}>
-              <div className="t-meta" style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>
-                {f.l}
-              </div>
-              {f.opts ? (
-                <select
-                  value={data[f.k]}
-                  onChange={(e) => set(f.k, e.target.value)}
-                  style={{
-                    width: "100%", height: 32, padding: "0 10px",
-                    border: "0.5px solid var(--border-strong)",
-                    borderRadius: 4, background: "var(--bg)",
-                    fontSize: 13, fontFamily: "var(--f-sans)",
-                    color: data[f.k] === "LONG" ? "var(--rolex-green)"
-                      : data[f.k] === "SHORT" ? "var(--velvet-red)" : "var(--text)",
-                    fontWeight: 500, letterSpacing: "0.04em",
-                  }}
-                >
-                  {f.opts.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : f.autocomplete ? (
-                <>
-                  <input
-                    value={data[f.k]}
-                    onChange={(e) => {
-                      const v = e.target.value.toUpperCase();
-                      set(f.k, v);
-                      setAcOpen(true);
-                    }}
-                    onFocus={() => setAcOpen(true)}
-                    onBlur={() => setTimeout(() => setAcOpen(false), 150)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        setAcOpen(false);
-                        lookupTicker(data.ticker?.toUpperCase());
-                      }
-                    }}
-                    placeholder="NVDA"
-                    style={{
-                      width: "100%", height: 32, padding: "0 10px",
-                      border: "0.5px solid var(--border-strong)",
-                      borderRadius: 4, background: "var(--bg)",
-                      fontSize: 13, fontFamily: "var(--f-mono)",
-                      color: "var(--text)", letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                    }}
-                  />
-                  {acOpen && acMatches.length > 0 && (
-                    <div
-                      style={{
-                        position: "absolute", left: 0, right: 0, top: "100%",
-                        marginTop: 4, zIndex: 30,
-                        background: "var(--bg-elev)",
-                        border: "0.5px solid var(--border-strong)",
-                        borderRadius: 6, overflow: "hidden",
-                        maxHeight: 220, overflowY: "auto",
-                      }}
-                    >
-                      {acMatches.map((p) => (
-                        <button
-                          key={p.sym}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            set("ticker", p.sym);
-                            setAcOpen(false);
-                            lookupTicker(p.sym);
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 8,
-                            width: "100%", padding: "7px 10px",
-                            background: "transparent", border: 0,
-                            textAlign: "left", cursor: "pointer",
-                            fontSize: 12,
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                        >
-                          <span className="t-num" style={{ width: 52, color: "var(--text)" }}>{p.sym}</span>
-                          <span className="t-meta" style={{ fontSize: 11 }}>{p.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <input
-                  value={data[f.k]}
-                  onChange={(e) => set(f.k, e.target.value)}
-                  placeholder={f.l}
-                  style={{
-                    width: "100%", height: 32, padding: "0 10px",
-                    border: "0.5px solid var(--border-strong)",
-                    borderRadius: 4, background: "var(--bg)",
-                    fontSize: 13,
-                    fontFamily: f.mono ? "var(--f-mono)" : "var(--f-sans)",
-                    color: "var(--text)",
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  }
+  return rows;
 }
 
-// ── Block renderer (editor view) ─────────────────────────────────────────────
-function BlockRenderer({ block, onChange }) {
-  const setText = (text) => onChange({ ...block, text });
-
-  if (block.type === "title") {
-    return (
-      <input
-        value={block.text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Your report title"
-        className="t-display"
-        style={{
-          width: "100%", fontSize: 42, border: 0, outline: 0, padding: 0,
-          color: "var(--text)", background: "transparent",
-          fontFamily: "var(--f-serif)", fontWeight: 500,
-          letterSpacing: "-0.02em", lineHeight: 1.08,
-        }}
-      />
-    );
-  }
-  if (block.type === "dek") {
-    return (
-      <input
-        value={block.text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Add a subtitle or one-line summary"
-        style={{
-          width: "100%", fontSize: 19, border: 0, outline: 0, padding: 0,
-          color: "var(--text-mute)", background: "transparent",
-          fontFamily: "var(--f-serif)", fontStyle: "italic", lineHeight: 1.5,
-        }}
-      />
-    );
-  }
-  if (block.type === "h") {
-    return (
-      <input
-        value={block.text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Section heading"
-        className="t-title"
-        style={{
-          width: "100%", fontSize: 22, border: 0, outline: 0, padding: 0,
-          color: "var(--text)", background: "transparent",
-          fontFamily: "var(--f-serif)", fontWeight: 500, lineHeight: 1.3,
-        }}
-      />
-    );
-  }
-  if (block.type === "p") {
-    return (
-      <textarea
-        value={block.text}
-        onChange={(e) => setText(e.target.value)}
-        rows={Math.max(2, Math.ceil((block.text || "").length / 80))}
-        placeholder="Start writing your analysis..."
-        style={{
-          width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
-          color: "var(--text-body)", background: "transparent",
-          fontFamily: "var(--f-serif)", fontSize: 18, lineHeight: 1.7,
-        }}
-      />
-    );
-  }
-  if (block.type === "prediction") {
-    return <PredictionBlockEditor block={block} onChange={onChange}/>;
-  }
-  if (block.type === "pullquote") {
-    return (
-      <blockquote style={{ margin: "16px -24px", padding: "0 0 0 24px", borderLeft: "0.5px solid var(--gold-hex)" }}>
-        <textarea
-          value={block.text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          placeholder="Add a notable quote or key insight"
-          style={{
-            width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
-            color: "var(--text)", background: "transparent",
-            fontFamily: "var(--f-serif)", fontStyle: "italic",
-            fontSize: 24, lineHeight: 1.35, letterSpacing: "-0.014em",
-          }}
-        />
-      </blockquote>
-    );
-  }
-  if (block.type === "metrics") {
-    // Full key-metrics block: delegate to MetricsBlock which fetches live
-    // P/E, EPS, revenue, market cap, etc. from Yahoo Finance and offers a
-    // ticker autofill plus manual edit fallback. Replaces the old static
-    // 2-cell placeholder that was outputting nonsense.
-    return (
-      <MetricsBlock
-        block={block}
-        onChange={onChange}
-        onDelete={() => {}}
-      />
-    );
-  }
-  if (block.type === "bullets" || block.type === "numbered") {
-    const isOrdered = block.type === "numbered";
-    return (
-      <div style={{ paddingLeft: 22, fontFamily: "var(--f-serif)", fontSize: 17, lineHeight: 1.7, color: "var(--text-body)" }}>
-        {isOrdered ? <span className="t-meta">1.</span> : <span style={{ color: "var(--gold-hex)" }}>•</span>}{" "}
-        <textarea
-          value={block.text}
-          onChange={(e) => setText(e.target.value)}
-          rows={Math.max(2, Math.ceil((block.text || "").length / 60))}
-          placeholder={isOrdered ? "Numbered list — one item per line" : "Bulleted list — one item per line"}
-          style={{
-            width: "calc(100% - 22px)", border: 0, outline: 0, padding: 0, resize: "none",
-            color: "var(--text-body)", background: "transparent",
-            fontFamily: "var(--f-serif)", fontSize: 17, lineHeight: 1.7,
-            verticalAlign: "top",
-          }}
-        />
-      </div>
-    );
-  }
-  if (block.type === "callout") {
-    return (
-      <div className="surface" style={{ padding: 18, margin: "12px 0", background: "var(--bg-elev)" }}>
-        <textarea
-          value={block.text}
-          onChange={(e) => setText(e.target.value)}
-          rows={Math.max(2, Math.ceil((block.text || "").length / 60))}
-          placeholder="A highlighted note or aside"
-          style={{
-            width: "100%", border: 0, outline: 0, padding: 0, resize: "none",
-            color: "var(--text-body)", background: "transparent",
-            fontFamily: "var(--f-sans)", fontSize: 14, lineHeight: 1.6,
-          }}
-        />
-      </div>
-    );
-  }
-  if (block.type === "divider") {
-    return (
-      <div style={{ margin: "20px 0" }}>
-        <div style={{ height: 1, background: "var(--border-strong)" }}/>
-      </div>
-    );
-  }
-  if (block.type === "dyod") {
-    return (
-      <div
-        style={{
-          margin: "20px 0",
-          padding: "14px 18px",
-          background: "rgba(212,175,55,0.06)",
-          border: "0.5px solid rgba(212,175,55,0.32)",
-          borderRadius: 10,
-          display: "flex",
-          gap: 12,
-        }}
-      >
-        <ShieldAlert size={14} strokeWidth={1.7} style={{ color: "var(--gold-hex)", flexShrink: 0, marginTop: 2 }}/>
-        <div style={{ flex: 1 }}>
-          <div className="t-eyebrow" style={{ color: "var(--gold-hex)", marginBottom: 6 }}>Do Your Own Diligence</div>
-          <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-mute)", fontFamily: "var(--f-sans)" }}>
-            {block.text || DYOD_TEXT}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (block.type === "stockchart") {
-    return <StockChartBlock block={block} onChange={onChange} onDelete={() => {}}/>;
-  }
-  if (block.type === "comparechart") {
-    // Editor-side comparison: tickers + label inputs; renders side-by-side
-    // on the published view. Kept minimal here — analyst types 2-4 tickers
-    // separated by commas.
-    const data = block.data || { tickers: ["", ""] };
-    return (
-      <div className="surface" style={{ padding: 18, margin: "12px 0", background: "var(--bg-elev)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <GitCompare size={13} strokeWidth={1.55} style={{ color: "var(--text-meta)" }}/>
-          <span className="t-eyebrow">Comparison chart</span>
-        </div>
-        <input
-          value={(data.tickers || []).join(", ")}
-          onChange={(e) => onChange({ ...block, data: { ...data, tickers: e.target.value.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) } })}
-          placeholder="NVDA, AMD, INTC"
-          style={{
-            width: "100%", height: 36, padding: "0 12px",
-            border: "0.5px solid var(--border-strong)",
-            borderRadius: 4, background: "var(--bg)",
-            fontSize: 13, fontFamily: "var(--f-mono)", color: "var(--text)",
-            letterSpacing: "0.04em",
-          }}
-        />
-        <div className="t-meta" style={{ marginTop: 8, fontSize: 11 }}>
-          Up to 4 tickers, comma-separated. Renders as a comparison chart on the published report.
-        </div>
-      </div>
-    );
-  }
-  if (block.type === "image") {
-    return <ImageBlock block={block} onChange={onChange} onDelete={() => {}}/>;
-  }
-  if (block.type === "bullbear") {
-    const data = block.data || { bull: [""], bear: [""] };
-    return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, margin: "8px 0" }}>
-        <div className="surface" style={{ padding: 18, borderColor: "rgba(14,107,69,0.32)", background: "rgba(14,107,69,0.04)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <TrendingUp size={13} strokeWidth={1.7} style={{ color: "var(--rolex-green)" }}/>
-            <span className="t-eyebrow" style={{ color: "var(--rolex-green)" }}>Bull</span>
-          </div>
-          {data.bull.map((t, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-              <span style={{ marginTop: 8, width: 6, height: 1, background: "var(--rolex-green)", flexShrink: 0 }}/>
-              <input value={t}
-                onChange={(e) => {
-                  const next = [...data.bull]; next[i] = e.target.value;
-                  onChange({ ...block, data: { ...data, bull: next } });
-                }}
-                placeholder="Bull case"
-                style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--f-serif)", fontSize: 13.5, color: "var(--text-body)" }}
-              />
-            </div>
-          ))}
-        </div>
-        <div className="surface" style={{ padding: 18, borderColor: "rgba(146,43,62,0.32)", background: "rgba(146,43,62,0.04)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <TrendingDown size={13} strokeWidth={1.7} style={{ color: "var(--velvet-red)" }}/>
-            <span className="t-eyebrow" style={{ color: "var(--velvet-red)" }}>Bear</span>
-          </div>
-          {data.bear.map((t, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-              <span style={{ marginTop: 8, width: 6, height: 1, background: "var(--velvet-red)", flexShrink: 0 }}/>
-              <input value={t}
-                onChange={(e) => {
-                  const next = [...data.bear]; next[i] = e.target.value;
-                  onChange({ ...block, data: { ...data, bear: next } });
-                }}
-                placeholder="Bear case"
-                style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontFamily: "var(--f-serif)", fontSize: 13.5, color: "var(--text-body)" }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  if (block.type === "keypricelevels") {
-    return <KeyPriceLevelsEditor block={block} onChange={onChange} />;
-  }
-  return null;
-}
-
-// ── A single editor block wrapper ────────────────────────────────────────────
-function EditorBlockWrap({ block, active, setActive, onShowSlash, onChange, onDelete }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={setActive}
-      style={{
-        position: "relative",
-        padding: "6px 0",
-        borderRadius: 4,
-        background: active ? "rgba(30,58,138,0.025)" : "transparent",
-        margin: "0 -10px", paddingLeft: 10, paddingRight: 10,
-        transition: "background var(--t-fast) var(--ease)",
-        cursor: "text",
-      }}
-    >
-      <div style={{
-        position: "absolute", left: -42, top: 8,
-        display: "flex", gap: 2, alignItems: "center",
-        opacity: hover || active ? 1 : 0.32,
-        transition: "opacity var(--t-fast) var(--ease)",
-      }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onShowSlash(); }}
-          title="Add block · /"
-          style={{
-            width: 22, height: 22, borderRadius: 4,
-            color: hover || active ? "var(--gold-hex)" : "var(--text-meta)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "transparent", border: 0, cursor: "pointer",
-          }}
-        >
-          <Plus size={13} strokeWidth={1.8}/>
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          title="Delete block"
-          style={{
-            width: 22, height: 22, borderRadius: 4,
-            color: "var(--text-meta)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "transparent", border: 0, cursor: "pointer",
-          }}
-        >
-          <X size={11} strokeWidth={1.8}/>
-        </button>
-      </div>
-      <BlockRenderer block={block} onChange={onChange}/>
-    </div>
-  );
-}
-
-/**
- * ReportEditor — full-bleed compose (v3 rebuild).
- * Layout per prototype/src/screens/compose.jsx: 56px top bar, 3-col body
- * (260px outline / 720px editor / 340px collapsible AI rail), block-based
- * editor with insertion zones, slash menu, gold-edged prediction block.
- *
- * Persists drafts to base44.entities.Report with autosave on 1.5s debounce.
- */
+// ─── Main Component ────────────────────────────────────────────────────────
 export default function ReportEditor() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const urlParams = new URLSearchParams(window.location.search);
-  const draftIdParam = urlParams.get("id");
+  const urlTicker = new URLSearchParams(window.location.search).get("ticker")?.toUpperCase() || "";
+  // /drafts redirects to /editor?drafts=1 — open the drafts panel on mount.
+  const urlOpenDrafts = new URLSearchParams(window.location.search).get("drafts") === "1";
 
-  const [draftId, setDraftId] = useState(draftIdParam);
-  const [blocks, setBlocks] = useState(DEFAULT_BLOCKS);
-  const [activeBlockId, setActiveBlockId] = useState(DEFAULT_BLOCKS[0].id);
-  const [slashOpen, setSlashOpen] = useState(false);
-  const [slashAt, setSlashAt] = useState(null); // index to insert at
-  const [aiOpen, setAiOpen] = useState(true);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [monetized, setMonetized] = useState(true);
-  // Pay-per-report monetization (PRD §monetization): analysts can offer their
-  // report to non-subscribers for a one-off price between $1 and $50. Both
-  // toggles can be on at once — subscribers read it for free, anyone else
-  // pays the individual price.
-  const [individualPurchase, setIndividualPurchase] = useState(false);
-  const [individualPrice, setIndividualPrice] = useState(5);
-  // Restored from backup: floating AISidebar (report skeleton generator)
-  // and AIChat (conversational), plus Templates + Design panels.
-  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
-  const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
-  const [designOpen, setDesignOpen] = useState(false);
-  const [reportTheme, setReportTheme] = useState("default");
-  const [reportFont, setReportFont] = useState("inter");
-  const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const autosaveTimer = useRef(null);
-  const mountedRef = useRef(false);
+  // Mode
+  const [editorMode, setEditorMode] = useState("deep"); // "deep" | "quick"
 
-  // Load existing draft
+  // Quick Post extra state
+  const [quickImage, setQuickImage] = useState(null);
+  const [quickShowPrediction, setQuickShowPrediction] = useState(false);
+  const [quickAction, setQuickAction] = useState("BUY");
+  const [quickTicker, setQuickTicker] = useState("");
+  const [quickTimeframe, setQuickTimeframe] = useState("1d");
+  const [quickTarget, setQuickTarget] = useState("");
+
+  // Content state
+  const [title,          setTitle]          = useState(urlTicker ? `${urlTicker} — Equity Research Report` : "");
+  const [excerpt,        setExcerpt]        = useState("");
+  const [blocks,         setBlocks]         = useState([makeBlock("text")]);
+  const [predictionData, setPredictionData] = useState(null);
+
+  // Settings state
+  const [isPremium,      setIsPremium]      = useState(false);
+  const [reportPrice,    setReportPrice]    = useState("4.99");
+  const [industry,       setIndustry]       = useState("");
+  const [marketCap,      setMarketCap]      = useState("");
+  const [coverImage,     setCoverImage]     = useState("");
+  const [tags,           setTags]           = useState([]);
+  const [tagInput,       setTagInput]       = useState("");
+
+  // Design state
+  const [reportTheme,    setReportTheme]    = useState("default");
+  const [reportFont,     setReportFont]     = useState("inter");
+  const [reportLayout,   setReportLayout]   = useState("standard");
+  const [accentColor,    setAccentColor]    = useState("#1d4ed8");
+  const [isRTL,          setIsRTL]          = useState(false);
+  const [brandName,      setBrandName]      = useState("");
+  const [brandLogo,      setBrandLogo]      = useState("");
+  const [reportFooter,   setReportFooter]   = useState("");
+
+  // UI state
+  const [showPrediction, setShowPrediction] = useState(false);
+  const [showAI,         setShowAI]         = useState(() => !!urlTicker);
+  const [showDrafts,     setShowDrafts]     = useState(urlOpenDrafts);
+  const [showTemplates,  setShowTemplates]  = useState(false);
+  const [activePanel,    setActivePanel]    = useState("write");
+  const [publishing,     setPublishing]     = useState(false);
+  const [showScheduler,  setShowScheduler]  = useState(false);
+  const [scheduledAt,    setScheduledAt]    = useState("");
+  const [lastSaved,      setLastSaved]      = useState(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [dropIndicatorAt, setDropIndicatorAt] = useState(null);
+
+  // Undo/Redo
+  const historyRef = useRef([]);
+  const historyIndexRef = useRef(-1);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Drafts come from the Report entity (status='draft', created by the current user)
+  // so the editor's badge count matches the dashboard's "My Drafts" panel.
+  // The previous localStorage-only list drifted from the entity-backed dashboard view,
+  // which is why the editor could show "Drafts 4" while the dashboard said "No drafts yet".
+  const [drafts, setDrafts] = useState([]);
+  // The draft we're currently editing. When set, persistDraft updates that
+  // record instead of creating a new one — this is what fixes the bug where
+  // each auto-save (every 30s) was spawning a new draft row.
+  const [currentDraftId, setCurrentDraftId] = useState(null);
+
   useEffect(() => {
-    if (!draftIdParam) return;
-    base44.entities.Report.get(draftIdParam).then((r) => {
-      if (!r) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const parsed = JSON.parse(r.content_blocks || "[]");
-        if (Array.isArray(parsed) && parsed.length) setBlocks(parsed);
-      } catch {}
-      setMonetized(!!r.is_premium);
-      setIndividualPurchase(!!r.individual_purchase_enabled);
-      if (typeof r.individual_price === "number") setIndividualPrice(r.individual_price);
-    }).catch(() => {});
-  }, [draftIdParam]);
+        const me = await base44.auth.me();
+        if (!me?.email) return;
+        const rows = await base44.entities.Report.filter(
+          { created_by: me.email, status: "draft" },
+          "-updated_date",
+          200
+        ).catch(() => []);
 
-  // Global "/" slash trigger
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "/" && !slashOpen && !previewOpen) {
-        const tag = (e.target.tagName || "").toLowerCase();
-        const isField = tag === "input" || tag === "textarea" || e.target.isContentEditable;
-        if (!isField) {
-          e.preventDefault();
-          setSlashOpen(true);
-          setSlashAt(null);
+        // Dedupe: drafts that share the same title + content payload are
+        // duplicates created by the old save-as-create-every-time logic.
+        // Keep the most recently updated one in each group; delete the rest
+        // (best-effort, so a failed delete doesn't block the editor).
+        const seen = new Map();
+        const survivors = [];
+        const toDelete = [];
+        for (const d of rows || []) {
+          const key = `${(d.title || "").trim().toLowerCase()}::${(d.content_blocks || "").length}::${(d.content_blocks || "").slice(0, 64)}`;
+          if (seen.has(key)) toDelete.push(d.id);
+          else { seen.set(key, true); survivors.push(d); }
         }
-      }
-      if (e.key === "Escape") {
-        if (slashOpen) setSlashOpen(false);
-        if (previewOpen) setPreviewOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [slashOpen, previewOpen]);
+        if (toDelete.length) {
+          Promise.allSettled(toDelete.map(id => base44.entities.Report.delete(id)))
+            .catch(() => {});
+        }
+        if (!cancelled) setDrafts(survivors);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  // Autosave — debounced 1.5s
-  const save = useCallback(async (silent = true) => {
-    if (!user?.email) return null;
-    const title = blocks.find((b) => b.type === "title")?.text || "Untitled";
-    const excerpt = blocks.find((b) => b.type === "dek")?.text || "";
-    const predBlock = blocks.find((b) => b.type === "prediction");
-    const patch = {
-      title,
-      excerpt,
-      content_blocks: JSON.stringify(blocks),
-      is_premium: monetized,
-      individual_purchase_enabled: individualPurchase,
-      individual_price: individualPurchase ? Math.min(50, Math.max(1, Number(individualPrice) || 5)) : null,
-      status: "draft",
-      created_by: user.email,
-      author_name: user.full_name || user.email,
-      kind: "Research Report",
-      prediction_ticker: predBlock?.data?.ticker || null,
-      prediction_action: predBlock?.data?.dir
-        ? predBlock.data.dir.charAt(0) + predBlock.data.dir.slice(1).toLowerCase()
-        : null,
-      prediction_entry_price: predBlock?.data?.entry ? Number(predBlock.data.entry.toString().replace(/[^0-9.-]/g, "")) : null,
-      prediction_target_price: predBlock?.data?.target ? Number(predBlock.data.target.toString().replace(/[^0-9.-]/g, "")) : null,
-      prediction_stop_price: predBlock?.data?.stop ? Number(predBlock.data.stop.toString().replace(/[^0-9.-]/g, "")) : null,
-      prediction_timeframe: predBlock?.data?.days ? `${predBlock.data.days} days` : null,
-    };
-    setSaving(true);
-    try {
-      let id = draftId;
-      if (id) {
-        await base44.entities.Report.update(id, patch);
-      } else {
-        const created = await base44.entities.Report.create(patch);
-        id = created?.id;
-        if (id) setDraftId(id);
-      }
-      setLastSavedAt(new Date());
-      if (!silent) toast.success("Saved.");
-      return id;
-    } catch (e) {
-      if (!silent) toast.error("Save failed.");
-      return null;
-    } finally {
-      setSaving(false);
-    }
-  }, [blocks, draftId, monetized, individualPurchase, individualPrice, user]);
+  const wordCount = useMemo(() =>
+    blocks
+      .filter(b => ["text", "heading", "heading2", "bullets", "quote", "callout", "numbered"].includes(b.type))
+      .reduce((n, b) => n + (b.content || "").trim().split(/\s+/).filter(Boolean).length, 0),
+  [blocks]);
 
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const saveStatus  = lastSaved && Date.now() - lastSaved < 60_000 ? "saved" : "unsaved";
+
+  const wordCountColor = wordCount >= 600 ? "text-gain" : wordCount >= 200 ? "text-foreground" : "text-amber-500";
+
+  // Push to undo history
+  const pushHistory = useCallback((newBlocks) => {
+    const snapshot = JSON.stringify(newBlocks);
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+    historyRef.current.push(snapshot);
+    if (historyRef.current.length > 20) historyRef.current.shift();
+    historyIndexRef.current = historyRef.current.length - 1;
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(false);
+  }, []);
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current--;
+    const prev = JSON.parse(historyRef.current[historyIndexRef.current]);
+    setBlocks(prev);
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(true);
+  }, []);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current++;
+    const next = JSON.parse(historyRef.current[historyIndexRef.current]);
+    setBlocks(next);
+    setCanUndo(true);
+    setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+  }, []);
+
+  // Auto-save every 30s
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return; }
-    clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => { save(true); }, AUTOSAVE_MS);
-    return () => clearTimeout(autosaveTimer.current);
-  }, [blocks, monetized, individualPurchase, individualPrice, save]);
+    const hasContent = title.trim() || blocks.some(b => b.content?.trim());
+    if (!hasContent) return;
+    const t = setTimeout(() => persistDraft(true), 30_000);
+    return () => clearTimeout(t);
+  }, [title, blocks, predictionData]);
 
-  // Block ops
-  const insertAt = (type, idx) => {
-    let newBlock;
-    switch (type) {
-      case "prediction":
-        newBlock = { id: newId(), type, data: { ticker: "", dir: "LONG", entry: "", target: "", stop: "", days: 90 } };
-        break;
-      case "metrics":
-        newBlock = { id: newId(), type, content: "" };
-        break;
-      case "bullbear":
-        newBlock = { id: newId(), type, data: { bull: [""], bear: [""] } };
-        break;
-      case "keypricelevels":
-        newBlock = { id: newId(), type, data: { ticker: "", currentPrice: null, levels: [] } };
-        break;
-      case "comparechart":
-        newBlock = { id: newId(), type, data: { tickers: ["", ""] } };
-        break;
-      case "stockchart":
-        newBlock = { id: newId(), type, ticker: "", interval: "D", style: "1", studies: [] };
-        break;
-      case "image":
-        newBlock = { id: newId(), type, url: "", caption: "" };
-        break;
-      case "dyod":
-        newBlock = { id: newId(), type, text: DYOD_TEXT };
-        break;
-      case "divider":
-        newBlock = { id: newId(), type };
-        break;
-      default:
-        newBlock = { id: newId(), type, text: "" };
-    }
-    setBlocks((prev) => {
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "s") { e.preventDefault(); persistDraft(); }
+      if (mod && e.key === "Enter") { e.preventDefault(); handlePublish(); }
+      if (mod && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (mod && e.key === "z" && e.shiftKey) { e.preventDefault(); redo(); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [undo, redo]);
+
+  // ── Block operations ──────────────────────────────────────────────────────
+  const setBlocksWithHistory = useCallback((newBlocks) => {
+    setBlocks(newBlocks);
+    pushHistory(newBlocks);
+  }, [pushHistory]);
+
+  const updateBlock = useCallback((id, updated) => {
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...updated, id: b.id } : b));
+  }, []);
+
+  const deleteBlock = useCallback((id) => {
+    setBlocks(prev => {
+      const next = prev.filter(b => b.id !== id);
+      const result = next.length > 0 ? next : [makeBlock("text")];
+      pushHistory(result);
+      return result;
+    });
+  }, [pushHistory]);
+
+  const insertBlockAfter = useCallback((id, type = "text") => {
+    setBlocks(prev => {
+      const idx = prev.findIndex(b => b.id === id);
       const next = [...prev];
-      const at = idx == null ? next.length : idx;
-      next.splice(at, 0, newBlock);
+      next.splice(idx + 1, 0, makeBlock(type));
+      pushHistory(next);
       return next;
     });
-    setActiveBlockId(newBlock.id);
+  }, [pushHistory]);
+
+  const insertBlockAt = useCallback((index, blockData) => {
+    setBlocks(prev => {
+      const next = [...prev];
+      next.splice(index, 0, makeBlock(blockData.type || "text", blockData.content || ""));
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
+  const duplicateBlock = useCallback((id) => {
+    setBlocks(prev => {
+      const idx = prev.findIndex(b => b.id === id);
+      if (idx < 0) return prev;
+      const copy = { ...prev[idx], id: newId() };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
+  const moveBlock = useCallback((id, dir) => {
+    setBlocks(prev => {
+      const idx = prev.findIndex(b => b.id === id);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
+  const turnIntoBlock = useCallback((id, newType) => {
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, type: newType } : b));
+  }, []);
+
+  const handleBlockDragEnd = useCallback((result) => {
+    if (!result.destination || result.destination.index === result.source.index) return;
+    setBlocks(prev => {
+      const next = Array.from(prev);
+      const [removed] = next.splice(result.source.index, 1);
+      next.splice(result.destination.index, 0, removed);
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
+  const addBlock = useCallback((type) => {
+    const nb = makeBlock(type);
+    setBlocks(prev => { const next = [...prev, nb]; pushHistory(next); return next; });
+  }, [pushHistory]);
+
+  // Idempotent: if a disclaimer block already exists in the content, don't
+  // append another one. Multiple clicks were stacking the same paragraph.
+  const addDYOR = useCallback(() => {
+    setBlocks(prev => {
+      const alreadyHas = prev.some(b =>
+        typeof b.content === "string" &&
+        /\bDisclaimer:|\bDYOR\b/i.test(b.content)
+      );
+      if (alreadyHas) {
+        toast.info("DYOR disclaimer is already in the report");
+        return prev;
+      }
+      const next = [...prev, makeBlock("text", DYOR_TEXT)];
+      pushHistory(next);
+      toast.success("DYOR disclaimer added");
+      return next;
+    });
+  }, [pushHistory]);
+
+  // ── Tags ─────────────────────────────────────────────────────────────────
+  const addTag = (e) => {
+    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+      e.preventDefault();
+      const t = tagInput.trim().replace(/,+$/, "");
+      if (t && !tags.includes(t) && tags.length < 8) setTags(prev => [...prev, t]);
+      setTagInput("");
+    }
   };
 
-  // Top-toolbar shortcut for inserting a DYOD disclaimer — regulatory
-  // requirement on every published report. Idempotent: if a DYOD block
-  // already exists, scrolls to it instead of duplicating.
-  const insertDYOD = () => {
-    const existing = blocks.findIndex((b) => b.type === "dyod");
-    if (existing >= 0) {
-      setActiveBlockId(blocks[existing].id);
-      toast.info("DYOD disclaimer already in the report.");
+  // ── Cover image upload ────────────────────────────────────────────────────
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setCoverImage(file_url);
+      toast.success("Cover image uploaded!");
+    } catch { toast.error("Upload failed"); }
+    finally { setUploadingCover(false); }
+  };
+
+  // ── Drafts ────────────────────────────────────────────────────────────────
+  // Drafts are persisted as Report entities with status='draft'. This is the
+  // same source the dashboard reads from, so both views always agree.
+  //
+  // Save semantics:
+  //   - If we already have a currentDraftId (loaded an existing draft, or
+  //     this is the second+ save in a session) → UPDATE that row.
+  //   - Otherwise → CREATE a new row and remember its id for next time.
+  // This is what stops the auto-save timer from spawning a duplicate
+  // every 30 seconds.
+  const persistDraft = async (silent = false) => {
+    try {
+      const me = await base44.auth.me();
+      if (!me?.email) { if (!silent) toast.error("You must be logged in to save drafts."); return; }
+      const cleanBlocks = sanitizeBlocks(blocks);
+      const payload = {
+        title:            title || "Untitled Draft",
+        content_blocks:   JSON.stringify(cleanBlocks),
+        excerpt:          excerpt || "",
+        industry:         industry || "",
+        market_cap:       marketCap || "",
+        tickers:          (tags || []).join(","),
+        status:           "draft",
+        prediction_action:        predictionData?.action       || null,
+        prediction_ticker:        predictionData?.ticker       || null,
+        prediction_target_price:  predictionData?.targetPrice  ?? null,
+        prediction_timeframe:     predictionData?.timeframe    || null,
+        prediction_stop_loss:     predictionData?.stopLoss     ?? null,
+        prediction_portfolio_pct: predictionData?.portfolioPct ?? null,
+      };
+
+      if (currentDraftId) {
+        const updated = await base44.entities.Report.update(currentDraftId, payload);
+        setDrafts(prev => {
+          const others = prev.filter(d => d.id !== currentDraftId);
+          return [updated || { ...payload, id: currentDraftId, updated_date: new Date().toISOString() }, ...others];
+        });
+      } else {
+        const created = await base44.entities.Report.create(payload);
+        if (created?.id) setCurrentDraftId(created.id);
+        setDrafts(prev => [created, ...prev]);
+      }
+
+      setLastSaved(Date.now());
+      if (!silent) toast.success(currentDraftId ? "Draft updated" : "Draft saved");
+    } catch (err) {
+      if (!silent) toast.error("Could not save draft.");
+    }
+  };
+
+  const loadDraft = (draft) => {
+    setTitle(draft.title || "");
+    let parsed = [];
+    try { parsed = draft.content_blocks ? JSON.parse(draft.content_blocks) : []; } catch {}
+    setBlocks(sanitizeBlocks(parsed));
+    setPredictionData(draft.prediction_action ? {
+      action:       draft.prediction_action,
+      ticker:       draft.prediction_ticker || "",
+      targetPrice:  draft.prediction_target_price,
+      timeframe:    draft.prediction_timeframe || "",
+      stopLoss:     draft.prediction_stop_loss,
+      portfolioPct: draft.prediction_portfolio_pct,
+    } : null);
+    setExcerpt(draft.excerpt || "");
+    setIndustry(draft.industry || "");
+    setMarketCap(draft.market_cap || "");
+    setCoverImage("");
+    setTags((draft.tickers || "").split(",").map(t => t.trim()).filter(Boolean));
+    // Remember this draft id so subsequent saves UPDATE it instead of
+    // creating a new row.
+    setCurrentDraftId(draft.id);
+    setShowDrafts(false);
+    toast.success("Draft loaded — saves will update this draft");
+  };
+
+  const deleteDraft = async (id) => {
+    try {
+      await base44.entities.Report.delete(id);
+      setDrafts(prev => prev.filter(d => d.id !== id));
+      // If we just deleted the draft we were editing, forget it so the next
+      // save creates a fresh row (otherwise update() would fail).
+      if (id === currentDraftId) setCurrentDraftId(null);
+    } catch {
+      toast.error("Could not delete draft.");
+    }
+  };
+
+  // ── AI / Template generation ─────────────────────────────────────────────
+  const handleAIGenerate = useCallback((template) => {
+    const newBlocks = sanitizeBlocks(template.map(b => makeBlock(b.type || "text", b.content || "")));
+    setBlocksWithHistory(newBlocks);
+    toast.success("Template loaded!");
+  }, [setBlocksWithHistory]);
+
+  const handleTemplateSelect = useCallback((templateBlocks) => {
+    const newBlocks = sanitizeBlocks(templateBlocks.map(b => makeBlock(b.type || "text", b.content || "")));
+    setBlocksWithHistory(newBlocks);
+    toast.success("Template applied!");
+  }, [setBlocksWithHistory]);
+
+  // ── AI drag-and-drop ──────────────────────────────────────────────────────
+  const handleDragOver = (e, idx) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropIndicatorAt(idx);
+  };
+
+  const handleDrop = (e, idx) => {
+    e.preventDefault();
+    setDropIndicatorAt(null);
+
+    // Multi-block payload (compare-chart). MUST do all inserts in a single
+    // setBlocks call — earlier version called insertBlockAt N times in a
+    // forEach loop which ran into React 18's setState batching: only the
+    // last functional updater's result was committed, so the user saw
+    // only 1 chart land in the report.
+    const blocksJson = e.dataTransfer.getData("ai-blocks");
+    if (blocksJson) {
+      try {
+        const newBlocks = JSON.parse(blocksJson);
+        if (Array.isArray(newBlocks) && newBlocks.length > 0) {
+          setBlocks(prev => {
+            const next = [...prev];
+            // Preserve full block payload (tickers/timeframe for comparechart,
+            // ticker for stockchart, etc.) — earlier this only forwarded
+            // type+content, which is why a multi-ticker compare chart lost
+            // its data and degraded to 2 stockchart blocks.
+            newBlocks.forEach((b, i) => {
+              const base = makeBlock(b.type || "text", b.content || "");
+              const merged = { ...base, ...b, id: base.id };
+              next.splice(idx + i, 0, merged);
+            });
+            pushHistory(next);
+            return next;
+          });
+          return;
+        }
+      } catch {
+        // fall through to single-block path
+      }
+    }
+
+    // Single-block payload
+    const text      = e.dataTransfer.getData("ai-text");
+    const type      = e.dataTransfer.getData("ai-type") || "text";
+    const tickers   = e.dataTransfer.getData("ai-tickers");
+    const timeframe = e.dataTransfer.getData("ai-timeframe");
+    if (type === "comparechart" && tickers) {
+      setBlocks(prev => {
+        const next = [...prev];
+        next.splice(idx, 0, {
+          ...makeBlock("comparechart", tickers),
+          tickers: tickers.split(",").filter(Boolean),
+          timeframe: timeframe || "1M",
+        });
+        pushHistory(next);
+        return next;
+      });
       return;
     }
-    insertAt("dyod", blocks.length);
-    toast.success("DYOD disclaimer added.");
+    if (text) insertBlockAt(idx, { type, content: text });
   };
 
-  // Top-toolbar shortcut for inserting a locked Prediction block. Adds it
-  // after the title/dek so it sits prominently near the top of the draft.
-  const insertPrediction = () => {
-    const existing = blocks.findIndex((b) => b.type === "prediction");
-    if (existing >= 0) {
-      setActiveBlockId(blocks[existing].id);
-      toast.info("Prediction block already in the report.");
-      return;
+  // ── Publish ───────────────────────────────────────────────────────────────
+  // Publishing is the commitment moment:
+  //   1. Validate content
+  //   2. Verify AI credits (fact-check is paid work)
+  //   3. If there's a prediction → fetch live price NOW, lock as entry
+  //   4. Run AI fact check
+  //   5. Write to DB with status=published
+  //   6. Deduct credits + log transaction
+  // Draft saves do NONE of this — drafting is free and fast.
+  const PUBLISH_COST = 10; // AI credits
+
+  // Handles both immediate publish and scheduled publish.
+  // Pass scheduleTime (ISO string) to schedule; omit for immediate.
+  const handlePublish = async (scheduleTime = null) => {
+    if (!title.trim()) { toast.error("Please add a title before publishing."); return; }
+    const validBlocks = sanitizeBlocks(blocks);
+    if (validBlocks.every(b => !b.content?.trim() && b.type !== "stockchart" && b.type !== "image" && b.type !== "divider")) {
+      toast.error("Please write some content before publishing."); return;
     }
-    const dekIdx = blocks.findIndex((b) => b.type === "dek");
-    insertAt("prediction", dekIdx >= 0 ? dekIdx + 1 : blocks.length);
-  };
+    if (scheduleTime && new Date(scheduleTime) <= new Date()) {
+      toast.error("Scheduled time must be in the future."); return;
+    }
 
-  const updateBlock = (id, patch) => {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? patch : b)));
-  };
-  const deleteBlock = (id) => {
-    setBlocks((prev) => prev.length > 1 ? prev.filter((b) => b.id !== id) : prev);
-  };
-
-  // Publish flow: lock entry prices + flip status
-  const publish = async () => {
-    if (publishing) return;
     setPublishing(true);
     try {
-      const id = await save(true);
-      if (!id) throw new Error("Could not save before publish");
-      const predBlock = blocks.find((b) => b.type === "prediction");
-      let lockData = {};
-      if (predBlock?.data?.ticker) {
-        // Capture the live market price at publish time as the official lock price.
-        // This is what the checkPredictions cloud function reads when resolving outcomes.
-        // Fallback to analyst-entered entry if the live fetch fails.
-        const enteredEntry = predBlock.data.entry ? Number(String(predBlock.data.entry).replace(/[^0-9.-]/g, "")) : null;
-        let livePrice = enteredEntry;
-        if (fetchLockPrice) {
-          try {
-            const live = await fetchLockPrice(predBlock.data.ticker);
-            if (live?.price) livePrice = live.price;
-          } catch {}
-        }
-        if (livePrice) {
-          lockData.prediction_lock_price = livePrice;   // ← what checkPredictions reads
-          lockData.prediction_lock_time  = new Date().toISOString(); // ← expiry anchor
-          lockData.prediction_entry_price = livePrice;  // ← also update display field
-        }
-      }
-      await base44.entities.Report.update(id, {
-        ...lockData,
+      const currentUser = await base44.auth.me();
+      if (!currentUser) throw new Error("Not logged in.");
+
+      // ── Duplicate guard: same author + same title already published ──────
+      const existing = await base44.entities.Report.filter({
+        created_by: currentUser.email,
+        title: title.trim(),
         status: "published",
-        published_at: new Date().toISOString(),
-      });
-
-      // Create the Prediction entity so it lands on the analyst's record
-      if (predBlock?.data?.ticker) {
-        await base44.entities.Prediction.create({
-          ticker: predBlock.data.ticker,
-          direction: predBlock.data.dir.charAt(0) + predBlock.data.dir.slice(1).toLowerCase(),
-          entry_price: lockData.prediction_entry_price || Number(predBlock.data.entry || 0),
-          target_price: Number(predBlock.data.target || 0),
-          stop_price: Number(predBlock.data.stop || 0),
-          timeframe_days: Number(predBlock.data.days || 90),
-          status: "active",
-          report_id: id,
-          thesis: blocks.find((b) => b.type === "dek")?.text || "",
-        }).catch(() => {});
+      }).catch(() => []);
+      if (existing?.length > 0) {
+        toast.error("You already have a published report with this title. Please rename it before publishing.");
+        setPublishing(false);
+        return;
       }
 
-      toast.success("Published & locked.");
-      navigate(`/report?id=${id}`);
-    } catch (e) {
-      toast.error(e?.message || "Publish failed");
+      // ── Step 1: AI credits gate — read from wallet (source of truth) ─────
+      const { wallet } = await loadMyWallet();
+      const credits = wallet.ai_credits || 0;
+      if (credits < PUBLISH_COST) {
+        toast.error(`Need ${PUBLISH_COST} AI credits to publish · You have ${credits}`, {
+          action: { label: "Get credits", onClick: () => navigate("/wallet") },
+          duration: 6000,
+        });
+        return;
+      }
+
+      // ── Step 2: Lock live price at publish moment (if prediction) ─────────
+      // Uses the multi-source provider: Finnhub real-time → Polygon → Yahoo fallback.
+      // The source is stored on the report so we can show data provenance.
+      let lockPrice  = null;
+      let lockTime   = null;
+      let lockSource = null;
+      if (predictionData?.ticker && predictionData?.action) {
+        toast.info(`Locking live price for $${predictionData.ticker}…`, { duration: 1800 });
+        try {
+          const locked = await fetchLockPrice(predictionData.ticker);
+          lockPrice  = locked.price;
+          lockTime   = locked.timestamp;
+          lockSource = locked.source;
+        } catch {
+          toast.error(`Could not fetch live price for $${predictionData.ticker}. Publish aborted — try again in a moment.`);
+          return;
+        }
+      }
+
+      // ── Step 3: Freeze stock chart blocks ─────────────────────────────────
+      const frozenBlocks = validBlocks.map(b =>
+        b.type === "stockchart" && !b.frozen ? { ...b, frozen: true } : b
+      );
+      setBlocks(frozenBlocks);
+
+      const fullText = [title, ...frozenBlocks.map(b => b.content || "")].filter(Boolean).join("\n\n");
+      const autoExcerpt = excerpt.trim() ||
+        validBlocks.find(b => b.type === "text" && b.content?.trim())?.content?.slice(0, 200) || "";
+
+      const tickers = [
+        ...frozenBlocks.flatMap(b => (b.content || "").match(/\$([A-Z]{2,5})/g) || []).map(t => t.replace("$", "")),
+        ...frozenBlocks.filter(b => b.type === "stockchart" && b.ticker).map(b => b.ticker),
+      ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+      // ── Step 4: AI fact check ─────────────────────────────────────────────
+      let factCheckJson = null;
+      try {
+        toast.info("Running AI fact check…", { duration: 2500 });
+        const res = await base44.integrations.Core.InvokeLLM({
+          model: "claude_sonnet_4_6",
+          prompt: `Fact-check this financial report. Return ONLY valid JSON with no markdown:
+{"claims":[{"text":"...","type":"Fact|Opinion|Misleading|Unverified","note":"...","confidence":"high|medium|low"}]}
+Report:"""${fullText.slice(0, 3000)}"""`,
+        });
+        const raw = typeof res === "string" ? res : (res?.content?.[0]?.text || res?.text || "");
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) factCheckJson = match[0];
+      } catch (e) { console.warn("Fact check skipped:", e); }
+
+      // ── Step 5: Write report record ───────────────────────────────────────
+      const isScheduled = !!scheduleTime;
+      const reportPayload = {
+        title,
+        content_blocks:           JSON.stringify(frozenBlocks),
+        tickers:                  tickers.join(","),
+        excerpt:                  autoExcerpt,
+        fact_check_results:       factCheckJson,
+        industry:                 industry || null,
+        market_cap:               marketCap || null,
+        prediction_action:        predictionData?.action       || null,
+        prediction_ticker:        predictionData?.ticker       || null,
+        prediction_target_price:  predictionData?.targetPrice  || null,
+        prediction_lock_price:    lockPrice,
+        prediction_lock_time:     lockTime,
+        prediction_lock_source:   lockSource,
+        prediction_timeframe:     predictionData?.timeframe    || null,
+        prediction_stop_loss:     predictionData?.stopLoss     || null,
+        prediction_portfolio_pct: predictionData?.portfolioPct || null,
+        is_premium:    isPremium,
+        price:         isPremium ? parseFloat(reportPrice) : null,
+        status:        "published",
+        author_name:   currentUser?.full_name || currentUser?.email?.split("@")[0] || "Researcher",
+        author_avatar: avatarUrl(currentUser) || null,
+        author_accuracy: currentUser?.accuracy_score || 0,
+        likes: 0,
+      };
+      const createRes = await base44.functions.invoke("saveToSupabase", { type: "createReport", data: reportPayload });
+      if (createRes?.error) throw new Error(createRes.error);
+      const created = createRes?.data;
+
+      // ── Step 6: Deduct AI credits from wallet ─────────────────────────────
+      await spendAICredits(PUBLISH_COST, `${isScheduled ? "Schedule" : "Publish"}: ${title.slice(0, 50)}`).catch(e =>
+        console.warn("Credit deduction failed (non-fatal):", e)
+      );
+
+      // Drop the in-progress draft record now that it's been published —
+      // otherwise the user sees their just-published report sitting in the
+      // drafts list too.
+      if (currentDraftId) {
+        base44.entities.Report.delete(currentDraftId).catch(() => {});
+        setDrafts(prev => prev.filter(d => d.id !== currentDraftId));
+        setCurrentDraftId(null);
+      }
+
+      if (isScheduled) {
+        const when = new Date(scheduleTime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        toast.success(`Scheduled for ${when} · It will go live automatically.`);
+        setShowScheduler(false);
+        setScheduledAt("");
+        setTimeout(() => navigate("/dashboard"), 1200);
+      } else {
+        toast.success(lockPrice
+          ? `Published · Locked $${predictionData.ticker} @ $${lockPrice.toFixed(2)}`
+          : "Report published!"
+        );
+        if (created?.id) {
+          setTimeout(() => navigate(`/report?id=${created.id}`), 1000);
+        } else {
+          setTimeout(() => navigate("/dashboard"), 1000);
+        }
+      }
+    } catch (err) {
+      toast.error("Failed to publish: " + (err?.message || "Unknown error"));
     } finally {
       setPublishing(false);
     }
   };
 
-  // Derived UI bits
-  const outlineBlocks = useMemo(
-    () => blocks.filter((b) => ["title", "h", "metrics", "prediction", "bullbear"].includes(b.type)),
-    [blocks]
-  );
-  const wordCount = useMemo(() => {
-    const text = blocks
-      .map((b) => b.text || "")
-      .filter(Boolean).join(" ");
-    return text.split(/\s+/).filter(Boolean).length;
-  }, [blocks]);
-  const readMin = Math.max(1, Math.ceil(wordCount / 200));
-  const qualityScore = Math.min(100, Math.round((wordCount / 1000) * 100));
+  const themeObj = REPORT_THEMES.find(t => t.id === reportTheme) || REPORT_THEMES[0];
+  const fontObj = REPORT_FONTS.find(f => f.id === reportFont) || REPORT_FONTS[0];
 
-  return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* ── Top bar ── */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50, height: 56,
-        background: "color-mix(in srgb, var(--bg) 92%, transparent)",
-        backdropFilter: "blur(18px) saturate(1.2)",
-        WebkitBackdropFilter: "blur(18px) saturate(1.2)",
-        borderBottom: "0.5px solid var(--border-rgba)",
-        display: "flex", alignItems: "center", padding: "0 22px", gap: 18,
-      }}>
-        <button className="btn btn-text btn-sm" onClick={() => navigate("/dashboard")} style={{ paddingLeft: 0 }}>
-          <ChevronRight size={13} style={{ transform: "rotate(180deg)" }}/> Studio
-        </button>
-        <span className="t-meta" style={{ fontSize: 11 }}>·</span>
-        <span className="t-meta" style={{ fontSize: 12, color: "var(--text-mute)" }}>Draft · Research Report</span>
-        <span className="receipt" style={{ fontSize: 10.5 }}>
-          <span className="pulse-dot" style={{ width: 5, height: 5, background: "var(--rolex-green)", borderRadius: "50%" }}/>
-          {saving ? "SAVING…" : lastSavedAt ? `AUTOSAVED · ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "READY"}
-        </span>
+  const layoutMaxWidth = reportLayout === "compact" ? "560px" : reportLayout === "wide" ? "100%" : "680px";
 
-        <div style={{ flex: 1 }}/>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span className="t-meta" style={{ fontSize: 11 }}>Quality</span>
-            <span className="t-num" style={{ fontSize: 12, color: qualityScore >= 80 ? "var(--rolex-green)" : "var(--text-mute)" }}>
-              {qualityScore}
-            </span>
-            <span style={{ width: 60, height: 3, background: "var(--border-rgba)", borderRadius: 2, overflow: "hidden" }}>
-              <span style={{ display: "block", width: `${qualityScore}%`, height: "100%", background: qualityScore >= 80 ? "var(--rolex-green)" : "var(--primary-blue)", transition: "width var(--t-base) var(--ease-in-out), background var(--t-fast) var(--ease)" }}/>
-            </span>
-          </div>
-          <span className="vr" style={{ height: 16 }}/>
-          <span className="t-meta" style={{ fontSize: 11 }}>
-            <span className="t-num">{wordCount.toLocaleString()}</span> words · ~<span className="t-num">{readMin}</span> min
-          </span>
-        </div>
-
-        <span className="vr" style={{ height: 18 }}/>
-
-        {/* Prediction + DYOD shortcuts — surfaced in the top bar so the two
-            most-important "insert" actions are always one click away. The
-            Prediction button is gold-edged to signal it's the call-to-action;
-            DYOD is a ghost button (it's the regulatory disclaimer). */}
-        <button
-          className="btn btn-ghost-gold btn-sm"
-          onClick={insertPrediction}
-          title="Insert a locked prediction (ticker, direction, target)"
-        >
-          <Lock size={12} strokeWidth={1.7}/> Prediction
-        </button>
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={insertDYOD}
-          title="Insert the Do Your Own Diligence disclaimer"
-        >
-          <ShieldAlert size={12} strokeWidth={1.7}/> DYOD
-        </button>
-
-        <span className="vr" style={{ height: 18 }}/>
-
-        {/* Templates + Design panel buttons — restored from backup */}
-        <button className="btn btn-ghost btn-sm" onClick={() => setTemplatesOpen(true)}>
-          Templates
-        </button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setDesignOpen(true)}>
-          Design
-        </button>
-
-        <span className="vr" style={{ height: 18 }}/>
-
-        <button className="btn btn-ghost btn-sm" onClick={() => setPreviewOpen(true)}>
-          <Eye size={13} strokeWidth={1.55}/> Preview
-        </button>
-        <button className="btn btn-gold btn-sm" onClick={publish} disabled={publishing}>
-          <Lock size={12} strokeWidth={1.6}/> {publishing ? "Publishing…" : "Lock & publish"}
-        </button>
-        <button
-          onClick={() => {
-            const next = !aiOpen;
-            setAiOpen(next);
-            // The floating AI Research Assistant chat shares the right edge
-            // of the editor with the rail — close the chat whenever the rail
-            // opens so the two surfaces never overlap.
-            if (next) setAiChatOpen(false);
-          }}
-          className="btn btn-ghost btn-sm"
-          style={{
-            width: 32, padding: 0,
-            color: aiOpen ? "var(--gold-hex)" : "var(--text-mute)",
-            borderColor: aiOpen ? "var(--gold-hex)" : undefined,
-          }}
-        >
-          <Zap size={13} strokeWidth={1.7}/>
-        </button>
-      </header>
-
-      {/* ── Body: 3-col grid ── */}
-      <div style={{
-        flex: 1,
-        display: "grid",
-        gridTemplateColumns: aiOpen ? "260px 1fr 340px" : "260px 1fr 0",
-        transition: "grid-template-columns var(--t-base) var(--ease)",
-      }}>
-        {/* Outline rail */}
-        <aside style={{
-          borderRight: "0.5px solid var(--border-rgba)",
-          padding: "32px 18px",
-          background: "color-mix(in srgb, var(--bg) 96%, transparent)",
-          position: "sticky", top: 56, alignSelf: "flex-start",
-          maxHeight: "calc(100vh - 56px)", overflowY: "auto",
-        }}>
-          <div className="t-eyebrow" style={{ marginBottom: 14, paddingLeft: 8 }}>Outline</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {outlineBlocks.length === 0 ? (
-              <div className="t-meta" style={{ fontSize: 11, padding: "8px 10px" }}>
-                Add a heading or section to build the outline.
-              </div>
-            ) : (
-              outlineBlocks.map((b) => {
-                const Ic = BLOCK_ICON[b.type] || Columns;
-                const active = activeBlockId === b.id;
-                const label = b.type === "title" ? (b.text || "Untitled") : BLOCK_LABEL[b.type];
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setActiveBlockId(b.id)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      width: "100%", justifyContent: "flex-start",
-                      padding: "7px 10px", borderRadius: 6,
-                      background: active ? "var(--bg-soft)" : "transparent",
-                      color: active ? "var(--text)" : "var(--text-mute)",
-                      fontSize: 12.5, fontFamily: "var(--f-sans)",
-                      border: 0, cursor: "pointer", textAlign: "left", lineHeight: 1.4,
-                    }}
-                  >
-                    <Ic size={13} strokeWidth={1.5}/>
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          <div className="hr" style={{ margin: "20px 0" }}/>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 8px" }}>
-            <div>
-              <div className="t-meta" style={{ marginBottom: 6 }}>Monetization</div>
-
-              {/* Toggle 1 — Members only (subscription required) */}
-              <button onClick={() => setMonetized(!monetized)} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                width: "100%", padding: "8px 10px",
-                background: "var(--bg-elev)",
-                border: "0.5px solid var(--border-strong)",
-                borderRadius: 6, cursor: "pointer", textAlign: "left",
-              }}>
-                <span style={{
-                  width: 28, height: 16,
-                  background: monetized ? "var(--gold-hex)" : "var(--border-strong)",
-                  borderRadius: 8, position: "relative", flexShrink: 0,
-                  transition: "background var(--t-fast) var(--ease)",
-                }}>
-                  <span style={{
-                    position: "absolute", top: 2, left: monetized ? 14 : 2,
-                    width: 12, height: 12, background: "#fff", borderRadius: "50%",
-                    transition: "left var(--t-fast) var(--ease)",
-                  }}/>
-                </span>
-                <span style={{ flex: 1, fontSize: 12 }}>Members only</span>
-              </button>
-              <div className="t-meta" style={{ fontSize: 10.5, marginTop: 4, lineHeight: 1.4 }}>
-                {monetized ? "Subscribers read free; everyone else hits the paywall." : "Anyone can read the full report."}
-              </div>
-
-              {/* Toggle 2 — Available for individual purchase */}
-              <button
-                onClick={() => setIndividualPurchase(!individualPurchase)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  width: "100%", padding: "8px 10px", marginTop: 8,
-                  background: "var(--bg-elev)",
-                  border: "0.5px solid var(--border-strong)",
-                  borderRadius: 6, cursor: "pointer", textAlign: "left",
-                }}
-              >
-                <span style={{
-                  width: 28, height: 16,
-                  background: individualPurchase ? "var(--gold-hex)" : "var(--border-strong)",
-                  borderRadius: 8, position: "relative", flexShrink: 0,
-                  transition: "background var(--t-fast) var(--ease)",
-                }}>
-                  <span style={{
-                    position: "absolute", top: 2, left: individualPurchase ? 14 : 2,
-                    width: 12, height: 12, background: "#fff", borderRadius: "50%",
-                    transition: "left var(--t-fast) var(--ease)",
-                  }}/>
-                </span>
-                <span style={{ flex: 1, fontSize: 12 }}>Available for individual purchase</span>
-              </button>
-
-              {/* Price input — only shown when individual purchase is on */}
-              {individualPurchase && (
-                <div
-                  style={{
-                    marginTop: 8, padding: "10px 12px",
-                    background: "rgba(212,175,55,0.06)",
-                    border: "0.5px solid rgba(212,175,55,0.32)",
-                    borderRadius: 6,
-                  }}
-                >
-                  <div className="t-meta" style={{ fontSize: 10.5, marginBottom: 6, color: "var(--gold-hex)" }}>
-                    Per-report price
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span className="t-num" style={{ color: "var(--gold-hex)", fontSize: 18 }}>$</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      step={1}
-                      value={individualPrice}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (Number.isFinite(v)) setIndividualPrice(Math.min(50, Math.max(1, v)));
-                      }}
-                      style={{
-                        width: 64, height: 30, padding: "0 8px",
-                        border: "0.5px solid var(--border-strong)",
-                        borderRadius: 4, background: "var(--bg)",
-                        fontFamily: "var(--f-mono)", fontSize: 14,
-                        color: "var(--text)", textAlign: "right",
-                      }}
-                    />
-                    <span className="t-meta" style={{ fontSize: 10.5 }}>per report</span>
-                  </div>
-                  <div className="t-meta" style={{ fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-                    $1–$50 range. 90% goes to you, 10% Stoa fee.
-                  </div>
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="t-meta" style={{ marginBottom: 6 }}>Track record</div>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "8px 10px",
-                background: "rgba(212,175,55,0.06)",
-                border: "0.5px solid rgba(212,175,55,0.32)",
-                borderRadius: 6,
-              }}>
-                <Lock size={12} strokeWidth={1.6} style={{ color: "var(--gold-hex)", flexShrink: 0 }}/>
-                <span style={{ fontSize: 11.5, color: "var(--gold-hex)", lineHeight: 1.45 }}>
-                  Predictions in this report will lock on publish.
-                </span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Editor */}
-        <main
-          style={{ padding: "48px 32px 120px", overflow: "hidden" }}
-          onDragOver={(e) => {
-            // Accept drops carrying AI-generated content from the rail.
-            // Without preventDefault the browser refuses the drop entirely.
-            if (e.dataTransfer.types.includes("ai-text")) {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-            }
-          }}
-          onDrop={(e) => {
-            const text = e.dataTransfer.getData("ai-text");
-            if (!text) return;
-            e.preventDefault();
-            const rawType = e.dataTransfer.getData("ai-type") || "text";
-            // Map AIChat block types onto the editor's block schema. AIChat
-            // uses {text, heading, bullets, quote, callout, stockchart}; the
-            // editor uses {p, h, bullets, pullquote, callout, stockchart}.
-            const TYPE_MAP = {
-              text: "p", paragraph: "p",
-              heading: "h", h2: "h", h3: "h",
-              bullets: "bullets",
-              quote: "pullquote", pullquote: "pullquote",
-              callout: "callout",
-              stockchart: "stockchart",
-              image: "image",
-            };
-            const type = TYPE_MAP[rawType] || "p";
-            const newBlock = type === "stockchart"
-              ? { id: newId(), type, ticker: text.toUpperCase(), interval: "D", style: "1", studies: [] }
-              : { id: newId(), type, text };
-            setBlocks((prev) => [...prev, newBlock]);
-            setActiveBlockId(newBlock.id);
-            toast.success("Dropped AI content into your report.");
-          }}
-        >
-          <div style={{ maxWidth: 720, margin: "0 auto", position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-              <span className="tag" style={{ borderColor: "rgba(30,58,138,0.25)", color: "var(--primary-blue)" }}>
-                Research Report
-              </span>
-              {monetized && <span className="badge-founding">Premium</span>}
-              {user && (<>
-                <span className="t-meta">·</span>
-                <span className="t-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Avatar a={{
-                    initials: (user.full_name || user.email || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
-                    avatarColor: "var(--primary-blue)",
-                  }} size="sm"/>
-                  {user.full_name || user.email?.split("@")[0]}
-                </span>
-              </>)}
-            </div>
-
-            {/* ── Drag-and-drop block list — restored from backup ──
-                @hello-pangea/dnd wraps the block list so users can reorder
-                by dragging the grip handle on each block. Reordering keeps
-                insertion zones outside the drag context so they still
-                respond to clicks. */}
-            <DragDropContext
-              onDragEnd={(result) => {
-                if (!result.destination) return;
-                if (result.destination.index === result.source.index) return;
-                setBlocks((prev) => {
-                  const next = Array.from(prev);
-                  const [moved] = next.splice(result.source.index, 1);
-                  next.splice(result.destination.index, 0, moved);
-                  return next;
-                });
-              }}
-            >
-              <Droppable droppableId="editor-blocks">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    style={{ display: "flex", flexDirection: "column", gap: 0 }}
-                  >
-                    {blocks.map((b, i) => (
-                      <Draggable key={b.id} draggableId={String(b.id)} index={i}>
-                        {(dragProvided, snapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            style={{
-                              ...dragProvided.draggableProps.style,
-                              background: snapshot.isDragging ? "var(--bg-soft)" : undefined,
-                              borderRadius: snapshot.isDragging ? 6 : undefined,
-                            }}
-                          >
-                            <InsertionZone onAdd={() => { setSlashAt(i); setSlashOpen(true); }}/>
-                            <div style={{ position: "relative" }}>
-                              {/* Drag grip — left of block, only visible on hover */}
-                              <div
-                                {...dragProvided.dragHandleProps}
-                                title="Drag to reorder"
-                                style={{
-                                  position: "absolute", left: -64, top: 10,
-                                  width: 18, height: 22, borderRadius: 4,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "var(--text-meta)", cursor: "grab",
-                                  opacity: 0.4,
-                                }}
-                              >
-                                <svg width="9" height="14" viewBox="0 0 9 14" fill="currentColor">
-                                  <circle cx="2" cy="2" r="1"/><circle cx="7" cy="2" r="1"/>
-                                  <circle cx="2" cy="7" r="1"/><circle cx="7" cy="7" r="1"/>
-                                  <circle cx="2" cy="12" r="1"/><circle cx="7" cy="12" r="1"/>
-                                </svg>
-                              </div>
-                              <EditorBlockWrap
-                                block={b}
-                                active={activeBlockId === b.id}
-                                setActive={() => setActiveBlockId(b.id)}
-                                onShowSlash={() => { setSlashAt(i + 1); setSlashOpen(true); }}
-                                onChange={(patch) => updateBlock(b.id, patch)}
-                                onDelete={() => deleteBlock(b.id)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              <InsertionZone
-                onAdd={() => { setSlashAt(blocks.length); setSlashOpen(true); }}
-                persistent
-              />
-
-              <button
-                onClick={() => { setSlashAt(blocks.length); setSlashOpen(true); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  width: "100%", padding: "14px 16px", marginTop: 18,
-                  color: "var(--text-mute)", fontSize: 13,
-                  fontFamily: "var(--f-sans)",
-                  background: "var(--bg-soft)",
-                  border: "0.5px dashed var(--border-strong)",
-                  borderRadius: 8, cursor: "pointer",
-                }}
-              >
-                <span style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 22, height: 22, borderRadius: 4,
-                  background: "var(--bg-elev)", border: "0.5px solid var(--border-strong)",
-                }}>
-                  <Plus size={12} strokeWidth={1.7}/>
-                </span>
-                <span>Add a block</span>
-                <div style={{ flex: 1 }}/>
-                <span style={{
-                  padding: "2px 6px",
-                  border: "0.5px solid var(--border-strong)",
-                  borderRadius: 3, fontSize: 10.5, fontFamily: "var(--f-mono)",
-                  background: "var(--bg-elev)",
-                }}>/</span>
-                <span style={{ fontSize: 11, opacity: 0.8 }}>or click anywhere between blocks</span>
-              </button>
-            </div>
-
-            {slashOpen && (
-              <SlashMenu
-                onClose={() => setSlashOpen(false)}
-                onInsert={(type) => insertAt(type, slashAt ?? blocks.length)}
-              />
-            )}
-          </div>
-        </main>
-
-        {/* AI rail */}
-        {aiOpen && (
-          <aside style={{
-            borderLeft: "0.5px solid var(--border-rgba)",
-            background: "var(--bg-elev)",
-            display: "flex", flexDirection: "column",
-            position: "sticky", top: 56, height: "calc(100vh - 56px)",
-          }}>
-            <div style={{
-              display: "flex", alignItems: "center",
-              padding: "16px 20px",
-              borderBottom: "0.5px solid var(--border-rgba)",
-              gap: 10,
-            }}>
-              <Zap size={14} strokeWidth={1.7} style={{ color: "var(--gold-hex)" }}/>
-              <div style={{ flex: 1 }}>
-                <div className="t-title" style={{ fontSize: 13 }}>AI co-analyst</div>
-                <div className="t-meta" style={{ fontSize: 10.5 }}>
-                  Knows fundamentals, technicals, macro.
-                </div>
-              </div>
-              <button onClick={() => setAiOpen(false)} className="btn btn-text btn-sm" style={{ width: 26, padding: 0 }}>
-                <X size={14} strokeWidth={1.7}/>
-              </button>
-            </div>
-
-            <div style={{
-              flex: 1, overflowY: "auto", padding: 20,
-              display: "flex", flexDirection: "column", gap: 16,
-            }}>
-              {/* Two power tools — restored from backup */}
-              <button
-                onClick={() => setAiSidebarOpen(true)}
-                className="btn btn-gold"
-                style={{ width: "100%", justifyContent: "flex-start", gap: 10 }}
-              >
-                <Zap size={13} strokeWidth={1.7}/>
-                Generate report skeleton
-              </button>
-              <button
-                onClick={() => { setAiChatOpen(true); setAiOpen(false); }}
-                className="btn btn-ghost"
-                style={{ width: "100%", justifyContent: "flex-start", gap: 10 }}
-              >
-                <Zap size={13} strokeWidth={1.7} style={{ color: "var(--gold-hex)" }}/>
-                Open AI chat
-              </button>
-
-              <div className="hr"/>
-
-              <div style={{ fontSize: 12, color: "var(--text-mute)", lineHeight: 1.5 }}>
-                The skeleton generator drafts a full institutional-style report from a ticker. The chat answers questions, sanity-checks claims, and drops snippets into the editor.
-              </div>
-            </div>
-
-            <div style={{
-              padding: "12px 16px 16px",
-              borderTop: "0.5px solid var(--border-rgba)",
-              background: "var(--bg-elev)",
-            }}>
-              <div style={{
-                padding: "10px 12px",
-                background: "var(--bg)",
-                border: "0.5px solid var(--border-strong)",
-                borderRadius: 8,
-              }}>
-                <textarea
-                  placeholder="Ask about fundamentals, technicals, comp set, or paste a paragraph for sanity check…"
-                  rows={2}
-                  style={{
-                    width: "100%", border: 0, outline: 0, resize: "none",
-                    fontSize: 13, fontFamily: "var(--f-sans)",
-                    color: "var(--text)", background: "transparent",
-                    lineHeight: 1.5,
-                  }}
-                />
-                <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
-                  <button className="btn btn-text btn-sm" style={{ padding: 0, fontSize: 11.5, gap: 6 }}>
-                    <Zap size={11} strokeWidth={1.7} style={{ color: "var(--gold-hex)" }}/>
-                    Cite my open positions
-                  </button>
-                  <div style={{ flex: 1 }}/>
-                  <button className="btn btn-gold btn-sm" style={{ height: 28, padding: "0 12px", fontSize: 11.5 }}>
-                    Send <ArrowRight size={11}/>
-                  </button>
-                </div>
-              </div>
-              <div className="t-meta" style={{ marginTop: 8, fontSize: 10, textAlign: "center" }}>
-                Drafts never leave Stoa · Not financial advice
-              </div>
-            </div>
-          </aside>
+  // ── Render a single block row (with drop zones) ───────────────────────────
+  const renderBlockRow = (block, blockIdx) => (
+    <React.Fragment key={block.id}>
+      {/* Drop zone above each block */}
+      <div
+ className="relative"
+        onDragOver={(e) => handleDragOver(e, blockIdx)}
+        onDragLeave={() => setDropIndicatorAt(null)}
+        onDrop={(e) => handleDrop(e, blockIdx)}
+      >
+        {dropIndicatorAt === blockIdx && (
+ <div className="h-0.5 bg-primary rounded mx-2 my-1 animate-pulse" />
         )}
       </div>
 
-      {/* Preview modal */}
-      {previewOpen && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(10,26,63,0.32)",
-          backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: 40,
-        }}
-          onClick={() => setPreviewOpen(false)}
-        >
-          <div className="surface" style={{
-            background: "var(--bg)", maxWidth: 820, width: "100%",
-            maxHeight: "90vh", overflow: "auto", padding: 0,
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              display: "flex", alignItems: "center",
-              padding: "14px 24px",
-              borderBottom: "0.5px solid var(--border-rgba)",
-              position: "sticky", top: 0, background: "var(--bg)", zIndex: 1,
-            }}>
-              <span className="t-eyebrow">Preview · how subscribers will see this</span>
-              <div style={{ flex: 1 }}/>
-              <button onClick={() => setPreviewOpen(false)} className="btn btn-ghost btn-sm">
-                Close <X size={12} strokeWidth={1.7}/>
-              </button>
-            </div>
-            <div style={{ padding: "40px 64px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-                <span className="tag" style={{ borderColor: "rgba(30,58,138,0.25)", color: "var(--primary-blue)" }}>
-                  Research Report
-                </span>
-                {monetized && <span className="badge-founding">Premium</span>}
+      {block.type === "stockchart" ? (
+        <StockChartBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+        />
+      ) : block.type === "image" ? (
+        <ImageBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+        />
+      ) : block.type === "comparechart" ? (
+ <div className="relative group bg-card border border-border rounded-xl my-2">
+          <ChatCompareChart
+            tickers={block.tickers || (block.content || "").split(",").filter(Boolean)}
+            timeframe={block.timeframe || "1M"}
+          />
+          <button
+            type="button"
+            onClick={() => deleteBlock(block.id)}
+ className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-card/80 text-muted-foreground hover:text-destructive border border-border"
+            title="Remove comparison chart"
+          >
+ <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : block.type === "columns" ? (
+        <ColumnsBlock
+          block={block}
+          onDelete={() => deleteBlock(block.id)}
+          updateBlock={updateBlock}
+          insertBlockAfter={insertBlockAfter}
+          duplicateBlock={duplicateBlock}
+          moveBlock={moveBlock}
+          turnIntoBlock={turnIntoBlock}
+        />
+      ) : block.type === "metrics" ? (
+        <MetricsBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+        />
+      ) : block.type === "thesis" ? (
+        <ThesisBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+        />
+      ) : (
+        <EditorBlock
+          block={block}
+          onChange={(u) => updateBlock(block.id, u)}
+          onDelete={() => deleteBlock(block.id)}
+          onEnter={() => insertBlockAfter(block.id, "text")}
+          onInsertAfter={insertBlockAfter}
+          onDuplicate={duplicateBlock}
+          onMoveUp={(id) => moveBlock(id, -1)}
+          onMoveDown={(id) => moveBlock(id, 1)}
+          onTurnInto={turnIntoBlock}
+          dropIndicator={dropIndicatorAt === blockIdx}
+        />
+      )}
+    </React.Fragment>
+  );
+
+  // ─── Layout ────────────────────────────────────────────────────────────────
+  return (
+ <div className="min-h-screen bg-background">
+      {/* Floating rich text toolbar */}
+      <FloatingToolbar />
+
+      {/* ── Top Toolbar ── */}
+ <div className="sticky top-14 z-20 bg-card/95 backdrop-blur border-b border-border">
+ <div className="max-w-6xl mx-auto px-4 h-11 flex items-center gap-1.5">
+          {/* Mode toggle */}
+ <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5 mr-1">
+            <button
+              onClick={() => setEditorMode("deep")}
+ className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "deep" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}
+            >
+ <FileText className="w-3 h-3" />Deep Report
+            </button>
+            <button
+              onClick={() => setEditorMode("quick")}
+ className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${editorMode === "quick" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}
+            >
+ <Zap className="w-3 h-3" />Quick Post
+            </button>
+          </div>
+
+          {editorMode === "deep" && (
+            <>
+              {/* Panel tabs */}
+ <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
+                {[
+                  { id: "write",    label: "Write",    icon: FileText },
+                  { id: "design",   label: "Design",   icon: Palette },
+                  { id: "settings", label: "Settings", icon: Settings2 },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActivePanel(id)}
+ className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                      activePanel === id ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+ <Icon className="w-3.5 h-3.5" />{label}
+                  </button>
+                ))}
               </div>
-              {blocks.map((b) => (
-                <div key={b.id} style={{ marginBottom: 18 }}>
-                  <BlockRenderer block={b} onChange={() => {}}/>
+
+ <span className={`text-[11px] ml-3 hidden md:flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+ {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                {saveStatus === "saved" ? "Saved" : "Unsaved"}
+              </span>
+
+ <div className="flex items-center gap-1 ml-auto">
+                {/* Undo/Redo */}
+ <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-8 w-8 p-0 text-muted-foreground" title="Undo (Cmd+Z)"><Undo2 className="w-3.5 h-3.5" /></Button>
+ <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-8 w-8 p-0 text-muted-foreground" title="Redo (Cmd+Shift+Z)"><Redo2 className="w-3.5 h-3.5" /></Button>
+
+ <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1.5 hover:text-foreground">
+ <Layout className="w-3.5 h-3.5" />Templates
+                </Button>
+ <Button variant="ghost" size="sm" onClick={addDYOR} className="text-xs text-muted-foreground hidden sm:flex h-8 gap-1">
+ <FileText className="w-3 h-3" />DYOR
+                </Button>
+
+                {/* Drafts */}
+                <DropdownMenu open={showDrafts} onOpenChange={setShowDrafts}>
+                  <DropdownMenuTrigger asChild>
+ <Button variant="outline" size="sm" className="text-xs h-8 gap-1 relative">
+ <FolderOpen className="w-3.5 h-3.5" />
+ <span className="hidden sm:inline">Drafts</span>
+                      {drafts.length > 0 && (
+ <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-medium rounded-full flex items-center justify-center">
+                          {drafts.length}
+                        </span>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+ <DropdownMenuContent align="end" className="w-80">
+ <DropdownMenuLabel className="text-xs flex items-center justify-between">
+                      <span>Saved Drafts</span>
+ <span className={`text-[10px] font-normal flex items-center gap-1 ${saveStatus === "saved" ? "text-gain" : "text-amber-500"}`}>
+ {saveStatus === "saved" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        {lastSaved ? `Auto-saves every 30s · last ${new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Auto-saves every 30s"}
+                      </span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {drafts.length === 0 ? (
+ <div className="px-3 py-4 text-center text-xs text-muted-foreground">No drafts saved yet.</div>
+                    ) : (
+                      // Sort newest first, then group by "today / earlier"
+                      [...drafts]
+                        .sort((a, b) => new Date(b.updated_date || b.created_date) - new Date(a.updated_date || a.created_date))
+                        .map(d => {
+                          const ts   = new Date(d.updated_date || d.created_date);
+                          const diff = Date.now() - ts.getTime();
+                          const mins = Math.floor(diff / 60000);
+                          const rel  = mins < 1 ? "just now"
+                                     : mins < 60 ? `${mins}m ago`
+                                     : mins < 1440 ? `${Math.floor(mins / 60)}h ago`
+                                     : `${Math.floor(mins / 1440)}d ago`;
+                          const isCurrent = d.id === currentDraftId;
+                          return (
+ <div key={d.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md mx-1 ${isCurrent ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-secondary"}`}>
+ <div className="flex-1 min-w-0">
+ <p className="text-xs font-medium truncate flex items-center gap-1.5">
+                                  {d.title || "Untitled Draft"}
+ {isCurrent && <span className="text-[8px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-tag uppercase tracking-wide">Editing</span>}
+                                </p>
+ <p className="text-[10px] text-muted-foreground">Last edited {rel}</p>
+                              </div>
+                              <Button
+                                variant={isCurrent ? "outline" : "ghost"}
+                                size="sm"
+                                onClick={() => loadDraft(d)}
+ className="text-xs h-6 px-2"
+                              >
+                                {isCurrent ? "Reloaded" : "Resume"}
+                              </Button>
+ <button onClick={() => deleteDraft(d.id)} className="text-muted-foreground hover:text-loss p-0.5" title="Delete draft"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          );
+                        })
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant={isRTL ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsRTL(r => !r)}
+ className="text-xs h-8 gap-1"
+                  title="Toggle RTL writing (Hebrew / Arabic)"
+                >
+ <Languages className="w-3.5 h-3.5" />
+ <span className="hidden sm:inline">RTL</span>
+                </Button>
+ <Button variant="outline" size="sm" onClick={() => setShowAI(true)} className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/5">
+ <Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">AI</span>
+                </Button>
+              </div>
+            </>
+          )}
+
+          {editorMode === "quick" && (
+ <div className="ml-auto">
+ <span className="text-xs text-muted-foreground">Quick takes publish instantly to the feed</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Main content ──
+          Editor narrowed to a Medium/Substack-style measure (~720px main
+          column) when no panel is active. Wider only when the design
+          preview pane needs the room. */}
+ <div className="max-w-[760px] mx-auto px-6 py-8">
+        {editorMode === "quick" ? (
+          <QuickPostEditor quickImage={quickImage} setQuickImage={setQuickImage}
+            quickShowPrediction={quickShowPrediction} setQuickShowPrediction={setQuickShowPrediction}
+            quickAction={quickAction} setQuickAction={setQuickAction}
+            quickTicker={quickTicker} setQuickTicker={setQuickTicker}
+            quickTimeframe={quickTimeframe} setQuickTimeframe={setQuickTimeframe}
+            quickTarget={quickTarget} setQuickTarget={setQuickTarget}
+            title={title} setTitle={setTitle} />
+        ) : activePanel === "design" ? (
+ <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+            {/* Live preview */}
+            <div>
+ <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+ <Eye className="w-3 h-3" /> Live preview — changes apply instantly
+              </p>
+              <div
+                style={{
+                  fontFamily: fontObj?.style?.fontFamily,
+                  background: themeObj?.bg,
+                  color: themeObj?.text,
+                  borderRadius: "1rem",
+                  padding: "2rem",
+                  boxShadow: "0 0 0 1px " + (themeObj?.border || "#e2e8f0"),
+                  maxWidth: layoutMaxWidth,
+                  minHeight: "320px",
+                }}
+              >
+                {(brandName || brandLogo) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${themeObj?.border}` }}>
+                    {brandLogo && <img src={brandLogo} alt="" style={{ height: 20, objectFit: "contain" }} onError={e => e.currentTarget.style.display = "none"} />}
+                    {brandName && <span style={{ fontSize: 9, fontWeight: 700, color: themeObj?.text, opacity: 0.5, letterSpacing: "0.1em", textTransform: "uppercase" }}>{brandName}</span>}
+                  </div>
+                )}
+ <h2 style={{ color: accentColor }} className="text-2xl font-medium mb-2">{title || "Your Report Title"}</h2>
+ {excerpt && <p className="text-sm opacity-70 mb-4">{excerpt}</p>}
+ <div className="space-y-3">
+                  {blocks.slice(0, 5).filter(b => b.content || b.type === "divider").map((b, i) => (
+                    <div key={i}>
+ {b.type === "heading" && <h3 style={{ color: accentColor }} className="text-xl font-medium">{b.content}</h3>}
+ {b.type === "heading2" && <h4 style={{ color: accentColor }} className="text-lg font-medium">{b.content}</h4>}
+ {b.type === "text" && <p className="text-sm leading-relaxed">{b.content?.slice(0, 200)}{b.content?.length > 200 ? "..." : ""}</p>}
+ {b.type === "bullets" && <ul className="list-disc list-inside text-sm space-y-1">{(b.content || "").split("\n").slice(0, 3).map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}</ul>}
+ {b.type === "quote" && <blockquote style={{ borderLeftColor: accentColor }} className="border-l-4 pl-3 italic text-sm opacity-80">{b.content}</blockquote>}
+ {b.type === "callout" && <div className="border-l-4 rounded-r p-2 text-sm" style={{ background: accentColor + "18", borderLeftColor: accentColor }}>{b.content}</div>}
+ {b.type === "divider" && <hr style={{ borderColor: accentColor }} className="border-t-2 opacity-30" />}
+                    </div>
+                  ))}
+ {blocks.every(b => !b.content && b.type !== "divider") && <p className="text-sm opacity-40 italic">Write some content to see the preview here.</p>}
                 </div>
-              ))}
+              </div>
+            </div>
+            <div>
+              <DesignPanel
+                theme={reportTheme}
+                font={reportFont}
+                layout={reportLayout}
+                accentColor={accentColor}
+                onThemeChange={setReportTheme}
+                onFontChange={setReportFont}
+                onLayoutChange={setReportLayout}
+                onAccentColorChange={setAccentColor}
+                brandName={brandName}
+                brandLogo={brandLogo}
+                reportFooter={reportFooter}
+                onBrandNameChange={setBrandName}
+                onBrandLogoChange={setBrandLogo}
+                onReportFooterChange={setReportFooter}
+              />
             </div>
           </div>
-        </div>
+        ) : activePanel === "write" ? (
+ <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+            {/* ── Editor canvas ── */}
+            <div
+              style={{
+                fontFamily: fontObj?.style?.fontFamily,
+                background: reportTheme !== "default" ? themeObj?.bg : undefined,
+                color: reportTheme !== "default" ? themeObj?.text : undefined,
+                borderRadius: reportTheme !== "default" ? "1rem" : undefined,
+                padding: reportTheme !== "default" ? "2rem" : undefined,
+                boxShadow: reportTheme !== "default" ? "0 0 0 1px " + themeObj?.border : undefined,
+                maxWidth: layoutMaxWidth,
+              }}
+              onDragOver={(e) => handleDragOver(e, blocks.length)}
+              onDrop={(e) => handleDrop(e, blocks.length)}
+            >
+              {/* Cover image */}
+              {coverImage ? (
+ <div className="relative mb-6 rounded-2xl overflow-hidden aspect-[3/1] bg-secondary group">
+ <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setCoverImage("")}
+ className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+ <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+ <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground mb-4 w-fit transition-colors">
+ <ImageIcon className="w-3.5 h-3.5" />
+                  {uploadingCover ? "Uploading..." : "Add cover image"}
+ <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+                </label>
+              )}
+
+              {/* Brand header */}
+              {(brandName || brandLogo) && (
+ <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border" dir="ltr">
+ {brandLogo && <img src={brandLogo} alt={brandName} className="h-7 object-contain" onError={e => e.currentTarget.style.display = "none"} />}
+ {brandName && <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{brandName}</span>}
+                </div>
+              )}
+
+              {/* Title */}
+              <textarea
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Report title..."
+                rows={1}
+                dir={isRTL ? "rtl" : "ltr"}
+ className="w-full text-3xl md:text-4xl font-medium text-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-3 leading-tight overflow-hidden"
+                style={{ fontFamily: fontObj?.style?.fontFamily, color: accentColor !== "#1d4ed8" ? accentColor : undefined }}
+                onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+              />
+
+              {/* Excerpt */}
+              <textarea
+                value={excerpt}
+                onChange={e => setExcerpt(e.target.value)}
+                placeholder="Write a short summary or teaser..."
+                rows={2}
+                dir={isRTL ? "rtl" : "ltr"}
+ className="w-full text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/30 mb-6 leading-relaxed"
+                onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+              />
+
+ <div className="border-b border-border mb-6" />
+
+              {/* Tags */}
+              {tags.length > 0 && (
+ <div className="flex flex-wrap gap-1.5 mb-4">
+                  {tags.map(tag => (
+ <span key={tag} className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-tag border border-primary/20">
+ <Hash className="w-2.5 h-2.5" />{tag}
+ <button onClick={() => setTags(prev => prev.filter(t => t !== tag))}><X className="w-2.5 h-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Blocks — drag-to-reorder */}
+              <DragDropContext onDragEnd={handleBlockDragEnd}>
+                <Droppable droppableId="editor-blocks">
+                  {(droppableProvided, droppableSnapshot) => (
+                    <div
+                      ref={droppableProvided.innerRef}
+                      {...droppableProvided.droppableProps}
+ className={`space-y-0.5 mb-4 transition-colors rounded-xl ${droppableSnapshot.isDraggingOver ? "bg-primary/3" : ""}`}
+                      dir={isRTL ? "rtl" : "ltr"}
+                    >
+                      {blocks.map((block, idx) => (
+                        <Draggable key={String(block.id)} draggableId={String(block.id)} index={idx}>
+                          {(dragProvided, dragSnapshot) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+ className={`relative group/draggable ${dragSnapshot.isDragging ? "opacity-80 rounded-xl bg-card ring-2 ring-primary/20 z-20" : ""}`}
+                            >
+                              {/* Drop zone for AI content */}
+                              <div
+ className="absolute top-0 left-0 right-0 h-2 -translate-y-1 z-10"
+                                onDragOver={(e) => handleDragOver(e, idx)}
+                                onDragLeave={() => setDropIndicatorAt(null)}
+                                onDrop={(e) => handleDrop(e, idx)}
+                              >
+                                {dropIndicatorAt === idx && (
+ <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+                                )}
+                              </div>
+
+ <div className="flex items-start gap-1">
+                                {/* Drag handle */}
+                                <div
+                                  {...dragProvided.dragHandleProps}
+ className="flex-shrink-0 mt-2 w-5 flex flex-col items-center gap-0.5 opacity-0 group-hover/draggable:opacity-100 transition-opacity"
+                                  title="Drag to reorder"
+                                >
+ <GripVertical className="w-4 h-4 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing" />
+                                </div>
+
+                                {/* Block content — alignment applied here */}
+ <div className="flex-1 min-w-0" style={(() => {
+                                  const align = block.blockAlign;
+                                  if (!align || align === "full") return {};
+                                  if (align === "center") return { maxWidth: "65%", margin: "0 auto" };
+                                  if (align === "left")   return { maxWidth: "55%", marginRight: "auto", marginLeft: 0 };
+                                  if (align === "right")  return { maxWidth: "55%", marginLeft: "auto", marginRight: 0 };
+                                  return {};
+                                })()}>
+                                  {renderBlockRow(block, idx)}
+                                </div>
+
+                                {/* Block alignment toggle — appears on hover */}
+ <div className="flex-shrink-0 flex flex-col gap-0.5 pt-2 opacity-0 group-hover/draggable:opacity-100 transition-opacity">
+                                  {[
+                                    { key: "full",   label: "⬛", title: "Full width" },
+                                    { key: "left",   label: "◧",  title: "Align left (55%)" },
+                                    { key: "center", label: "▣",  title: "Center (65%)" },
+                                    { key: "right",  label: "◨",  title: "Align right (55%)" },
+                                  ].map(({ key, label, title }) => (
+                                    <button
+                                      key={key}
+                                      onClick={() => updateBlock(block.id, { blockAlign: key === "full" ? undefined : key })}
+                                      title={title}
+ className={`text-[9px] font-display px-1 py-0.5 rounded border transition-colors ${(block.blockAlign || "full") === key ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                                    >
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {droppableProvided.placeholder}
+                      {/* Final AI drop zone */}
+                      <div
+ className="h-6"
+                        onDragOver={(e) => handleDragOver(e, blocks.length)}
+                        onDragLeave={() => setDropIndicatorAt(null)}
+                        onDrop={(e) => handleDrop(e, blocks.length)}
+                      >
+                        {dropIndicatorAt === blocks.length && (
+ <div className="h-0.5 bg-primary rounded mx-2 animate-pulse" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+
+              {/* Add block */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+ <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/40 rounded-xl px-4 py-2 w-full transition-colors group mb-4">
+ <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
+                    <span>Add a block</span>
+ <span className="ml-auto text-[10px] opacity-50">Type / in editor</span>
+                  </button>
+                </DropdownMenuTrigger>
+ <DropdownMenuContent align="start" className="w-52">
+ <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Content Blocks</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {BLOCK_TYPES.map((bt, i) => {
+                    const Icon = bt.icon;
+                    return (
+                      <React.Fragment key={bt.type}>
+                        {i === 7 && <DropdownMenuSeparator />}
+ <DropdownMenuItem onClick={() => addBlock(bt.type)} className="cursor-pointer">
+ <Icon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                          {bt.label}
+ <span className="ml-auto text-[10px] text-muted-foreground font-display">{bt.shortcut}</span>
+                        </DropdownMenuItem>
+                      </React.Fragment>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Prediction */}
+ <div className="mb-6">
+                <button
+                  onClick={() => setShowPrediction(p => !p)}
+ className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border-2 font-medium transition-all mb-1 ${
+                    showPrediction
+                      ? "bg-primary/5 border-primary/30 text-primary"
+                      : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+ <Lock className="w-3.5 h-3.5" />
+                  {showPrediction ? "✓ Prediction added" : "+ Add Locked Prediction"}
+ <span className="ml-1 text-[10px] font-normal opacity-60">— builds your track record</span>
+                </button>
+                {showPrediction && (
+ <div className="mt-3">
+                    <PredictionBlock initialData={predictionData} onChange={setPredictionData} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Sidebar ── */}
+ <div className="space-y-3">
+              {/* Publish card */}
+ <div className="bg-card border border-border rounded-xl p-3">
+ <h3 className="text-xs font-medium mb-2 flex items-center gap-2">
+ <Send className="w-3 h-3 text-primary" /> Publish
+                </h3>
+ <div className="space-y-2">
+ <Button onClick={() => handlePublish()} disabled={publishing} className="w-full gap-1.5">
+ <Send className="w-3.5 h-3.5" />{publishing ? "Publishing..." : "Publish Now"}
+                  </Button>
+
+                  {/* Schedule toggle */}
+                  <button
+                    onClick={() => setShowScheduler(s => !s)}
+ className={`w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-all font-medium ${showScheduler ? "border-primary/40 text-primary bg-primary/5" : "border-dashed border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
+                  >
+ <Clock className="w-3.5 h-3.5" />
+                    {showScheduler ? "Cancel schedule" : "Schedule for later"}
+                  </button>
+
+                  {showScheduler && (
+ <div className="space-y-2 pt-1">
+ <p className="text-[10px] text-muted-foreground">Report goes live automatically at the chosen time.</p>
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                        onChange={e => setScheduledAt(e.target.value)}
+ className="w-full text-xs border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:border-primary"
+                      />
+                      <Button
+                        onClick={() => handlePublish(scheduledAt)}
+                        disabled={publishing || !scheduledAt}
+                        variant="outline"
+ className="w-full gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/5"
+                      >
+ <Clock className="w-3.5 h-3.5" />
+                        {publishing ? "Scheduling..." : "Confirm Schedule"}
+                      </Button>
+                    </div>
+                  )}
+
+ <Button variant="outline" onClick={() => persistDraft()} className="w-full gap-1.5 text-xs">
+ <Save className="w-3.5 h-3.5" />Save as Draft
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quality Score */}
+              <ReportQualityScore
+                title={title}
+                blocks={blocks}
+                predictionData={predictionData}
+                coverImage={coverImage}
+              />
+
+              {/* AI Fact Checker — pre-publish check */}
+              <FactChecker
+                reportContent={[title, excerpt, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n")}
+              />
+
+              {/* Stats */}
+ <div className="bg-secondary/50 border border-border rounded-xl p-3">
+ <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Stats</h3>
+ <div className="space-y-1.5">
+                  {[
+ { label: "Words", value: <span className={wordCountColor}>{wordCount}</span> },
+                    { label: "Reading time", value: `${readingTime} min` },
+                    { label: "Blocks", value: blocks.length },
+                    { label: "Has prediction", value: predictionData ? "Yes ✓" : "No" },
+                    { label: "Monetization", value: isPremium ? `$${reportPrice}` : "Free" },
+                  ].map(({ label, value }) => (
+ <div key={label} className="flex justify-between text-xs">
+ <span className="text-muted-foreground">{label}</span>
+ <span className="font-medium text-foreground">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tips */}
+ <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+ <h3 className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
+ <TrendingUp className="w-3 h-3" /> Tips
+                </h3>
+ <ul className="space-y-1 text-[10px] text-muted-foreground">
+ <li>✦ Type <code className="bg-secondary px-1 rounded">/</code> anywhere to insert a block</li>
+                  <li>✦ Select text for rich formatting toolbar</li>
+                  <li>✦ Cmd+Z / Cmd+Shift+Z to undo/redo</li>
+                  <li>✦ 600+ words ranks higher in the feed</li>
+                  <li>✦ Save chart as image for published reports</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : activePanel === "settings" ? (
+          <EditorSettingsPanel
+            coverImage={coverImage}
+            onCoverImageChange={setCoverImage}
+            isPremium={isPremium}
+            setIsPremium={setIsPremium}
+            reportPrice={reportPrice}
+            setReportPrice={setReportPrice}
+            industry={industry}
+            setIndustry={setIndustry}
+            marketCap={marketCap}
+            setMarketCap={setMarketCap}
+            tags={tags}
+            setTags={setTags}
+            tagInput={tagInput}
+            setTagInput={setTagInput}
+            addTag={addTag}
+            onDeleteAll={() => {
+              setTitle("");
+              setExcerpt("");
+              setBlocks([makeBlock("text")]);
+              setPredictionData(null);
+              setTags([]);
+              setCoverImage("");
+              toast.success("All content cleared");
+            }}
+          />
+        ) : null}
+      </div>
+
+      {showTemplates && (
+        <TemplatesPanel onSelectTemplate={handleTemplateSelect} onClose={() => setShowTemplates(false)} />
       )}
 
-      {/* ── Floating AI panels — restored from backup ── */}
-      <AISidebar
-        isOpen={aiSidebarOpen}
-        onClose={() => setAiSidebarOpen(false)}
-        onGenerate={(generated) => {
-          // The generator returns [{type: "heading"|"text"|"bullets", content}]
-          // Convert to my editor's block shape and append before the last block.
-          const newBlocks = (generated || []).map((g) => {
-            const type = g.type === "heading" ? "h"
-              : g.type === "bullets" ? "p"   // bullets render as multi-line paragraph
-              : "p";
-            return { id: newId(), type, text: g.content || "" };
-          });
-          if (!newBlocks.length) return;
-          setBlocks((prev) => [...prev, ...newBlocks]);
-          setAiSidebarOpen(false);
-          toast.success(`Added ${newBlocks.length} block${newBlocks.length === 1 ? "" : "s"} from AI.`);
+      <AISidebar isOpen={showAI} onClose={() => setShowAI(false)} onGenerate={handleAIGenerate} initialTicker={urlTicker} />
+      <AIChat
+        reportContent={[title, ...blocks.map(b => b.content || "")].filter(Boolean).join("\n\n")}
+        onInsertBlock={(text, type = "text") => {
+          const nb = makeBlock(type, text);
+          setBlocks(prev => { const next = [...prev, nb]; pushHistory(next); return next; });
+          toast.success("Block added to report!");
         }}
       />
-      {aiChatOpen && (
-        <AIChat
-          reportContent={blocks.map((b) => b.text || "").join("\n\n")}
-          onClose={() => setAiChatOpen(false)}
-          onInsertBlock={(block) => {
-            // AIChat returns {type, content} → convert and append
-            const type = block.type === "heading" ? "h" : "p";
-            setBlocks((prev) => [...prev, { id: newId(), type, text: block.content || "" }]);
-          }}
-        />
-      )}
-
-      {/* ── Templates + Design panels — restored from backup ── */}
-      {templatesOpen && (
-        <TemplatesPanel
-          onClose={() => setTemplatesOpen(false)}
-          onSelectTemplate={(templateBlocks) => {
-            // Replace the editor body with the template's block sequence.
-            // Each template block is {id, type, content, ...}. Adapt to my shape.
-            const adapted = (templateBlocks || []).map((b) => ({
-              id: newId(),
-              type: b.type === "heading" ? "h"
-                : b.type === "text" ? "p"
-                : b.type === "bullets" ? "p"
-                : b.type === "quote" ? "pullquote"
-                : b.type === "callout" ? "p"
-                : b.type === "thesis" ? "bullbear"
-                : b.type === "metrics" ? "metrics"
-                : "p",
-              text: b.content || "",
-              data: b.data,
-            }));
-            if (adapted.length) {
-              setBlocks(adapted);
-              toast.success(`Applied template (${adapted.length} blocks).`);
-            }
-            setTemplatesOpen(false);
-          }}
-        />
-      )}
-      {designOpen && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setDesignOpen(false); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(10,26,63,0.32)",
-            backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 40,
-          }}
-        >
-          <div className="surface" style={{
-            background: "var(--bg)", maxWidth: 520, width: "100%",
-            maxHeight: "90vh", overflow: "auto", padding: 24,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-              <h3 className="t-title" style={{ fontSize: 18, margin: 0 }}>Design</h3>
-              <div style={{ flex: 1 }}/>
-              <button onClick={() => setDesignOpen(false)} className="btn btn-ghost btn-sm">
-                Close <X size={12} strokeWidth={1.7}/>
-              </button>
-            </div>
-            <DesignPanel
-              theme={reportTheme}
-              font={reportFont}
-              onThemeChange={setReportTheme}
-              onFontChange={setReportFont}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Loader2, X, TrendingUp, ChevronDown, GripHorizontal, Coins } from "lucide-react";
+import { Sparkles, Loader2, X, TrendingUp, ChevronDown, GripHorizontal, Coins, LineChart } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { spendAICredits, loadMyWallet } from "@/lib/walletService";
@@ -97,6 +97,7 @@ export default function AISidebar({ isOpen, onClose, onGenerate, initialTicker =
   const [topic, setTopic] = useState(initialTicker);
   const [mode, setMode] = useState("elite");
   const [credits, setCredits] = useState(null);
+  const [generatedBlocks, setGeneratedBlocks] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -178,9 +179,15 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
           if (remaining <= 10 && remaining > 0) toast.warning(`${remaining} AI credits remaining`);
         }
 
-        onGenerate(blocks);
+        // If it's a ticker in elite mode, prepend a chart block
+        const finalBlocks = (useElite && isTickerLike && topic.trim())
+          ? [{ type: "stockchart", content: topic.trim().toUpperCase() }, ...blocks]
+          : blocks;
+        setGeneratedBlocks(finalBlocks);
+        onGenerate(finalBlocks);
       } else {
         await new Promise((r) => setTimeout(r, 300));
+        setGeneratedBlocks(SKELETON_TEMPLATE);
         onGenerate(SKELETON_TEMPLATE);
       }
     } catch {
@@ -188,7 +195,6 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
       onGenerate(SKELETON_TEMPLATE);
     } finally {
       setGenerating(false);
-      onClose();
     }
   };
 
@@ -312,12 +318,55 @@ Use type values: "heading", "text", or "bullets". For bullets, prefix each item 
             </p>
           )}
 
- <div className="mt-4 pt-3 border-t border-border/60">
- <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag to report</p>
- <p className="text-[10px] text-muted-foreground">
-              Generate above to populate your report, or drag this panel anywhere on screen.
-            </p>
-          </div>
+ {generatedBlocks && (
+   <div className="mt-4 pt-3 border-t border-border/60">
+     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Drag blocks to report</p>
+     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+       {generatedBlocks.map((b, i) => (
+         <div
+           key={i}
+           draggable
+           onDragStart={e => {
+             e.dataTransfer.setData("ai-text", b.content || b.type);
+             e.dataTransfer.setData("ai-type", b.type);
+             e.dataTransfer.effectAllowed = "copy";
+           }}
+           style={{
+             display: "flex", alignItems: "center", gap: 8,
+             padding: "6px 10px",
+             background: "var(--bg-soft)",
+             border: "0.5px solid var(--border-rgba)",
+             borderRadius: 6, cursor: "grab",
+             fontSize: 11, color: "var(--text-mute)",
+             fontFamily: "var(--f-sans)",
+           }}
+           title="Drag to editor"
+         >
+           {b.type === "stockchart" ? (
+             <LineChart size={11} strokeWidth={1.5} style={{ color: "var(--gold-hex)", flexShrink: 0 }}/>
+           ) : (
+             <GripHorizontal size={11} strokeWidth={1.5} style={{ flexShrink: 0 }}/>
+           )}
+           <span style={{
+             flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+             color: b.type === "heading" ? "var(--text)" : undefined,
+             fontWeight: b.type === "heading" ? 500 : undefined,
+           }}>
+             {b.type === "stockchart" ? `📊 ${b.content} Chart` : (b.content || b.type).slice(0, 50)}
+           </span>
+         </div>
+       ))}
+     </div>
+   </div>
+ )}
+
+ {!generatedBlocks && (
+   <div className="mt-4 pt-3 border-t border-border/60">
+     <p className="text-[10px] text-muted-foreground">
+       Generate a report above — results will appear here as draggable blocks.
+     </p>
+   </div>
+ )}
         </div>
       )}
     </div>
