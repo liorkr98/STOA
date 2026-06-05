@@ -1,17 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Wallet, ArrowDownLeft, ArrowUpRight, Plus, Loader2,
   TrendingUp, Clock, Zap, ShoppingCart, RefreshCw, Info,
+  X, Shield, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import {
   loadMyWallet, loadMyTransactions, convertCashToCredits, withdrawFromWallet,
-  AI_CREDITS_PER_DOLLAR, MIN_DEPOSIT_USD, MIN_WITHDRAWAL_USD,
+  depositToWallet, AI_CREDITS_PER_DOLLAR, MIN_DEPOSIT_USD, MIN_WITHDRAWAL_USD,
 } from "@/lib/walletService";
 import WalletPolicy from "@/components/wallet/WalletPolicy";
 import { toast } from "sonner";
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
+function PayPalDepositButton({ amount, onSuccess }) {
+  const containerRef = useRef(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (window.paypal) { setReady(true); return; }
+    const existing = document.querySelector('script[src*="paypal.com/sdk"]');
+    if (existing) { existing.addEventListener("load", () => setReady(true)); return; }
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&enable-funding=venmo,paylater,card&components=buttons`;
+    script.onload = () => setReady(true);
+    script.onerror = () => toast.error("Failed to load PayPal. Please refresh.");
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    if (!amount || amount < MIN_DEPOSIT_USD) return;
+    window.paypal.Buttons({
+      createOrder: (_, actions) => actions.order.create({
+        purchase_units: [{ amount: { value: amount.toFixed(2) }, description: `STOA wallet deposit · $${amount.toFixed(2)}` }]
+      }),
+      onApprove: async (_, actions) => {
+        const capture = await actions.order.capture();
+        await onSuccess(amount, capture?.id);
+      },
+      onError: () => toast.error("Payment failed. Please try again."),
+      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay", tagline: false },
+    }).render(containerRef.current);
+  }, [ready, amount, onSuccess]);
+
+  if (!ready) return (
+    <div className="flex items-center justify-center py-4">
+      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-xs text-muted-foreground">Loading PayPal…</span>
+    </div>
+  );
+  return <div ref={containerRef} className="mt-2" />;
+}
 
 const TX_DISPLAY = {
   deposit:               { icon: ArrowDownLeft, color: "text-gain",       bg: "bg-gain/10",       label: "Deposit",         sign: "+" },
@@ -40,6 +85,10 @@ export default function WalletPage() {
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
+  // Deposit modal state
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(25);
+  const [depositSuccess, setDepositSuccess] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -70,6 +119,17 @@ export default function WalletPage() {
       setConverting(false);
     }
   };
+
+  const handleDepositSuccess = useCallback(async (paidAmount, orderId) => {
+    try {
+      await depositToWallet(paidAmount, orderId);
+      toast.success(`+$${paidAmount.toFixed(2)} added to your wallet`);
+      setDepositSuccess(paidAmount);
+      await load();
+    } catch (err) {
+      toast.error(err.message || "Deposit failed to record. Contact support with your PayPal receipt.");
+    }
+  }, []);
 
   const handleWithdraw = async () => {
     const amt = parseFloat(withdrawAmount);
@@ -156,7 +216,7 @@ export default function WalletPage() {
               <p className="text-muted-foreground text-xs mb-5">Available for spending or withdrawal</p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => navigate("/pay?mode=deposit")}
+                  onClick={() => { setShowDeposit(true); setDepositSuccess(null); }}
                   className="flex items-center justify-center gap-1.5 flex-1 py-2.5 font-medium text-sm border border-border text-foreground hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
                   style={{ borderRadius: 6 }}
                 >
@@ -342,6 +402,75 @@ export default function WalletPage() {
                 {withdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Withdraw"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit modal */}
+      {showDeposit && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowDeposit(false)}>
+          <div className="surface p-6 w-full max-w-sm" style={{ background: "hsl(var(--card))" }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-tag flex items-center justify-center bg-primary">
+                  <Wallet className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-[16px] text-foreground">Deposit to Wallet</h3>
+                  <p className="text-xs text-muted-foreground">Via PayPal</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDeposit(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {depositSuccess != null ? (
+              <div className="text-center py-6">
+                <CheckCircle2 className="w-10 h-10 text-gain mx-auto mb-3" />
+                <p className="font-medium text-lg mb-1">Deposit successful</p>
+                <p className="text-2xl font-medium text-primary mb-1 font-display">${depositSuccess.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mb-4">Funds are now available in your wallet.</p>
+                <Button onClick={() => setShowDeposit(false)} className="w-full">Done</Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground mb-3">Choose amount</p>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {QUICK_AMOUNTS.map(a => (
+                    <button
+                      key={a}
+                      onClick={() => setDepositAmount(a)}
+                      className={`rounded-tag border py-2 text-sm font-medium transition-colors ${
+                        depositAmount === a ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground/70 hover:border-primary/40"
+                      }`}
+                    >
+                      ${a}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative mb-4">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
+                  <input
+                    type="number"
+                    min={MIN_DEPOSIT_USD}
+                    step="0.01"
+                    value={depositAmount}
+                    onChange={e => setDepositAmount(parseFloat(e.target.value) || 0)}
+                    className="w-full border border-input rounded-tag pl-7 pr-4 py-2.5 text-base font-medium font-display outline-none focus:border-primary bg-background"
+                  />
+                </div>
+                {depositAmount >= MIN_DEPOSIT_USD && (
+                  <PayPalDepositButton amount={depositAmount} onSuccess={handleDepositSuccess} />
+                )}
+                {depositAmount < MIN_DEPOSIT_USD && (
+                  <p className="text-[10px] text-accent text-center">Minimum deposit is ${MIN_DEPOSIT_USD}</p>
+                )}
+                <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+                  <Shield className="w-3 h-3" /> Secured by PayPal
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
