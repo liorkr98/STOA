@@ -14,7 +14,12 @@
         "partial",
         "miss",
         "report",
-        "follow"
+        "follow",
+        "like",
+        "comment",
+        "support",
+        "ai_review",
+        "analyst_application"
       ],
       "description": "Notification type"
     },
@@ -34,6 +39,10 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the notification has been read"
+    },
+    "meta": {
+      "type": "string",
+      "description": "Optional JSON-encoded payload for structured notifications (support tickets, AI fact-check flags, etc.)"
     }
   },
   "required": [
