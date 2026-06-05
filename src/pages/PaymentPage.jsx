@@ -20,7 +20,7 @@ function PayPalDepositButton({ amount, onSuccess }) {
   useEffect(() => {
     if (window.paypal) { setReady(true); return; }
     const script = document.createElement("script");
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&enable-funding=venmo,paylater,card&disable-funding=&components=buttons`;
     script.onload = () => setReady(true);
     script.onerror = () => toast.error("Failed to load PayPal. Please refresh.");
     document.head.appendChild(script);
@@ -42,7 +42,7 @@ function PayPalDepositButton({ amount, onSuccess }) {
         await onSuccess(amount, capture?.id);
       },
       onError: () => toast.error("Payment failed. Please try again."),
-      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay" },
+      style: { layout: "vertical", color: "blue", shape: "rect", label: "pay", tagline: false },
     }).render(containerRef.current);
   }, [ready, amount, onSuccess]);
 
