@@ -159,9 +159,16 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        {/* PayPal button */}
+        {/* PayPal hosted button */}
         {isValid && (
-          <PayPalDepositButton amount={amount} onSuccess={handleSuccess} />
+          <>
+            <div id="paypal-container-PVTWAJ85E6UZ2"></div>
+            <script>
+              {`paypal.HostedButtons({
+                hostedButtonId: "PVTWAJ85E6UZ2",
+              }).render("#paypal-container-PVTWAJ85E6UZ2")`}
+            </script>
+          </>
         )}
 
         <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
