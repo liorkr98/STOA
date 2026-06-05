@@ -1,0 +1,60 @@
+{
+  "name": "Subscription",
+  "properties": {
+    "analyst_avatar": {
+      "description": "Analyst avatar URL",
+      "type": "string"
+    },
+    "analyst_email": {
+      "description": "Email of the analyst",
+      "type": "string"
+    },
+    "analyst_name": {
+      "description": "Analyst display name",
+      "type": "string"
+    },
+    "plan": {
+      "default": "monthly",
+      "description": "Subscription plan",
+      "enum": [
+        "monthly",
+        "yearly"
+      ],
+      "type": "string"
+    },
+    "price": {
+      "description": "Price paid",
+      "type": "number"
+    },
+    "status": {
+      "default": "active",
+      "description": "Subscription status",
+      "enum": [
+        "active",
+        "cancelled",
+        "expired"
+      ],
+      "type": "string"
+    },
+    "subscriber_email": {
+      "description": "Email of the subscriber",
+      "type": "string"
+    },
+    "valid_until": {
+      "description": "Expiry date",
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "required": [
+    "subscriber_email",
+    "analyst_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {}
+  },
+  "type": "object"
+}

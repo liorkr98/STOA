@@ -7,26 +7,60 @@
       "enum": [
         "deposit",
         "withdrawal",
-        "earning"
+        "earning",
+        "credits",
+        "report_unlock",
+        "report_earning",
+        "subscription_purchase",
+        "subscription_earning",
+        "boost",
+        "conversion",
+        "refund"
       ],
       "description": "Transaction type"
     },
     "amount": {
       "type": "number",
-      "description": "Amount in USD"
+      "description": "Amount in USD (positive = inflow, negative = outflow from this wallet)"
+    },
+    "credits": {
+      "type": "number",
+      "description": "AI credits delta (for type=conversion or credits)"
     },
     "status": {
       "type": "string",
       "enum": [
         "pending",
         "completed",
-        "failed"
+        "failed",
+        "refunded"
       ],
       "default": "completed"
     },
     "note": {
       "type": "string",
-      "description": "Transaction note or description"
+      "description": "Human description"
+    },
+    "counterparty_email": {
+      "type": "string",
+      "description": "Other party in a P2P transaction (buyer or seller)"
+    },
+    "related_id": {
+      "type": "string",
+      "description": "Related entity id (report_id, subscription_id, etc)"
+    },
+    "platform_fee": {
+      "type": "number",
+      "description": "Platform take in USD (10% on P2P transactions)"
+    },
+    "processing_fee": {
+      "type": "number",
+      "description": "PayPal/COGS fee in USD (deducted from analyst share)"
+    },
+    "refundable_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last moment a refund can be requested (24h after purchase)"
     }
   },
   "required": [

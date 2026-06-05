@@ -13,54 +13,44 @@
     },
     "accuracy_score": {
       "type": "number",
-      "default": 0,
-      "description": "Display score 0-100 derived from Elo rating"
+      "default": 0
     },
     "accuracy_rating": {
       "type": "number",
-      "default": 1000,
-      "description": "Raw Elo rating 600-1400"
+      "default": 1000
     },
     "accuracy_tier": {
       "type": "string",
-      "default": "Building",
-      "description": "Elite / Expert / Strong / Average / Building"
+      "default": "Building"
     },
     "hit_rate": {
       "type": "number",
-      "default": 0,
-      "description": "Percentage of successful calls"
+      "default": 0
     },
     "total_calls": {
       "type": "number",
-      "default": 0,
-      "description": "Total resolved predictions"
+      "default": 0
     },
     "accuracy_breakdown": {
-      "type": "string",
-      "description": "JSON string of per-bucket Elo stats"
+      "type": "string"
     },
     "specialization": {
-      "type": "string",
-      "description": "e.g. Long-Term Specialist, Generalist"
+      "type": "string"
     },
     "yearly_yield": {
       "type": "number",
-      "default": 0,
-      "description": "Average annualized directed return across closed calls"
+      "default": 0
     },
     "ai_credits_balance": {
       "type": "number",
-      "default": 100,
-      "description": "Available AI credits"
+      "default": 100
     },
     "ai_credits_used_this_month": {
       "type": "number",
       "default": 0
     },
     "leaderboard_rank": {
-      "type": "number",
-      "description": "Current leaderboard rank"
+      "type": "number"
     },
     "bio": {
       "type": "string",
@@ -68,7 +58,7 @@
     },
     "tagline": {
       "type": "string",
-      "description": "Short tagline"
+      "description": "Short tagline shown on profile"
     },
     "specialties": {
       "type": "array",
@@ -92,18 +82,19 @@
     },
     "last_login": {
       "type": "string",
-      "format": "date-time",
-      "description": "Timestamp of the most recent login session"
+      "format": "date-time"
     },
     "login_count": {
       "type": "number",
-      "default": 0,
-      "description": "Total number of login sessions"
+      "default": 0
     },
     "last_seen": {
       "type": "string",
-      "format": "date-time",
-      "description": "Updated on every app load"
+      "format": "date-time"
+    },
+    "profile_config": {
+      "type": "string",
+      "description": "JSON string of analyst page layout & branding preferences"
     }
   },
   "required": []

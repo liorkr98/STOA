@@ -9,6 +9,7 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Avatar } from "@/components/AnalystCard";
+import { avatarUrl } from "@/lib/avatarUrl";
 import { fetchLockPrice } from "@/lib/priceLockProvider";
 import { fetchQuote, fetchFundamentals, fmtCap } from "@/lib/stockData";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";

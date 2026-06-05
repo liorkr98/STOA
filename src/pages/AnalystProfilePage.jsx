@@ -16,6 +16,7 @@ import { CustomBlocksSection } from "@/components/profile/CustomBlocks";
 import AccuracyTierBadge from "@/components/feed/AccuracyTierBadge";
 import TierProgressBar from "@/components/analyst/TierProgressBar";
 import { computeAvgYield } from "@/lib/yieldCalc";
+import { computeScore } from "@/lib/scoringEngine";
 import { computeAnalystTier } from "@/lib/analystTier";
 import { subscribeAnalyst } from "@/lib/walletService";
 import BackButton from "@/components/BackButton";

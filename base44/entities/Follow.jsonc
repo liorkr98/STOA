@@ -1,0 +1,35 @@
+{
+  "name": "Follow",
+  "type": "object",
+  "properties": {
+    "follower_email": {
+      "type": "string",
+      "description": "Email of the user who follows"
+    },
+    "analyst_email": {
+      "type": "string",
+      "description": "Email of the analyst being followed"
+    },
+    "analyst_name": {
+      "type": "string",
+      "description": "Analyst display name"
+    },
+    "analyst_avatar": {
+      "type": "string",
+      "description": "Analyst avatar URL"
+    }
+  },
+  "required": [
+    "follower_email",
+    "analyst_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {},
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

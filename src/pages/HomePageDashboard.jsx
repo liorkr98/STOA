@@ -7,7 +7,7 @@ import InvestorHome from "@/pages/InvestorHome";
 import {
   PenLine, Star, TrendingUp, TrendingDown, RefreshCw, Trophy,
   ArrowRight, FileText, Clock, Flame, Users, BarChart3,
-  ChevronRight, Loader2, Target, Zap, Plus, Lock, BookOpen, Crown
+  ChevronRight, Loader2, Target, Zap, Plus, Lock, BookOpen, Crown, Eye, Heart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAnalystSlug, analystHref } from "@/lib/analystSlug";
@@ -15,7 +15,7 @@ import { computeAvgYield, formatYield } from "@/lib/yieldCalc";
 
 const WATCHLIST_KEY = "stoa_watchlist";
 
-// â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// -- helpers ------------------------------------------------------------------
 async function fetchQuotes(symbols) {
   if (!symbols.length) return [];
   const results = await Promise.allSettled(
@@ -34,8 +34,6 @@ async function fetchQuotes(symbols) {
     .map(r => r.value);
 }
 
-// Parse SQL-style timestamps as UTC (otherwise an east-of-UTC client sees
-// "just published" posts as several hours old). See ReportCard.timeAgo for context.
 function parseUtcDate(s) {
   if (!s) return null;
   if (/Z|[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
@@ -62,7 +60,7 @@ function directionColor(d) {
   return "text-muted-foreground bg-secondary border-border";
 }
 
-// â"€â"€ sub-components â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// -- sub-components -----------------------------------------------------------
 function StatChip({ label, value, color = "text-foreground", to }) {
   const inner = (
     <div className="group flex items-center gap-3 pl-4 pr-5 py-2.5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-card-md transition-all cursor-pointer">
@@ -163,7 +161,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
     );
     return computeAvgYield(resolved);
   })();
-  const MEDALS = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
+  const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
   return (
     <div
@@ -200,7 +198,7 @@ function AnalystRow({ analyst, rank, allReports, followedEmails, onFollow, curre
               : "border-primary/30 text-primary hover:bg-primary/5"
           }`}
         >
-          {isFollowing ? "âœ"" : "Follow"}
+          {isFollowing ? "✓" : "Follow"}
         </button>
       )}
     </div>
@@ -235,13 +233,15 @@ function TrendingPredictionCard({ report }) {
             {isHit ? "HIT" : "MISS"}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground">â™¥ {report.likes || 0}</span>
+        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+          <Heart className="w-2.5 h-2.5" /> {report.likes || 0}
+        </span>
       </div>
     </button>
   );
 }
 
-// â"€â"€ main page â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// -- main page ----------------------------------------------------------------
 export default function HomePageDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -269,14 +269,12 @@ export default function HomePageDashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  // Investors see the consumer home; analysts/admins see the creator dashboard
   const isAnalyst = user?.role === "analyst" || user?.role === "admin";
 
-  // load watchlist from localStorage â€" normalise ticker/symbol field
+  // load watchlist from localStorage
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
-      // WatchlistPanel stores { ticker, timeframe }; normalise to { symbol }
       const normalised = stored.map(e =>
         typeof e === "string" ? { symbol: e } : { ...e, symbol: e.ticker || e.symbol }
       );
@@ -312,15 +310,11 @@ export default function HomePageDashboard() {
           base44.entities.Subscription.filter({ subscriber_email: email, status: "active" }, "-created_date", 20).catch(() => []),
         ]);
 
-        // drafts
         setDrafts((myReports || []).filter(r => r.status !== "published").slice(0, 5));
 
-        // my stats + published reports for the left column
         const myPub = (myReports || []).filter(r => r.status === "published");
         setMyPublished(myPub.slice(0, 6));
         const me = users.find(u => u.email === email) || user;
-        // Use STOA engine score (live-computed from reports) so the dashboard
-        // chip matches what the leaderboard and profile page show.
         const stoaScore = computeScore(myPub);
         setMyStats({
           accuracy: stoaScore.score > 0 ? stoaScore.score : (me.accuracy_score || 0),
@@ -329,28 +323,21 @@ export default function HomePageDashboard() {
           yield: computeAvgYield(myPub.filter(r => r.prediction_outcome && r.prediction_outcome !== "pending")),
         });
 
-        // all published reports for right column
         setAllReports(allPub || []);
-
-        // top analysts (exclude self)
         setTopAnalysts((users || []).filter(u => u.accuracy_score > 0 && u.email !== email).slice(0, 7));
 
-        // followed emails
         const fEmails = (follows || []).map(f => f.analyst_email);
         setFollowedEmails(fEmails);
 
-        // reports from followed analysts
         const followedPub = (allPub || [])
           .filter(r => fEmails.includes(r.created_by))
           .slice(0, 6);
         setFollowedReports(followedPub);
 
-        // purchased reports (unlocked via wallet)
         const unlockedIds = new Set((walletTxns || []).map(t => t.related_id).filter(Boolean));
         const purchased = (allPub || []).filter(r => unlockedIds.has(r.id)).slice(0, 8);
         setPurchasedReports(purchased);
 
-        // subscription reports
         setMySubscriptions(subs || []);
         const subEmails = new Set((subs || []).map(s => s.analyst_email).filter(Boolean));
         const subReps = (allPub || [])
@@ -359,11 +346,9 @@ export default function HomePageDashboard() {
           .slice(0, 8);
         setSubscriptionReports(subReps);
 
-        // trending predictions = most liked reports with a direction
         const withDir = (allPub || []).filter(r => r.prediction_direction || r.prediction_action);
         setTrendingPredictions(withDir.slice(0, 6));
 
-        // trending tickers
         const tickerCount = {};
         (allPub || []).forEach(r => {
           if (r.stock_ticker) tickerCount[r.stock_ticker] = (tickerCount[r.stock_ticker] || 0) + 1;
@@ -373,7 +358,6 @@ export default function HomePageDashboard() {
         });
         setTrendingTickers(Object.entries(tickerCount).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t]) => t));
 
-        // sectors
         const sectorCount = {};
         (allPub || []).forEach(r => { if (r.industry) sectorCount[r.industry] = (sectorCount[r.industry] || 0) + 1; });
         const total = Object.values(sectorCount).reduce((a, b) => a + b, 0) || 1;
@@ -389,7 +373,7 @@ export default function HomePageDashboard() {
     load();
   }, [user]);
 
-  // Live index prices â€" SPY, QQQ, DIA, VIX
+  // Live index prices
   useEffect(() => {
     const INDEX_TICKERS = [{ sym: "SPY", label: "SPY" }, { sym: "QQQ", label: "QQQ" }, { sym: "DIA", label: "DIA" }, { sym: "^VIX", label: "VIX" }];
     const fetchIndexes = async () => {
@@ -436,7 +420,6 @@ export default function HomePageDashboard() {
     }
   };
 
-  // Investors see the consumer home; analysts/admins see the creator dashboard
   if (user && !isAnalyst) return <InvestorHome />;
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Researcher";
@@ -452,7 +435,7 @@ export default function HomePageDashboard() {
   return (
     <div className="max-w-[1180px] mx-auto px-5 py-10 pb-16">
 
-      {/* â"€â"€ Welcome header â€" editorial, single focus â"€â"€ */}
+      {/* Welcome header */}
       <div className="mb-8 flex items-end justify-between flex-wrap gap-4">
         <div>
           <span className="eyebrow text-muted-foreground">Creator Studio</span>
@@ -467,9 +450,7 @@ export default function HomePageDashboard() {
         </Link>
       </div>
 
-      {/* â"€â"€ 3 hero stat cards â€" Beehiiv-style creator dashboard:
-          Subscribers Â· Accuracy Â· Followers (proxy for earnings reach).
-          Big numbers, clear labels, generous padding, NO gradient chips. */}
+      {/* 3 hero stat cards */}
       {myStats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <Link to="/subscribers" className="stat-card surface-interactive no-underline">
@@ -502,10 +483,10 @@ export default function HomePageDashboard() {
         </div>
       )}
 
-      {/* â"€â"€ Two-column layout â"€â"€ */}
+      {/* Two-column layout */}
       <div className="flex gap-6 items-start">
 
-        {/* â•â•â• LEFT COLUMN â•â•â• */}
+        {/* LEFT COLUMN */}
         <div className="flex-1 min-w-0 space-y-5">
 
           {/* My Drafts */}
@@ -600,11 +581,13 @@ export default function HomePageDashboard() {
                           )}
                           {r.views > 0 && (
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              ðŸ' {r.views}
+                              <Eye className="w-2.5 h-2.5" /> {r.views}
                             </span>
                           )}
                           {r.likes > 0 && (
-                            <span className="text-[10px] text-muted-foreground">â™¥ {r.likes}</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <Heart className="w-2.5 h-2.5" /> {r.likes}
+                            </span>
                           )}
                           <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(r.created_date)}</span>
                         </div>
@@ -646,7 +629,7 @@ export default function HomePageDashboard() {
           )}
 
           {/* Reports You've Unlocked */}
-          {(purchasedReports.length > 0) && (
+          {purchasedReports.length > 0 && (
             <section className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-medium text-sm flex items-center gap-2">
@@ -702,7 +685,7 @@ export default function HomePageDashboard() {
           )}
 
           {/* From Your Subscriptions */}
-          {(mySubscriptions.length > 0) && (
+          {mySubscriptions.length > 0 && (
             <section className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-medium text-sm flex items-center gap-2">
@@ -714,7 +697,6 @@ export default function HomePageDashboard() {
                   Full feed <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
-              {/* Subscribed analyst chips */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {mySubscriptions.map(sub => {
                   const name = sub.analyst_name || sub.analyst_email?.split("@")[0] || "Researcher";
@@ -809,11 +791,7 @@ export default function HomePageDashboard() {
           </section>
         </div>
 
-        {/* â•â•â• RIGHT COLUMN â•â•â• â€" slim, max 2 widgets per redesign brief.
-            Quick Access + Market Activity removed; users find those via
-            the global nav and /stocks. Right rail now shows only the
-            two highest-leverage panels: Top Researchers and Hot
-            Predictions. */}
+        {/* RIGHT COLUMN */}
         <div className="hidden lg:flex flex-col gap-8 w-64 flex-shrink-0">
 
           {/* Top Analysts */}
@@ -863,85 +841,6 @@ export default function HomePageDashboard() {
               </div>
             )}
           </section>
-
-          {/* Market Activity removed â€" third widget violated the
-              "max 2 panels in the right rail" rule. Users find live
-              market data on /stocks instead. */}
-          {false && (
-          <section className="surface p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-medium text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                Market Activity
-              </h2>
-              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> Live
-              </span>
-            </div>
-
-            {/* Live index prices */}
-            {indexQuotes.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {indexQuotes.map(q => {
-                  const up = (q.change ?? 0) >= 0;
-                  return (
-                    <div key={q.symbol} className="group rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-card-md px-3 py-2 transition-all">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-display font-medium tracking-wide text-muted-foreground">{q.label}</span>
-                        {up ? <TrendingUp className="w-2.5 h-2.5 text-gain" /> : <TrendingDown className="w-2.5 h-2.5 text-loss" />}
-                      </div>
-                      <div className="text-sm font-medium tabular-nums leading-tight">
-                        {q.symbol === "VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}
-                      </div>
-                      <div className={`text-[11px] font-medium tabular-nums ${up ? "text-gain" : "text-loss"}`}>
-                        {up ? "+" : ""}{q.change?.toFixed(2)}%
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {trendingTickers.length > 0 && (
-              <>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Most Covered</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {trendingTickers.map(t => (
-                    <button
-                      key={t}
-                      onClick={() => navigate(`/stock?ticker=${t}`)}
-                      className="text-[11px] font-display font-medium px-2 py-1 rounded-lg bg-secondary hover:bg-primary/10 hover:text-primary border border-border transition-all"
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {trendingSectors.length > 0 && (
-              <>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Top Sectors</p>
-                <div className="space-y-2">
-                  {trendingSectors.map(({ name, pct }) => (
-                    <div key={name}>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-foreground/80 truncate pr-2">{name}</span>
-                        <span className="font-medium shrink-0">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary/60 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
-          )}
 
         </div>
       </div>
