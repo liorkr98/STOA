@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -81,6 +81,12 @@ function RootRoute() {
   if (isLoading) return <LandingPage />;
   if (!isAuthenticated) return <LandingPage />;
   return <HomePageDashboard />;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
 }
 
 const AuthenticatedApp = () => {
@@ -191,6 +197,7 @@ function App() {
       <ThemeProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
+            <ScrollToTop />
             <AuthenticatedApp />
           </Router>
           <Toaster />
