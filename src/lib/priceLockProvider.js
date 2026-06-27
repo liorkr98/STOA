@@ -96,6 +96,31 @@ export async function fetchLockPrice(ticker) {
   throw lastErr || new Error("all_providers_failed");
 }
 
+// ── Timeframe → expiry ────────────────────────────────────────────────────────
+// Converts a human timeframe ("3 Days", "1 Week", "1 Month", "90 days", …) into
+// a number of days. Used to stamp a concrete expiry date on a prediction at the
+// moment it's locked, so the UI can show "Expires in 12 days" and the resolver
+// knows exactly when to close the call. Defaults to 180 days if unparseable.
+export function timeframeToDays(timeframe) {
+  if (!timeframe) return 180;
+  const str = String(timeframe).toLowerCase();
+  const n = parseInt(str, 10);
+  const num = isFinite(n) && n > 0 ? n : 1;
+  if (str.includes("day"))   return num;
+  if (str.includes("week"))  return num * 7;
+  if (str.includes("month")) return num * 30;
+  if (str.includes("year"))  return num * 365;
+  return 180;
+}
+
+// Given a lock timestamp (ISO string or Date) and a timeframe, returns the
+// expiry as an ISO string.
+export function computeExpiry(lockTime, timeframe) {
+  const start = lockTime ? new Date(lockTime) : new Date();
+  const days = timeframeToDays(timeframe);
+  return new Date(start.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 // ── Display helpers for the UI ────────────────────────────────────────────────
 export function describeSource(source) {
   switch (source) {

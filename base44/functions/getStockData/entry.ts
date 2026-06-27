@@ -9,7 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: "ticker is required" }, { status: 400 });
     }
 
-    const symbol = ticker.toUpperCase().trim();
+    // Yahoo expects class shares as BRK-B (hyphen), not BRK.B (dot), and the
+    // symbol must be URL-encoded. Normalize so dotted tickers stop 404-ing.
+    const rawSymbol = ticker.toUpperCase().trim();
+    const symbol = encodeURIComponent(rawSymbol.replace(/\./g, "-"));
     const headers = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       "Accept": "application/json",
@@ -93,8 +96,9 @@ Deno.serve(async (req) => {
       }
     } catch { /* financials optional */ }
 
+    const displaySymbol = rawSymbol.replace(/\./g, "-");
     return Response.json({
-      ticker: symbol,
+      ticker: displaySymbol,
       // Price
       price,
       regularMarketPrice: price,
@@ -120,7 +124,7 @@ Deno.serve(async (req) => {
       pbRatio:            q._pbRatio ?? q.priceToBook,
       sharesOutstanding:  q.sharesOutstanding,
       // Company
-      companyName:  q.longName || q.shortName || symbol,
+      companyName:  q.longName || q.shortName || displaySymbol,
       exchange:     q.exchangeShortName || q.fullExchangeName || chartMeta.fullExchangeName,
       exchangeName: q.fullExchangeName || chartMeta.fullExchangeName,
       sector:       q.sector,

@@ -22,7 +22,7 @@ import StockChartBlock from "@/components/editor/StockChartBlock";
 import ChatCompareChart from "@/components/editor/ChatCompareChart";
 import ImageBlock from "@/components/editor/ImageBlock";
 import PredictionBlock from "@/components/editor/PredictionBlock";
-import { fetchLockPrice } from "@/lib/priceLockProvider";
+import { fetchLockPrice, computeExpiry } from "@/lib/priceLockProvider";
 import { avatarUrl } from "@/lib/avatarUrl";
 import { loadMyWallet, spendAICredits } from "@/lib/walletService";
 import AISidebar from "@/components/editor/AISidebar";
@@ -634,6 +634,7 @@ export default function ReportEditor() {
       let lockPrice  = null;
       let lockTime   = null;
       let lockSource = null;
+      let expiryTime = null;
       if (predictionData?.ticker && predictionData?.action) {
         toast.info(`Locking live price for $${predictionData.ticker}…`, { duration: 1800 });
         try {
@@ -641,6 +642,10 @@ export default function ReportEditor() {
           lockPrice  = locked.price;
           lockTime   = locked.timestamp;
           lockSource = locked.source;
+          // Stamp a concrete expiry date now, against the locked entry, so the
+          // prediction has a real countdown and the resolver knows exactly
+          // when to close it against live data.
+          expiryTime = computeExpiry(lockTime, predictionData.timeframe);
         } catch {
           toast.error(`Could not fetch live price for $${predictionData.ticker}. Publish aborted — try again in a moment.`);
           return;
@@ -693,6 +698,8 @@ Report:"""${fullText.slice(0, 3000)}"""`,
         prediction_lock_price:    lockPrice,
         prediction_lock_time:     lockTime,
         prediction_lock_source:   lockSource,
+        prediction_expiry_time:   expiryTime,
+        prediction_outcome:       (predictionData?.ticker && predictionData?.action) ? "pending" : null,
         prediction_timeframe:     predictionData?.timeframe    || null,
         prediction_stop_loss:     predictionData?.stopLoss     || null,
         prediction_portfolio_pct: predictionData?.portfolioPct || null,

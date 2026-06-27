@@ -40,6 +40,11 @@
       "type": "string",
       "description": "Data provider that supplied the lock price (finnhub, polygon, iex, yahoo)"
     },
+    "prediction_expiry_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the prediction's timeframe runs out and it auto-resolves against live price"
+    },
     "prediction_timeframe": {
       "type": "string"
     },

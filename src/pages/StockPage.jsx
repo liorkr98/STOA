@@ -79,19 +79,19 @@ export default function StockPage() {
     setQuote(null);
     setFundamentals(null);
 
-    Promise.all([
-      fetchQuote(ticker),
-      fetchFundamentals(ticker),
-      fetchNews(ticker),
-      fetchEarnings(ticker),
-      fetchAnalystRatings(ticker),
-    ])
-      .then(([q, f, n, e, r]) => {
+    // Only the quote is essential — if it loads, render the page. The
+    // secondary panels (fundamentals, news, earnings, ratings) each fall back
+    // to an empty value on failure so one rate-limited Yahoo endpoint can't
+    // turn the whole ticker page into an error screen.
+    fetchQuote(ticker)
+      .then(q => {
+        if (!q || q.price == null) throw new Error(`No market data found for ${ticker}.`);
         setQuote(q);
-        setFundamentals(f);
-        setNews(n);
-        setEarnings(e);
-        setRatings(r);
+        // Fire the rest in the background; never let them surface an error.
+        fetchFundamentals(ticker).then(setFundamentals).catch(() => setFundamentals(null));
+        fetchNews(ticker).then(setNews).catch(() => setNews([]));
+        fetchEarnings(ticker).then(setEarnings).catch(() => setEarnings(null));
+        fetchAnalystRatings(ticker).then(setRatings).catch(() => setRatings(null));
       })
       .catch(err => setError(err.message || "Failed to load stock data."))
       .finally(() => setLoading(false));

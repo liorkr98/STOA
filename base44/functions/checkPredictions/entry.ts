@@ -280,8 +280,12 @@ Deno.serve(async (req) => {
         const lockTime = report.prediction_lock_time
           ? new Date(report.prediction_lock_time)
           : (report.prediction_locked_at ? new Date(report.prediction_locked_at) : new Date(report.created_date));
-        const months = parseTimeframeMonths(report.prediction_timeframe);
-        const expiryMs = lockTime.getTime() + months * 30 * 24 * 60 * 60 * 1000;
+        // Prefer the persisted expiry stamped at publish. Fall back to
+        // computing it from the lock time + timeframe for older reports that
+        // were published before prediction_expiry_time existed.
+        const expiryMs = report.prediction_expiry_time
+          ? new Date(report.prediction_expiry_time).getTime()
+          : lockTime.getTime() + parseTimeframeMonths(report.prediction_timeframe) * 30 * 24 * 60 * 60 * 1000;
         const isExpired = now.getTime() >= expiryMs;
 
         // Check resolution against live price — includes extended hours pricing (pre-market and after-hours)

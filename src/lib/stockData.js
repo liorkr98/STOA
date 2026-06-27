@@ -8,10 +8,19 @@ async function yf(url) {
   return r.data;
 }
 
+// Yahoo Finance uses a hyphen for class shares (BRK-B), not the dot that
+// users / our data sources commonly write (BRK.B). It also chokes on
+// un-encoded symbols. Normalize every symbol before it goes into a URL so
+// dotted tickers stop returning a hard 404 (which the UI shows as a broken
+// "Failed to load" page).
+export function yahooSymbol(ticker) {
+  return encodeURIComponent(String(ticker || "").trim().toUpperCase().replace(/\./g, "-"));
+}
+
 // ── QUOTE ────────────────────────────────────────────────────
 export async function fetchQuote(ticker) {
   const data = await yf(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`
+    `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol(ticker)}?interval=1d&range=1d`
   );
   const meta = data?.chart?.result?.[0]?.meta || {};
   return {
@@ -32,7 +41,7 @@ export async function fetchQuote(ticker) {
 // ── FUNDAMENTALS ─────────────────────────────────────────────
 export async function fetchFundamentals(ticker) {
   const data = await yf(
-    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics,financialData,assetProfile`
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${yahooSymbol(ticker)}?modules=summaryDetail,defaultKeyStatistics,financialData,assetProfile`
   );
   const d  = data?.quoteSummary?.result?.[0] || {};
   const sd = d.summaryDetail || {};
@@ -99,7 +108,7 @@ export async function fetchNews(ticker) {
 // ── EARNINGS ─────────────────────────────────────────────────
 export async function fetchEarnings(ticker) {
   const data = await yf(
-    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=earnings,earningsHistory,earningsTrend`
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${yahooSymbol(ticker)}?modules=earnings,earningsHistory,earningsTrend`
   );
   const d = data?.quoteSummary?.result?.[0] || {};
   return {
@@ -112,7 +121,7 @@ export async function fetchEarnings(ticker) {
 // ── ANALYST RATINGS ───────────────────────────────────────────
 export async function fetchAnalystRatings(ticker) {
   const data = await yf(
-    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=upgradeDowngradeHistory,recommendationTrend`
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${yahooSymbol(ticker)}?modules=upgradeDowngradeHistory,recommendationTrend`
   );
   const d = data?.quoteSummary?.result?.[0] || {};
   return {
@@ -124,7 +133,7 @@ export async function fetchAnalystRatings(ticker) {
 // ── FINANCIALS ────────────────────────────────────────────────
 export async function fetchFinancials(ticker) {
   const data = await yf(
-    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory`
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${yahooSymbol(ticker)}?modules=incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory`
   );
   const d = data?.quoteSummary?.result?.[0] || {};
   return {
